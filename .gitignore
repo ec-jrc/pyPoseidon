@@ -45,13 +45,19 @@ TAT/D3/
 tmp/
 
 #ignore notebook output folders
-Notebooks/tmp/
-report/bulletin
+Notebooks/
+report/
+TIDES/
+BATHYMETRY/
+src/
+utils/
+TAT/
 
-# TIDE OTPS folders
-TIDES/OTPS2
-TIDES/OTPSnc
-TIDES/matlab
+# Setuptools distribution folder.
+/dist/
 
-# bathymetry files
-*.grd
+# Build folder.
+build/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
