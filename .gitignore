@@ -1,0 +1,57 @@
+# .pyc files
+*.pyc
+
+# mac files
+*.DS_Store
+
+# the output of TAT interface
+TAT/D3/
+
+# dotx files
+*.dotx
+
+# doc files
+*.doc
+
+# tif files
+*.tif
+
+# swp files
+*.swp
+
+# mp4 files
+*.mp4
+
+# zip files
+*.zip
+
+# netcdf files
+*.nc
+
+# Tide files
+*_v1
+
+# zipped files
+*.Z
+*.gz
+
+# dat files
+*.dat
+
+#ignore .jupyter chekpoints folder
+.ipynb_checkpoints/
+
+# all temp folders
+tmp/
+
+#ignore notebook output folders
+Notebooks/tmp/
+report/bulletin
+
+# TIDE OTPS folders
+TIDES/OTPS2
+TIDES/OTPSnc
+TIDES/matlab
+
+# bathymetry files
+*.grd
