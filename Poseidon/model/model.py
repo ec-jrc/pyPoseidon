@@ -7,16 +7,24 @@ from shutil import copy2
 import subprocess
 import sys
 import pkg_resources
+from bunch import Bunch
+#local modules
+import mdf
+from grid import *
+from dep import *
+from Poseidon.meteo import meteo
+from Poseidon.dem import dem
+
+
+#retrieve the module path
+DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
+#DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
 
 class model:
     def __init__(self, **kwargs):
-        self.properties = kwargs.get('properties', {})
+        self.properties = kwargs.get('properties', {})        
         
-    def set(self):
-        raise NotImplementedError("Subclass must implement abstract method")        
-        
-        
-    def force(self):
+    def output(self):
         raise NotImplementedError("Subclass must implement abstract method")    
             
 
@@ -26,11 +34,11 @@ class model:
 
     def save(self):
         raise NotImplementedError("Subclass must implement abstract method")    
-          
+                                  
         
 class d3d(model):
-      
-    def set(self,**kwargs):
+    
+    def __init__(self,**kwargs):
         
         self.lon0 = kwargs.get('lon0', None)
         self.lon1 = kwargs.get('lon1', None)
@@ -38,27 +46,25 @@ class d3d(model):
         self.lat1 = kwargs.get('lat1', None)       
         self.date = kwargs.get('date', None)
         self.tag = kwargs.get('tag', None)
-        self.ft1 = kwargs.get('ft1', None)
-        self.ft2 = kwargs.get('ft2', None)     
         self.resolution = kwargs.get('resolution', None)
-        self.x = kwargs.get('x', None)
-        self.y = kwargs.get('y', None)     
-        
-                
+        gx = kwargs.get('x', None)
+        gy = kwargs.get('y', None)    
+        mdf_file = kwargs.get('mdf', None)     
+                        
         resmin=self.resolution*60
       
         # computei ni,nj / correct lat/lon
 
-        if 'lon' in self.properties.keys():
+        if gx :
             
-          self.x=self.properties.lon
-          self.y=self.properties.lat
+          self.x=gx
+          self.y=gy
               
-          nj,ni=lon.shape
-          self.lon0=lon.min()
-          self.lon1=lon.max()
-          self.lat0=lat.min()
-          self.lat1=lat.max()
+          nj,ni=self.x.shape
+          self.lon0=self.x.min()
+          self.lon1=self.x.max()
+          self.lat0=self.y.min()
+          self.lat1=self.y.max()
 
         else:
 
@@ -75,25 +81,44 @@ class d3d(model):
         self.ni=ni
         self.nj=nj
         
-        if self.x is None :
+        if gx is None :
           sys.stdout.write('create grid')
           sys.stdout.flush()
           sys.stdout.write('\n')
         # set the grid 
           x=np.linspace(self.lon0,self.lon1,self.ni)
           y=np.linspace(self.lat0,self.lat1,self.nj)
-          self.x,self.y=np.meshgrid(x,y)
+          gx,gy=np.meshgrid(x,y)
+          
+        # Grid   
+        self.grid=Grid()
+        self.grid.x,self.grid.y=gx,gy
+        self.grid.shape = gx.shape        
         
+        #mdf
+        if mdf_file :
+            inp, order = mdf.read(mdf_file)
+        else:
+            inp, order = mdf.read(DATA_PATH+'default.mdf')
+        
+        self.mdf = Bunch({'inp':inp, 'order':order})    
+            
+        
+        #meteo
+        self.meteo = meteo()  
+        
+        #dem
+        self.dem = dem()  
     
     def force(self,**kwargs):
     
         path = kwargs.get('path', './')
         curvi = kwargs.get('curvi', False)
         
-        dlat=self.lats[1,0]-self.lats[0,0]
-        dlon=self.lons[0,1]-self.lons[0,0]
-        lat0=self.lats[0,0] 
-        lon0=self.lons[0,0] 
+        dlat=self.meteo.lats[1,0]-self.meteo.lats[0,0]
+        dlon=self.meteo.lons[0,1]-self.meteo.lons[0,0]
+        lat0=self.meteo.lats[0,0] 
+        lon0=self.meteo.lons[0,0] 
 
         nodata=-9999.000
 
@@ -120,8 +145,8 @@ class d3d(model):
         else:
            for f in fi:
               f.write('Filetype         = meteo_on_equidistant_grid\n')
-              f.write('n_cols           = {}\n'.format(self.u.shape[2]))
-              f.write('n_rows           = {}\n'.format(self.u.shape[1]))
+              f.write('n_cols           = {}\n'.format(self.meteo.u.shape[2]))
+              f.write('n_rows           = {}\n'.format(self.meteo.u.shape[1]))
               f.write('grid_unit        = degree\n')
         # code currently assumes lon and lat are increasing
               f.write('x_llcenter       = {:g}\n'.format(lon0))
@@ -145,7 +170,7 @@ class d3d(model):
         time0=datetime.datetime.strptime('2000-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
 
        # write time blocks
-        for it in range(self.ft1,self.ft2): # nt + 0 hour
+        for it in range(self.meteo.ft1,self.meteo.ft2): # nt + 0 hour
           ntime=self.date+datetime.timedelta(hours=it)
           dt=(ntime-time0).total_seconds()/3600.
 
@@ -153,9 +178,9 @@ class d3d(model):
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(dt))
 
-          np.savetxt(pfid,np.flipud(self.p[it,:,:]/0.01),fmt='%.3f')
-          np.savetxt(ufid,np.flipud(self.u[it,:,:]),fmt='%.3f')
-          np.savetxt(vfid,np.flipud(self.v[it,:,:]),fmt='%.3f')
+          np.savetxt(pfid,np.flipud(self.meteo.p[it,:,:]/0.01),fmt='%.3f')
+          np.savetxt(ufid,np.flipud(self.meteo.u[it,:,:]),fmt='%.3f')
+          np.savetxt(vfid,np.flipud(self.meteo.v[it,:,:]),fmt='%.3f')
 
     # write the same values for the end time
     #dt=dt+nt*60.
@@ -179,8 +204,6 @@ class d3d(model):
         
         ncores = kwargs.get('ncores', './')
         
-        #retrieve the module path
-        DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
         
       # edit and save config file
         copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')
@@ -216,5 +239,50 @@ class d3d(model):
                pickle.dump(self.__dict__,f)
         
         
+    def output(self,**kwargs):      
+          
+        path = kwargs.get('path', './') 
+        
+        #save mdf 
+        mdf.write(self.mdf.inp, path+self.tag+'.mdf',selection=self.mdf.order)
+        
+        #save grid
+        self.grid.write(path+self.tag+'.grd')
+        
+        #save dem
+        # Write bathymetry file
+        ba = Dep()
+        # append the line/column of nodata 
+        nodata=np.empty(self.ni)
+        nodata.fill(np.nan)
+        bat1=np.vstack((self.dem.ival,nodata))
+        nodata=np.empty((self.nj+1,1))
+        nodata.fill(np.nan)
+        bat2=np.hstack((bat1,nodata))
+        ba.val = bat2
+        ba.shape = bat2.shape
+
+        Dep.write(ba,path+self.tag+'.dep')
+        
+        #save meteo
+        self.force(path=path)
+        
+        #save bca
+        
+        
+        #save obs
+        
+        
+        #save enc
+        #write enc out
+        with open(path+self.tag+'.enc','w') as f:
+            f.write('{:>5}{:>5}\n'.format(self.ni+1,1))  # add one like ddb
+            f.write('{:>5}{:>5}\n'.format(self.ni+1,self.nj+1))
+            f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
+            f.write('{:>5}{:>5}\n'.format(1,1))
+            f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
+        
             
+        
+        
         

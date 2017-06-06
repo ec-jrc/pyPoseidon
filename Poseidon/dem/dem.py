@@ -2,7 +2,7 @@ import numpy as np
 import netCDF4
 import scipy.interpolate
 
-class model:
+class dem:
     def __init__(self, **kwargs):
         self.lon0 = kwargs.get('lon0', None)
         self.lon1 = kwargs.get('lon1', None)
@@ -14,7 +14,7 @@ class model:
         raise NotImplementedError("Subclass must implement abstract method")        
         
 
-class gebco08(model):
+class gebco08(dem):
     
     def get(self,**kwargs):
       filename = kwargs.get('file', None)      
@@ -94,7 +94,7 @@ class gebco08(model):
         lons, lats = np.meshgrid(lon[i1:i2],lat[j1:j2])
         topo = ncv[n3][j1:j2,i1:i2]
         
-      self.dem = topo
+      self.val = topo
       self.dlons = lons
       self.dlat = lats
          
@@ -122,10 +122,10 @@ class gebco08(model):
        itopo=np.array(itopo)
        itopo=itopo.reshape(grid_x.shape)
 
-       self.idem = itopo
+       self.ival = itopo
 
 
-class gebco14(model):
+class gebco14(dem):
     
     def get(self,**kwargs):
       filename = kwargs.get('file', None)      

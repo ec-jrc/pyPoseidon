@@ -11,26 +11,11 @@ class Grid(object):
     Grid.write(grid,'filename.grd')
     """
     def __init__(self, **kwargs):
-        self.properties = kwargs.get('properties', {})
+        self.properties = kwargs.get('properties', {'Coordinate System': 'Spherical', 'alfori': 0.0, 'xori': 0.0, 'yori': 0.0})
         self.shape = kwargs.get('shape', None)
         self.x     = kwargs.get('x', None)
         self.y     = kwargs.get('y', None)
 
-
-    def create(self, **kwargs):
-        
-        lon0 = kwargs.get('lon0', None)
-        lon1 = kwargs.get('lon1', None)
-        lat0 = kwargs.get('lat0', None)
-        lat1 = kwargs.get('lat1', None)
-        ni = kwargs.get('ni', None)
-        nj = kwargs.get('nj', None)
-        
-        x=np.linspace(lon0,lon1,ni)
-        y=np.linspace(lat0,lat1,nj)
-        self.x,self.y=np.meshgrid(x,y)
-        self.shape = x.shape
-        
 
     @staticmethod
     def fromfile(filename, **kwargs):
