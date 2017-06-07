@@ -50,7 +50,6 @@ report/
 TIDES/
 BATHYMETRY/
 src/
-utils/
 TAT/
 
 # Setuptools distribution folder.
