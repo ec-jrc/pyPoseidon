@@ -38,7 +38,7 @@ class model:
         
 class d3d(model):
     
-    def __init__(self,**kwargs):
+    def set(self,**kwargs):
         
         self.lon0 = kwargs.get('lon0', None)
         self.lon1 = kwargs.get('lon1', None)
