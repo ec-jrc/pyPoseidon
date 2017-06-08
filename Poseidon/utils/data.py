@@ -41,6 +41,9 @@ class DataFile:
         else:
             self.impl = DataFile_netCDF(filename=filename, write=write, create=create, format=format)
 
+    def info(self,**kwargs):
+        self.impl.info(**kwargs)
+
     def open(self, filename, write=False, create=False,
              format='NETCDF3_CLASSIC'):
       self.impl.open(filename, write=write, create=create,
@@ -90,6 +93,12 @@ class DataFile:
 
 class DataFile_netCDF(DataFile):
     handle = None
+
+
+    def info(self,**kwargs):
+        
+        for attr, value in kwargs.items(): #add attributes
+             setattr(self.handle, attr, value)
 
     def open(self, filename, write=False, create=False,
              format='NETCDF3_64BIT'):
