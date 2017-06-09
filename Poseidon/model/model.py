@@ -19,6 +19,7 @@ from Poseidon.dem import dem
 #retrieve the module path
 DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
 #DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
+info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 
 class model:
     def __init__(self, **kwargs):
@@ -34,7 +35,7 @@ class model:
 
     def save(self):
         raise NotImplementedError("Subclass must implement abstract method")    
-                                  
+                                   
         
 class d3d(model):
     
@@ -47,6 +48,7 @@ class d3d(model):
         self.date = kwargs.get('date', None)
         self.tag = kwargs.get('tag', None)
         self.resolution = kwargs.get('resolution', None)
+        
         gx = kwargs.get('x', None)
         gy = kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)     
@@ -82,9 +84,6 @@ class d3d(model):
         self.nj=nj
         
         if gx is None :
-          sys.stdout.write('create grid')
-          sys.stdout.flush()
-          sys.stdout.write('\n')
         # set the grid 
           x=np.linspace(self.lon0,self.lon1,self.ni)
           y=np.linspace(self.lat0,self.lat1,self.nj)
@@ -237,6 +236,22 @@ class d3d(model):
         
          with open(path+self.tag+'.pkl', 'w') as f:
                pickle.dump(self.__dict__,f)
+        
+    def info2file(self,**kwargs):
+        
+         path = kwargs.get('path', './')
+        
+         dic = {k: self.__dict__.get(k, None) for k in info_data}
+                  
+         with open(path+'info.pkl', 'w') as f:
+               pickle.dump(dic,f)
+    
+    def file2info(self,**kwargs):
+        
+        path = kwargs.get('path', './')
+       
+        with open(path+'info.pkl', 'r') as f:
+              self.info=pickle.load(f)
         
         
     def output(self,**kwargs):      
