@@ -80,9 +80,9 @@ class DataFile:
         """List of dimension sizes for a variable."""
         return self.impl.size(varname)
 
-    def write(self, name, data, **kwargs):
+    def write(self, name, data, dims,**kwargs):
         """Writes a variable to file, making guesses for the dimensions"""
-        return self.impl.write(name, data, **kwargs)
+        return self.impl.write(name, data, dims, **kwargs)
 
     def __getitem__(self, name):
         return self.impl.__getitem__(name)
@@ -228,12 +228,16 @@ class DataFile_netCDF(DataFile):
             return 0
         return [dimlen(d) for d in var.dimensions]
         
-    def write(self, name, data, **kwargs):
+    def write(self, name, data, dims, **kwargs):
         """Writes a variable to file, making guesses for the dimensions"""
-
+        
         info = kwargs.get('info', False)
-
+        
         kwargs.pop('info',kwargs)
+        
+        lim = kwargs.get('limited', True)
+        
+        kwargs.pop('limited',kwargs)
 
         if not self.writeable:
             raise Exception("File not writeable. Open with write=True keyword")
@@ -317,27 +321,31 @@ class DataFile_netCDF(DataFile):
                             # Not found. Create
                             if info:
                                 print("Defining dimension "+ dn + " of size %d" % size)
+                            if lim == False : size = None # set an unlimited variable 
                             try:
                                 self.handle.createDimension(dn, size)
                             except AttributeError:
                                 # Try the old-style function
                                 self.handle.create_dimension(dn, size)
                             return dn
+                            
                         i = i + 1
 
                 except KeyError:
                     # Doesn't exist, so add
                     if info:
                         print("Defining dimension "+ name + " of size %d" % size)
+                    if lim == False : size = None # set an unlimited variable 
                     try:
                         self.handle.createDimension(name, size)
                     except AttributeError:
                         self.handle.create_dimension(name, size)
+                        
 
                 return name
 
             # List of (size, 'name') tuples
-            dlist = list(zip(s, defdims[len(s)]))
+            dlist = list(zip(s, dims))
             # Get new list of variables, and turn into a tuple
             dims = tuple( map(find_dim, dlist) )
 
@@ -357,3 +365,4 @@ class DataFile_netCDF(DataFile):
         except:
             # And some others only this
             var[:] = data
+            
