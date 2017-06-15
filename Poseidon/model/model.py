@@ -242,6 +242,8 @@ class d3d(model):
          path = kwargs.get('path', './')
         
          dic = {k: self.__dict__.get(k, None) for k in info_data}
+         dic['model'] = self.__class__.__name__
+         dic = dict(dic, **{k: self.__dict__.get(k, None).__class__.__name__ for k in ['meteo','dem']})
                   
          with open(path+'info.pkl', 'w') as f:
                pickle.dump(dic,f)
