@@ -79,8 +79,6 @@ def getd(f,t):
 class meteo:
     def __init__(self,**kwargs):
         self.properties = kwargs.get('properties', {})
-        self.ft1 = kwargs.get('ft1', None)
-        self.ft2 = kwargs.get('ft2', None)
         
     def parse(self):
         raise NotImplementedError("Subclass must implement abstract method")    
@@ -90,8 +88,11 @@ class ecmwf(meteo):
     
     def parse(self,**kwargs):
       
-      filename = kwargs.get('path', {})
       
+      filename = kwargs.get('path', {})
+      self.ft1 = kwargs.get('ft1', self.ft1)
+      self.ft2 = kwargs.get('ft2', self.ft2)
+            
       nt1=3*self.ft1
       nt2=3*self.ft2
           
