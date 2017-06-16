@@ -80,9 +80,9 @@ class DataFile:
         """List of dimension sizes for a variable."""
         return self.impl.size(varname)
 
-    def write(self, name, data, dims,**kwargs):
+    def write(self, name, data, **kwargs):
         """Writes a variable to file, making guesses for the dimensions"""
-        return self.impl.write(name, data, dims, **kwargs)
+        return self.impl.write(name, data, **kwargs)
 
     def __getitem__(self, name):
         return self.impl.__getitem__(name)
@@ -228,10 +228,14 @@ class DataFile_netCDF(DataFile):
             return 0
         return [dimlen(d) for d in var.dimensions]
         
-    def write(self, name, data, dims, **kwargs):
+    def write(self, name, data, **kwargs):
         """Writes a variable to file, making guesses for the dimensions"""
         
-        info = kwargs.get('info', False)
+        vname = kwargs.get('vname', None)
+        
+        kwargs.pop('vname',kwargs)
+
+        info = kwargs.get('info', None)
         
         kwargs.pop('info',kwargs)
         
@@ -283,6 +287,8 @@ class DataFile_netCDF(DataFile):
                        ('x','y'),
                        ('x','y','z'),
                        ('t','x','y','z')]
+
+            if vname==None : vname = defdims[len(s)]
 
             def find_dim(dim):
                 # Find a dimension with given name and size
@@ -345,7 +351,7 @@ class DataFile_netCDF(DataFile):
                 return name
 
             # List of (size, 'name') tuples
-            dlist = list(zip(s, dims))
+            dlist = list(zip(s, vname))
             # Get new list of variables, and turn into a tuple
             dims = tuple( map(find_dim, dlist) )
 
