@@ -87,20 +87,18 @@ class meteo:
 class ecmwf(meteo):        
     
     def parse(self,**kwargs):
-      
-      
-      filename = kwargs.get('path', {})
-      self.ft1 = kwargs.get('ft1', self.ft1)
-      self.ft2 = kwargs.get('ft2', self.ft2)
             
-      nt1=3*self.ft1
-      nt2=3*self.ft2
-          
-      minlon = kwargs.get('lon0', {})
-      maxlon = kwargs.get('lon1', {})
-      minlat = kwargs.get('lat0', {})
-      maxlat = kwargs.get('lat1', {}) 
-                
+      filename = kwargs.get('path', {})
+      ft1 = kwargs.get('ft1', None)
+      ft2 = kwargs.get('ft2', None)
+                      
+      minlon = kwargs.get('lon0', None)
+      maxlon = kwargs.get('lon1', None)
+      minlat = kwargs.get('lat0', None)
+      maxlat = kwargs.get('lat1', None) 
+    
+      nt1=3*ft1
+      nt2=3*ft2            
       
       # read grib file
 
@@ -171,7 +169,9 @@ class ecmwf(meteo):
       self.u = np.array(ut)
       self.v = np.array(vt)
       self.lats = lats
-      self.lons = lons       
+      self.lons = lons   
+      self.ft1 = ft1
+      self.ft2 = ft2    
       
       
       
