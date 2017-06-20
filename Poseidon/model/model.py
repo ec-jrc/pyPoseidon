@@ -19,27 +19,47 @@ from Poseidon.dem import dem
 #retrieve the module path
 DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
 #DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
-info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
+#info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 
 class model:
-    def __init__(self, **kwargs):
-        self.properties = kwargs.get('properties', {})        
+    impl = None
+    def __init__(self, model=None, **kwargs):
+        if model == 'd3d':
+            self.impl = d3d(**kwargs)
+        elif model == 'schism':
+            self.impl = schism(**kwargs)            
         
-    def output(self):
-        raise NotImplementedError("Subclass must implement abstract method")    
+    def create(self,**kwargs):
+        self.impl.create(**kwargs)
+        
+    def force(self,**kwargs):
+        self.impl.force(**kwargs)
+                  
+    def output(self,**kwargs):
+        self.impl.output(**kwargs)
             
-
-    def run(self):
-        raise NotImplementedError("Subclass must implement abstract method")  
+    def run(self,**kwargs):
+        self.impl.run(**kwargs)
         
+    def save(self,**kwargs):
+        self.impl.save(**kwargs)
+    
+    def read(self,**kwargs):
+        self.impl.read(**kwargs)
 
-    def save(self):
-        raise NotImplementedError("Subclass must implement abstract method")    
+    def set(self,**kwargs):
+        self.impl.set(**kwargs)
+        
+    def meteo(self,**kwargs):
+        self.impl.meteo(**kwargs)
+
+    def dem(self,**kwargs):
+        self.impl.dem(**kwargs)
                                    
         
 class d3d(model):
     
-    def set(self,**kwargs):
+    def __init__(self,**kwargs):
         
         self.lon0 = kwargs.get('lon0', None)
         self.lon1 = kwargs.get('lon1', None)
@@ -48,11 +68,20 @@ class d3d(model):
         self.date = kwargs.get('date', None)
         self.tag = kwargs.get('tag', None)
         self.resolution = kwargs.get('resolution', None)
+        self.ft1 = kwargs.get('ft1', None)
+        self.ft2 = kwargs.get('ft2', None)
         
+            
+    def create(self,**kwargs):
+
         gx = kwargs.get('x', None)
         gy = kwargs.get('y', None)    
-        mdf_file = kwargs.get('mdf', None)     
-                        
+        mdf_file = kwargs.get('mdf', None)  
+        Tstart = self.date.hour+self.ft1*60     
+        Tstop = self.date.hour+self.ft2*60
+        step = kwargs.get('step', None)
+        rstep = kwargs.get('rstep', None)
+                                
         resmin=self.resolution*60
       
         # computei ni,nj / correct lat/lon
@@ -100,24 +129,87 @@ class d3d(model):
         else:
             inp, order = mdf.read(DATA_PATH+'default.mdf')
         
-        self.mdf = Bunch({'inp':inp, 'order':order})    
+            self.mdf = Bunch({'inp':inp, 'order':order})    
             
-        
+            #define grid file
+            self.mdf.inp['Filcco']=self.tag+'.grd'
+  
+            #define enc file
+            self.mdf.inp['Filgrd']=self.tag+'.enc'
+  
+            #define dep file
+            self.mdf.inp['Fildep']=self.tag+'.dep'
+  
+            #define obs file
+            self.mdf.inp['Filsta']='' #b.tag+'.obs'
+   
+            # adjust ni,nj
+            self.mdf.inp['MNKmax']=[self.ni+1,self.nj+1,1]  # add one like ddb
+  
+            # adjust iteration date
+            self.mdf.inp['Itdate']=datetime.datetime.strftime(self.date,'%Y-%m-%d')
+  
+            #set time unit
+            self.mdf.inp['Tunit']='M'
+
+            #adjust iteration start
+            self.mdf.inp['Tstart']=[Tstart]
+  
+            #adjust iteration stop
+            self.mdf.inp['Tstop']=[Tstop]
+  
+            #adjust time step
+            self.mdf.inp['Dt']=[1.]
+  
+            #adjust time for output
+            self.mdf.inp['Flmap']=[Tstart,step,Tstop]
+            self.mdf.inp['Flhis']=[Tstart,1,Tstop]
+            self.mdf.inp['Flpp']=[0,0,0]
+            self.mdf.inp['Flrst']=[rstep]
+  
+            #time interval to smooth the hydrodynamic boundary conditions
+            self.mdf.inp['Tlfsmo']=[0.]
+
+
+          # set tide only run
+        #if 'tide' in kwargs.keys() :
+        #     if (kwargs['tide']==True) & (force==False):
+        #        inp['Sub1'] = ' '
+        #        inp['Filbnd']=basename+'.bnd'
+        #        inp['Filana']=basename+'.bca'
+        #       if 'Tidfor' not in order: order.append('Tidfor')
+        #       inp['Tidfor']=[['M2','S2','N2','K2'], \
+        #                      ['K1','O1','P1','Q1'], \
+        #                      ['-----------']]
+ 
+          # specify ini file
+        # if 'Filic' not in order: order.append('Filic')
+        # inp['Filic']=basename+'.ini'
+
+          # netCDF output
+        if 'FlNcdf' not in self.mdf.order: self.mdf.order.append('FlNcdf')
+
+        self.mdf.inp['FlNcdf'] = 'map his'
+
+               
         #meteo
-        self.meteo = meteo()  
+    def meteo(self,**kwargs):
+        self.meteo = meteo(**kwargs)  
         
         #dem
-        self.dem = dem()  
+    def dem(self,**kwargs):
+        self.dem = dem(**kwargs)  
+
     
     def force(self,**kwargs):
     
         path = kwargs.get('path', './')
         curvi = kwargs.get('curvi', False)
         
-        dlat=self.meteo.lats[1,0]-self.meteo.lats[0,0]
-        dlon=self.meteo.lons[0,1]-self.meteo.lons[0,0]
-        lat0=self.meteo.lats[0,0] 
-        lon0=self.meteo.lons[0,0] 
+        dlat=self.meteo.impl.lats[1,0]-self.meteo.impl.lats[0,0]
+        dlon=self.meteo.impl.lons[0,1]-self.meteo.impl.lons[0,0]
+        lat0=self.meteo.impl.lats[0,0] 
+        lon0=self.meteo.impl.lons[0,0] 
 
         nodata=-9999.000
 
@@ -144,8 +236,8 @@ class d3d(model):
         else:
            for f in fi:
               f.write('Filetype         = meteo_on_equidistant_grid\n')
-              f.write('n_cols           = {}\n'.format(self.meteo.u.shape[2]))
-              f.write('n_rows           = {}\n'.format(self.meteo.u.shape[1]))
+              f.write('n_cols           = {}\n'.format(self.meteo.impl.u.shape[2]))
+              f.write('n_rows           = {}\n'.format(self.meteo.impl.u.shape[1]))
               f.write('grid_unit        = degree\n')
         # code currently assumes lon and lat are increasing
               f.write('x_llcenter       = {:g}\n'.format(lon0))
@@ -169,7 +261,7 @@ class d3d(model):
         time0=datetime.datetime.strptime('2000-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
 
        # write time blocks
-        for it in range(self.meteo.ft1,self.meteo.ft2): # nt + 0 hour
+        for it in range(self.ft1,self.ft2+1): # nt + 0 hour    
           ntime=self.date+datetime.timedelta(hours=it)
           dt=(ntime-time0).total_seconds()/3600.
 
@@ -177,9 +269,9 @@ class d3d(model):
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(dt))
 
-          np.savetxt(pfid,np.flipud(self.meteo.p[it,:,:]/0.01),fmt='%.3f')
-          np.savetxt(ufid,np.flipud(self.meteo.u[it,:,:]),fmt='%.3f')
-          np.savetxt(vfid,np.flipud(self.meteo.v[it,:,:]),fmt='%.3f')
+          np.savetxt(pfid,np.flipud(self.meteo.impl.p[it,:,:]/0.01),fmt='%.3f')
+          np.savetxt(ufid,np.flipud(self.meteo.impl.u[it,:,:]),fmt='%.3f')
+          np.savetxt(vfid,np.flipud(self.meteo.impl.v[it,:,:]),fmt='%.3f')
 
     # write the same values for the end time
     #dt=dt+nt*60.
@@ -198,23 +290,26 @@ class d3d(model):
     def run(self,**kwargs):
         
         calc_dir = kwargs.get('run_path', './')
-        bin_path = kwargs.get('d3d', './')
-        arch = kwargs.get('arch', './')
+        bin_path = kwargs.get('solver', './')
         
         ncores = kwargs.get('ncores', './')
         
         
-      # edit and save config file
-        copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')
+        if not os.path.exists( calc_dir+'config_d_hydro.xml') :
+            
+          # edit and save config file
+          copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
 
-        xml=md.parse(calc_dir+'config_d_hydro.xml')
+          xml=md.parse(calc_dir+'config_d_hydro.xml')
 
-        xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
-
-        with open(calc_dir+'config_d_hydro.xml','w') as f:
+          xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
+    
+          with open(calc_dir+'config_d_hydro.xml','w') as f:
             xml.writexml(f)
 
-        copy2(DATA_PATH + 'run_flow2d3d.sh',calc_dir+'run_flow2d3d.sh')
+        if not os.path.exists(calc_dir+'run_flow2d3d.sh') :
+          
+          copy2(DATA_PATH + 'run_flow2d3d.sh',calc_dir+'run_flow2d3d.sh')
         
         #make the script executable
         execf = calc_dir+'run_flow2d3d.sh'
@@ -224,39 +319,54 @@ class d3d(model):
         
         
         # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(bin_path,arch,ncores)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
-        for line in iter(ex.stderr.readline,b''): print line
-        ex.stderr.close()
-        for line in iter(ex.stdout.readline,b''): print line
-        ex.stdout.close()    
+        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {}'.format(bin_path,ncores)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+#        for line in iter(ex.stderr.readline,b''): print line
+#        ex.stderr.close() 
+        with open(calc_dir+'run.log', 'w') as f: 
+          for line in iter(ex.stdout.readline,b''): 
+            f.write(line)   
+            sys.stdout.write(line)
+            sys.stdout.flush()  
+        ex.stdout.close()            
+                 
+#        exitCode = ex.returncode
+#        print exitCode
+#        if (exitCode == 0):
+#        else:     
+#            for line in iter(ex.stderr.readline,b''): 
+#                sys.stdout.write(line)
+#                sys.stdout.flush()
+#            ex.stderr.close()        
+                 
     
-    def save(self,**kwargs):
+    def output(self,**kwargs):
         
          path = kwargs.get('path', './')
         
          with open(path+self.tag+'.pkl', 'w') as f:
                pickle.dump(self.__dict__,f)
         
-    def info2file(self,**kwargs):
+    def save(self,**kwargs):
         
          path = kwargs.get('path', './')
         
-         dic = {k: self.__dict__.get(k, None) for k in info_data}
+         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem']]
+         dic = {k: self.__dict__.get(k, None) for k in lista}
          dic['model'] = self.__class__.__name__
-         dic = dict(dic, **{k: self.__dict__.get(k, None).__class__.__name__ for k in ['meteo','dem']})
-                  
+         dic = dict(dic, **{k: self.__dict__.get(k, None).impl.__class__.__name__ for k in ['meteo','dem']})
          with open(path+'info.pkl', 'w') as f:
                pickle.dump(dic,f)
     
-    def file2info(self,**kwargs):
+    @staticmethod
+    def read(filename,**kwargs):
         
-        path = kwargs.get('path', './')
-       
-        with open(path+'info.pkl', 'r') as f:
-              self.info=pickle.load(f)
+        filename = kwargs.get('filename', './')               
+        with open(filename, 'r') as f:
+              info=pickle.load(f)
+        m = model(**info)
+        return m
         
-        
-    def output(self,**kwargs):      
+    def set(self,**kwargs):      
           
         path = kwargs.get('path', './') 
         
@@ -272,7 +382,7 @@ class d3d(model):
         # append the line/column of nodata 
         nodata=np.empty(self.ni)
         nodata.fill(np.nan)
-        bat1=np.vstack((self.dem.ival,nodata))
+        bat1=np.vstack((self.dem.impl.ival,nodata))
         nodata=np.empty((self.nj+1,1))
         nodata.fill(np.nan)
         bat2=np.hstack((bat1,nodata))

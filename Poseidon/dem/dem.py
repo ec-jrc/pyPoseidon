@@ -3,21 +3,24 @@ import netCDF4
 import scipy.interpolate
 
 class dem:
+    impl=None
     def __init__(self, **kwargs):
-        self.lon0 = kwargs.get('lon0', None)
-        self.lon1 = kwargs.get('lon1', None)
-        self.lat0 = kwargs.get('lat0', None)
-        self.lat1 = kwargs.get('lat1', None)       
-        self.properties = kwargs.get('properties', {})
-        
-    def get(self):
-        raise NotImplementedError("Subclass must implement abstract method")        
-        
+        dem = kwargs.get('dem', None)
+        if dem == 'gebco08' :
+            self.impl = gebco08(**kwargs)
 
 class gebco08(dem):
     
-    def get(self,**kwargs):
-      filename = kwargs.get('file', None)      
+    def __init__(self,**kwargs):
+           
+      self.lon0 = kwargs.get('lon0', None)
+      self.lon1 = kwargs.get('lon1', None)
+      self.lat0 = kwargs.get('lat0', None)
+      self.lat1 = kwargs.get('lat1', None)       
+      self.properties = kwargs.get('properties', {})
+      
+      filename = kwargs.get('file', None) 
+                
     # open NetCDF data in 
       nc = netCDF4.Dataset(filename)
       ncv = nc.variables

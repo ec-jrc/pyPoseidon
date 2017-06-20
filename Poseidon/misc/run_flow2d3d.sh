@@ -19,16 +19,15 @@ argfile=config_d_hydro.xml
 
 
 export D3D=$1
-export ARCH=$2
-export ncores=$3
+export ncores=$2
 
     #
     # Set the directory containing delftflow.exe here
     #
-export D3D_HOME=$D3D/bin/$ARCH
-exedir=$D3D_HOME/flow2d3d/bin
-libdir=$D3D_HOME/flow2d3d/bin
-scrlib=$D3D/src/lib
+#export D3D_HOME=$D3D/bin/$ARCH
+exedir=$D3D/flow2d3d/bin
+libdir=$D3D/flow2d3d/bin
+scrlib=$D3D/../../src/lib
  
     #
     # No adaptions needed below

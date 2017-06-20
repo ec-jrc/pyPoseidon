@@ -6,48 +6,50 @@ from shutil import copy2
 import logging
 import glob
 import pickle
+from Poseidon.model import *
+from Poseidon.meteo import *
 
 
 class cast:
-            
+    impl=None
     def __init__(self,**kwargs):
+        model = kwargs.get('model', None)
+        if model == 'd3d' :
+            self.impl = dcast(**kwargs)
+        elif model == 'schism' :
+            self.impl = scast(**kwargs)
         
-        self.path = kwargs.get('path', None)
-        self.case = kwargs.get('case', None)
+    def run(self,**kwargs):
+        self.impl.run(**kwargs)
     
-        logging.basicConfig(filename=self.path+self.case+'.log',level=logging.INFO)
-    
-        self.sd = kwargs.get('start_date', None)
-        self.fd = kwargs.get('end_date', None)
-        self.dt = kwargs.get('time_interval', None)
-        
-        self.dates = kwargs.get('date_list', None)
-        self.folders = kwargs.get('folders', None)
-        self.meteo = kwargs.get('meteo_files', None)
 
+class dcast(cast):
     
-    def d3d(self,**kwargs):
+    def __init__(self,**kwargs):
+               
+        for attr, value in kwargs.iteritems():
+                setattr(self, attr, value)
+                
+        logging.basicConfig(filename=self.path+self.case+'.log',level=logging.INFO)            
+                   
+    def run(self,**kwargs):
         
+                     
+        files=['config_d_hydro.xml','*.grd','*.enc','*.obs','*.dep', '*.bnd', '*.bca','run_flow2d3d.sh']
         
                 
-        files=['config_d_hydro.xml','*.mdf','*.grd','*.enc','*.obs','*.dep', '*.bnd', '*.bca','run_flow2d3d.sh']
-        
-        cf = [glob.glob(e) for e in files]
-        cfiles = [item for sublist in cf for item in sublist]
-        
         prev=self.folders[0]
         pdate=self.dates[0]
         
-        with open(self.path+prev+'/info.pkl', 'r') as f:
-            
-              self.info=pickle.load(f)
-        
-        
-        for date,folder,meteo in zip(self.dates[1:],self.folders[1:],self.meteo[1:]):
+        cf = [glob.glob(self.path+prev+'/'+e) for e in files]
+        cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
+                    
+ 
+        for date,folder,meteo in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:]):
             
             ppath = self.path+'/{}/'.format(prev)
-            if not os.path.exists(fpath):
-                sys.stdout.write('Initial folder not present {}\n'.format(fpath)) 
+            if not os.path.exists(ppath):
+                sys.stdout.write('Initial folder not present {}\n'.format(ppath)) 
                 sys.exit(1)
                 
             # create the folder/run path
@@ -57,29 +59,44 @@ class cast:
             if not os.path.exists(rpath):
                 os.makedirs(rpath)
 
-            # copy necessary files
+            # load model
+            with open(ppath+'info.pkl', 'r') as f:
+                          info=pickle.load(f)
+            
+#            for attr, value in self.info.iteritems():
+#                setattr(m, attr, value)
+            m=model(**info)
+                        
+            #update the date
+            m.impl.date = date            
+
+            # copy/link necessary files
 
             for filename in cfiles:
-                copy2(ppath+filename,rpath+filename)
-
+        #        copy2(ppath+filename,rpath+filename)
+                os.symlink(ppath+filename,rpath+filename)
+            
+            copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
+                
             # copy restart file
 
-            inresfile='tri-rst.'+self.info.tag+'.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
+            inresfile='tri-rst.'+m.impl.tag+'.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
 
             outresfile='restart.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
 
-            copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+          #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+            os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
 
             #get new meteo 
 
             sys.stdout.write('process meteo\n')
             sys.stdout.flush()
 
+            
             check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]   
             if np.any(check)==False :
-
-                m = ecmwf() # initialize
-                m.parse(path=meteo,**self.info)
+               
+                m.meteo(path=meteo,**info)
                 m.force(path=rpath)  #write u,v,p files 
         
             else:
@@ -87,15 +104,18 @@ class cast:
             
             
             # modify mdf file    
-            inp, order = mdf.read(rpath+bname+'.mdf')    
+            inp, order = mdf.read(rpath+m.impl.tag+'.mdf')    
+            
             
             # adjust iteration date
-            tstart=rundate.hour*60
+            tstart = (date.hour+m.impl.ft1)*60
+            tend = tstart + (m.impl.ft2)*60
+            
             inp['Itdate']=datetime.datetime.strftime(date,'%Y-%m-%d')
             inp['Tstart']=[tstart]
-            inp['Tstop']=[nt*60+tstart]
-            inp['Flmap']  = [tstart,60,nt*60+tstart]
-            inp['Flhis']  = [tstart,inp['Dt'][0],nt*60+tstart]
+            inp['Tstop']=[tend]
+            inp['Flmap']  = [tstart,60,tend]
+            inp['Flhis']  = [tstart,inp['Dt'][0],tend]
 
 
             if 'Restid' not in order : order.append('Restid')
@@ -103,13 +123,133 @@ class cast:
             inp['Restid']=outresfile
 
             # update mdf
-            mdf.write(inp, rpath+self.tag+'.mdf',selection=order)
+            mdf.write(inp, rpath+m.impl.tag+'.mdf',selection=order)
+            
+            
             # run case
+            sys.stdout.write('executing\n')
+            sys.stdout.flush()
          
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-            os.system('./run_flow2d3d.sh')
+            m.run(run_path=rpath,solver=self.solver,ncores=self.ncores)
 
             
-            logging.info('done for date :'+datetime.datetime.strftime(idate,'%Y%m%d.%H'))
+            logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
+            
+class scast(cast):
+    
+    def __init__(self,**kwargs):
+               
+        for attr, value in kwargs.iteritems():
+                setattr(self, attr, value)
+                
+        logging.basicConfig(filename=self.path+self.case+'.log',level=logging.INFO)            
+                   
+            
+    def run(self,**kwargs):
+        
+                     
+        files=['config_d_hydro.xml','*.grd','*.enc','*.obs','*.dep', '*.bnd', '*.bca','run_flow2d3d.sh']
+        
+                
+        prev=self.folders[0]
+        pdate=self.dates[0]
+        
+        cf = [glob.glob(self.path+prev+'/'+e) for e in files]
+        cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
+                    
+ 
+        for date,folder,meteo in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:]):
+            
+            ppath = self.path+'/{}/'.format(prev)
+            if not os.path.exists(ppath):
+                sys.stdout.write('Initial folder not present {}\n'.format(ppath)) 
+                sys.exit(1)
+                
+            # create the folder/run path
+
+            rpath=self.path+'/{}/'.format(folder)   
+
+            if not os.path.exists(rpath):
+                os.makedirs(rpath)
+
+            # load model
+            with open(ppath+'info.pkl', 'r') as f:
+                          info=pickle.load(f)
+            
+#            for attr, value in self.info.iteritems():
+#                setattr(m, attr, value)
+            m=model(**info)
+                        
+            #update the date
+            m.impl.date = date            
+
+            # copy/link necessary files
+
+            for filename in cfiles:
+        #        copy2(ppath+filename,rpath+filename)
+                os.symlink(ppath+filename,rpath+filename)
+            
+            copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
+                
+            # copy restart file
+
+            inresfile='tri-rst.'+m.impl.tag+'.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
+
+            outresfile='restart.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
+
+          #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+            os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+
+            #get new meteo 
+
+            sys.stdout.write('process meteo\n')
+            sys.stdout.flush()
+
+            
+            check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]   
+            if np.any(check)==False :
+               
+                m.meteo(path=meteo,**info)
+                m.force(path=rpath)  #write u,v,p files 
+        
+            else:
+                sys.stdout.write('meteo files present\n')
+            
+            
+            # modify mdf file    
+            inp, order = mdf.read(rpath+m.impl.tag+'.mdf')    
+            
+            
+            # adjust iteration date
+            tstart = (date.hour+m.impl.ft1)*60
+            tend = tstart + (m.impl.ft2)*60
+            
+            inp['Itdate']=datetime.datetime.strftime(date,'%Y-%m-%d')
+            inp['Tstart']=[tstart]
+            inp['Tstop']=[tend]
+            inp['Flmap']  = [tstart,60,tend]
+            inp['Flhis']  = [tstart,inp['Dt'][0],tend]
+
+
+            if 'Restid' not in order : order.append('Restid')
+              # adjust restart file   
+            inp['Restid']=outresfile
+
+            # update mdf
+            mdf.write(inp, rpath+m.impl.tag+'.mdf',selection=order)
+            
+            
+            # run case
+            sys.stdout.write('executing\n')
+            sys.stdout.flush()
+         
+            os.chdir(rpath)
+            #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
+            m.run(run_path=rpath,solver=self.solver,ncores=self.ncores)
+
+            
+            logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
+            
          

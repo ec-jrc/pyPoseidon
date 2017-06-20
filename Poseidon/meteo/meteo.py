@@ -77,20 +77,24 @@ def getd(f,t):
 
 
 class meteo:
+    impl=None
     def __init__(self,**kwargs):
-        self.properties = kwargs.get('properties', {})
+        meteo = kwargs.get('meteo', None)
+        if meteo == 'ecmwf' :
+            self.impl = ecmwf(**kwargs)
         
-    def parse(self):
-        raise NotImplementedError("Subclass must implement abstract method")    
-    
-    
-class ecmwf(meteo):        
-    
     def parse(self,**kwargs):
+        self.impl.parse(**kwargs)
+            
+    
+class ecmwf(meteo):   
+        
+    def __init__(self,**kwargs):
             
       filename = kwargs.get('path', {})
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
+      ft2 = ft2 + 1 # for range
                       
       minlon = kwargs.get('lon0', None)
       maxlon = kwargs.get('lon1', None)
