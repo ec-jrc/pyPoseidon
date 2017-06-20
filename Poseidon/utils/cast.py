@@ -35,11 +35,10 @@ class dcast(cast):
     def run(self,**kwargs):
         
                      
-        files=['config_d_hydro.xml','*.grd','*.enc','*.obs','*.dep', '*.bnd', '*.bca','run_flow2d3d.sh']
+        files=['config_d_hydro.xml','*.grd','*.enc','*.obs','*.dep', '*.bnd', '*.bca','run_flow2d3d.sh','info.pkl']
         
                 
         prev=self.folders[0]
-        pdate=self.dates[0]
         
         cf = [glob.glob(self.path+prev+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
@@ -51,7 +50,8 @@ class dcast(cast):
             if not os.path.exists(ppath):
                 sys.stdout.write('Initial folder not present {}\n'.format(ppath)) 
                 sys.exit(1)
-                
+            
+            prev = folder    
             # create the folder/run path
 
             rpath=self.path+'/{}/'.format(folder)   
@@ -66,7 +66,7 @@ class dcast(cast):
 #            for attr, value in self.info.iteritems():
 #                setattr(m, attr, value)
             m=model(**info)
-                        
+                               
             #update the date
             m.impl.date = date            
 
@@ -124,8 +124,7 @@ class dcast(cast):
 
             # update mdf
             mdf.write(inp, rpath+m.impl.tag+'.mdf',selection=order)
-            
-            
+                      
             # run case
             sys.stdout.write('executing\n')
             sys.stdout.flush()
