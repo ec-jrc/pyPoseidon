@@ -96,8 +96,8 @@ class dcast(cast):
             check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]   
             if np.any(check)==False :
                
-                m.meteo(path=meteo,**info)
-                m.force(path=rpath)  #write u,v,p files 
+                m.meteo(mpath=meteo,**info)
+                m.force(rpath=rpath)  #write u,v,p files 
         
             else:
                 sys.stdout.write('meteo files present\n')
@@ -202,17 +202,17 @@ class scast(cast):
           #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
             os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
 
-            #get new meteo 
+            #get new meteo
 
             sys.stdout.write('process meteo\n')
             sys.stdout.flush()
 
-            
+
             check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]   
             if np.any(check)==False :
                
-                m.meteo(path=meteo,**info)
-                m.force(path=rpath)  #write u,v,p files 
+                m.meteo(mpath=meteo,**info)
+                m.force(rpath=rpath)  #write u,v,p files 
         
             else:
                 sys.stdout.write('meteo files present\n')

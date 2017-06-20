@@ -91,7 +91,7 @@ class ecmwf(meteo):
         
     def __init__(self,**kwargs):
             
-      filename = kwargs.get('path', {})
+      filename = kwargs.get('mpath', {})
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
       ft2 = ft2 + 1 # for range

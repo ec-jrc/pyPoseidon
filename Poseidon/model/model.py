@@ -203,7 +203,7 @@ class d3d(model):
     
     def force(self,**kwargs):
     
-        path = kwargs.get('path', './')
+        path = kwargs.get('rpath', './')
         curvi = kwargs.get('curvi', False)
         
         dlat=self.meteo.impl.lats[1,0]-self.meteo.impl.lats[0,0]
@@ -289,7 +289,7 @@ class d3d(model):
             
     def run(self,**kwargs):
         
-        calc_dir = kwargs.get('run_path', './')
+        calc_dir = kwargs.get('rpath', './')
         bin_path = kwargs.get('solver', './')
         
         ncores = kwargs.get('ncores', './')
@@ -341,14 +341,14 @@ class d3d(model):
     
     def output(self,**kwargs):
         
-         path = kwargs.get('path', './')
+         path = kwargs.get('rpath', './')
         
          with open(path+self.tag+'.pkl', 'w') as f:
                pickle.dump(self.__dict__,f)
         
     def save(self,**kwargs):
         
-         path = kwargs.get('path', './')
+         path = kwargs.get('rpath', './')
         
          lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem']]
          dic = {k: self.__dict__.get(k, None) for k in lista}
@@ -368,7 +368,7 @@ class d3d(model):
         
     def set(self,**kwargs):      
           
-        path = kwargs.get('path', './') 
+        path = kwargs.get('rpath', './') 
         
         #save mdf 
         mdf.write(self.mdf.inp, path+self.tag+'.mdf',selection=self.mdf.order)
@@ -392,7 +392,7 @@ class d3d(model):
         Dep.write(ba,path+self.tag+'.dep')
         
         #save meteo
-        self.force(path=path)
+        self.force(rpath=path)
         
         #save bca
         

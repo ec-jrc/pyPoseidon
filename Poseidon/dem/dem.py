@@ -19,7 +19,7 @@ class gebco08(dem):
       self.lat1 = kwargs.get('lat1', None)       
       self.properties = kwargs.get('properties', {})
       
-      filename = kwargs.get('file', None) 
+      filename = kwargs.get('dpath', None) 
                 
     # open NetCDF data in 
       nc = netCDF4.Dataset(filename)
@@ -131,7 +131,7 @@ class gebco08(dem):
 class gebco14(dem):
     
     def get(self,**kwargs):
-      filename = kwargs.get('file', None)      
+      filename = kwargs.get('dpath', None)      
     # open NetCDF data in 
       nc = netCDF4.Dataset(filename)
       ncv = nc.variables
