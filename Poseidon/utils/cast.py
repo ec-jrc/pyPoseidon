@@ -65,9 +65,15 @@ class dcast(cast):
 #                setattr(m, attr, value)
             m=model(**info)
                                
-            #update the date
-            m.impl.date = date            
-
+            #update the properties 
+            m.impl.date = date
+            m.impl.model['date'] = date
+            m.impl.mpath=meteo 
+            m.impl.model['mpath'] = meteo
+            m.impl.rpath=rpath 
+            m.impl.model['rpath'] = rpath
+            
+            
             # copy/link necessary files
 
             for filename in cfiles:
@@ -94,8 +100,8 @@ class dcast(cast):
             check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]   
             if np.any(check)==False :
                
-                m.force(mpath=meteo)
-                m.uvp(rpath=rpath)  #write u,v,p files 
+                m.force()
+                m.uvp()  #write u,v,p files 
         
             else:
                 sys.stdout.write('meteo files present\n')
@@ -122,16 +128,16 @@ class dcast(cast):
 
             # update mdf
             mdf.write(inp, rpath+m.impl.tag+'.mdf',selection=order)
-                      
+                                  
             # run case
             sys.stdout.write('executing\n')
             sys.stdout.flush()
          
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-            m.run(run_path=rpath,solver=self.solver,ncores=self.ncores)
+            m.run()
 
-            m.save(rpath=rpath)
+            m.save()
             
             logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
             
