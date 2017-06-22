@@ -14,7 +14,8 @@ from grid import *
 from dep import *
 from Poseidon.meteo import meteo
 from Poseidon.dem import dem
-
+from Poseidon.utils.get_value import get_value
+import json
 
 #retrieve the module path
 DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
@@ -23,20 +24,20 @@ DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
 
 class model:
     impl = None
-    def __init__(self, model=None, **kwargs):
-        if model == 'd3d':
+    def __init__(self, solver=None, **kwargs):
+        if solver == 'd3d':
             self.impl = d3d(**kwargs)
-        elif model == 'schism':
+        elif solver == 'schism':
             self.impl = schism(**kwargs)            
         
-    def create(self,**kwargs):
-        self.impl.create(**kwargs)
+    def set(self,**kwargs):
+        self.impl.set(**kwargs)
         
-    def force(self,**kwargs):
-        self.impl.force(**kwargs)
+    def uvp(self,**kwargs):
+        self.impl.uvp(**kwargs)
                   
-    def output(self,**kwargs):
-        self.impl.output(**kwargs)
+    def pickle(self,**kwargs):
+        self.impl.pickle(**kwargs)
             
     def run(self,**kwargs):
         self.impl.run(**kwargs)
@@ -50,11 +51,14 @@ class model:
     def set(self,**kwargs):
         self.impl.set(**kwargs)
         
-    def meteo(self,**kwargs):
-        self.impl.meteo(**kwargs)
+    def force(self,**kwargs):
+        self.impl.force(**kwargs)
 
-    def dem(self,**kwargs):
-        self.impl.dem(**kwargs)
+    def bath(self,**kwargs):
+        self.impl.bath(**kwargs)
+        
+    def output(self,**kwargs):
+        self.impl.output(**kwargs)
                                    
         
 class d3d(model):
@@ -70,18 +74,23 @@ class d3d(model):
         self.resolution = kwargs.get('resolution', None)
         self.ft1 = kwargs.get('ft1', None)
         self.ft2 = kwargs.get('ft2', None)
-        
-            
-    def create(self,**kwargs):
 
-        gx = kwargs.get('x', None)
-        gy = kwargs.get('y', None)    
+        for attr, value in kwargs.iteritems():
+                setattr(self, attr, value)
+            
+        self.model = self.__dict__.copy()    
+        self.model['solver'] = self.__class__.__name__    
+                      
+    def set(self,**kwargs):
+
+        gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
+        gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)  
         Tstart = self.date.hour+self.ft1*60     
         Tstop = self.date.hour+self.ft2*60
-        step = kwargs.get('step', None)
-        rstep = kwargs.get('rstep', None)
-                                
+        step = get_value(self,kwargs,'step',None)#kwargs.get('step', None)
+        rstep = get_value(self,kwargs,'rstep',None)#kwargs.get('rstep', None)
+                                        
         resmin=self.resolution*60
       
         # computei ni,nj / correct lat/lon
@@ -193,17 +202,25 @@ class d3d(model):
 
                
         #meteo
-    def meteo(self,**kwargs):
-        self.meteo = meteo(**kwargs)  
+    def force(self,**kwargs):
+        z = self.__dict__.copy()
+        z.update(kwargs)
+        self.meteo = meteo(**z)  
         
         #dem
-    def dem(self,**kwargs):
-        self.dem = dem(**kwargs)  
-
+    def bath(self,**kwargs):
+        z = self.__dict__.copy()        
+        
+        z['grid_x'] = self.grid.x
+        z['grid_y'] = self.grid.y
+        
+        z.update(kwargs) 
+        self.dem = dem(**z)  
     
-    def force(self,**kwargs):
-    
-        path = kwargs.get('rpath', './')
+    def uvp(self,**kwargs):
+                
+        path = get_value(self,kwargs,'rpath','./') 
+                    
         curvi = kwargs.get('curvi', False)
         
         dlat=self.meteo.impl.lats[1,0]-self.meteo.impl.lats[0,0]
@@ -289,12 +306,12 @@ class d3d(model):
             
     def run(self,**kwargs):
         
-        calc_dir = kwargs.get('rpath', './')
-        bin_path = kwargs.get('solver', './')
+        calc_dir = get_value(self,kwargs,'rpath','./') 
         
-        ncores = kwargs.get('ncores', './')
-        
-        
+        bin_path = get_value(self,kwargs,'exec', None)   
+            
+        ncores = get_value(self,kwargs,'ncores',1)
+                
         if not os.path.exists( calc_dir+'config_d_hydro.xml') :
             
           # edit and save config file
@@ -339,23 +356,27 @@ class d3d(model):
 #            ex.stderr.close()        
                  
     
-    def output(self,**kwargs):
+    def pickle(self,**kwargs):
         
-         path = kwargs.get('rpath', './')
+         path = get_value(self,kwargs,'rpath','./')  
         
          with open(path+self.tag+'.pkl', 'w') as f:
                pickle.dump(self.__dict__,f)
         
     def save(self,**kwargs):
+               
+         path = get_value(self,kwargs,'rpath','./')
         
-         path = kwargs.get('rpath', './')
-        
-         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem']]
-         dic = {k: self.__dict__.get(k, None) for k in lista}
-         dic['model'] = self.__class__.__name__
-         dic = dict(dic, **{k: self.__dict__.get(k, None).impl.__class__.__name__ for k in ['meteo','dem']})
+#         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
+#         dic = {k: self.__dict__.get(k, None) for k in lista}
+#         dic['model'] = self.__class__.__name__
+#         dic = dict(dic, **{k: self.__dict__.get(k, None).impl.__class__.__name__ for k in ['meteo','dem']})
          with open(path+'info.pkl', 'w') as f:
-               pickle.dump(dic,f)
+               pickle.dump(self.model,f)
+               
+         z=self.model.copy()
+         z['date']=z['date'].isoformat()
+         json.dump(z,open(path+'model.txt','w'))      
     
     @staticmethod
     def read(filename,**kwargs):
@@ -366,23 +387,26 @@ class d3d(model):
         m = model(**info)
         return m
         
-    def set(self,**kwargs):      
-          
-        path = kwargs.get('rpath', './') 
+    def output(self,**kwargs):      
+        
+        path = get_value(self,kwargs,'rpath','./') 
         
         #save mdf 
         mdf.write(self.mdf.inp, path+self.tag+'.mdf',selection=self.mdf.order)
-        
+
         #save grid
         self.grid.write(path+self.tag+'.grd')
         
         #save dem
+        bat = -self.dem.impl.ival #reverse for the hydro run
+        bat[bat<0]=np.nan #mask all dry points
+        
         # Write bathymetry file
         ba = Dep()
         # append the line/column of nodata 
         nodata=np.empty(self.ni)
         nodata.fill(np.nan)
-        bat1=np.vstack((self.dem.impl.ival,nodata))
+        bat1=np.vstack((bat,nodata))
         nodata=np.empty((self.nj+1,1))
         nodata.fill(np.nan)
         bat2=np.hstack((bat1,nodata))
@@ -392,7 +416,7 @@ class d3d(model):
         Dep.write(ba,path+self.tag+'.dep')
         
         #save meteo
-        self.force(rpath=path)
+        self.uvp(**kwargs)
         
         #save bca
         
@@ -408,8 +432,6 @@ class d3d(model):
             f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
             f.write('{:>5}{:>5}\n'.format(1,1))
             f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
-        
-            
         
         
         

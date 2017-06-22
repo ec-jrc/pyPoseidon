@@ -79,18 +79,15 @@ def getd(f,t):
 class meteo:
     impl=None
     def __init__(self,**kwargs):
-        meteo = kwargs.get('meteo', None)
-        if meteo == 'ecmwf' :
+        msource = kwargs.get('meteo', None)
+        if msource == 'ecmwf' :
             self.impl = ecmwf(**kwargs)
-        
-    def parse(self,**kwargs):
-        self.impl.parse(**kwargs)
-            
+                
     
 class ecmwf(meteo):   
         
     def __init__(self,**kwargs):
-            
+    
       filename = kwargs.get('mpath', {})
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
