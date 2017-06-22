@@ -40,6 +40,10 @@ def map(x, y, z, title=None,label=None,**kwargs):
 
 def anim(x,y,z,title=None,label=None,**kwargs):
     
+    [v1,v2] = kwargs.get('vrange', [None,None])
+    
+    v = np.linspace(v1, v2, 15, endpoint=True)
+    
     def animate(i):
         H.set_array(z[i,:,:])
         return H
@@ -52,16 +56,16 @@ def anim(x,y,z,title=None,label=None,**kwargs):
     minlat = kwargs.get('lat0', y.min())
     maxlat = kwargs.get('lat1', y.max())
 
-    ticks = kwargs.get('ticks', True)
+    latlons = kwargs.get('latlons', True)
     png = kwargs.get('png', False)
     path = kwargs.get('path', './')
     # Create map
     m = Basemap(projection='cyl', llcrnrlat=minlat,urcrnrlat=maxlat,llcrnrlon=minlon, urcrnrlon=maxlon,resolution='l')
     
-    fig = plt.figure(figsize=(10,8))
-    ax=fig.add_subplot(111)
+    fig = plt.figure(figsize=(12,8))
+    ax=ax = plt.gca()
   
-    if ticks:
+    if latlons:
        m.drawparallels(parallels,labels=[False,True,True,False])
        m.drawmeridians(meridians,labels=[True,False,False,True])
     
@@ -73,14 +77,15 @@ def anim(x,y,z,title=None,label=None,**kwargs):
     # annotatons (title), in each frame
     ims = []
     for i in range(len(z[1:,0,0])):
-        im = m.contourf(x,y,z[i,:,:],latlon=True)
+        im = m.contourf(x,y,z[i,:,:],v,vmin=v1,vmax=v2,latlon=True)
         add_arts = im.collections
         text = 'time={0!r}'.format(i)
         te = ax.text(90, 90, text)
         an = ax.annotate(text, xy=(-0.25, 0.95), xycoords='axes fraction')
         ims.append(add_arts + [te,an])
-        
-    cbar = plt.colorbar(orientation='horizontal', extend='both')
+    
+    #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
+    cbar = plt.colorbar(ticks=v,orientation='horizontal', extend='both')#,fraction=0.046, pad=0.04)
     if label : cbar.ax.set_xlabel(label)
 
     if title : plt.title(title)
