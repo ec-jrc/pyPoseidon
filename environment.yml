@@ -1,0 +1,16 @@
+name: Poseidon
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=2.7
+  - bunch
+  - pygrib
+  - tqdm
+  - netCDF4
+  - basemap
+  - python-eccodes
+  - scipy
+  - numpy
+  

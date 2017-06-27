@@ -5,17 +5,30 @@ This is a development project utilizing (for now) the DELFT3D open source code f
 
 ## Instalation
 
-Download and install as usually
+The best way is with conda, see here (https://conda.io/docs/intro.html)
+
+Then create a new environment with
+
+* conda env create -f environment.yml 
+
+You should have a environment named Poseidon (check it with 'conda env list')
+
+Activate the environment 
+
+* source activate Poseidon
+
+
+#### Alternatively use pip 
+
+
+
+Install Poseidon the usual way
 
 * python setup.py install
 
 ### Prerequisities
 
 DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. Follow the instruction therein.
-
-A number of Python modules are required. A complete list is available in a file named requirements.txt.
-
-Using Conda ...
 
 
 ## Tests
