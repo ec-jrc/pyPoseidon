@@ -5,9 +5,9 @@ This is a development project utilizing (for now) the DELFT3D open source code f
 
 ## Instalation
 
-The best way is with conda, see here (https://conda.io/docs/intro.html)
+The best way is with conda, see here (https://conda.io/docs/intro.html).
 
-Then create a new environment with
+Then create a dedicated environment with
 
 * conda env create -f environment.yml 
 
@@ -17,12 +17,16 @@ Activate the environment
 
 * source activate Poseidon
 
+For using the package through jupyter notebooks
 
-#### Alternatively use pip 
+* conda config --add channels conda-forge
+* conda install ipykernel
+* python -m ipykernel install --name Poseidon
+
+Then choose the Poseidon kernel on your Jupyter notebook. 
 
 
-
-Install Poseidon the usual way
+Finally, install Poseidon the usual way
 
 * python setup.py install
 
@@ -30,6 +34,7 @@ Install Poseidon the usual way
 
 DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. Follow the instruction therein.
 
+For using the animation capabilities as outlined in the Notebooks, FFmpeg (https://ffmpeg.org/) library needs to be installed. 
 
 ## Tests
 
@@ -41,6 +46,8 @@ No tests are available at the moment.
 
 
 ## Acknowledgments
+
+Modified versions of modules from the project BOUT++ (https://github.com/boutproject/BOUT-dev) and OpenEarthTools (https://publicwiki.deltares.nl/display/OET/OpenEarth) are incorporated into Poseidon.
 
 * All the people that teach me stuff.  
 
