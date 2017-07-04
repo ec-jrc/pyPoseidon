@@ -52,5 +52,5 @@ Modified versions of modules from the project BOUT++ (https://github.com/boutpro
 * All the people that teach me stuff.  
 
 ## License
-* The project is released under the EUPL 1.1 license. 
+* The project is released under the GPL v3 license. 
 
