@@ -220,7 +220,7 @@ class d3d(model):
         self.bc()
                 
         #get meteo
-        if self.atm : self.force()
+        if self.atm :  self.force()
         
         #get tide
         if self.tide : self.tidebc()

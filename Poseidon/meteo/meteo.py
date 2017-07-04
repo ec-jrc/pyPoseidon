@@ -116,6 +116,13 @@ class ecmwf(meteo):
       pt=[]
       ut=[]
       vt=[]
+      #--------------------------------------------------------------------- 
+      sys.stdout.flush()
+      sys.stdout.write('\n')
+      sys.stdout.write('extracting meteo\n')
+      sys.stdout.flush()
+      #---------------------------------------------------------------------      
+      
 
       mxv=nt2-nt1-1
       try:
@@ -158,6 +165,7 @@ class ecmwf(meteo):
         sys.stdout.flush()
         sys.stdout.write('\n')
         sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
         #--------------------------------------------------------------------- 
 
       except Exception as e:

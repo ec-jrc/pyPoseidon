@@ -43,8 +43,8 @@ class tpx07(tide):
           amp = np.vstack([topo,amp[:ii,:,:]])
           topo = ph[ii:,:,:]
           ph = np.vstack([topo,ph[:ii,:,:]])
-          topo = depth[ii:,:,:]
-          dep = np.vstack([topo,depth[:ii,:,:]])
+          topo = depth[ii:,:]
+          dep = np.vstack([topo,depth[:ii,:]])
           
 
         phv=np.zeros([lons.shape[0],ph.shape[-1]])
