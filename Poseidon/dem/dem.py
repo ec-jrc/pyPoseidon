@@ -108,7 +108,7 @@ class gebco08(dem):
       #flip on lat to make it increasing for RectBivariateSpline
        ilon=lons[0,:]
        ilat=lats[:,0]
-       sol=scipy.interpolate.RectBivariateSpline(ilon,ilat,topo.T)#,kx=2,ky=2)
+       sol=scipy.interpolate.RectBivariateSpline(ilon,ilat,topo.T,kx=2,ky=2)
 
        itopo=[]
        for x,y in zip(grid_x.ravel(),grid_y.ravel()):

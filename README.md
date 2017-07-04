@@ -11,7 +11,7 @@ Then create a dedicated environment with
 
 * conda env create -f environment.yml 
 
-You should have a environment named Poseidon (check it with 'conda env list')
+You should have a environment named Poseidon (check it with 'conda env list').
 
 Activate the environment 
 

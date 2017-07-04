@@ -4,7 +4,7 @@ from mpl_toolkits.basemap import Basemap, shiftgrid
 from matplotlib import animation,rc
 
 rc('animation',html='html5')
-
+        
 
 def map(x, y, z, title=None,label=None,**kwargs):
     
@@ -100,4 +100,6 @@ def anim(x,y,z,title=None,label=None,**kwargs):
     if save : anim.save(path, fps=10, extra_args=['-vcodec','libx264','-pix_fmt','yuv420p'])
     
     return anim
-    
+ 
+ 
+      

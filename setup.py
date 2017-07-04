@@ -19,7 +19,7 @@ setup(name='Poseidon',
       author='George Breyiannis',
       author_email='gbreyiannis@gmail.com',
       license='EUPL',
-      packages=['Poseidon.model','Poseidon.meteo','Poseidon.dem','Poseidon.utils'],
+      packages=['Poseidon.model','Poseidon.meteo','Poseidon.dem','Poseidon.utils','Poseidon.tide'],
       classifiers=[
           'Programming Language :: Python',
           'License :: OSI Approved :: EUPL',

@@ -12,15 +12,22 @@ from bunch import Bunch
 import mdf
 from grid import *
 from dep import *
+from bnd import *
 from Poseidon.meteo import meteo
 from Poseidon.dem import dem
 from Poseidon.utils.get_value import get_value
 import json
+from collections import OrderedDict
 
 #retrieve the module path
 DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
 #DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
 #info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
+
+# strings to be used 
+le=['A','B']
+
+nm = ['Z', 'A']
 
 class model:
     impl = None
@@ -59,7 +66,12 @@ class model:
         
     def output(self,**kwargs):
         self.impl.output(**kwargs)
+        
+    def bc(self,**kwargs):
+        self.impl.bc(**kwargs)
                                    
+    def tidebc(self,**kwargs):
+        self.impl.tidebc(**kwargs)
         
 class d3d(model):
     
@@ -74,6 +86,8 @@ class d3d(model):
         self.resolution = kwargs.get('resolution', None)
         self.ft1 = kwargs.get('ft1', None)
         self.ft2 = kwargs.get('ft2', None)
+        self.tide = kwargs.get('tide', False)
+        self.atm = kwargs.get('atm', False)
 
         for attr, value in kwargs.iteritems():
                 setattr(self, attr, value)
@@ -179,17 +193,16 @@ class d3d(model):
             #time interval to smooth the hydrodynamic boundary conditions
             self.mdf.inp['Tlfsmo']=[0.]
 
+            if not self.atm: inp['Sub1'] = ' '
 
           # set tide only run
-        #if 'tide' in kwargs.keys() :
-        #     if (kwargs['tide']==True) & (force==False):
-        #        inp['Sub1'] = ' '
-        #        inp['Filbnd']=basename+'.bnd'
-        #        inp['Filana']=basename+'.bca'
-        #       if 'Tidfor' not in order: order.append('Tidfor')
-        #       inp['Tidfor']=[['M2','S2','N2','K2'], \
-        #                      ['K1','O1','P1','Q1'], \
-        #                      ['-----------']]
+            if self.tide :
+                inp['Filbnd']=self.tag+'.bnd'
+                inp['Filana']=self.tag+'.bca'
+ #           if 'Tidfor' not in order: order.append('Tidfor')
+ #           inp['Tidfor']=[['M2','S2','N2','K2'], \
+ #                       ['K1','O1','P1','Q1'], \
+ #                         ['-----------']]
  
           # specify ini file
         # if 'Filic' not in order: order.append('Filic')
@@ -200,7 +213,19 @@ class d3d(model):
 
         self.mdf.inp['FlNcdf'] = 'map his'
 
-               
+        # get bathymetry
+        self.bath()
+
+        # get boundaries
+        self.bc()
+                
+        #get meteo
+        if self.atm : self.force()
+        
+        #get tide
+        if self.tide : self.tidebc()
+        
+
         #meteo
     def force(self,**kwargs):
         z = self.__dict__.copy()
@@ -216,6 +241,47 @@ class d3d(model):
         
         z.update(kwargs) 
         self.dem = dem(**z)  
+        
+    def bc(self,**kwargs):
+        #define boundaries
+        z = self.__dict__.copy()        
+        
+        z['lons'] = self.grid.x[0,:]
+        z['lats'] = self.grid.y[:,0]
+        
+        ba = -self.dem.impl.ival
+        ba[ba<0]=np.nan
+        z['dem']=ba
+        z['cn']=10
+        
+        z.update(kwargs) 
+                
+        self.bound = box(**z)
+
+    def tidebc(self,**kwargs):
+    
+        self.tide = tide()
+        for key,val in self.bound.__dict__.iteritems():
+        
+        # compute tide constituents
+            tval = []
+            if len(val) > 0. :                   
+                blons=[]
+                blats=[]
+                for l1,l2 in val:
+                    blons.append(self.grid.x[l1[1]-1,l1[0]-1])   
+                    blats.append(self.grid.y[l1[1]-1,l1[0]-1])
+                    blons.append(self.grid.x[l2[1]-1,l2[0]-1])   
+                    blats.append(self.grid.y[l2[1]-1,l2[0]-1])
+                       
+                blons = np.array(blons)#.ravel().reshape(-1,2)[:,0]
+                blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1] 
+            #                  print bound,blons,blats
+                             
+                tval = tide(tmodel=self.tmodel, tpath=self.tpath, blons=blons,blats=blats)
+                    
+            setattr(self.tide, key, tval)        
+                                               
     
     def uvp(self,**kwargs):
                 
@@ -391,6 +457,9 @@ class d3d(model):
         
         path = get_value(self,kwargs,'rpath','./') 
         
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
         #save mdf 
         mdf.write(self.mdf.inp, path+self.tag+'.mdf',selection=self.mdf.order)
 
@@ -416,11 +485,43 @@ class d3d(model):
         Dep.write(ba,path+self.tag+'.dep')
         
         #save meteo
-        self.uvp(**kwargs)
+        if self.atm:
+            self.uvp(**kwargs)
+             
+        if self.tide :  
+            
+        #save bnd
+            with open(path+self.tag+'.bnd', 'w') as f:
+                
+                dd = OrderedDict([('North',self.bound.North),('South',self.bound.South),('West',self.bound.West),('East',self.bound.East)])
+            
+            #    for key,val in self.bound.__dict__.iteritems():
+                for i, (key, val) in enumerate(dd.iteritems()): # to match deltares 
+                    
+                    idx=1
+                    for k1,k2 in val:           
+                        bname=key+str(idx)
+                        f.write('{0:<10s}{1:>12s}{2:>2s}{3:>6d}{4:>6d}{5:>6d}{6:>6d}   0.0000000e+00 {7:<s}{8:<g}A {9:<s}{10:<g}B\n'.format(bname,nm[0],nm[1],k1[0]+1,k1[1]+1,k2[0]+1,k2[1]+1,key,idx,key,idx)) # fortran index ??
+                        idx+=1
         
         #save bca
-        
-        
+            with open(path+self.tag+'.bca', 'w') as f:
+            
+                 dd = OrderedDict([('North',self.tide.North),('South',self.tide.South),('West',self.tide.West),('East',self.tide.East)])
+            
+            #     for key,val in self.tide.__dict__.iteritems():
+                 for i, (key, val) in enumerate(dd.iteritems()): # to match deltares 
+                     
+                     idx=1
+                     if val: 
+                        l = np.arange(val.impl.ampl.shape[0])+idx
+                        nl = [x for pair in zip(l,l) for x in pair]
+                        sl = val.impl.ampl.shape[0]*le
+                        for t1,t2,amp,phase in zip(np.transpose(nl),np.transpose(sl),val.impl.ampl,val.impl.phase):
+                             f.write('{}{}{}\n'.format(key,t1,t2))
+                             for a,b,c in zip(val.impl.constituents,amp.flatten(),phase.flatten()):
+                                 f.write('{0:<3s}        {1:<.7e}   {2:<.7e}\n'.format(a,b,c))
+                        
         #save obs
         
         
