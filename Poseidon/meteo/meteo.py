@@ -136,7 +136,7 @@ class ecmwf(meteo):
         # get sea level pressure and 10-m wind data.
         
         # shift grid according to minlon
-            if minlon < 1. :
+            if minlon < 0. :
                lon=lon-180.
                zlon=lon.shape[0]
                varin_ = np.hstack([varin[:,zlon/2:],varin[:,0:zlon/2]])
@@ -146,6 +146,12 @@ class ecmwf(meteo):
             i2=np.abs(lon-maxlon).argmin()+2
             j1=np.abs(lat-minlat).argmin()-2
             j2=np.abs(lat-maxlat).argmin()+2
+    
+            if i1 < 0 : i1 = 0 # fix limits
+            if i2 > lon.shape[0] : i2 = lon.shape[0]   
+            if j1 < 0 : j1 = 0
+            if j2 > lat.shape[0]: j2 = lat.shape[0]
+            
 
             lons, lats = np.meshgrid(lon[i1:i2],lat[j1:j2])
             data = deepcopy(varin[j1:j2,i1:i2])
