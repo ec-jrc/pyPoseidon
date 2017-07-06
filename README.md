@@ -25,6 +25,9 @@ For using the package through jupyter notebooks
 
 Then choose the Poseidon kernel on your Jupyter notebook. 
 
+Activate the Poseidon env
+
+* source activate Poseidon
 
 Finally, install Poseidon the usual way
 
