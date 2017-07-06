@@ -22,7 +22,7 @@ setup(name='Poseidon',
       packages=['Poseidon.model','Poseidon.meteo','Poseidon.dem','Poseidon.utils','Poseidon.tide'],
       classifiers=[
           'Programming Language :: Python',
-          'License :: OSI Approved :: EUPL',
+          'License :: OSI Approved :: GPLv3+',
           'Operating System :: OS Independent',
           'Development Status :: 4 - Beta',
           'Environment :: Other Environment',
