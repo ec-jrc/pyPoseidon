@@ -1,18 +1,14 @@
 import numpy as np
+import pickle
 import os
+from Poseidon.model.grid import *
+from Poseidon.model.dep import *
+from Poseidon.utils import *
 
-class data:
-    
-    def __init__(self,loc,**kwargs):
-            
-        folders = [os.path.abspath(name) for name in os.listdir(loc) if os.path.isdir(name)]
-               
-        if len(folders)==0:
-            self.anim = anim(self,loc,**kwargs)
-        else:    
-            self.anim = anim_(self,folders,**kwargs)
+class data:   
+       
                   
-    def anim(self,folder,**kwargs):
+    def anim(self,folder):
         
         var = kwargs.get('var', 'S1')
            
@@ -22,8 +18,8 @@ class data:
         tag=info['tag']
                  
         data=DataFile(folder+'/trim-'+tag+'.nc')   
-        grid=Grid.fromfile(folder+'/trim-'+tag+'.grd')
-        deb=Dep.read(folder+'/trim-'+tag+'.dep',grid.shape)
+        grid=Grid.fromfile(folder+'/'+tag+'.grd')
+        deb=Dep.read(folder+'/'+tag+'.dep',grid.shape)
         d=deb.val[:-1,:-1]
         w=np.isnan(d)
         x = grid.x.data
@@ -39,15 +35,19 @@ class data:
         self.movie = anim(x,y,z[1:,:,:],title='Storm Surge',label='m',vrange=[z.min(),z.max()])
                
                    
-    def anim_(self,folders,**kwargs):
+    def anim_(self,folders):
        
         list=[]
        
+        print folders
+        
         k=0 
               
         for folder in folders:
+         
+          print folder
            
-          a = anim(self,folder)
+          a = anim(self,self,folder)
           
           filename = '/tmp/anim{}.mp4'.format(k)
           
@@ -62,3 +62,22 @@ class data:
      
      
         return '/tmp/movie.mp4'
+        
+        
+    def __init__(self,loc,**kwargs):
+        
+            Mydict={'one':self.anim,'multiple':self.anim_}
+            
+            folders = [os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
+            print folders
+               
+            if len(folders)==0:
+                option = 'one'
+            else:    
+                option = 'multiple'
+            
+            print option    
+
+            self.animation=Mydict[option](folders)
+        
+        
