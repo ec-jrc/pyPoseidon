@@ -8,6 +8,9 @@ class dem:
         dem = kwargs.get('dem', None)
         if dem == 'gebco08' :
             self.impl = gebco08(**kwargs)
+        elif dem == 'gebco14' :
+            self.impl = gebco14(**kwargs)
+
 
 class gebco08(dem):
     
@@ -130,7 +133,14 @@ class gebco08(dem):
 
 class gebco14(dem):
     
-    def get(self,**kwargs):
+    def __init__(self,**kwargs):
+    
+      self.lon0 = kwargs.get('lon0', None)
+      self.lon1 = kwargs.get('lon1', None)
+      self.lat0 = kwargs.get('lat0', None)
+      self.lat1 = kwargs.get('lat1', None)       
+      self.properties = kwargs.get('properties', {})    
+        
       filename = kwargs.get('dpath', None)      
     # open NetCDF data in 
       nc = netCDF4.Dataset(filename)
@@ -208,8 +218,8 @@ class gebco14(dem):
         lons, lats = np.meshgrid(lon[i1:i2],lat[j1:j2])
         topo = ncv[n3][j1:j2,i1:i2]
         
-      self.dem = topo
-      self.dlons = lons
+      self.val = topo
+      self.dlons = lons 
       self.dlat = lats
          
       if 'grid_x' in kwargs.keys():
@@ -236,6 +246,6 @@ class gebco14(dem):
        itopo=np.array(itopo)
        itopo=itopo.reshape(grid_x.shape)
 
-       self.idem = itopo
+       self.ival = itopo
 
 
