@@ -352,7 +352,7 @@ class d3d(model):
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(dt))
 
-          np.savetxt(pfid,np.flipud(self.meteo.impl.p[it,:,:]/0.01),fmt='%.3f')
+          np.savetxt(pfid,np.flipud(self.meteo.impl.p[it,:,:]),fmt='%.3f')
           np.savetxt(ufid,np.flipud(self.meteo.impl.u[it,:,:]),fmt='%.3f')
           np.savetxt(vfid,np.flipud(self.meteo.impl.v[it,:,:]),fmt='%.3f')
 
