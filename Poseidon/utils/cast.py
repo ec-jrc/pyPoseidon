@@ -37,6 +37,7 @@ class dcast(cast):
         
                 
         prev=self.folders[0]
+        fpath = self.path+'/{}/'.format(prev)
         
         cf = [glob.glob(self.path+prev+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
@@ -78,7 +79,7 @@ class dcast(cast):
 
             for filename in cfiles:
         #        copy2(ppath+filename,rpath+filename)
-                os.symlink(ppath+filename,rpath+filename)
+                os.symlink(fpath+filename,rpath+filename)
             
             copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
                 

@@ -20,7 +20,8 @@ import json
 from collections import OrderedDict
 
 #retrieve the module path
-DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
+#DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
+DATA_PATH = '/home/critechproc/Poseidon/Poseidon/misc/'
 #DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
 #info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 
@@ -100,8 +101,8 @@ class d3d(model):
         gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
         gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)  
-        Tstart = self.date.hour+self.ft1*60     
-        Tstop = self.date.hour+self.ft2*60
+        Tstart = self.date.hour*60+self.ft1*60     
+        Tstop = self.date.hour*60+self.ft2*60
         step = get_value(self,kwargs,'step',None)#kwargs.get('step', None)
         rstep = get_value(self,kwargs,'rstep',None)#kwargs.get('rstep', None)
                                         
@@ -352,7 +353,7 @@ class d3d(model):
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(dt))
 
-          np.savetxt(pfid,np.flipud(self.meteo.impl.p[it,:,:]/0.01),fmt='%.3f')
+          np.savetxt(pfid,np.flipud(self.meteo.impl.p[it,:,:]),fmt='%.3f')
           np.savetxt(ufid,np.flipud(self.meteo.impl.u[it,:,:]),fmt='%.3f')
           np.savetxt(vfid,np.flipud(self.meteo.impl.v[it,:,:]),fmt='%.3f')
 
@@ -380,6 +381,7 @@ class d3d(model):
                 
         if not os.path.exists( calc_dir+'config_d_hydro.xml') :
             
+          print calc_dir, DATA_PATH
           # edit and save config file
           copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
 
