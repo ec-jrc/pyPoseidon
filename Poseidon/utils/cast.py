@@ -42,7 +42,6 @@ class dcast(cast):
         cf = [glob.glob(self.path+prev+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
                     
- 
         for date,folder,meteo in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:]):
             
             ppath = self.path+'/{}/'.format(prev)
