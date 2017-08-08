@@ -1,7 +1,7 @@
 import numpy as np
 import datetime
 import sys
-import os
+import os, errno
 from shutil import copy2
 import logging
 import glob
@@ -78,6 +78,7 @@ class dcast(cast):
 
             for filename in cfiles:
         #        copy2(ppath+filename,rpath+filename)
+             if os.path.exists(rpath+filename)==False: 
                 os.symlink(fpath+filename,rpath+filename)
             
             copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
@@ -89,7 +90,12 @@ class dcast(cast):
             outresfile='restart.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
 
           #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
-            os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+            try:
+              os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+            except OSError, e:
+              if e.errno == errno.EEXIST:
+                  sys.stdout.write('Restart link present\n')
+              pass 
 
             #get new meteo 
 
