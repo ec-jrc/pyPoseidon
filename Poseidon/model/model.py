@@ -20,7 +20,8 @@ import json
 from collections import OrderedDict
 
 #retrieve the module path
-DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
+#DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
+DATA_PATH = '/home/critechproc/Poseidon/Poseidon/misc/'
 #DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
 #info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 
@@ -380,6 +381,7 @@ class d3d(model):
                 
         if not os.path.exists( calc_dir+'config_d_hydro.xml') :
             
+          print calc_dir, DATA_PATH
           # edit and save config file
           copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
 
