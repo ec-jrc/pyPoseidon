@@ -45,12 +45,13 @@ TAT/D3/
 tmp/
 
 #ignore notebook output folders
-Notebooks/
 report/
 TIDES/
 BATHYMETRY/
 src/
 TAT/
+utils_old/
+Notebooks_old/
 
 # Setuptools distribution folder.
 /dist/
