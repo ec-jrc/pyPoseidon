@@ -11,13 +11,13 @@ Then create a dedicated environment with
 
 * conda env create -f environment.yml 
 
-You should have a environment named Poseidon (check it with 'conda env list').
+You should have an environment named Poseidon (check it with 'conda env list').
 
 Activate the environment 
 
 * source activate Poseidon
 
-For using the package through jupyter notebooks
+For using the environment in jupyter notebooks
 
 * conda config --add channels conda-forge
 * conda install ipykernel
@@ -25,17 +25,13 @@ For using the package through jupyter notebooks
 
 Then choose the Poseidon kernel on your Jupyter notebook. 
 
-Activate the Poseidon env
-
-* source activate Poseidon
-
 Finally, install Poseidon the usual way
 
 * python setup.py install
 
 ### Prerequisities
 
-DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. Follow the instruction therein.
+DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. See Wiki for more details.
 
 For using the animation capabilities as outlined in the Notebooks, FFmpeg (https://ffmpeg.org/) library needs to be installed. 
 
