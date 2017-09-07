@@ -9,6 +9,8 @@ import pandas as pd
 import datetime
 from netCDF4 import Dataset
 import subprocess
+import tempfile
+import time
 
 class data:   
        
@@ -29,22 +31,35 @@ class data:
           ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
           z = np.ma.masked_where(ww==True,ha) #mask land
           
-           
           a = anim(self.xh,self.yh,z,title=title,label=label,units=units,vrange=[vmin,vmax])
           
-          filename = '/tmp/anim{}.mp4'.format(k)
-          
-          a.save(filename, fps=10, extra_args=['-vcodec','libx264','-pix_fmt','yuv420p'])
-          
-          flist.append(filename)
+          with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp: # open temp file
+              a.save(temp.name, fps=10, extra_args=['-vcodec','libx264','-pix_fmt','yuv420p'])      
+              flist.append(temp.name)
           
           k+=1
+          
         #save list 
+        with tempfile.NamedTemporaryFile(mode='w+t', suffix='.txt', delete=False) as temp:
+              listname=temp.name
+              for name in flist: temp.write('file    ' + name)
          
         #merge clips   
-        ex=subprocess.Popen(args=['ffmpeg -f h264 concat -i {} -c copy /tmp/movie.mp4'.format(flist)], cwd='/tmp/', shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
-     
-        return video('/tmp/movie.mp4', 'mp4')
+        outfile = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) # open temp file
+        ex=subprocess.Popen(args=['ffmpeg -y -f concat -i {} -c copy {}'.format(listname,outfile.name)], cwd=tempfile.gettempdir(), shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+     #       out = video(temp.name, 'mp4')
+
+        time.sleep(2)
+
+        #cleanup
+        for name in flist:
+            os.remove(name)
+        os.remove(listname)
+        
+  #      print os.path.isfile(outfile.name) 
+  #      print os.path.getsize(outfile.name)
+        
+        return video(outfile.name, 'mp4')
         
     def __init__(self,folders,**kwargs):
         
@@ -79,7 +94,7 @@ class data:
         self.xh = np.ma.masked_array(xz, self.w) #mask land
         self.yh = np.ma.masked_array(yz, self.w)        
          
-           
+        self.variables = dat.variables.keys()   
                            
     def movie(self,var,**kwargs):
          
@@ -87,7 +102,7 @@ class data:
          
         vmax=0.
         vmin=0. 
-        time = []
+        timef = []
         for folder in self.folders:
             with open(folder+'/info.pkl', 'r') as f:
                               info=pickle.load(f)
@@ -97,13 +112,13 @@ class data:
             vmin = min(dat.variables[var][:step].min(), vmin)
             t = dat.variables['time'][:step]
             for it in range(t.shape[0]):
-                time.append(info['date']+datetime.timedelta(seconds=np.int(t[it])))
+                timef.append(info['date']+datetime.timedelta(seconds=np.int(t[it])))
             title = dat.variables[var].long_name
             units = dat.variables[var].units
             
-        self.time = time
+        self.time = timef
          
-        return self.animaker(var,vmax,vmin,title,time,units,step)
+        return self.animaker(var,vmax,vmin,title,timef,units,step)
         
     
    # def frame(self,slot):
@@ -130,11 +145,11 @@ class data:
                    
             dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
         
-            time=dat.variables['time'][:]
+            tv=dat.variables['time'][:]
             
-            t = [info['date']+datetime.timedelta(seconds=np.int(it)) for it in time]
+            t = [info['date']+datetime.timedelta(seconds=np.int(it)) for it in tv]
             
-            ndt = time.shape[0]
+            ndt = tv.shape[0]
         
             xb, yb = self.xh[i-3:i+4,j-3:j+4],self.yh[i-3:i+4,j-3:j+4] # retrieve nearby grid values
             orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
