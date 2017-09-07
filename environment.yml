@@ -13,4 +13,4 @@ dependencies:
   - python-eccodes
   - scipy
   - numpy
-  
+  - pyresample
