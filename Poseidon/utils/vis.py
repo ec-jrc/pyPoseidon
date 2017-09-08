@@ -86,7 +86,7 @@ def anim(x,y,z,title=None,label=None,units=None,**kwargs):
     
     #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
     cbar = plt.colorbar(ticks=v,orientation='horizontal', extend='both')#,fraction=0.046, pad=0.04)
-    if label : cbar.ax.set_xlabel(units)
+    if units : cbar.ax.set_xlabel(units)
 
     if title : plt.title(title)
     

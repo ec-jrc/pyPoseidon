@@ -33,7 +33,7 @@ class dcast(cast):
     def run(self,**kwargs):
         
                      
-        files=['config_d_hydro.xml','*.grd','*.enc','*.obs','*.dep', '*.bnd', '*.bca','run_flow2d3d.sh','info.pkl']
+        files=['config_d_hydro.xml','*.grd','*.enc','*.obs','*.dep', '*.bnd', '*.bca','run_flow2d3d.sh']
         
                 
         prev=self.folders[0]
@@ -57,8 +57,10 @@ class dcast(cast):
             if not os.path.exists(rpath):
                 os.makedirs(rpath)
 
+            copy2(ppath+'info.pkl',rpath) #copy the info file
+
             # load model
-            with open(ppath+'info.pkl', 'r') as f:
+            with open(rpath+'info.pkl', 'r') as f:
                           info=pickle.load(f)
             
 #            for attr, value in self.info.iteritems():

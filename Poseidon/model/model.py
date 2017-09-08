@@ -56,9 +56,6 @@ class model:
     def read(self,**kwargs):
         self.impl.read(**kwargs)
 
-    def set(self,**kwargs):
-        self.impl.set(**kwargs)
-        
     def force(self,**kwargs):
         self.impl.force(**kwargs)
 

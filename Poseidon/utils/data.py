@@ -3,6 +3,7 @@ import pickle
 import os
 from Poseidon.model.grid import *
 from Poseidon.model.dep import *
+from Poseidon.model import mdf
 from Poseidon.utils.vis import *
 import pyresample
 import pandas as pd
@@ -15,16 +16,28 @@ import time
 class data:   
        
                                     
-    def animaker(self,var,vmax,vmin,title,label,units,step):
+    def animaker(self,var,vmax,vmin,title,units,step):
               
         flist=[]
        
         k=0
 
+        timef = []
+
         for folder in self.folders:
-                   
-          # read array
+
+          # read netcdf
           dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
+                   
+          #read reference date
+          inp, order = mdf.read(folder+'/'+self.info['tag']+'.mdf')
+          refdat = inp['Itdate']
+          refdate = datetime.datetime.strptime(refdat,'%Y-%m-%d')
+          t = dat.variables['time'][:step]
+          label = []
+          for it in range(t.shape[0]):
+                label.append(refdate+datetime.timedelta(seconds=np.int(t[it])))
+                timef.append(refdate+datetime.timedelta(seconds=np.int(t[it])))
           
           h = dat.variables[var][:step,1:-1,1:-1]
           ha = np.transpose(h,axes=(0,2,1)) #transpose lat/lon
@@ -39,17 +52,18 @@ class data:
           
           k+=1
           
+        self.time = timef
         #save list 
         with tempfile.NamedTemporaryFile(mode='w+t', suffix='.txt', delete=False) as temp:
               listname=temp.name
-              for name in flist: temp.write('file    ' + name)
+              for name in flist: temp.write('file   {}\n'.format(name))
          
         #merge clips   
         outfile = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) # open temp file
         ex=subprocess.Popen(args=['ffmpeg -y -f concat -i {} -c copy {}'.format(listname,outfile.name)], cwd=tempfile.gettempdir(), shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
      #       out = video(temp.name, 'mp4')
 
-        time.sleep(2)
+        time.sleep(5)
 
         #cleanup
         for name in flist:
@@ -102,23 +116,16 @@ class data:
          
         vmax=0.
         vmin=0. 
-        timef = []
         for folder in self.folders:
-            with open(folder+'/info.pkl', 'r') as f:
-                              info=pickle.load(f)
-            
+
             dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
             vmax = max(dat.variables[var][:step].max(), vmax)
             vmin = min(dat.variables[var][:step].min(), vmin)
-            t = dat.variables['time'][:step]
-            for it in range(t.shape[0]):
-                timef.append(info['date']+datetime.timedelta(seconds=np.int(t[it])))
             title = dat.variables[var].long_name
             units = dat.variables[var].units
             
-        self.time = timef
          
-        return self.animaker(var,vmax,vmin,title,timef,units,step)
+        return self.animaker(var,vmax,vmin,title,units,step)
         
     
    # def frame(self,slot):
@@ -128,6 +135,7 @@ class data:
     def point(self,plat,plon,**kwargs):
         
         var = kwargs.get('var', 'S1')
+        step = kwargs.get('step', None)
         
         plat=float(plat)
         plon=float(plon)
@@ -137,17 +145,20 @@ class data:
         
         #print i,j
         
+        frames=[] 
         
         for folder in self.folders:
             
-            with open(folder+'/info.pkl', 'r') as f:
-                              info=pickle.load(f)
+            #read reference date
+            inp, order = mdf.read(folder+'/'+self.info['tag']+'.mdf')
+            refdat = inp['Itdate']
+            refdate = datetime.datetime.strptime(refdat,'%Y-%m-%d')
                    
             dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
         
-            tv=dat.variables['time'][:]
+            tv=dat.variables['time'][:step]
             
-            t = [info['date']+datetime.timedelta(seconds=np.int(it)) for it in tv]
+            t = [refdate+datetime.timedelta(seconds=np.int(it)) for it in tv]
             
             ndt = tv.shape[0]
         
@@ -167,6 +178,11 @@ class data:
                 s = pyresample.kd_tree.resample_nearest(orig,vals,targ,radius_of_influence=50000,fill_value=999999)
                 pval.append(s[0])
                 
-            return pd.DataFrame({'time':t,var:pval})    
-        
+            tdat = pd.DataFrame({'time':t,var:pval})    
+
+            frames.append(tdat)
+
+
+        pdata = pd.concat(frames)
+        return pdata.set_index(['time'])
         
