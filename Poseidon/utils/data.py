@@ -69,6 +69,7 @@ class data:
         for name in flist:
             os.remove(name)
         os.remove(listname)
+
         
   #      print os.path.isfile(outfile.name) 
   #      print os.path.getsize(outfile.name)

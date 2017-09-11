@@ -97,6 +97,8 @@ def anim(x,y,z,title=None,label=None,units=None,**kwargs):
     save = kwargs.get('save', False)
     path = kwargs.get('path', './')
     
+    plt.close('all')
+
     if save : 
         anim.save(path, fps=10, extra_args=['-vcodec','libx264','-pix_fmt','yuv420p'])
     else:
