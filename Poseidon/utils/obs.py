@@ -1,5 +1,9 @@
 import urllib2, urllib
 import datetime
+from pydap.client import open_url
+from dateutil.parser import parse
+import numpy as np
+import pandas as pd
 
 class obs:
 
@@ -48,5 +52,30 @@ class obs:
             rt.append(datetime.datetime.strptime(a,'%d %b %Y %H:%M:%S'))
             vt.append([b,c,d])
 
-        return rt,vt,plat,plon,bname,bid
+        tg = pd.DataFrame(np.column_stack([rt,vt]),columns = ['time', 'Total Sea Level', 'Tide', 'Storm Surge'])
+        tg = tg.set_index(['time'])
+        tg = tg.apply(pd.to_numeric)
+        
+        self.data = tg
 
+        
+    def soest(self):
+        
+        url = 'https://uhslc.soest.hawaii.edu/thredds/dodsC/uhslc/fdh/OS_UH-FDH329_20170628_D'
+        dataset = open_url(url)
+        
+        t = dataset['time']
+        
+        info = bunch(dataset.attributes['NC_GLOBAL'])
+        
+        tref = t.attributes['units'].split()[-1]
+        
+        self.tref = parse(tref)
+        
+        
+        time = [self.tref + datetime.timedelta(days = ta) for ta in t.data[:]]
+        
+        #find the index for the time frame we want
+        #start_day =  
+        
+            

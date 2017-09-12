@@ -23,6 +23,8 @@ class data:
         k=0
 
         timef = []
+        
+        plt.ioff()
 
         for folder in self.folders:
 
