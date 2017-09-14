@@ -72,7 +72,7 @@ class data:
             os.remove(name)
         os.remove(listname)
 
-        
+        plt.ion()
   #      print os.path.isfile(outfile.name) 
   #      print os.path.getsize(outfile.name)
         
@@ -167,23 +167,36 @@ class data:
         
             xb, yb = self.xh[i-3:i+4,j-3:j+4],self.yh[i-3:i+4,j-3:j+4] # retrieve nearby grid values
             orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
-            
-            
+                                   
             targ = pyresample.geometry.SwathDefinition(lons=np.array([plon,plon]),lats=np.array([plat,plat])) #  point
             
             pval=[]
+            rval=[]
             for it in range(ndt):
                 # note the transposition of the D3D variables
-                vals = np.ma.masked_array(dat.variables[var][it,j-2:j+5,i-2:i+5],self.w[i-3:i+4,j-3:j+4]) # values as nearby points ! land in masked !!
+                svalues = dat.variables[var][it,j-2:j+5,i-2:i+5]
+                mask = xb.mask
+                vals = np.ma.masked_array(svalues,mask=mask) # values as nearby points ! land in masked !!
                 #print vals
                 vals.fill_value=999999
                 
                 s = pyresample.kd_tree.resample_nearest(orig,vals,targ,radius_of_influence=50000,fill_value=999999)
                 pval.append(s[0])
                 
-            tdat = pd.DataFrame({'time':t,var:pval})    
-
-            frames.append(tdat)
+                
+                rval.append(svalues)
+             
+            varr = np.hstack(rval).reshape(-1,ndt) 
+            
+            out =  pd.DataFrame(varr).transpose()  
+            header = zip(xb.flatten(),yb.flatten())
+            
+            out.columns =  [str(a) for a in header]
+            
+            tdat = pd.DataFrame({'time':t,var:pval})
+            cdata = pd.concat([tdat, out], axis=1)    
+            
+            frames.append(cdata)
 
 
         pdata = pd.concat(frames)
