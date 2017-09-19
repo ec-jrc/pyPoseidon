@@ -33,8 +33,6 @@ Finally, install Poseidon the usual way
 
 DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. See Wiki for more details.
 
-For using the animation capabilities as outlined in the Notebooks, FFmpeg (https://ffmpeg.org/) library needs to be installed. 
-
 ## Tests
 
 No tests are available at the moment.

@@ -18,4 +18,5 @@ dependencies:
   - seaborn
   - urllib3
   - ffmpeg
+  - ipyleaflet
   
