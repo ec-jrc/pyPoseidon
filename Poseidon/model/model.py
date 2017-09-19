@@ -455,6 +455,7 @@ class d3d(model):
     def output(self,**kwargs):      
         
         path = get_value(self,kwargs,'rpath','./') 
+        slevel = get_value(self,kwargs,'slevel',None) 
         
         if not os.path.exists(path):
             os.makedirs(path)
@@ -467,7 +468,7 @@ class d3d(model):
         
         #save dem
         bat = -self.dem.impl.ival #reverse for the hydro run
-        bat[bat<0]=np.nan #mask all dry points
+      # bat[bat<-slevel]=np.nan #mask dry points
         
         # Write bathymetry file
         ba = Dep()
