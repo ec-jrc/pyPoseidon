@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from setuptools import setup, Extension
-#from distutils.core import setup
-#from distutils.extension import Extension
+#from setuptools import setup, Extension
+from distutils.core import setup
+from distutils.extension import Extension
 import numpy as np
 
 def readme():
@@ -17,12 +17,12 @@ setup(name='Poseidon',
       long_description=readme(),
       url='https://github.com/brey/Poseidon',
       author='George Breyiannis',
-      author_email='gbreyiannis@gmail.com',
-      license='EUPL',
-      packages=['Poseidon.model','Poseidon.meteo','Poseidon.dem','Poseidon.utils','Poseidon.tide'],
+      author_email='breyiannis@gmail.com',
+      license='GPLv3+',
+      packages=['Poseidon', 'Poseidon.model','Poseidon.meteo','Poseidon.dem','Poseidon.utils','Poseidon.tide'],
       classifiers=[
           'Programming Language :: Python',
-          'License :: OSI Approved :: GPLv3+',
+          'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
           'Operating System :: OS Independent',
           'Development Status :: 4 - Beta',
           'Environment :: Other Environment',
@@ -34,7 +34,7 @@ setup(name='Poseidon',
           Extension("redtoreg", ["Poseidon/meteo/redtoreg.pyx"],
                     include_dirs=[np.get_include()]),
       ],
-      package_data={'': ['misc/*']},
-      zip_safe=False)
+      package_data={'': ['misc/*']})#,
+#     zip_safe=False)
 
    
