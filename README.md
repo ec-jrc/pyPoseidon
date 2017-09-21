@@ -11,21 +11,21 @@ Then create a dedicated environment with
 
 * conda env create -f environment.yml 
 
-You should have an environment named Poseidon (check it with 'conda env list').
+You should have an environment named pyPoseidon (check it with 'conda env list').
 
 Activate the environment 
 
-* source activate Poseidon
+* source activate pyPoseidon
 
 For using the environment in jupyter notebooks
 
 * conda config --add channels conda-forge
 * conda install ipykernel
-* python -m ipykernel install --name Poseidon
+* python -m ipykernel install --name pyPoseidon
 
-Then choose the Poseidon kernel on your Jupyter notebook. 
+Then choose the pyPoseidon kernel on your Jupyter notebook. 
 
-Finally, install Poseidon the usual way
+Finally, install pyPoseidon the usual way
 
 * python setup.py install
 
@@ -44,7 +44,7 @@ No tests are available at the moment.
 
 ## Acknowledgments
 
-Modified versions of modules from the project BOUT++ (https://github.com/boutproject/BOUT-dev) and OpenEarthTools (https://publicwiki.deltares.nl/display/OET/OpenEarth) are incorporated into Poseidon.
+Modified versions of modules from the project BOUT++ (https://github.com/boutproject/BOUT-dev) and OpenEarthTools (https://publicwiki.deltares.nl/display/OET/OpenEarth) are incorporated into pyPoseidon.
 
 * All the people that teach me stuff.  
 

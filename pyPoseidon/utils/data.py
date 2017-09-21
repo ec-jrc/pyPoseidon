@@ -1,10 +1,10 @@
 import numpy as np
 import pickle
 import os
-from Poseidon.model.grid import *
-from Poseidon.model.dep import *
-from Poseidon.model import mdf
-from Poseidon.utils.vis import *
+from pyPoseidon.model.grid import *
+from pyPoseidon.model.dep import *
+from pyPoseidon.model import mdf
+from pyPoseidon.utils.vis import *
 import pyresample
 import pandas as pd
 import datetime
@@ -132,32 +132,79 @@ class data:
         
     
    # def frame(self,slot):
+   
+    def maxval(self,var,**kwargs):
+       
+       step = kwargs.get('step', None)
+       
+       dat=Dataset(self.folders[0]+'/'+'trim-'+self.info['tag']+'.nc')
+       h = dat.variables[var][:step,1:-1,1:-1]
+       ha = np.transpose(h,axes=(0,2,1)) #transpose lat/lon
+       vmax = np.amax(ha,axis=0) # max values of all times
+
+       
+       for folder in self.folders[1:]:
+           # read netcdf
+           dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
+           h = dat.variables[var][:step,1:-1,1:-1]
+           ha = np.transpose(h,axes=(0,2,1)) #transpose lat/lon
+           
+           hmax = np.amax(ha,axis=0) # max values of all times
+         
+           vmax = np.maximum(hmax,vmax)
+           
+   
+       return np.ma.masked_array(vmax,self.xh.mask)
+       
+       
+    def get_data(self,var,**kwargs): 
+          
+       step = kwargs.get('step', None)
+       
+       
+       stor = []
+       for folder in self.folders:
+           # read netcdf
+           dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
+           h = dat.variables[var][:step,1:-1,1:-1]
+           ha = np.transpose(h,axes=(0,2,1)) #transpose lat/lon
+           
+           stor.append(ha)
+           
+       return  np.hstack(stor)  
+           
         
-                
+class point:
+    
+    def __init__(self,**kwargs):
+                        
+        self.lon = kwargs.get('lon', None) 
+        self.lat = kwargs.get('lat', None) 
             
-    def point(self,plat,plon,**kwargs):
+    def tseries(self,data,**kwargs):
         
-        var = kwargs.get('var', 'S1')
+        var = kwargs.get('var', None)
         step = kwargs.get('step', None)
         
-        plat=float(plat)
-        plon=float(plon)
+        plat=float(self.lat)
+        plon=float(self.lon)
         
-        j=np.abs(self.xh.data[0,:]-plon).argmin()
-        i=np.abs(self.yh.data[:,0]-plat).argmin()
+        j=np.abs(data.xh.data[0,:]-plon).argmin()
+        i=np.abs(data.yh.data[:,0]-plat).argmin()
         
-        #print i,j
+        self.i = i
+        self.j = j
         
         frames=[] 
         
-        for folder in self.folders:
+        for folder in data.folders:
             
             #read reference date
-            inp, order = mdf.read(folder+'/'+self.info['tag']+'.mdf')
+            inp, order = mdf.read(folder+'/'+data.info['tag']+'.mdf')
             refdat = inp['Itdate']
             refdate = datetime.datetime.strptime(refdat,'%Y-%m-%d')
                    
-            dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
+            dat=Dataset(folder+'/'+'trim-'+data.info['tag']+'.nc')
         
             tv=dat.variables['time'][:step]
             
@@ -165,7 +212,7 @@ class data:
             
             ndt = tv.shape[0]
         
-            xb, yb = self.xh[i-3:i+4,j-3:j+4],self.yh[i-3:i+4,j-3:j+4] # retrieve nearby grid values
+            xb, yb = data.xh[i-3:i+4,j-3:j+4],data.yh[i-3:i+4,j-3:j+4] # retrieve nearby grid values
             orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
                                    
             targ = pyresample.geometry.SwathDefinition(lons=np.array([plon,plon]),lats=np.array([plat,plat])) #  point
@@ -201,4 +248,6 @@ class data:
 
         pdata = pd.concat(frames)
         return pdata.set_index(['time'])
+        
+
         

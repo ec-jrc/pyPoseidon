@@ -6,7 +6,7 @@ from shutil import copy2
 import logging
 import glob
 import pickle
-from Poseidon.model import *
+from pyPoseidon.model import *
 
 class cast:
     impl=None

@@ -8,20 +8,21 @@ import subprocess
 import sys
 import pkg_resources
 from bunch import Bunch
+import json
+from collections import OrderedDict
+
 #local modules
 import mdf
 from grid import *
 from dep import *
 from bnd import *
-from Poseidon.meteo import meteo
-from Poseidon.dem import dem
-from Poseidon.utils.get_value import get_value
-import json
-from collections import OrderedDict
+from pyPoseidon.meteo import meteo
+from pyPoseidon.dem import dem
+from pyPoseidon.utils.get_value import get_value
 
 #retrieve the module path
-#DATA_PATH = pkg_resources.resource_filename('Poseidon', 'misc/')
-DATA_PATH = '/home/critechproc/Poseidon/Poseidon/misc/'
+DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc/')
+#DATA_PATH = '/home/critechproc/Poseidon/Poseidon/misc/'
 #DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
 #info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 

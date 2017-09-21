@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-#from setuptools import setup, Extension
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup, Extension
+#from distutils.core import setup
+#from distutils.extension import Extension
 import numpy as np
 
 def readme():
@@ -11,15 +11,15 @@ def readme():
 
 
 
-setup(name='Poseidon',
+setup(name='pyPoseidon',
       version='0.1',
       description='Storm Surge analysis tool',
       long_description=readme(),
-      url='https://github.com/brey/Poseidon',
+      url='https://github.com/brey/pyPoseidon',
       author='George Breyiannis',
-      author_email='breyiannis@gmail.com',
+      author_email='gbreyiannis@gmail.com',
       license='GPLv3+',
-      packages=['Poseidon', 'Poseidon.model','Poseidon.meteo','Poseidon.dem','Poseidon.utils','Poseidon.tide'],
+      packages=['pyPoseidon', 'pyPoseidon.model','pyPoseidon.meteo','pyPoseidon.dem','pyPoseidon.utils','pyPoseidon.tide'],
       classifiers=[
           'Programming Language :: Python',
           'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
@@ -31,7 +31,7 @@ setup(name='Poseidon',
           'Topic :: Scientific/Engineering :: Atmospheric Science',
       ],
       ext_modules=[
-          Extension("redtoreg", ["Poseidon/meteo/redtoreg.pyx"],
+          Extension("redtoreg", ["pyPoseidon/meteo/redtoreg.pyx"],
                     include_dirs=[np.get_include()]),
       ],
       package_data={'': ['misc/*']})#,
