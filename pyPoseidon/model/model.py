@@ -22,7 +22,6 @@ from pyPoseidon.utils.get_value import get_value
 
 #retrieve the module path
 DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc/')
-#DATA_PATH = '/home/critechproc/Poseidon/Poseidon/misc/'
 #DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
 #info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 

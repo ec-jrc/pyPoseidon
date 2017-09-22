@@ -4,6 +4,10 @@ from pydap.client import open_url
 from dateutil.parser import parse
 import numpy as np
 import pandas as pd
+import pkg_resources
+
+
+DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc/')
 
 class obs:
 
@@ -12,6 +16,22 @@ class obs:
         self.sdate = kwargs.get('sdate', None)
         self.edate = kwargs.get('edate', None)
         self.point = kwargs.get('point', None)
+        
+    
+    def get_loc(self,**kwargs):
+    
+        minlon = kwargs.get('lon0', None)
+        maxlon = kwargs.get('lon1', None)
+        minlat = kwargs.get('lat0', None)
+        maxlat = kwargs.get('lat1', None)
+        
+        ioc = pd.read_csv(DATA_PATH+'ioc.csv')
+        
+        w = ioc.loc[(ioc['Longitude'] > minlon) & (ioc['Longitude'] < maxlon) & (ioc['Latitude'] > minlat) & (ioc['Latitude'] < maxlat)]
+        
+        w.reset_index(inplace=True, drop=True)
+        
+        self.points = w 
         
 
     def getmes(self):

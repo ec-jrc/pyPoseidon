@@ -6,6 +6,7 @@ from pyPoseidon.model.dep import *
 from pyPoseidon.model import mdf
 from pyPoseidon.utils.vis import *
 import pyresample
+from pyresample import bilinear
 import pandas as pd
 import datetime
 from netCDF4 import Dataset
@@ -13,6 +14,7 @@ import subprocess
 import tempfile
 import time
 
+   
 class data:   
        
                                     
@@ -180,31 +182,30 @@ class point:
                         
         self.lon = kwargs.get('lon', None) 
         self.lat = kwargs.get('lat', None) 
+        self.data = kwargs.get('data', None)
             
-    def tseries(self,data,**kwargs):
+    def tseries(self,**kwargs):
         
         var = kwargs.get('var', None)
         step = kwargs.get('step', None)
+        method = kwargs.get('method', 'nearest')
         
         plat=float(self.lat)
         plon=float(self.lon)
         
-        j=np.abs(data.xh.data[0,:]-plon).argmin()
-        i=np.abs(data.yh.data[:,0]-plat).argmin()
-        
-        self.i = i
-        self.j = j
-        
+        j=np.abs(self.data.xh.data[0,:]-plon).argmin()
+        i=np.abs(self.data.yh.data[:,0]-plat).argmin()
+                
         frames=[] 
         
-        for folder in data.folders:
+        for folder in self.data.folders:
             
             #read reference date
-            inp, order = mdf.read(folder+'/'+data.info['tag']+'.mdf')
+            inp, order = mdf.read(folder+'/'+self.data.info['tag']+'.mdf')
             refdat = inp['Itdate']
             refdate = datetime.datetime.strptime(refdat,'%Y-%m-%d')
                    
-            dat=Dataset(folder+'/'+'trim-'+data.info['tag']+'.nc')
+            dat=Dataset(folder+'/'+'trim-'+self.data.info['tag']+'.nc')
         
             tv=dat.variables['time'][:step]
             
@@ -212,13 +213,13 @@ class point:
             
             ndt = tv.shape[0]
         
-            xb, yb = data.xh[i-3:i+4,j-3:j+4],data.yh[i-3:i+4,j-3:j+4] # retrieve nearby grid values
+            xb, yb = self.data.xh[i-3:i+4,j-3:j+4],self.data.yh[i-3:i+4,j-3:j+4] # retrieve nearby grid values
             orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
                                    
             targ = pyresample.geometry.SwathDefinition(lons=np.array([plon,plon]),lats=np.array([plat,plat])) #  point
             
+            
             pval=[]
-            rval=[]
             for it in range(ndt):
                 # note the transposition of the D3D variables
                 svalues = dat.variables[var][it,j-2:j+5,i-2:i+5]
@@ -227,27 +228,93 @@ class point:
                 #print vals
                 vals.fill_value=999999
                 
-                s = pyresample.kd_tree.resample_nearest(orig,vals,targ,radius_of_influence=50000,fill_value=999999)
+                if method == 'nearest':
+                    s = pyresample.kd_tree.resample_nearest(orig,vals,targ,radius_of_influence=50000,fill_value=999999)
+                elif methos == 'gauss':
+                    s = pyresample.kd_tree.resample_gauss(orig,vals,targ,radius_of_influence=50000,fill_value=999999,sigmas=25000)
+                
                 pval.append(s[0])
                 
                 
-                rval.append(svalues)
-             
-            varr = np.hstack(rval).reshape(-1,ndt) 
-            
-            out =  pd.DataFrame(varr).transpose()  
-            header = zip(xb.flatten(),yb.flatten())
-            
-            out.columns =  [str(a) for a in header]
-            
             tdat = pd.DataFrame({'time':t,var:pval})
-            cdata = pd.concat([tdat, out], axis=1)    
-            
-            frames.append(cdata)
+                        
+            frames.append(tdat)
 
 
         pdata = pd.concat(frames)
-        return pdata.set_index(['time'])
+        self.obs = pdata.set_index(['time'])
         
+        
+    def nearest_node(self,**kwargs):
+                       
+        plat=float(self.lat)
+        plon=float(self.lon)
+        
+        j=np.abs(self.data.xh.data[0,:]-plon).argmin()
+        i=np.abs(self.data.yh.data[:,0]-plat).argmin()
+        
+        self.i = i
+        self.j = j
+        
+        self.ilon = self.data.xh.data[i,j]
+        self.ilat = self.data.yh.data[i,j]
+        
+        
+    def node_data(self,**kwargs):
+        
+        i = kwargs.get('i', self.i) 
+        j = kwargs.get('j', self.j)  
+        var = kwargs.get('var', None) 
+        step = kwargs.get('step', None)   
+        
+        ilon, ilat = self.data.xh[i,j],self.data.yh[i,j] # retrieve nearby grid values
+        
+        p = point(lon=ilon,lat=ilat,data=self.data)
+        
+        
+        frames=[] 
+        
+        for folder in self.data.folders:
+            
+            #read reference date
+            inp, order = mdf.read(folder+'/'+self.data.info['tag']+'.mdf')
+            refdat = inp['Itdate']
+            refdate = datetime.datetime.strptime(refdat,'%Y-%m-%d')
+                   
+            dat=Dataset(folder+'/'+'trim-'+self.data.info['tag']+'.nc')
+        
+            tv=dat.variables['time'][:step]
+            
+            t = [refdate+datetime.timedelta(seconds=np.int(it)) for it in tv]
+            
+            ndt = tv.shape[0]
+                      
+            pval=dat.variables[var][:step,j,i] # retrieve variable data                
+                
+            tdat = pd.DataFrame({'time':t,var:pval})
+                        
+            frames.append(tdat)
 
+
+        pdata = pd.concat(frames)
+        p.obs = pdata.set_index(['time'])
+        return p
+    
+    
+    def next_node_data(self,**kwargs):
+               
+        var = kwargs.get('var', None)
+        step = kwargs.get('step', None)
+        nps = kwargs.get('npoints', 1)
+        
+        xx,yy =np.meshgrid(np.arange(-nps,nps+1),np.arange(-nps,nps+1))
+        
+        frames = []
+        
+        for l,k in zip((xx+self.i).flatten(),(yy+self.j).flatten()):
+            p = self.node_data(i=l,j=k,var=var,step=step)
+            frames.append(p)
+     
+        return frames 
+          
         
