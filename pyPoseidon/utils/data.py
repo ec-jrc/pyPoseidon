@@ -230,7 +230,7 @@ class point:
                 
                 if method == 'nearest':
                     s = pyresample.kd_tree.resample_nearest(orig,vals,targ,radius_of_influence=50000,fill_value=999999)
-                elif methos == 'gauss':
+                elif method == 'gauss':
                     s = pyresample.kd_tree.resample_gauss(orig,vals,targ,radius_of_influence=50000,fill_value=999999,sigmas=25000)
                 
                 pval.append(s[0])
@@ -242,7 +242,7 @@ class point:
 
 
         pdata = pd.concat(frames)
-        self.obs = pdata.set_index(['time'])
+        return pdata.set_index(['time'])
         
         
     def nearest_node(self,**kwargs):
@@ -262,12 +262,18 @@ class point:
         
     def node_data(self,**kwargs):
         
-        i = kwargs.get('i', self.i) 
-        j = kwargs.get('j', self.j)  
+        try:
+           i = kwargs.get('i', self.i) 
+           j = kwargs.get('j', self.j)  
+        except:
+           self.nearest_node()
+           i = self.i
+           j = self.j
+
         var = kwargs.get('var', None) 
         step = kwargs.get('step', None)   
         
-        ilon, ilat = self.data.xh[i,j],self.data.yh[i,j] # retrieve nearby grid values
+        ilon, ilat = self.data.xh.data[i,j],self.data.yh.data[i,j] # retrieve nearby grid values
         
         p = point(lon=ilon,lat=ilat,data=self.data)
         
@@ -301,7 +307,7 @@ class point:
         return p
     
     
-    def next_node_data(self,**kwargs):
+    def nearby_node_data(self,**kwargs):
                
         var = kwargs.get('var', None)
         step = kwargs.get('step', None)
@@ -311,9 +317,13 @@ class point:
         
         frames = []
         
+        m=0
         for l,k in zip((xx+self.i).flatten(),(yy+self.j).flatten()):
             p = self.node_data(i=l,j=k,var=var,step=step)
+            p.name = 'point {}'.format(m)
+            p.obs.columns=[p.name]
             frames.append(p)
+            m+=1
      
         return frames 
           
