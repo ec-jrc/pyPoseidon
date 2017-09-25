@@ -16,13 +16,14 @@ import mdf
 from grid import *
 from dep import *
 from bnd import *
+import pyPoseidon
 from pyPoseidon.meteo import meteo
 from pyPoseidon.dem import dem
 from pyPoseidon.utils.get_value import get_value
 
 #retrieve the module path
-DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc/')
-#DATA_PATH = os.path.dirname(Poseidon.__file__)+'/misc/'    
+#DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
+DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
 #info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 
 # strings to be used 

@@ -13,7 +13,7 @@ from netCDF4 import Dataset
 import subprocess
 import tempfile
 import time
-
+import folium
    
 class data:   
        
@@ -111,7 +111,10 @@ class data:
             
             
         self.xh = np.ma.masked_array(xz, self.w) #mask land
-        self.yh = np.ma.masked_array(yz, self.w)        
+        self.yh = np.ma.masked_array(yz, self.w)
+        
+        self.dx = self.xh[0,1]-self.xh[0,0]
+        self.dy = self.yh[1,0]-self.yh[0,0]        
          
         self.variables = dat.variables.keys()   
                            
@@ -183,6 +186,7 @@ class point:
         self.lon = kwargs.get('lon', None) 
         self.lat = kwargs.get('lat', None) 
         self.data = kwargs.get('data', None)
+        self.name = kwargs.get('name', None)
             
     def tseries(self,**kwargs):
         
@@ -327,4 +331,57 @@ class point:
      
         return frames 
           
+    def on_map(self,**kwargs):
+        
+        from folium.features import DivIcon
+        
+        name = kwargs.get('name', 'pressure point')
+        marker = kwargs.get('marker', self.name)
+        
+        dyy = self.data.dy/2 # staggered shift
+        dxx = self.data.dx/2
+        
+        mapa = folium.Map([self.lat,self.lon],zoom_start=12)
+        
+        folium.Marker([self.lat,self.lon],popup=name).add_to(mapa) 
+        
+        folium.CircleMarker(location=[self.lat+dyy,self.lon+dxx],
+                            radius = 5,
+                            fill=True,
+                            color='black',
+                            popup='grid point').add_to(mapa)  
+        
+        grid_line_y = np.linspace(self.lat-dyy, self.lat+dyy,endpoint=True)
+        grid_line_x = np.linspace(self.lon-dxx, self.lon+dxx,endpoint=True)
+        
+        gline_x=zip(grid_line_y,[self.lon + dxx for i in range(len(grid_line_y))])
+        gline_y=zip([self.lat + dyy for i in range(len(grid_line_x))],grid_line_x)
+        
+
+        folium.PolyLine(gline_x,color='black',weight=0.5, opacity=1).add_to(mapa)
+        folium.PolyLine(gline_y,color='black',weight=0.5, opacity=1).add_to(mapa)
+        
+        
+#        folium.map.Marker(
+#             [self.lat,self.lon],
+#             icon=DivIcon(
+#                 icon_size=(150,36),
+#                 icon_anchor=(0,0),
+#                 html='<div style="font-size: 12pt">Pressure point</div>',
+#                 )
+#             ).add_to(mapa)
+         
+#        folium.map.Marker(
+#             [self.lat+self.data.dy,self.lon+self.data.dx],
+#             icon=DivIcon(
+#                 icon_size=(150,12),
+#                 icon_anchor=(0,0),
+#                 html='<div style="font-size: 12pt">Grid point</div>',
+#                 )
+#             ).add_to(mapa)
+             
+             
+                            
+        return mapa    
+        
         

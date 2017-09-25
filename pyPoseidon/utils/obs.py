@@ -5,9 +5,13 @@ from dateutil.parser import parse
 import numpy as np
 import pandas as pd
 import pkg_resources
+import pyPoseidon
+import os
 
 
-DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc/')
+#DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
+DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
+
 
 class obs:
 
