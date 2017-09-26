@@ -310,8 +310,8 @@ class node:
            i = self.i
            j = self.j
 
-        var = kwargs.get('var', None) 
-        step = kwargs.get('step', None)   
+        var = get_value(self,kwargs,'var',None) 
+        step = get_value(self,kwargs,'step',None)   
         
                 
         frames=[] 
