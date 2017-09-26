@@ -113,8 +113,8 @@ class data:
         self.xh = np.ma.masked_array(xz, self.w) #mask land
         self.yh = np.ma.masked_array(yz, self.w)
         
-        self.dx = self.xh[0,1]-self.xh[0,0]
-        self.dy = self.yh[1,0]-self.yh[0,0]        
+        self.dx = self.xh.data[0,1]-self.xh.data[0,0]
+        self.dy = self.yh.data[1,0]-self.yh.data[0,0]        
          
         self.variables = dat.variables.keys()   
                            
