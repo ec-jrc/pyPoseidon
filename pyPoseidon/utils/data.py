@@ -303,6 +303,8 @@ class node:
         try:
            i = kwargs.get('i', self.i) 
            j = kwargs.get('j', self.j)
+           self.i = i
+           self.j = j
            self.ilon, self.ilat = self.data.xh.data[i,j],self.data.yh.data[i,j] # retrieve nearby grid values
         except:
            self.index()
@@ -370,15 +372,14 @@ class node:
         
         from folium.features import DivIcon
         
-        name = kwargs.get('name', get_value(self,kwargs,'name',None)) 
-        marker = kwargs.get('marker', get_value(self,kwargs,'marker',None)) 
-        
         dyy = self.data.dy/2 # staggered shift
         dxx = self.data.dx/2
         
-        dfp=pd.DataFrame([{'kind':'pressure point','i':self.i,'j':self.j,'lon':self.ilon,'lat':self.ilat}])
-        
-        htmlp = dfp.to_html(classes='table table-striped table-hover table-condensed table-responsive',index=None)
+        dfp=pd.DataFrame([{'ID':self.name,'kind':'pressure point','i':self.i,'j':self.j,'lon':self.ilon,'lat':self.ilat}])
+
+        dfp = dfp.set_index('ID')
+
+        htmlp = dfp.to_html(classes='table table-striped table-hover table-condensed table-responsive')#,index=None)
         
         popup_p = folium.Popup(htmlp)
                 
@@ -397,9 +398,11 @@ class node:
         attrs.append(pp)
         
  
-        dfg=pd.DataFrame([{'kind':'grid point','i':self.i,'j':self.j,'lon':self.ilon+dxx,'lat':self.ilat+dyy}])
+        dfg=pd.DataFrame([{'ID':self.name, 'kind':'grid point','i':self.i,'j':self.j,'lon':self.ilon+dxx,'lat':self.ilat+dyy}])
+
+        dfg = dfg.set_index('ID')
  
-        htmlg = dfg.to_html(classes='table table-striped table-hover table-condensed table-responsive',index=None)
+        htmlg = dfg.to_html(classes='table table-striped table-hover table-condensed table-responsive')#,index=self.name)
  
         popup_g = folium.Popup(htmlg)
  
