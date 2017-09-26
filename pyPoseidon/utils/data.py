@@ -14,6 +14,8 @@ import subprocess
 import tempfile
 import time
 import folium
+from pyPoseidon.utils.get_value import get_value
+
    
 class data:   
        
@@ -246,10 +248,42 @@ class point:
 
 
         pdata = pd.concat(frames)
-        return pdata.set_index(['time'])
+        setattr(self, var, pdata.set_index(['time']))
         
+    def on_map(self,**kwargs):
         
-    def nearest_node(self,**kwargs):
+            from folium.features import DivIcon
+        
+            name = get_value(self,kwargs,'name',None)
+            marker = kwargs.get('marker', None)
+                        
+            if marker == None:
+                attrs = folium.Marker([self.lat,self.lon],popup=name)
+            elif (marker == 'circle'):
+                attrs = folium.CircleMarker(location=[self.lat,self.lon],
+                                radius = 5,
+                                fill=True,
+                                color='black',
+                                popup=name) 
+        
+            return attrs
+        
+class node:
+    
+    
+    def __init__(self,**kwargs):
+
+        self.i = kwargs.get('i', None) 
+        self.j = kwargs.get('j', None)                         
+        self.lon = kwargs.get('lon', None) 
+        self.lat = kwargs.get('lat', None) 
+        self.data = kwargs.get('data', None)
+        self.name = kwargs.get('name', None)
+        self.ilon = kwargs.get('ilon', None) 
+        self.ilat = kwargs.get('ilat', None) 
+    
+    
+    def index(self,**kwargs):
                        
         plat=float(self.lat)
         plon=float(self.lon)
@@ -264,24 +298,22 @@ class point:
         self.ilat = self.data.yh.data[i,j]
         
         
-    def node_data(self,**kwargs):
+    def tseries(self,**kwargs):
         
         try:
            i = kwargs.get('i', self.i) 
-           j = kwargs.get('j', self.j)  
+           j = kwargs.get('j', self.j)
+           self.ilon, self.ilat = self.data.xh.data[i,j],self.data.yh.data[i,j] # retrieve nearby grid values
+             
         except:
-           self.nearest_node()
+           self.index()
            i = self.i
            j = self.j
 
         var = kwargs.get('var', None) 
         step = kwargs.get('step', None)   
         
-        ilon, ilat = self.data.xh.data[i,j],self.data.yh.data[i,j] # retrieve nearby grid values
-        
-        p = point(lon=ilon,lat=ilat,data=self.data)
-        
-        
+                
         frames=[] 
         
         for folder in self.data.folders:
@@ -307,9 +339,8 @@ class point:
 
 
         pdata = pd.concat(frames)
-        p.obs = pdata.set_index(['time'])
-        return p
-    
+        setattr(self, var, pdata.set_index(['time']))
+        
     
     def nearby_node_data(self,**kwargs):
                
@@ -323,9 +354,10 @@ class point:
         
         m=0
         for l,k in zip((xx+self.i).flatten(),(yy+self.j).flatten()):
-            p = self.node_data(i=l,j=k,var=var,step=step)
+            p = node(data=self.data)
+            p.tseries(i=l,j=k,var=var,step=step)
             p.name = 'point {}'.format(m)
-            p.obs.columns=[p.name]
+            getattr(p, var).columns=[p.name]
             frames.append(p)
             m+=1
      
@@ -335,33 +367,52 @@ class point:
         
         from folium.features import DivIcon
         
-        name = kwargs.get('name', 'pressure point')
-        marker = kwargs.get('marker', self.name)
+        name = get_value(self,kwargs,'name',None)
+        marker = kwargs.get('marker', None)
         
         dyy = self.data.dy/2 # staggered shift
         dxx = self.data.dx/2
         
-        mapa = folium.Map([self.lat,self.lon],zoom_start=12)
+        dfp=pd.DataFrame([{'kind':'pressure point','i':self.i,'j':self.j,'lon':self.ilon,'lat':self.ilat}])
         
-        folium.Marker([self.lat,self.lon],popup=name).add_to(mapa) 
+        htmlp = dfp.to_html(classes='table table-striped table-hover table-condensed table-responsive',index=None)
         
-        folium.CircleMarker(location=[self.lat+dyy,self.lon+dxx],
-                            radius = 5,
+        popup_p = folium.Popup(htmlp)
+                
+        attrs=[]
+        
+        cell=folium.features.RectangleMarker(bounds=[[self.ilat-dyy, self.ilon-dxx], [self.ilat+dyy, self.ilon+dxx]], \
+                                color='black', fill_color='black', fill_opacity=.4, popup='cell')
+        attrs.append(cell)
+        
+        pp = folium.CircleMarker(location=[self.ilat,self.ilon],
+                            radius = 6,
+                            fill=True,
+                            color='blue',
+                            popup=popup_p)
+                            
+        attrs.append(pp)
+        
+ 
+        dfg=pd.DataFrame([{'kind':'grid point','i':self.i,'j':self.j,'lon':self.ilon+dxx,'lat':self.ilat+dyy}])
+ 
+        htmlg = dfg.to_html(classes='table table-striped table-hover table-condensed table-responsive',index=None)
+ 
+        popup_g = folium.Popup(htmlg)
+ 
+                
+        gp = folium.CircleMarker(location=[self.ilat+dyy,self.ilon+dxx],
+                            radius = 3,
                             fill=True,
                             color='black',
-                            popup='grid point').add_to(mapa)  
-        
-        grid_line_y = np.linspace(self.lat-dyy, self.lat+dyy,endpoint=True)
-        grid_line_x = np.linspace(self.lon-dxx, self.lon+dxx,endpoint=True)
-        
-        gline_x=zip(grid_line_y,[self.lon + dxx for i in range(len(grid_line_y))])
-        gline_y=zip([self.lat + dyy for i in range(len(grid_line_x))],grid_line_x)
-        
-
-        folium.PolyLine(gline_x,color='black',weight=0.5, opacity=1).add_to(mapa)
-        folium.PolyLine(gline_y,color='black',weight=0.5, opacity=1).add_to(mapa)
+                            popup=popup_g) 
+                            
+        attrs.append(gp)
         
         
+        return attrs
+        
+                
 #        folium.map.Marker(
 #             [self.lat,self.lon],
 #             icon=DivIcon(
