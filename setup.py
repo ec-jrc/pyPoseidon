@@ -34,7 +34,7 @@ setup(name='pyPoseidon',
           Extension("redtoreg", ["pyPoseidon/meteo/redtoreg.pyx"],
                     include_dirs=[np.get_include()]),
       ],
-      package_data={'': ['misc/*']})#,
-#     zip_safe=False)
+      package_data={'': ['misc/*']},
+      zip_safe=False)
 
    

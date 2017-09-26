@@ -304,16 +304,19 @@ class node:
            i = kwargs.get('i', self.i) 
            j = kwargs.get('j', self.j)
            self.ilon, self.ilat = self.data.xh.data[i,j],self.data.yh.data[i,j] # retrieve nearby grid values
-             
         except:
            self.index()
            i = self.i
            j = self.j
 
-        var = get_value(self,kwargs,'var',None) 
-        step = get_value(self,kwargs,'step',None)   
-        
-                
+        if i == None :
+           self.index()
+           i = self.i
+           j = self.j
+
+        var = kwargs.get('var', get_value(self,kwargs,'var',None)) 
+        step = kwargs.get('step', get_value(self,kwargs,'step',None))   
+
         frames=[] 
         
         for folder in self.data.folders:
@@ -367,8 +370,8 @@ class node:
         
         from folium.features import DivIcon
         
-        name = get_value(self,kwargs,'name',None)
-        marker = kwargs.get('marker', None)
+        name = kwargs.get('name', get_value(self,kwargs,'name',None)) 
+        marker = kwargs.get('marker', get_value(self,kwargs,'marker',None)) 
         
         dyy = self.data.dy/2 # staggered shift
         dxx = self.data.dx/2
