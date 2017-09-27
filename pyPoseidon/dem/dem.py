@@ -273,7 +273,6 @@ class emodnet(dem):
       lon = ncv[n1][:]
       lat = ncv[n2][:]
 
-
       minlon = self.lon0 #kwargs.get('lon0', {})
       maxlon = self.lon1 #kwargs.get('lon1', {})
       minlat = self.lat0 #kwargs.get('lat0', {})
