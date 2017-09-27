@@ -229,7 +229,15 @@ class d3d(model):
     def force(self,**kwargs):
         z = self.__dict__.copy()
         z.update(kwargs)
-        self.meteo = meteo(**z)  
+
+        # check if files exist
+        check=[os.path.exists(z.rpath+f) for f in ['u.amu','v.amv','p.amp']]   
+        if np.any(check)==False :
+               
+           self.meteo = meteo(**z)  
+        
+        else:
+           sys.stdout.write('meteo files present..\n')
         
         #dem
     def bath(self,**kwargs):
@@ -487,7 +495,7 @@ class d3d(model):
         
         #save meteo
         if self.atm:
-            self.uvp(**kwargs)
+            if self.meteo : self.uvp(**kwargs)
              
         if self.tide :  
             
