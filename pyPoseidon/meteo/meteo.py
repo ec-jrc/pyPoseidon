@@ -91,6 +91,8 @@ class ecmwf(meteo):
       filename = kwargs.get('mpath', {})
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
+      dft = kwargs.get('dft', None)
+      
       ft2 = ft2 + 1 # for range
                       
       minlon = kwargs.get('lon0', None)
@@ -99,7 +101,8 @@ class ecmwf(meteo):
       maxlat = kwargs.get('lat1', None) 
     
       nt1=3*ft1
-      nt2=3*ft2            
+      nt2=3*ft2
+      step = 3*dft            
       
       # read grib file
 
@@ -126,7 +129,7 @@ class ecmwf(meteo):
 
       mxv=nt2-nt1-1
       try:
-        for it in tqdm(range(nt1,nt2)): 
+        for it in tqdm(range(nt1,nt2,step)): 
             
             name,varin,ilon,ilat=getd(f,it)        
 
