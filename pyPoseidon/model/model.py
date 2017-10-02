@@ -85,6 +85,7 @@ class d3d(model):
         self.resolution = kwargs.get('resolution', None)
         self.ft1 = kwargs.get('ft1', None)
         self.ft2 = kwargs.get('ft2', None)
+        self.dft = kwargs.get('dft', 1)       
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', False)
 
@@ -105,6 +106,8 @@ class d3d(model):
         rstep = get_value(self,kwargs,'rstep',None)#kwargs.get('rstep', None)
                                         
         resmin=self.resolution*60
+        
+        
       
         # computei ni,nj / correct lat/lon
 
@@ -230,12 +233,11 @@ class d3d(model):
         z = self.__dict__.copy()
         z.update(kwargs)
 
+        flag = get_value(self,kwargs,'update',False)
         # check if files exist
-        check=[os.path.exists(z.rpath+f) for f in ['u.amu','v.amv','p.amp']]   
-        if np.any(check)==False :
-               
-           self.meteo = meteo(**z)  
-        
+        check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
+        if (np.any(check)==False) or (flag == True) :              
+           self.meteo = meteo(**z)         
         else:
            sys.stdout.write('meteo files present..\n')
         
@@ -351,8 +353,11 @@ class d3d(model):
         time0=datetime.datetime.strptime('2000-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
 
        # write time blocks
-        for it in range(self.ft1,self.ft2+1): # nt + 0 hour    
-          ntime=self.date+datetime.timedelta(hours=it)
+        indx = np.arange(self.ft1,self.ft2,self.dft)
+                
+        for it in range(indx.size): # nt + 0 hour    
+        
+          ntime=self.date+datetime.timedelta( hours=indx[it])
           dt=(ntime-time0).total_seconds()/3600.
 
 

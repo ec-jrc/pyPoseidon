@@ -91,7 +91,7 @@ class ecmwf(meteo):
       filename = kwargs.get('mpath', {})
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
-      dft = kwargs.get('dft', None)
+      dft = kwargs.get('dft', 1)
       
       ft2 = ft2 + 1 # for range
                       
@@ -126,13 +126,19 @@ class ecmwf(meteo):
       sys.stdout.flush()
       #---------------------------------------------------------------------      
       
+      indx = [[i,i+1,i+2] for i in np.arange(nt1,nt2,step)]
+      flag = [item for sublist in indx for item in sublist]
 
-      mxv=nt2-nt1-1
       try:
-        for it in tqdm(range(nt1,nt2,step)): 
+        for it in tqdm(range(nt1,nt2)): 
             
-            name,varin,ilon,ilat=getd(f,it)        
-
+            if it not in flag : # skip unwanted timesteps
+                gid = grib_new_from_file(f)#,headers_only = True)
+                grib_release(gid)
+                continue           
+            
+            name,varin,ilon,ilat=getd(f,it)    
+               
             lon=ilon[0,:]
             lat=ilat[:,0]
 
@@ -168,6 +174,7 @@ class ecmwf(meteo):
             elif name == '10v':
                      vt.append(data)
 
+               
 
     # END OF FOR
         #--------------------------------------------------------------------- 
@@ -189,7 +196,8 @@ class ecmwf(meteo):
       self.lats = lats
       self.lons = lons   
       self.ft1 = ft1
-      self.ft2 = ft2    
+      self.ft2 = ft2 
+      self.dft = dft   
       
       
       
