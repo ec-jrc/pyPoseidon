@@ -1,6 +1,7 @@
 import numpy as np
 import netCDF4
 import scipy.interpolate
+import pyresample
 
 class dem:
     impl=None
@@ -301,19 +302,15 @@ class emodnet(dem):
       if 'grid_x' in kwargs.keys():
        grid_x = kwargs.get('grid_x', None)
        grid_y = kwargs.get('grid_y', None)
-    # interpolate on the given grid
-      #flip on lat to make it increasing for RectBivariateSpline
+    # resample on the given grid
        ilon=lons[0,:]
        ilat=lats[:,0]
-       sol=scipy.interpolate.RectBivariateSpline(ilon,ilat,topo.T)#,kx=2,ky=2)
-
-       itopo=[]
-       for x,y in zip(grid_x.ravel(),grid_y.ravel()):
-          itopo.append(sol(x,y).ravel()[0])
-    #---------------------------------------------------------------
-       itopo=np.array(itopo)
-       itopo=itopo.reshape(grid_x.shape)
-
+              
+       orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlat) # original points
+       targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
+       
+       itopo = pyresample.kd_tree.resample_nearest(orig,self.val,targ,radius_of_influence=50000,fill_value=999999)
+       
        self.ival = itopo
 
 
