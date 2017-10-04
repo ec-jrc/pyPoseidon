@@ -353,7 +353,7 @@ class d3d(model):
         time0=datetime.datetime.strptime('2000-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
 
        # write time blocks
-        indx = np.arange(self.ft1,self.ft2,self.dft)
+        indx = np.arange(self.ft1,self.ft2+1,self.dft)
                 
         for it in range(indx.size): # nt + 0 hour    
         
@@ -392,7 +392,6 @@ class d3d(model):
                 
         if not os.path.exists( calc_dir+'config_d_hydro.xml') :
             
-          print calc_dir, DATA_PATH
           # edit and save config file
           copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
 
@@ -500,7 +499,11 @@ class d3d(model):
         
         #save meteo
         if self.atm:
-            if self.meteo : self.uvp(**kwargs)
+           try:
+              self.uvp(**kwargs)
+           except AttributeError:
+              pass
+
              
         if self.tide :  
             
