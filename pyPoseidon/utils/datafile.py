@@ -28,6 +28,14 @@ try:
 except:
     raise ImportError("DataFile: No supported NetCDF modules available")
 
+
+try:
+    import h5py
+    has_h5py = True
+except ImportError:
+    has_h5py = False
+
+
 class DataFile:
     impl = None
     def __init__(self, filename=None, write=False, create=False, format='NETCDF3_CLASSIC'):
@@ -371,4 +379,145 @@ class DataFile_netCDF(DataFile):
         except:
             # And some others only this
             var[:] = data
+            
+class DataFile_HDF5(DataFile):
+    handle = None
+
+    def open(self, filename, write=False, create=False, format=None):
+        if (not write) and (not create):
+            self.handle = h5py.File(filename,mode="r")
+        elif create:
+            self.handle = h5py.File(filename,mode="w")
+        else:
+            self.handl = h5py.File(filename,mode="a")
+        # Record if writing
+        self.writeable = write or create
+
+    def close(self):
+        if self.handle is not None:
+            self.handle.close()
+        self.handle = None
+
+    def __init__(self, filename=None, write=False, create=False,
+                 format=None):
+        if not has_h5py:
+            message = "DataFile: No supported HDF5 python-modules available"
+            raise ImportError(message)
+        if filename is not None:
+            self.open(filename, write=write, create=create, format=format)
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def read(self, name, ranges=None):
+        """Read a variable from the file."""
+        if self.handle is None: return None
+
+        try:
+            var = self.handle[name]
+        except KeyError:
+            # Not found. Try to find using case-insensitive search
+            var = None
+            for n in self.handle.variables.keys():
+                if n.lower() == name.lower():
+                    print("WARNING: Reading '"+n+"' instead of '"+name+"'")
+                    var = self.handle[name]
+            if var is None:
+                return None
+        ndims = len(var.shape)
+        if ndims == 1 and var.shape[0] == 1:
+            data = var
+            return data[0]
+        else:
+            if ranges is not None:
+                if len(ranges) != 2*ndims:
+                    print("Incorrect number of elements in ranges argument")
+                    return None
+
+                if ndims == 1:
+                    data = var[ranges[0]:ranges[1]]
+                elif ndims == 2:
+                    data = var[ranges[0]:ranges[1],
+                                ranges[2]:ranges[3]]
+                elif ndims == 3:
+                    data = var[ranges[0]:ranges[1],
+                                ranges[2]:ranges[3],
+                                ranges[4]:ranges[5]]
+                elif ndims == 4:
+                    data = var[(ranges[0]):(ranges[1]),
+                                (ranges[2]):(ranges[3]),
+                                (ranges[4]):(ranges[5]),
+                                (ranges[6]):(ranges[7])]
+                return data
+            else:
+                return var[...]
+
+    def __getitem__(self, name):
+        var = self.read(name)
+        if var is None:
+            raise KeyError("No variable found: "+name)
+        return var
+
+    def list(self):
+        """List all variables in the file."""
+        if self.handle is None: return []
+        names = []
+        self.handle.visit(names.append)
+        return names
+
+    def keys(self):
+        """List all variables in the file."""
+        return self.list()
+
+    def dimensions(self, varname):
+        """Array of dimension names"""
+        var = self.handle[varname]
+        vartype = var.attrs['type']
+        if vartype == 'Field3D_t':
+            return ('t','x','y','z')
+        elif vartype == 'Field2D_t':
+            return ('t','x','y')
+        elif vartype == 'scalar_t':
+            return ('t')
+        elif vartype == 'Field3D':
+            return ('x','y','z')
+        elif vartype == 'Field2D':
+            return ('x','y')
+        elif vartype == 'scalar':
+            return ()
+        else:
+            raise ValueError("Variable type not recognized")
+
+    def ndims(self, varname):
+        """Number of dimensions for a variable."""
+        if self.handle is None: return None
+        try:
+            var = self.handle[varname]
+        except KeyError:
+            raise ValueError("Variable not found")
+        return len(var.shape)
+
+    def size(self, varname):
+        """List of dimension sizes for a variable."""
+        if self.handle is None: return None
+        try:
+            var = self.handle[varname]
+        except KeyError:
+            return None
+        return var.shape
+
+    def write(self, name, data):
+        """Writes a variable to file"""
+
+        if not self.writeable:
+            raise Exception("File not writeable. Open with write=True keyword")
+
+        self.handle.create_dataset(name, data=data)
+
             
