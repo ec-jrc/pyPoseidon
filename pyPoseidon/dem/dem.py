@@ -232,11 +232,20 @@ class gebco14(dem):
       #flip on lat to make it increasing for RectBivariateSpline
        ilon=lons[0,:]
        ilat=lats[:,0]
-       sol=scipy.interpolate.RectBivariateSpline(ilon,ilat,topo.T)#,kx=2,ky=2)
+    #  sol=scipy.interpolate.RectBivariateSpline(ilon,ilat,topo.T)#,kx=2,ky=2)
 
-       itopo=[]
-       for x,y in zip(grid_x.ravel(),grid_y.ravel()):
-          itopo.append(sol(x,y).ravel()[0])
+       orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlat) # original points
+       targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
+
+       #mask land
+       water = np.ma.masked_array(self.val,self.val>0)
+       water.fill_value = 999999
+       
+       itopo = pyresample.kd_tree.resample_nearest(orig,water,targ,radius_of_influence=50000,fill_value=999999)
+
+    #   itopo=[]
+    #   for x,y in zip(grid_x.ravel(),grid_y.ravel()):
+    #      itopo.append(sol(x,y).ravel()[0])
     #---------------------------------------------------------------
     #     l=np.abs(ilon-np.float(x)).argmin()
     #     m=np.abs(ilat-np.float(y)).argmin()
@@ -246,11 +255,10 @@ class gebco14(dem):
     #     fa=scipy.interpolate.RectBivariateSpline(xx,yy,zz,kx=2,ky=2)
     #     itopo.append(fa(x,y))
 
-       itopo=np.array(itopo)
-       itopo=itopo.reshape(grid_x.shape)
+    #  itopo=np.array(itopo)
+    #  itopo=itopo.reshape(grid_x.shape)
 
        self.ival = itopo
-
 
 class emodnet(dem):
 
@@ -310,7 +318,7 @@ class emodnet(dem):
        targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
        itopo = pyresample.kd_tree.resample_nearest(orig,self.val,targ,radius_of_influence=50000,fill_value=999999)
-       
+
        self.ival = itopo
 
 

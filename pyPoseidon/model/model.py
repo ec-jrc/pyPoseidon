@@ -258,8 +258,8 @@ class d3d(model):
         z['lons'] = self.grid.x[0,:]
         z['lats'] = self.grid.y[:,0]
         
-        ba = -self.dem.impl.ival
-        ba[ba<0]=np.nan
+        ba = -self.dem.impl.ival.astype(np.float)
+      # ba[ba<0]=np.nan
         z['dem']=ba
         z['cn']=10
         
@@ -468,7 +468,7 @@ class d3d(model):
     def output(self,**kwargs):      
         
         path = get_value(self,kwargs,'rpath','./') 
-        slevel = get_value(self,kwargs,'slevel',None) 
+        slevel = get_value(self,kwargs,'slevel',0.) 
         
         if not os.path.exists(path):
             os.makedirs(path)
@@ -480,8 +480,9 @@ class d3d(model):
         self.grid.write(path+self.tag+'.grd')
         
         #save dem
-        bat = -self.dem.impl.ival #reverse for the hydro run
-      # bat[bat<-slevel]=np.nan #mask dry points
+        bat = -self.dem.impl.ival.astype(np.float) #reverse for the hydro run
+        bat[bat<-slevel]=np.nan #mask dry points
+        bat=bat.data
         
         # Write bathymetry file
         ba = Dep()
