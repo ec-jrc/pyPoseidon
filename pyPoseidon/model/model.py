@@ -76,10 +76,10 @@ class d3d(model):
     
     def __init__(self,**kwargs):
         
-        self.lon0 = kwargs.get('lon0', None)
-        self.lon1 = kwargs.get('lon1', None)
-        self.lat0 = kwargs.get('lat0', None)
-        self.lat1 = kwargs.get('lat1', None)       
+        self.minlon = kwargs.get('minlon', None)
+        self.maxlon = kwargs.get('maxlon', None)
+        self.minlat = kwargs.get('minlat', None)
+        self.maxlat = kwargs.get('maxlat', None)       
         self.date = kwargs.get('date', None)
         self.tag = kwargs.get('tag', None)
         self.resolution = kwargs.get('resolution', None)
@@ -117,18 +117,18 @@ class d3d(model):
           self.y=gy
               
           nj,ni=self.x.shape
-          self.lon0=self.x.min()
-          self.lon1=self.x.max()
-          self.lat0=self.y.min()
-          self.lat1=self.y.max()
+          self.minlon=self.x.min()
+          self.maxlon=self.x.max()
+          self.minlat=self.y.min()
+          self.maxlat=self.y.max()
 
         else:
 
-          ni=int(round((self.lon1-self.lon0)/self.resolution)) #these are cell numbers
-          nj=int(round((self.lat1-self.lat0)/self.resolution))
+          ni=int(round((self.maxlon-self.minlon)/self.resolution)) #these are cell numbers
+          nj=int(round((self.maxlat-self.minlat)/self.resolution))
   
-          self.lon1=self.lon0+ni*self.resolution #adjust max lon to much the grid
-          self.lat1=self.lat0+nj*self.resolution
+          self.maxlon=self.minlon+ni*self.resolution #adjust max lon to much the grid
+          self.maxlat=self.minlat+nj*self.resolution
 
        
         ni=ni+1 # transfrom to grid points
@@ -139,8 +139,8 @@ class d3d(model):
         
         if gx is None :
         # set the grid 
-          x=np.linspace(self.lon0,self.lon1,self.ni)
-          y=np.linspace(self.lat0,self.lat1,self.nj)
+          x=np.linspace(self.minlon,self.maxlon,self.ni)
+          y=np.linspace(self.minlat,self.maxlat,self.nj)
           gx,gy=np.meshgrid(x,y)
           
         # Grid   

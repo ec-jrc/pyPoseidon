@@ -95,10 +95,10 @@ class ecmwf(meteo):
       
       ft2 = ft2 + 1 # for range
                       
-      minlon = kwargs.get('lon0', None)
-      maxlon = kwargs.get('lon1', None)
-      minlat = kwargs.get('lat0', None)
-      maxlat = kwargs.get('lat1', None) 
+      minlon = kwargs.get('minlon', None)
+      maxlon = kwargs.get('maxlon', None)
+      minlat = kwargs.get('minlat', None)
+      maxlat = kwargs.get('maxlat', None) 
     
       nt1=3*ft1
       nt2=3*ft2

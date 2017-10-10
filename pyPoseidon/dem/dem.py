@@ -19,10 +19,10 @@ class gebco08(dem):
     
     def __init__(self,**kwargs):
            
-      self.lon0 = kwargs.get('lon0', None)
-      self.lon1 = kwargs.get('lon1', None)
-      self.lat0 = kwargs.get('lat0', None)
-      self.lat1 = kwargs.get('lat1', None)       
+      self.minlon = kwargs.get('minlon', None)
+      self.maxlon = kwargs.get('maxlon', None)
+      self.minlat = kwargs.get('minlat', None)
+      self.maxlat = kwargs.get('maxlat', None)       
       self.properties = kwargs.get('properties', {})
       
       filename = kwargs.get('dpath', None) 
@@ -39,10 +39,10 @@ class gebco08(dem):
       lat = ncv[n2][:]
 
 
-      minlon = self.lon0 #kwargs.get('lon0', {})
-      maxlon = self.lon1 #kwargs.get('lon1', {})
-      minlat = self.lat0 #kwargs.get('lat0', {})
-      maxlat = self.lat1 #kwargs.get('lat1', {}) 
+      minlon = self.minlon #kwargs.get('lon0', {})
+      maxlon = self.maxlon #kwargs.get('lon1', {})
+      minlat = self.minlat #kwargs.get('lat0', {})
+      maxlat = self.maxlat #kwargs.get('lat1', {}) 
 
       
       if minlon > 175:
@@ -138,10 +138,10 @@ class gebco14(dem):
     
     def __init__(self,**kwargs):
     
-      self.lon0 = kwargs.get('lon0', None)
-      self.lon1 = kwargs.get('lon1', None)
-      self.lat0 = kwargs.get('lat0', None)
-      self.lat1 = kwargs.get('lat1', None)       
+      self.minlon = kwargs.get('minlon', None)
+      self.maxlon = kwargs.get('maxlon', None)
+      self.minlat = kwargs.get('minlat', None)
+      self.maxlat = kwargs.get('maxlat', None)       
       self.properties = kwargs.get('properties', {})    
         
       filename = kwargs.get('dpath', None)      
@@ -157,10 +157,10 @@ class gebco14(dem):
       lat = ncv[n2][:]
 
 
-      minlon = self.lon0 #kwargs.get('lon0', {})
-      maxlon = self.lon1 #kwargs.get('lon1', {})
-      minlat = self.lat0 #kwargs.get('lat0', {})
-      maxlat = self.lat1 #kwargs.get('lat1', {}) 
+      minlon = self.minlon #kwargs.get('lon0', {})
+      maxlon = self.maxlon #kwargs.get('lon1', {})
+      minlat = self.minlat #kwargs.get('lat0', {})
+      maxlat = self.maxlat #kwargs.get('lat1', {}) 
 
       
       if minlon > 175:
@@ -256,10 +256,10 @@ class emodnet(dem):
 
     def __init__(self,**kwargs):
     
-      self.lon0 = kwargs.get('lon0', None)
-      self.lon1 = kwargs.get('lon1', None)
-      self.lat0 = kwargs.get('lat0', None)
-      self.lat1 = kwargs.get('lat1', None)       
+      self.minlon = kwargs.get('minlon', None)
+      self.maxlon = kwargs.get('maxlon', None)
+      self.minlat = kwargs.get('minlat', None)
+      self.maxlat = kwargs.get('maxlat', None)       
       self.properties = kwargs.get('properties', {})    
         
       filename = kwargs.get('dpath', None)      
@@ -274,10 +274,10 @@ class emodnet(dem):
       lon = ncv[n1][:]
       lat = ncv[n2][:]
 
-      minlon = self.lon0 #kwargs.get('lon0', {})
-      maxlon = self.lon1 #kwargs.get('lon1', {})
-      minlat = self.lat0 #kwargs.get('lat0', {})
-      maxlat = self.lat1 #kwargs.get('lat1', {}) 
+      minlon = self.minlon #kwargs.get('lon0', {})
+      maxlon = self.maxlon #kwargs.get('lon1', {})
+      minlat = self.minlat #kwargs.get('lat0', {})
+      maxlat = self.maxlat #kwargs.get('lat1', {}) 
 
       if (minlon < lon.min()) or (maxlon > lon.max()): print 'Lon must be within {} and {}'.format(lon.min(),lon.max())
       if (minlat < lat.min()) or (maxlat > lat.max()): print 'Lat must be within {} and {}'.format(lat.min(),lat.max())
@@ -309,7 +309,7 @@ class emodnet(dem):
        orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlat) # original points
        targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-       itopo = pyresample.kd_tree.resample_nearest(orig,self.val,targ,radius_of_influence=50000,fill_value=999999)
+       itopo = pyresample.kd_tree.resample_nearest(orig,self.val,targ,radius_of_influence=50000,fill_value=-90000)
        
        self.ival = itopo
 

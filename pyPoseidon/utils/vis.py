@@ -11,10 +11,10 @@ def map(x, y, z, title=None,label=None,**kwargs):
     parallels=np.arange(-90.,90.,5.)
     meridians=np.arange(0.,360.,5.)
     
-    minlon = kwargs.get('lon0', x.min())
-    maxlon = kwargs.get('lon1', x.max())
-    minlat = kwargs.get('lat0', y.min())
-    maxlat = kwargs.get('lat1', y.max())
+    minlon = kwargs.get('minlon', x.min())
+    maxlon = kwargs.get('maxlon', x.max())
+    minlat = kwargs.get('minlat', y.min())
+    maxlat = kwargs.get('maxlat', y.max())
 
     ticks = kwargs.get('ticks', True)
     png = kwargs.get('png', False)
@@ -51,10 +51,10 @@ def anim(x,y,z,title=None,label=None,units=None,**kwargs):
     parallels=np.arange(-90.,90.,5.)
     meridians=np.arange(0.,360.,5.)
     
-    minlon = kwargs.get('lon0', x.min())
-    maxlon = kwargs.get('lon1', x.max())
-    minlat = kwargs.get('lat0', y.min())
-    maxlat = kwargs.get('lat1', y.max())
+    minlon = kwargs.get('minlon', x.min())
+    maxlon = kwargs.get('maxlon', x.max())
+    minlat = kwargs.get('minlat', y.min())
+    maxlat = kwargs.get('maxlat', y.max())
 
     latlons = kwargs.get('latlons', True)
     png = kwargs.get('png', False)
