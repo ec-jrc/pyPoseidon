@@ -480,8 +480,11 @@ class d3d(model):
         self.grid.write(path+self.tag+'.grd')
         
         #save dem
-        bat = -self.dem.impl.ival #reverse for the hydro run
-        bat[bat<-slevel]=np.nan #mask dry points
+        if self.dem.impl.fval.any() :
+            bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
+        else:    
+            bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
+   #         bat[bat<-slevel]=np.nan #mask dry points
         bat[bat.mask]=np.nan #mask the mask
         bat=bat.data
         
