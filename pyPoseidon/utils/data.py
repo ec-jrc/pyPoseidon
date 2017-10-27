@@ -173,9 +173,16 @@ class data:
        for folder in self.folders:
            # read netcdf
            dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
-           h = dat.variables[var][:step,1:-1,1:-1]
-           ha = np.transpose(h,axes=(0,2,1)) #transpose lat/lon
-           
+           h = dat.variables[var]
+           if h.ndim == 2 :
+               ha = h[1:-1,1:-1].T
+           elif h.ndim == 3 : 
+               ha = h[:step,1:-1,1:-1]
+               ha = np.transpose(ha,axes=(0,2,1)) #transpose lat/lon
+           elif h.ndim == 4 : 
+               ha = h[:step,0,1:-1,1:-1]
+               ha = np.transpose(ha,axes=(0,2,1)) #transpose lat/lon
+                         
            stor.append(ha)
            
        return  np.hstack(stor)  
