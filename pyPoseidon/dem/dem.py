@@ -2,6 +2,10 @@ import numpy as np
 import netCDF4
 import scipy.interpolate
 import pyresample
+from pyPoseidon.utils.bfs import *
+from mpl_toolkits.basemap import Basemap
+import matplotlib.path as mpltPath
+import geopandas as gp
 
 class dem:
     impl=None
@@ -105,7 +109,7 @@ class gebco08(dem):
         
       self.val = topo
       self.dlons = lons
-      self.dlat = lats
+      self.dlats = lats
          
       if 'grid_x' in kwargs.keys():
        grid_x = kwargs.get('grid_x', None)
@@ -132,7 +136,13 @@ class gebco08(dem):
        itopo=itopo.reshape(grid_x.shape)
 
        self.ival = itopo
-
+       self.ilons = grid_x
+       self.ilats = grid_y
+    
+    def fix(self,**kwargs):  
+         
+       shpfile = kwargs.get('shoreline', None)
+       fix(self,shpfile)
 
 class gebco14(dem):
     
@@ -223,7 +233,7 @@ class gebco14(dem):
         
       self.val = topo
       self.dlons = lons 
-      self.dlat = lats
+      self.dlats = lats
          
       if 'grid_x' in kwargs.keys():
        grid_x = kwargs.get('grid_x', None)
@@ -234,7 +244,7 @@ class gebco14(dem):
        ilat=lats[:,0]
     #  sol=scipy.interpolate.RectBivariateSpline(ilon,ilat,topo.T)#,kx=2,ky=2)
 
-       orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlat) # original points
+       orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlats) # original points
        targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
 
        #mask land
@@ -259,6 +269,13 @@ class gebco14(dem):
     #  itopo=itopo.reshape(grid_x.shape)
 
        self.ival = itopo
+       self.ilons = grid_x
+       self.ilats = grid_y
+       
+    def fix(self,**kwargs):  
+         
+       shpfile = kwargs.get('shoreline', None)
+       fix(self,shpfile)
 
 class emodnet(dem):
 
@@ -305,7 +322,7 @@ class emodnet(dem):
         
       self.val = topo
       self.dlons = lons 
-      self.dlat = lats
+      self.dlats = lats
          
       if 'grid_x' in kwargs.keys():
        grid_x = kwargs.get('grid_x', None)
@@ -314,11 +331,102 @@ class emodnet(dem):
        ilon=lons[0,:]
        ilat=lats[:,0]
               
-       orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlat) # original points
+       orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlats) # original points
        targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
        itopo = pyresample.kd_tree.resample_nearest(orig,self.val,targ,radius_of_influence=50000,fill_value=999999)
 
        self.ival = itopo
+       self.ilons = grid_x
+       self.ilats = grid_y
+       
+       
+    def fix(self,**kwargs):  
+         
+       shpfile = kwargs.get('shoreline', None)
+       fix(self,shpfile)
 
+def fix(b,shpfile):
+    
+    #define coastline
+    
+    shp = gp.GeoDataFrame.from_file(shpfile)
 
+           
+    xp = b.ilons
+    yp = b.ilats
+    
+    points=zip(xp.flatten(),yp.flatten())
+    
+    #put them all in a list
+    ls=[]
+    for i in range(shp.shape[0]):
+        il = shp.loc[i,'geometry']
+        try:
+            #print len(il)
+            for k in range(len(list(il.geoms))): # for MultiLineStrings
+               ls.append(list(il.geoms)[k])
+        except:
+            ls.append(il)
+            
+    sall = geometry.MultiLineString(ls) # join
+    c = ops.linemerge(sall) #merge
+    
+    #collect the internal points
+    xi=[]
+    yi=[]
+    for i in range(len(c)):
+        z = geometry.Polygon(c[i])
+        path = mpltPath.Path(zip(z.boundary.xy[0],z.boundary.xy[1]))
+
+        inside = path.contains_points(points)
+
+        if np.sum(inside) > 0:
+            X = np.ma.masked_array(xp,mask=np.invert(inside)),
+            Y = np.ma.masked_array(yp,mask=np.invert(inside))
+            xi.append(X)
+            yi.append(Y)    
+    
+    #merge the masks 
+    gmask=np.ones(xi[0][0].shape, dtype=bool)
+    for i in range(len(xi)):
+        gmask = np.logical_and(gmask,xi[i][0].mask)    
+    
+        
+    #find islands    
+    grid = gmask.astype(int).astype(str)
+    grid = [list(x) for x in grid]
+    isls = Solution().numIslands(grid)
+    #print(isls)
+    mgrid = np.array(grid).astype(int)
+    nps = []
+    for i in range(2,isls):
+        nps.append(np.sum(mgrid != i))
+    
+    val, idx = min((val, idx) for (idx, val) in enumerate(nps))    
+    vwater = np.ma.masked_array(mgrid, mgrid != 2+idx)
+    vwater[vwater == 2+idx] = 1  
+    
+    tmask = np.logical_and(gmask,np.invert(vwater.mask)) # total mask
+    
+    ##resample bathymetry
+    
+    gx=np.ma.masked_array(xp,np.invert(tmask)) #grid to be resampled
+    gy=np.ma.masked_array(yp,np.invert(tmask))  
+    
+    #mask positive bathymetry 
+    wet = np.ma.masked_array(b.val,b.val>0)
+   # wet.fill_value = 0.
+    mx = np.ma.masked_array(b.dlons,b.val>0) 
+    my = np.ma.masked_array(b.dlats,b.val>0)
+    
+    orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
+    targ = pyresample.geometry.SwathDefinition(lons=gx,lats=gy) # wet points
+    
+    # with nearest using only the water values
+    b2_near = pyresample.kd_tree.resample_nearest(orig,wet,targ,radius_of_influence=50000,fill_value=999999)
+    
+    bw = np.ma.masked_array(b2_near,np.invert(tmask))
+        
+    b.fval = bw
+    
