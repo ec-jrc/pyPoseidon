@@ -480,8 +480,9 @@ class d3d(model):
         self.grid.write(path+self.tag+'.grd')
         
         #save dem
-        bat = -self.dem.impl.ival.astype(np.float) #reverse for the hydro run
+        bat = -self.dem.impl.ival #reverse for the hydro run
         bat[bat<-slevel]=np.nan #mask dry points
+        bat[bat.mask]=np.nan #mask the mask
         bat=bat.data
         
         # Write bathymetry file
