@@ -4,6 +4,7 @@ import scipy.interpolate
 import pyresample
 from pyPoseidon.utils.bfs import *
 from mpl_toolkits.basemap import Basemap
+from shapely import geometry, ops
 import matplotlib.path as mpltPath
 import geopandas as gp
 
