@@ -10,6 +10,7 @@ dependencies:
   - tqdm
   - netCDF4
   - basemap
+  - basemap-data-hires
   - python-eccodes
   - scipy
   - numpy
@@ -22,3 +23,5 @@ dependencies:
   - pydap
   - ecmwf-api-client
   - folium
+  - fiona
+  - geopandas
