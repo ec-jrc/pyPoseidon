@@ -480,9 +480,9 @@ class d3d(model):
         self.grid.write(path+self.tag+'.grd')
         
         #save dem
-        if self.dem.impl.fval.any() :
+        try :
             bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
-        else:    
+        except AttributeError:    
             bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
    #         bat[bat<-slevel]=np.nan #mask dry points
         bat[bat.mask]=np.nan #mask the mask
