@@ -395,11 +395,12 @@ class d3d(model):
           # edit and save config file
           copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
 
-          xml=md.parse(calc_dir+'config_d_hydro.xml')
+        xml=md.parse(calc_dir+'config_d_hydro.xml')
 
-          xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
+        xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
+ 
     
-          with open(calc_dir+'config_d_hydro.xml','w') as f:
+        with open(calc_dir+'config_d_hydro.xml','w') as f:
             xml.writexml(f)
 
         if not os.path.exists(calc_dir+'run_flow2d3d.sh') :
