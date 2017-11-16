@@ -357,7 +357,6 @@ def fix(b,shpfile):
     xp = b.ilons
     yp = b.ilats
     
-    points=zip(xp.flatten(),yp.flatten())
     
     #put them all in a list
     ls=[]
@@ -373,42 +372,53 @@ def fix(b,shpfile):
     sall = geometry.MultiLineString(ls) # join
     c = ops.linemerge(sall) #merge
     
-    #collect the internal points
-    xi=[]
-    yi=[]
+    #Select the Line Strings that correspond to our grid
+    cl=[]
+    for i in range(len(c)): #add Lines within the range of our window
+        z = geometry.Polygon(c[i])
+        if (xp.min() <= z.bounds[0] <= xp.max() ) and ( xp.min() <= z.bounds[2] <= xp.max()) : 
+            if (yp.min() <= z.bounds[1] <= yp.max() ) and ( yp.min() <= z.bounds[3] <= yp.max()) : 
+                cl.append(c[i])
+                
+    # include the large Polygons
     for i in range(len(c)):
         z = geometry.Polygon(c[i])
-        path = mpltPath.Path(zip(z.boundary.xy[0],z.boundary.xy[1]))
-
-        inside = path.contains_points(points)
-
-        if np.sum(inside) > 0:
-            X = np.ma.masked_array(xp,mask=np.invert(inside)),
-            Y = np.ma.masked_array(yp,mask=np.invert(inside))
-            xi.append(X)
-            yi.append(Y)    
+        if (z.bounds[0] <= xp.min() <= z.bounds[2]) or (z.bounds[0] <= xp.max() <= z.bounds[2]): 
+            if(z.bounds[1] <= yp.min() <= z.bounds[3]) or (z.bounds[1] <= yp.max() <= z.bounds[3]) :     
+                cl.append(c[i])
     
-    #merge the masks 
-    gmask=np.ones(xi[0][0].shape, dtype=bool)
-    for i in range(len(xi)):
-        gmask = np.logical_and(gmask,xi[i][0].mask)    
+    cll = geometry.MultiLineString(cl) #join them into a Multiline
+    cg = ops.linemerge(cll) #merge parts if possible
     
+    gmask = internal(cg,xp, yp)
+    
+    #Consider the staggered grid
+    
+    resolution = xp[0,1]-xp[0,0]
+    sxp = xp-resolution/2.
+    syp = yp-resolution/2.
+        
+    sgmask = internal(cg,sxp,syp)
+    
+    # merge gmask and sgmask
+    tmask = np.logical_and(sgmask,gmask)
         
     #find islands    
-    grid = gmask.astype(int).astype(str)
+    grid = tmask.astype(int).astype(str)
     grid = [list(x) for x in grid]
     isls = Solution().numIslands(grid)
     #print(isls)
     mgrid = np.array(grid).astype(int)
     nps = []
-    for i in range(2,isls):
+    for i in range(1, isls + 1):
         nps.append(np.sum(mgrid != i))
     
     val, idx = min((val, idx) for (idx, val) in enumerate(nps))    
-    vwater = np.ma.masked_array(mgrid, mgrid != 2+idx)
-    vwater[vwater == 2+idx] = 1  
+    vwater = np.ma.masked_array(mgrid, mgrid != idx + 1)
+    vwater[np.invert(vwater.mask)] = 1    
     
-    tmask = np.logical_and(gmask,np.invert(vwater.mask)) # total mask
+    
+    fmask = np.logical_and(tmask,np.invert(vwater.mask)) # total mask
     
     ##resample bathymetry
     
@@ -427,7 +437,33 @@ def fix(b,shpfile):
     # with nearest using only the water values
     b2_near = pyresample.kd_tree.resample_nearest(orig,wet,targ,radius_of_influence=50000,fill_value=999999)
     
-    bw = np.ma.masked_array(b2_near,np.invert(tmask))
+    bw = np.ma.masked_array(b2_near,np.invert(fmask))
         
     b.fval = bw
     
+    
+def internal(cg, xp, yp):
+    
+    points=zip(xp.flatten(),yp.flatten())
+    
+    #collect the internal points
+    xi=[]
+    yi=[]
+    for i in range(len(cg)):
+        z = geometry.Polygon(cg[i])
+        path = mpltPath.Path(zip(z.boundary.xy[0],z.boundary.xy[1]))
+
+        inside = path.contains_points(points)
+
+        if np.sum(inside) > 0:
+            X = np.ma.masked_array(xp,mask=np.invert(inside)),
+            Y = np.ma.masked_array(yp,mask=np.invert(inside))
+            xi.append(X)
+            yi.append(Y)    
+    
+    #merge the masks 
+    gmask=np.ones(xi[0][0].shape, dtype=bool)
+    for i in range(len(xi)):
+        gmask = np.logical_and(gmask,xi[i][0].mask)    
+    
+    return gmask

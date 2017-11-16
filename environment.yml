@@ -15,6 +15,7 @@ dependencies:
   - scipy
   - numpy
   - pyresample
+  - cython
   - pandas
   - seaborn
   - urllib3

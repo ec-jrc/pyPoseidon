@@ -42,7 +42,7 @@ class Solution(object):
         row_length = len(grid)
         col_length = len(grid[0])
 
-        island_counter = 1
+        island_counter = 0
         for row in range(row_length):
             for col in range(col_length):
                 if self.grid[row][col] == '1':
