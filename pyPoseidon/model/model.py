@@ -249,7 +249,15 @@ class d3d(model):
         z['grid_y'] = self.grid.y
         
         z.update(kwargs) 
-        self.dem = dem(**z)  
+        
+        flag = get_value(self,kwargs,'update',False)
+        # check if files exist
+        check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
+        if (np.any(check)==False) or (flag == True) :
+                self.dem = dem(**z)  
+        else:
+           sys.stdout.write('dem file present..\n')
+                
         
     def bc(self,**kwargs):
         #define boundaries
@@ -258,14 +266,19 @@ class d3d(model):
         z['lons'] = self.grid.x[0,:]
         z['lats'] = self.grid.y[:,0]
         
-        ba = -self.dem.impl.ival.astype(np.float)
+        try:
+            ba = -self.dem.impl.ival.astype(np.float)
       # ba[ba<0]=np.nan
-        z['dem']=ba
-        z['cn']=10
+            z['dem']=ba
+            z['cn']=10
         
-        z.update(kwargs) 
+            z.update(kwargs) 
                 
-        self.bound = box(**z)
+            self.bound = box(**z)
+        
+        except:
+            sys.stdout.write('boundary files not set..\n')
+            
 
     def tidebc(self,**kwargs):
     
@@ -470,6 +483,8 @@ class d3d(model):
         
         path = get_value(self,kwargs,'rpath','./') 
         slevel = get_value(self,kwargs,'slevel',0.) 
+        flag = get_value(self,kwargs,'update',False)
+        
         
         if not os.path.exists(path):
             os.makedirs(path)
@@ -477,31 +492,37 @@ class d3d(model):
         #save mdf 
         mdf.write(self.mdf.inp, path+self.tag+'.mdf',selection=self.mdf.order)
 
-        #save grid
-        self.grid.write(path+self.tag+'.grd')
+        # check if files exist
+        check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
+        if (np.any(check)==False) or (flag == True) :
+            #save grid
+            self.grid.write(path+self.tag+'.grd')
         
-        #save dem
-        try :
-            bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
-        except AttributeError:    
-            bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
+        # check if files exist
+        check=[os.path.exists(self.rpath+'{}.dep'.format(self.tag))]   
+        if (np.any(check)==False) or (flag == True) :
+            #save dem
+            try :
+                bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
+            except AttributeError:    
+                bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
    #         bat[bat<-slevel]=np.nan #mask dry points
-        bat[bat.mask]=np.nan #mask the mask
-        bat=bat.data
+            bat[bat.mask]=np.nan #mask the mask
+            bat=bat.data
         
-        # Write bathymetry file
-        ba = Dep()
-        # append the line/column of nodata 
-        nodata=np.empty(self.ni)
-        nodata.fill(np.nan)
-        bat1=np.vstack((bat,nodata))
-        nodata=np.empty((self.nj+1,1))
-        nodata.fill(np.nan)
-        bat2=np.hstack((bat1,nodata))
-        ba.val = bat2
-        ba.shape = bat2.shape
+            # Write bathymetry file
+            ba = Dep()
+            # append the line/column of nodata 
+            nodata=np.empty(self.ni)
+            nodata.fill(np.nan)
+            bat1=np.vstack((bat,nodata))
+            nodata=np.empty((self.nj+1,1))
+            nodata.fill(np.nan)
+            bat2=np.hstack((bat1,nodata))
+            ba.val = bat2
+            ba.shape = bat2.shape
 
-        Dep.write(ba,path+self.tag+'.dep')
+            Dep.write(ba,path+self.tag+'.dep')
         
         #save meteo
         if self.atm:
@@ -547,15 +568,16 @@ class d3d(model):
                         
         #save obs
         
-        
-        #save enc
-        #write enc out
-        with open(path+self.tag+'.enc','w') as f:
-            f.write('{:>5}{:>5}\n'.format(self.ni+1,1))  # add one like ddb
-            f.write('{:>5}{:>5}\n'.format(self.ni+1,self.nj+1))
-            f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
-            f.write('{:>5}{:>5}\n'.format(1,1))
-            f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
+        check=[os.path.exists(self.rpath+'{}.enc'.format(self.tag))]   
+        if (np.any(check)==False) or (flag == True) :
+            #save enc
+            #write enc out
+            with open(path+self.tag+'.enc','w') as f:
+                f.write('{:>5}{:>5}\n'.format(self.ni+1,1))  # add one like ddb
+                f.write('{:>5}{:>5}\n'.format(self.ni+1,self.nj+1))
+                f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
+                f.write('{:>5}{:>5}\n'.format(1,1))
+                f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
         
         
         
