@@ -23,6 +23,4 @@ dependencies:
   - ipyleaflet
   - pydap
   - ecmwf-api-client
-  - folium
-  - fiona
   - geopandas
