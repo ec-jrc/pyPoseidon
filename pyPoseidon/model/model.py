@@ -233,10 +233,11 @@ class d3d(model):
         z = self.__dict__.copy()
         z.update(kwargs)
 
-        flag = get_value(self,kwargs,'update',False)
+        flag = get_value(self,kwargs,'update',None)
+
         # check if files exist
         check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
-        if (np.any(check)==False) or (flag == True) :              
+        if (np.any(check)==False) or ('meteo' in flag) :              
            self.meteo = meteo(**z)         
         else:
            sys.stdout.write('meteo files present..\n')
@@ -250,10 +251,10 @@ class d3d(model):
         
         z.update(kwargs) 
         
-        flag = get_value(self,kwargs,'update',False)
+        flag = get_value(self,kwargs,'update',None)
         # check if files exist
         check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
-        if (np.any(check)==False) or (flag == True) :
+        if (np.any(check)==False) or ('dem' in flag) :
                 self.dem = dem(**z)  
         else:
            sys.stdout.write('dem file present..\n')
@@ -483,7 +484,7 @@ class d3d(model):
         
         path = get_value(self,kwargs,'rpath','./') 
         slevel = get_value(self,kwargs,'slevel',0.) 
-        flag = get_value(self,kwargs,'update',False)
+        flag = get_value(self,kwargs,'update',None)
         
         
         if not os.path.exists(path):
@@ -500,7 +501,7 @@ class d3d(model):
         
         # check if files exist
         check=[os.path.exists(self.rpath+'{}.dep'.format(self.tag))]   
-        if (np.any(check)==False) or (flag == True) :
+        if (np.any(check)==False) or ('dem' in flag) :
             #save dem
             try :
                 bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
@@ -569,7 +570,7 @@ class d3d(model):
         #save obs
         
         check=[os.path.exists(self.rpath+'{}.enc'.format(self.tag))]   
-        if (np.any(check)==False) or (flag == True) :
+        if (np.any(check)==False) or ('model' in flag) :
             #save enc
             #write enc out
             with open(path+self.tag+'.enc','w') as f:
