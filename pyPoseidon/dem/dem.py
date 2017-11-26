@@ -373,18 +373,14 @@ def fix(b,shpfile):
     c = ops.linemerge(sall) #merge
     
     #Select the Line Strings that correspond to our grid
-    cl=[]
-    for i in range(len(c)): #add Lines within the range of our window
-        z = geometry.Polygon(c[i])
-        if (xp.min() <= z.bounds[0] <= xp.max() ) and ( xp.min() <= z.bounds[2] <= xp.max()) : 
-            if (yp.min() <= z.bounds[1] <= yp.max() ) and ( yp.min() <= z.bounds[3] <= yp.max()) : 
-                cl.append(c[i])
-                
-    # include the large Polygons
+    #create a polygon of the grid
+    grp=geometry.Polygon([(lon.min(),lat.min()),(lon.min(),lat.max()),(lon.max(),lat.max()),(lon.max(),lat.min())])    
+    
+    cl=[] #initialize
+    #add Polygons if they intersect with the grid
     for i in range(len(c)):
         z = geometry.Polygon(c[i])
-        if (z.bounds[0] <= xp.min() <= z.bounds[2]) or (z.bounds[0] <= xp.max() <= z.bounds[2]): 
-            if(z.bounds[1] <= yp.min() <= z.bounds[3]) or (z.bounds[1] <= yp.max() <= z.bounds[3]) :     
+        if z.intersects(grp): 
                 cl.append(c[i])
     
     cll = geometry.MultiLineString(cl) #join them into a Multiline
@@ -392,16 +388,29 @@ def fix(b,shpfile):
     
     gmask = internal(cg,xp, yp)
     
-    #Consider the staggered grid
+    #check if the grid polygons intersect the shoreline
+    gps = []
+    igps = []
+    for i in range(1,xp.shape[0]):
+        for j in range(1,xp.shape[1]):
+            p = geometry.Polygon([(xp[i-1,j-1],yp[i-1,j-1]),(xp[i-1,j],yp[i-1,j]),(xp[i,j],yp[i,j]),(xp[i,j-1],yp[i,j-1])])
+            if not p.intersects(cg): 
+                gps.append(p)
+                igps.append([i,j])
+                if i-1 == 0 : 
+                    igps.append([i-1,j])
+                    igps.append([i-1,j-1])
+                if j-1 == 0 : 
+                    igps.append([i,j-1])
+                    igps.append([i-1,j-1])
     
-    resolution = xp[0,1]-xp[0,0]
-    sxp = xp-resolution/2.
-    syp = yp-resolution/2.
-        
-    sgmask = internal(cg,sxp,syp)
+    #create a mask of all cells not intersecting the shoreline
+    imask=np.ones(xp.shape, dtype=bool)
+    for [i,j] in igps:
+        imask[i,j]=0                
     
-    # merge gmask and sgmask
-    tmask = np.logical_and(sgmask,gmask)
+    # merge gmask and imask
+    tmask =  np.logical_and(np.invert(imask),gmask)
         
     #find islands    
     grid = tmask.astype(int).astype(str)
