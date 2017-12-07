@@ -92,6 +92,7 @@ class ecmwf(meteo):
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
       dft = kwargs.get('dft', 1)
+      date = kwargs.get('date', None)
       
       ft2 = ft2 + 1 # for range
                       
@@ -122,7 +123,7 @@ class ecmwf(meteo):
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
       sys.stdout.write('\n')
-      sys.stdout.write('extracting meteo\n')
+      sys.stdout.write('extracting meteo for {}\n'.format(date))
       sys.stdout.flush()
       #---------------------------------------------------------------------      
       
