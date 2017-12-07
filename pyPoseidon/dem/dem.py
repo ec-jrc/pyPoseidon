@@ -374,7 +374,7 @@ def fix(b,shpfile):
     
     #Select the Line Strings that correspond to our grid
     #create a polygon of the grid
-    grp=geometry.Polygon([(lon.min(),lat.min()),(lon.min(),lat.max()),(lon.max(),lat.max()),(lon.max(),lat.min())])    
+    grp=geometry.Polygon([(xp.min(),yp.min()),(xp.min(),yp.max()),(xp.max(),yp.max()),(xp.max(),yp.min())])    
     
     cl=[] #initialize
     #add Polygons if they intersect with the grid
