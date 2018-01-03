@@ -418,14 +418,14 @@ class d3d(model):
             xml.writexml(f)
 
         if not os.path.exists(calc_dir+'run_flow2d3d.sh') :
-          
+
           copy2(DATA_PATH + 'run_flow2d3d.sh',calc_dir+'run_flow2d3d.sh')
         
-        #make the script executable
-        execf = calc_dir+'run_flow2d3d.sh'
-        mode = os.stat(execf).st_mode
-        mode |= (mode & 0o444) >> 2    # copy R bits to X
-        os.chmod(execf, mode)
+          #make the script executable
+          execf = calc_dir+'run_flow2d3d.sh'
+          mode = os.stat(execf).st_mode
+          mode |= (mode & 0o444) >> 2    # copy R bits to X
+          os.chmod(execf, mode)
         
         
         # note that cwd is the folder where the executable is
