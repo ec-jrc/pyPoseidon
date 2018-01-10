@@ -15,6 +15,7 @@ import tempfile
 import time
 import folium
 from pyPoseidon.utils.get_value import get_value
+import xarray
 
    
 class data:   
@@ -118,7 +119,13 @@ class data:
         self.dx = self.xh.data[0,1]-self.xh.data[0,0]
         self.dy = self.yh.data[1,0]-self.yh.data[0,0]        
          
-        self.variables = dat.variables.keys()   
+        self.variables = dat.variables.keys()  
+         
+        nfiles=[]
+        for folder in self.folders:
+            nfiles.append(folder+'/'+'trim-'+self.info['tag']+'.nc')
+        
+        self.ds = xarray.open_mfdataset(nfiles)
                            
     def movie(self,var,**kwargs):
          
