@@ -16,12 +16,15 @@ import time
 import folium
 from pyPoseidon.utils.get_value import get_value
 import xarray
+import shutil
 
+
+FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix_fmt','yuv420p'])
    
 class data:   
        
                                     
-    def animaker(self,var,vmax,vmin,title,units,step):
+    def animaker(self,var,vmax,vmin,title,units,step,savepath=None):
               
         flist=[]
        
@@ -54,7 +57,7 @@ class data:
           a = anim(self.xh,self.yh,z,title=title,label=label,units=units,vrange=[vmin,vmax])
           
           with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp: # open temp file
-              a.save(temp.name, fps=10, extra_args=['-vcodec','libx264','-pix_fmt','yuv420p'])      
+              a.save(temp.name, writer = FFWriter)      
               flist.append(temp.name)
           
           k+=1
@@ -67,7 +70,7 @@ class data:
          
         #merge clips   
         outfile = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) # open temp file
-        ex=subprocess.Popen(args=['ffmpeg -y -f concat -i {} -c copy {}'.format(listname,outfile.name)], cwd=tempfile.gettempdir(), shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        ex=subprocess.Popen(args=['ffmpeg -y -f concat -safe 0 -i {} -c copy {}'.format(listname,outfile.name)], cwd=tempfile.gettempdir(), shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
      #       out = video(temp.name, 'mp4')
 
         time.sleep(5)
@@ -78,10 +81,14 @@ class data:
         os.remove(listname)
 
         plt.ion()
-  #      print os.path.isfile(outfile.name) 
-  #      print os.path.getsize(outfile.name)
-        
-        return video(outfile.name, 'mp4')
+#       print outfile.name
+#       print os.path.isfile(outfile.name) 
+#       print os.path.getsize(outfile.name)
+        if savepath:
+           shutil.move(outfile.name,savepath)
+           return
+        else:
+           return video(outfile.name, 'mp4')
         
     def __init__(self,folders,**kwargs):
         
@@ -130,6 +137,7 @@ class data:
     def movie(self,var,**kwargs):
          
         step = kwargs.get('step', None)
+        savepath = kwargs.get('savepath', None)
          
         vmax=0.
         vmin=0. 
@@ -142,7 +150,7 @@ class data:
             units = dat.variables[var].units
             
          
-        return self.animaker(var,vmax,vmin,title,units,step)
+        return self.animaker(var,vmax,vmin,title,units,step,savepath=savepath)
         
     
    # def frame(self,slot):

@@ -5,6 +5,7 @@ from matplotlib import animation,rc
 
 rc('animation',html='html5')
         
+FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix_fmt','yuv420p'])
 
 def map(x, y, z, title=None,label=None,**kwargs):
     
@@ -100,7 +101,7 @@ def anim(x,y,z,title=None,label=None,units=None,**kwargs):
     plt.close('all')
 
     if save : 
-        anim.save(path, fps=10, extra_args=['-vcodec','libx264','-pix_fmt','yuv420p'])
+        anim.save(path, writer = FFWriter)      
     else:
         return anim
  
