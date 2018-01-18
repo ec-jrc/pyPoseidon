@@ -10,7 +10,8 @@ from redtoreg import _redtoreg
 from pygrib import gaulats
 from tqdm import tqdm
 import time
-
+import xarray as xr
+import pandas as pd
 
 def gridd(lon1,lat1,lon2,lat2,nlats):
 
@@ -80,15 +81,15 @@ class meteo:
     impl=None
     def __init__(self,**kwargs):
         msource = kwargs.get('meteo', None)
-        if msource == 'ecmwf' :
+        if msource == 'jrc_ecmwf' :
             self.impl = ecmwf(**kwargs)
                 
     
-class ecmwf(meteo):   
+class jrc_ecmwf(meteo):   
         
     def __init__(self,**kwargs):
     
-      filename = kwargs.get('mpath', {})
+      filenames = kwargs.get('mpaths', {})
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
       dft = kwargs.get('dft', 1)
@@ -105,33 +106,37 @@ class ecmwf(meteo):
       nt2=3*ft2
       step = 3*dft            
       
-      # read grib file
+      # read grib file and append to xarray
 
-      try: 
-       f = open(filename)
-      except:
-         print 'no file {}'.format(filename)
-         sys.exit()
 
-      for it in xrange(nt1):
+      for filename in filenames:
+
+     	try: 
+       		f = open(filename)
+      	except:
+        	print 'no file {}'.format(filename)
+         	sys.exit(1)
+
+    	for it in xrange(nt1):
             gid = grib_new_from_file(f)#,headers_only = True)
             grib_release(gid)
 
-      pt=[]
-      ut=[]
-      vt=[]
-      #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('extracting meteo for {}\n'.format(date))
-      sys.stdout.flush()
-      #---------------------------------------------------------------------      
-      
-      indx = [[i,i+1,i+2] for i in np.arange(nt1,nt2,step)]
-      flag = [item for sublist in indx for item in sublist]
+        pt=[]
+        ut=[]
+        vt=[]
 
-      try:
-        for it in tqdm(range(nt1,nt2)): 
+      #--------------------------------------------------------------------- 
+      	sys.stdout.flush()
+      	sys.stdout.write('\n')
+      	sys.stdout.write('extracting meteo for {}\n'.format(date))
+      	sys.stdout.flush()
+      #---------------------------------------------------------------------      
+
+      	indx = [[i,i+1,i+2] for i in np.arange(nt1,nt2,step)]
+      	flag = [item for sublist in indx for item in sublist]
+
+      	try:
+          for it in tqdm(range(nt1,nt2)): 
             
             if it not in flag : # skip unwanted timesteps
                 gid = grib_new_from_file(f)#,headers_only = True)
@@ -139,10 +144,12 @@ class ecmwf(meteo):
                 continue           
             
             name,varin,ilon,ilat=getd(f,it)    
+
                
             lon=ilon[0,:]
             lat=ilat[:,0]
 
+           
         # get sea level pressure and 10-m wind data.
         
         # shift grid according to minlon
@@ -175,25 +182,30 @@ class ecmwf(meteo):
             elif name == '10v':
                      vt.append(data)
 
-               
 
     # END OF FOR
-        #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
-        #--------------------------------------------------------------------- 
 
-      except Exception as e:
-        print e
-        print 'ERROR in meteo input'
+        except Exception as e:
+          print e
+          print 'ERROR in meteo file {}'.format(date)
 
-      f.close()
+        f.close()
+
+        met = xr.Dataset({'pressure': (['time', 'x', 'y'],  np.array(pt)), 
+                          'u_velocity': (['time', 'x', 'y'], np.array(ut)),   
+                          'v_velocity': (['time', 'x', 'y'], np.array(vt))},   
+                          coords={'longitude': (['x', 'y'], lons),   
+                                  'latitude': (['x', 'y'], lats),   
+                         'time': pd.date_range(date+datetime.timedelta(hours=ft1), periods=ft2-ft1, freq='{}H'.format(dft))})   
+#                        'reference_time': date })
+
+
+      
     
       self.p = np.array(pt)
       self.u = np.array(ut)
       self.v = np.array(vt)
+      self.uvp = met
       self.lats = lats
       self.lons = lons   
       self.ft1 = ft1
@@ -201,4 +213,10 @@ class ecmwf(meteo):
       self.dft = dft   
       
       
+      #--------------------------------------------------------------------- 
+      sys.stdout.flush()
+      sys.stdout.write('\n')
+      sys.stdout.write('meteo done\n')
+      sys.stdout.flush()
+      #--------------------------------------------------------------------- 
       
