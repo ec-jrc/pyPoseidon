@@ -42,6 +42,10 @@ def getd(f,t):
             name=grib_get(gid, 'shortName')
             mv=grib_get(gid,'missingValue')
 
+            date=grib_get(gid, 'date')
+            dataTime=grib_get(gid, 'dataTime')
+            stepRange=grib_get(gid, 'stepRange')
+
             lonfgp=grib_get(gid,'longitudeOfFirstGridPointInDegrees')
             latfgp=grib_get(gid,'latitudeOfFirstGridPointInDegrees')
             lonlgp=grib_get(gid,'longitudeOfLastGridPointInDegrees')
@@ -74,7 +78,7 @@ def getd(f,t):
 
             grib_release(gid)
 
-            return name,dat,lon,lat
+            return date,dataTime,stepRange,name,dat,lon,lat
 
 
 class meteo:
@@ -93,7 +97,6 @@ class jrc_ecmwf(meteo):
       ft1 = kwargs.get('ft1', None)
       ft2 = kwargs.get('ft2', None)
       dft = kwargs.get('dft', 1)
-      date = kwargs.get('date', None)
       
       ft2 = ft2 + 1 # for range
                       
@@ -108,6 +111,10 @@ class jrc_ecmwf(meteo):
       
       # read grib file and append to xarray
 
+      pt=[]
+      ut=[]
+      vt=[]
+      tt=[]
 
       for filename in filenames:
 
@@ -117,23 +124,21 @@ class jrc_ecmwf(meteo):
         	print 'no file {}'.format(filename)
          	sys.exit(1)
 
+
     	for it in xrange(nt1):
             gid = grib_new_from_file(f)#,headers_only = True)
             grib_release(gid)
 
-        pt=[]
-        ut=[]
-        vt=[]
-
       #--------------------------------------------------------------------- 
       	sys.stdout.flush()
       	sys.stdout.write('\n')
-      	sys.stdout.write('extracting meteo for {}\n'.format(date))
+      	sys.stdout.write('extracting meteo from {}\n'.format(filename))
       	sys.stdout.flush()
       #---------------------------------------------------------------------      
 
       	indx = [[i,i+1,i+2] for i in np.arange(nt1,nt2,step)]
       	flag = [item for sublist in indx for item in sublist]
+
 
       	try:
           for it in tqdm(range(nt1,nt2)): 
@@ -143,9 +148,10 @@ class jrc_ecmwf(meteo):
                 grib_release(gid)
                 continue           
             
-            name,varin,ilon,ilat=getd(f,it)    
+            date,dataTime,stepRange,name,varin,ilon,ilat=getd(f,it)    
 
-               
+            timestamp =  datetime.datetime.strptime(str(date),'%Y%m%d')+datetime.timedelta(hours=dataTime/100) 
+
             lon=ilon[0,:]
             lat=ilat[:,0]
 
@@ -177,6 +183,7 @@ class jrc_ecmwf(meteo):
 
             if name == 'msl' : 
                      pt.append(data)
+                     tt.append(timestamp+datetime.timedelta(hours=int(stepRange)))
             elif name == '10u':
                      ut.append(data)
             elif name == '10v':
@@ -191,16 +198,15 @@ class jrc_ecmwf(meteo):
 
         f.close()
 
-        met = xr.Dataset({'pressure': (['time', 'x', 'y'],  np.array(pt)), 
+      met = xr.Dataset({'pressure': (['time', 'x', 'y'],  np.array(pt)), 
                           'u_velocity': (['time', 'x', 'y'], np.array(ut)),   
                           'v_velocity': (['time', 'x', 'y'], np.array(vt))},   
                           coords={'longitude': (['x', 'y'], lons),   
                                   'latitude': (['x', 'y'], lats),   
-                         'time': pd.date_range(date+datetime.timedelta(hours=ft1), periods=ft2-ft1, freq='{}H'.format(dft))})   
+                         'time': tt })   
+#                        'time': pd.date_range(date+datetime.timedelta(hours=ft1), periods=ft2-ft1, freq='{}H'.format(dft))})   
 #                        'reference_time': date })
 
-
-      
     
       self.p = np.array(pt)
       self.u = np.array(ut)
