@@ -314,7 +314,7 @@ class emodnet(dem):
       i1=np.abs(lon-minlon).argmin()
       if i1 > 0: i1=i1-1
       i2=np.abs(lon-maxlon).argmin()
-      if i2] < lon.shape : i2=i2+1
+      if i2 < lon.shape : i2=i2+1
 
       j1=np.abs(lat-minlat).argmin()
       if j1 > 0: j1=j1-1
