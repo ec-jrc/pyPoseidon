@@ -10,6 +10,7 @@ import pkg_resources
 from bunch import Bunch
 import json
 from collections import OrderedDict
+import pandas as pd
 
 #local modules
 import mdf
@@ -79,8 +80,20 @@ class d3d(model):
         self.minlon = kwargs.get('minlon', None)
         self.maxlon = kwargs.get('maxlon', None)
         self.minlat = kwargs.get('minlat', None)
-        self.maxlat = kwargs.get('maxlat', None)       
-        self.date = kwargs.get('date', None)
+        self.maxlat = kwargs.get('maxlat', None)
+               
+        start_date = kwargs.get('start_date', None)
+        self.start_date = pd.to_datetime(start_date)
+        
+        if time_frame in kwargs.keys():
+            time_frame = kwargs.get('time_frame', None)
+            self.end_date = pd.to_timedelta(time_frame)
+        else:
+            end_date = kwargs.get('end_date', None)
+            self.end_date = pd.to_datetime(end_date)
+        
+        if self.end_date == None : exit(1)
+        
         self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
         self.ft1 = kwargs.get('ft1', None)
