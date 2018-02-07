@@ -312,14 +312,14 @@ class emodnet(dem):
       if (minlat < lat.min()) or (maxlat > lat.max()): print 'Lat must be within {} and {}'.format(lat.min(),lat.max())
 
       i1=np.abs(lon-minlon).argmin()
-      if lon[i1] > minlon: i1=i1-3
+      if i1 > 0: i1=i1-1
       i2=np.abs(lon-maxlon).argmin()
-      if lon[i2] < maxlon: i2=i2+3
+      if i2] < lon.shape : i2=i2+1
 
       j1=np.abs(lat-minlat).argmin()
-      if lat[j1] > minlat: j1=j1-3
+      if j1 > 0: j1=j1-1
       j2=np.abs(lat-maxlat).argmin()
-      if lat[j2] < maxlat: j2=j2+3
+      if j2 < lat.shape: j2=j2+1
 
       lons, lats = np.meshgrid(lon[i1:i2],lat[j1:j2])
       topo = ncv[n3][j1:j2,i1:i2]
