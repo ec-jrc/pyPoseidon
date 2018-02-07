@@ -7,18 +7,21 @@ from mpl_toolkits.basemap import Basemap
 from shapely import geometry, ops
 import matplotlib.path as mpltPath
 import geopandas as gp
+import xarray as xr
+import sys
 
 class dem:
     impl=None
     def __init__(self, **kwargs):
         dem = kwargs.get('dem', None)
         if dem == 'gebco08' :
-            self.impl = gebco08(**kwargs)
+            self.impl = gebco(**kwargs)
         elif dem == 'gebco14' :
-            self.impl = gebco14(**kwargs)
+            self.impl = gebco(**kwargs)
         elif dem == 'emodnet' :
             self.impl = emodnet(**kwargs)
-
+        else:
+            self.impl = erdap(**kwargs)
 
 class gebco08(dem):
     
@@ -278,7 +281,7 @@ class gebco14(dem):
        shpfile = kwargs.get('shoreline', None)
        fix(self,shpfile)
 
-class emodnet(dem):
+class emodnet2(dem):
 
     def __init__(self,**kwargs):
     
@@ -415,6 +418,8 @@ def fix(b,shpfile):
     #find islands    
     grid = tmask.astype(int).astype(str)
     grid = [list(x) for x in grid]
+    
+    
     isls = Solution().numIslands(grid)
     #print(isls)
     mgrid = np.array(grid).astype(int)
@@ -476,3 +481,110 @@ def internal(cg, xp, yp):
         gmask = np.logical_and(gmask,xi[i][0].mask)    
     
     return gmask
+
+
+class erdap(dem):
+    
+    def __init__(self,**kwargs):
+                          
+      minlon = kwargs.get('minlon', None)
+      maxlon = kwargs.get('maxlon', None)
+      minlat = kwargs.get('minlat', None)
+      maxlat = kwargs.get('maxlat', None) 
+           
+      if minlon < 0: minlon = minlon + 360.
+      
+      if maxlon < 0: maxlon = maxlon + 360.
+    
+      url = kwargs.get('url', 'http://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus')
+            
+      data = xr.open_dataset(url)    
+      
+      i0=np.abs(data.longitude.data-minlon).argmin()
+      i1=np.abs(data.longitude.data-maxlon).argmin()
+
+      
+      j0=np.abs(data.latitude.data-minlat).argmin()
+      j1=np.abs(data.latitude.data-maxlat).argmin()
+      
+      dem = (
+          data.z
+          .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
+          )
+      
+      self.ival = dem
+      
+      
+class gebco(dem):
+    
+    def __init__(self,**kwargs):
+                          
+      minlon = kwargs.get('minlon', None)
+      maxlon = kwargs.get('maxlon', None)
+      minlat = kwargs.get('minlat', None)
+      maxlat = kwargs.get('maxlat', None) 
+           
+      if minlon < -180: minlon = minlon + 360.
+      
+      if maxlon < -180: maxlon = maxlon + 360.
+    
+      url = kwargs.get('dpath', None)
+            
+      data = xr.open_dataset(url)    
+      
+      i0=np.abs(data.lon.data-minlon).argmin()
+      i1=np.abs(data.lon.data-maxlon).argmin()
+
+      
+      j0=np.abs(data.lat.data-minlat).argmin()
+      j1=np.abs(data.lat.data-maxlat).argmin()
+      
+      dem = (
+          data[data.data_vars.keys()[0]]
+          .isel(lon=slice(i0,i1),lat=slice(j0,j1))
+          )
+      
+      self.ival = dem
+      
+class emodnet(dem):
+    
+    def __init__(self,**kwargs):
+                          
+      minlon = kwargs.get('minlon', None)
+      maxlon = kwargs.get('maxlon', None)
+      minlat = kwargs.get('minlat', None)
+      maxlat = kwargs.get('maxlat', None) 
+           
+    
+      url = kwargs.get('dpath', None)
+            
+      data = xr.open_dataset(url)   
+            
+      if minlon < data.longitude.min() : 
+          print 'longitude out of range [{},{}]'.format(data.longitude[0].values,data.longitude[-1].values)
+          sys.exit(1)
+      if maxlon > data.longitude.max() : 
+          print 'longitude out of range [{},{}]'.format(data.longitude[0].values,data.longitude[-1].values)
+          sys.exit(1)
+      if minlat < data.latitude.min() : 
+          print 'latitude out of range [{},{}]'.format(data.latitude[0].values,data.latitude[-1].values)
+          sys.exit(1)
+      if maxlat > data.latitude.max() : 
+          print 'latitude out of range [{},{}]'.format(data.latitude[0].values,data.latitude[-1].values)
+          sys.exit(1)
+      
+      i0=np.abs(data.longitude.data-minlon).argmin()
+      i1=np.abs(data.longitude.data-maxlon).argmin()
+
+      
+      j0=np.abs(data.latitude.data-minlat).argmin()
+      j1=np.abs(data.latitude.data-maxlat).argmin()
+      
+      dem = (
+          data[data.data_vars.keys()[0]]
+          .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
+          )
+      
+      self.ival = dem
+
+    

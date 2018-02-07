@@ -81,7 +81,7 @@ class d3d(model):
         self.minlat = kwargs.get('minlat', None)
         self.maxlat = kwargs.get('maxlat', None)       
         self.date = kwargs.get('date', None)
-        self.tag = kwargs.get('tag', None)
+        self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
         self.ft1 = kwargs.get('ft1', None)
         self.ft2 = kwargs.get('ft2', None)
@@ -100,8 +100,14 @@ class d3d(model):
         gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
         gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)  
-        Tstart = self.date.hour*60+self.ft1*60     
-        Tstop = self.date.hour*60+self.ft2*60
+        if self.date :
+            Tstart = self.date.hour*60+self.ft1*60     
+            Tstop = self.date.hour*60+self.ft2*60
+        else:
+            Tstart = self.start_time
+            Tstop = self.end_time
+            self.date = self.start_time
+
         step = get_value(self,kwargs,'step',None)#kwargs.get('step', None)
         rstep = get_value(self,kwargs,'rstep',None)#kwargs.get('rstep', None)
                                         
@@ -172,7 +178,7 @@ class d3d(model):
             self.mdf.inp['MNKmax']=[self.ni+1,self.nj+1,1]  # add one like ddb
   
             # adjust iteration date
-            self.mdf.inp['Itdate']=datetime.datetime.strftime(self.date,'%Y-%m-%d')
+            self.mdf.inp['Itdate']=self.date
   
             #set time unit
             self.mdf.inp['Tunit']='M'
@@ -237,10 +243,12 @@ class d3d(model):
 
         # check if files exist
         check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
-        if (np.any(check)==False) or ('meteo' in flag) :              
-           self.meteo = meteo(**z)         
+        if (np.any(check)==False) :              
+           self.meteo = meteo(**z)
+        elif ('meteo' in flag) : 
+           self.meteo = meteo(**z)        
         else:
-           sys.stdout.write('meteo files present..\n')
+           sys.stdout.write('skipping meteo files ..\n')
         
         #dem
     def bath(self,**kwargs):
@@ -257,7 +265,7 @@ class d3d(model):
         if (np.any(check)==False) or ('dem' in flag) :
                 self.dem = dem(**z)  
         else:
-           sys.stdout.write('dem file present..\n')
+           sys.stdout.write('skipping dem files ..\n')
                 
         
     def bc(self,**kwargs):

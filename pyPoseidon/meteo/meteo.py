@@ -87,6 +87,8 @@ class meteo:
         msource = kwargs.get('meteo', None)
         if msource == 'jrc_ecmwf' :
             self.impl = ecmwf(**kwargs)
+        else:
+            self.impl = gfs(**kwargs)
                 
     
 class jrc_ecmwf(meteo):   
@@ -225,4 +227,90 @@ class jrc_ecmwf(meteo):
       sys.stdout.write('meteo done\n')
       sys.stdout.flush()
       #--------------------------------------------------------------------- 
+      
+#    def to_file(self,**kwargs):
+#        
+#      model = kwargs.get('model', 'netcdf')
+#      rpath = kwargs.get('rpath', './')
+#      filename = kwargs.get('filename', 'out.nc')    
+#      
+#      if model == 'd3d' :
+#          
+#      elif model == 'schism' :
+#    
+#      else:
+          
+#          self.uvp.to_netcdf()  
+        
+      
+
+class gfs(meteo):
+    
+    def __init__(self,**kwargs):
+                          
+      minlon = kwargs.get('minlon', None)
+      maxlon = kwargs.get('maxlon', None)
+      minlat = kwargs.get('minlat', None)
+      maxlat = kwargs.get('maxlat', None) 
+      ts = kwargs.get('start_time', None)
+      te = kwargs.get('end_time', None)
+      
+      
+      if minlon < 0: minlon = minlon + 360.
+      
+      if maxlon < 0: maxlon = maxlon + 360.
+    
+      url = kwargs.get('url', 'https://bluehub.jrc.ec.europa.eu/erddap/griddap/NCEP_Global_Best')
+      
+      data = xr.open_dataset(url)    
+      
+      if ts < data.attrs['time_coverage_start'] :
+          sys.stdout.flush()
+          sys.stdout.write('\n')
+          sys.stdout.write('time frame not available\n')
+          sys.stdout.flush()
+          sys.exit(1)
+          
+      if te > data.attrs['time_coverage_end'] :
+          sys.stdout.flush()
+          sys.stdout.write('\n')
+          sys.stdout.write('time frame not available\n')
+          sys.stdout.flush()
+          sys.exit(1)
+      
+      tslice=slice(ts, te)
+    
+      i0=np.abs(data.longitude.data-minlon).argmin()
+      i1=np.abs(data.longitude.data-maxlon).argmin()
+
+      
+      j0=np.abs(data.latitude.data-minlat).argmin()
+      j1=np.abs(data.latitude.data-maxlat).argmin()
+
+      if i0 > i1 :
+
+          sh = (
+              data[['prmslmsl','ugrd10m', u'vgrd10m']]
+              .isel(longitude=slice(i0,data.longitude.size),latitude=slice(j0,j1))
+              .sel(time=tslice)
+              )
+          sh.longitude.values = sh.longitude.values -360.
+
+          sh1 = (
+              data[['prmslmsl','ugrd10m', u'vgrd10m']]
+              .isel(longitude=slice(0,i1),latitude=slice(j0,j1))
+              .sel(time=tslice)
+              )
+              
+          tot = xr.concat([sh,sh1],dim='longitude')
+          
+      else:            
+
+          tot = (
+              data[['prmslmsl','ugrd10m', u'vgrd10m']]
+              .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
+              .sel(time=tslice)
+              )
+              
+      self.uvp = tot
       
