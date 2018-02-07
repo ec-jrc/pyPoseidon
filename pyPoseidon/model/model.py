@@ -85,9 +85,9 @@ class d3d(model):
         start_date = kwargs.get('start_date', None)
         self.start_date = pd.to_datetime(start_date)
         
-        if time_frame in kwargs.keys():
+        if 'time_frame' in kwargs:
             time_frame = kwargs.get('time_frame', None)
-            self.end_date = pd.to_timedelta(time_frame)
+            self.end_date = self.start_date + pd.to_timedelta(time_frame)
         else:
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
@@ -113,13 +113,13 @@ class d3d(model):
         gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
         gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)  
-        if self.date :
+        if hasattr(self, 'date'):
             Tstart = self.date.hour*60+self.ft1*60     
             Tstop = self.date.hour*60+self.ft2*60
         else:
-            Tstart = self.start_time
-            Tstop = self.end_time
-            self.date = self.start_time
+            Tstart = self.start_date
+            Tstop = self.end_date
+            self.date = self.start_date
 
         step = get_value(self,kwargs,'step',None)#kwargs.get('step', None)
         rstep = get_value(self,kwargs,'rstep',None)#kwargs.get('rstep', None)

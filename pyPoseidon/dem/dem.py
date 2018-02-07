@@ -281,7 +281,7 @@ class gebco14(dem):
        shpfile = kwargs.get('shoreline', None)
        fix(self,shpfile)
 
-class emodnet2(dem):
+class emodnet(dem):
 
     def __init__(self,**kwargs):
     
@@ -546,7 +546,7 @@ class gebco(dem):
       
       self.ival = dem
       
-class emodnet(dem):
+class emodnet_(dem):
     
     def __init__(self,**kwargs):
                           

@@ -86,7 +86,7 @@ class meteo:
     def __init__(self,**kwargs):
         msource = kwargs.get('meteo', None)
         if msource == 'jrc_ecmwf' :
-            self.impl = ecmwf(**kwargs)
+            self.impl = jrc_ecmwf(**kwargs)
         else:
             self.impl = gfs(**kwargs)
                 
