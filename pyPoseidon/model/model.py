@@ -92,6 +92,8 @@ class d3d(model):
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
         
+        if not hasattr(self, 'date'): self.date = self.start_date
+        
         if self.end_date == None : exit(1)
         
         self.tag = kwargs.get('tag', 'd3d')
@@ -103,7 +105,7 @@ class d3d(model):
         self.atm = kwargs.get('atm', False)
 
         for attr, value in kwargs.iteritems():
-                setattr(self, attr, value)
+                if not hasattr(self, attr): setattr(self, attr, value)
             
         self.model = self.__dict__.copy()    
         self.model['solver'] = self.__class__.__name__    
@@ -113,17 +115,15 @@ class d3d(model):
         gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
         gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)  
-        if not hasattr(self, 'date'): self.date = self.start_date
-        print self.start_date.hour, self.date.hour
         Tstart = self.date.hour*60+self.ft1*60     
         Tstop = self.date.hour*60+self.ft2*60
 
-        step = get_value(self,kwargs,'step',None)#kwargs.get('step', None)
-        rstep = get_value(self,kwargs,'rstep',None)#kwargs.get('rstep', None)
+        step = get_value(self,kwargs,'step',0)#kwargs.get('step', None)
+        rstep = get_value(self,kwargs,'rstep',0)#kwargs.get('rstep', None)
                                         
         resmin=self.resolution*60
         
-        
+        print Tstart,Tstop,step,rstep
       
         # computei ni,nj / correct lat/lon
 
@@ -486,7 +486,8 @@ class d3d(model):
                pickle.dump(self.model,f)
                
          z=self.model.copy()
-         z['date']=z['date'].isoformat()
+         for attr, value in z.iteritems():
+             if isinstance(value, datetime.datetime) : z[attr]=z[attr].isoformat()
          json.dump(z,open(path+'model.txt','w'))      
     
     @staticmethod

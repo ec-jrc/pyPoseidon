@@ -15,11 +15,15 @@ class dem:
     def __init__(self, **kwargs):
         dem = kwargs.get('dem', None)
         if dem == 'gebco08' :
-            self.impl = gebco(**kwargs)
+            self.impl = gebco08(**kwargs)
         elif dem == 'gebco14' :
-            self.impl = gebco(**kwargs)
+            self.impl = gebco14(**kwargs)
+        elif dem == 'gebco' :
+                self.impl = gebco(**kwargs)    
         elif dem == 'emodnet' :
-            self.impl = emodnet(**kwargs)
+                self.impl = emodnet(**kwargs)    
+        elif dem == 'emodnet_' :
+            self.impl = emodnet_(**kwargs)
         else:
             self.impl = erdap(**kwargs)
 
