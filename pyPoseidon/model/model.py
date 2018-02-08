@@ -122,9 +122,7 @@ class d3d(model):
         rstep = get_value(self,kwargs,'rstep',0)#kwargs.get('rstep', None)
                                         
         resmin=self.resolution*60
-        
-        print Tstart,Tstop,step,rstep
-      
+              
         # computei ni,nj / correct lat/lon
 
         if gx :
