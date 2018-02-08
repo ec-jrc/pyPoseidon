@@ -380,19 +380,15 @@ class d3d(model):
 
         pfid.write('unit1            = Pa\n')
 
-        time0=datetime.datetime.strptime('2000-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
-
+        time0=pd.to_datetime('2000-01-01 00:00:00')
+    
        # write time blocks
-        indx = np.arange(self.ft1,self.ft2+1,self.dft)
-                
+        indx = self.meteo.impl.uvp.time.values - time0.to_datetime64()
+        indx = indx.astype('timedelta64[m]')/60
+                 
         for it in range(indx.size): # nt + 0 hour    
-        
-          ntime=self.date+datetime.timedelta( hours=indx[it])
-          dt=(ntime-time0).total_seconds()/3600.
-
-
           for f in fi:
-             f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(dt))
+             f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(indx[it].astype(int)))
 
           np.savetxt(pfid,np.flipud(self.meteo.impl.p[it,:,:]),fmt='%.3f')
           np.savetxt(ufid,np.flipud(self.meteo.impl.u[it,:,:]),fmt='%.3f')
