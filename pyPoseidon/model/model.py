@@ -113,13 +113,10 @@ class d3d(model):
         gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
         gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)  
-        if hasattr(self, 'date'):
-            Tstart = self.date.hour*60+self.ft1*60     
-            Tstop = self.date.hour*60+self.ft2*60
-        else:
-            Tstart = self.start_date
-            Tstop = self.end_date
-            self.date = self.start_date
+        if not hasattr(self, 'date'): self.date = self.start_date
+        print self.start_date.hour, self.date.hour
+        Tstart = self.date.hour*60+self.ft1*60     
+        Tstop = self.date.hour*60+self.ft2*60
 
         step = get_value(self,kwargs,'step',None)#kwargs.get('step', None)
         rstep = get_value(self,kwargs,'rstep',None)#kwargs.get('rstep', None)
@@ -191,7 +188,7 @@ class d3d(model):
             self.mdf.inp['MNKmax']=[self.ni+1,self.nj+1,1]  # add one like ddb
   
             # adjust iteration date
-            self.mdf.inp['Itdate']=self.date
+            self.mdf.inp['Itdate']=self.date.strftime(format='%Y-%m-%d')
   
             #set time unit
             self.mdf.inp['Tunit']='M'
