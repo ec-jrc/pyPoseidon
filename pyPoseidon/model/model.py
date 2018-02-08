@@ -115,8 +115,8 @@ class d3d(model):
         gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
         gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
         mdf_file = kwargs.get('mdf', None)  
-        Tstart = self.date.hour*60+self.ft1*60     
-        Tstop = self.date.hour*60+self.ft2*60
+        Tstart = self.start_date.hour*60     
+        Tstop = int((self.end_date - self.start_date).total_seconds()/60)
 
         step = get_value(self,kwargs,'step',0)#kwargs.get('step', None)
         rstep = get_value(self,kwargs,'rstep',0)#kwargs.get('rstep', None)
