@@ -508,7 +508,7 @@ class d3d(model):
 
         # check if files exist
         check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
-        if (np.any(check)==False) or (flag == True) :
+        if (np.any(check)==False) or ('dem' in flag ) :
             #save grid
             self.grid.write(path+self.tag+'.grd')
         
