@@ -1,4 +1,4 @@
-name: pyPoseidon
+name: pyPoseidon2
 
 channels:
   - conda-forge
