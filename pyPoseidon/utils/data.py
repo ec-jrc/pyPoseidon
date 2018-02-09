@@ -17,6 +17,12 @@ import folium
 from pyPoseidon.utils.get_value import get_value
 import xarray
 import shutil
+import holoviews as hv
+import geoviews as gv
+from cartopy import crs
+import xarray as xr
+
+
 
 
 FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix_fmt','yuv420p'])
@@ -118,8 +124,6 @@ class data:
         yz = dat.variables['YZ'][:]   
         yz = yz.T[1:-1,1:-1]  
             
-            
-            
         self.xh = np.ma.masked_array(xz, self.w) #mask land
         self.yh = np.ma.masked_array(yz, self.w)
         
@@ -127,13 +131,43 @@ class data:
         self.dy = self.yh.data[1,0]-self.yh.data[0,0]        
          
         self.variables = dat.variables.keys()  
-         
-        nfiles=[]
-        for folder in self.folders:
-            nfiles.append(folder+'/'+'trim-'+self.info['tag']+'.nc')
-        
+                 
         self.ds = xarray.open_mfdataset(nfiles)
-                           
+                
+    def hview(self,var,**kwargs):
+        
+        vart = np.squeeze(self.ds[var].values)
+        vart = np.transpose(vart,axes=(0,2,1))
+
+        lon = self.ds.XZ.values[1:-1,1:-1].T[0,:]
+
+        lat = self.ds.YZ.values[1:-1,1:-1].T[:,0]
+
+        times=self.ds.time.values
+
+        ds=xr.Dataset({var:(['time','latitude','longitude'], vart[:,1:-1,1:-1])},
+                     coords={'longitude':(lon),'latitude':(lat),'time':times})
+
+        return hv.Dataset(ds,kdims=['time','longitude','latitude'],vdims=[var])
+   
+   
+    def gview(self,var,**kwargs):
+        
+        vart = np.squeeze(self.ds[var].values)
+        vart = np.transpose(vart,axes=(0,2,1))
+
+        lon = self.ds.XZ.values[1:-1,1:-1].T[0,:]
+
+        lat = self.ds.YZ.values[1:-1,1:-1].T[:,0]
+
+        times=self.ds.time.values
+
+        ds=xr.Dataset({var:(['time','latitude','longitude'], vart[:,1:-1,1:-1])},
+                     coords={'longitude':(lon),'latitude':(lat),'time':times})
+
+        return gv.Dataset(ds,kdims=['time','longitude','latitude'],vdims=[var])
+    
+                                   
     def movie(self,var,**kwargs):
          
         step = kwargs.get('step', None)
@@ -159,50 +193,11 @@ class data:
        
        step = kwargs.get('step', None)
        
-       dat=Dataset(self.folders[0]+'/'+'trim-'+self.info['tag']+'.nc')
-       h = dat.variables[var][:step,1:-1,1:-1]
-       ha = np.transpose(h,axes=(0,2,1)) #transpose lat/lon
-       vmax = np.amax(ha,axis=0) # max values of all times
-
-       
-       for folder in self.folders[1:]:
-           # read netcdf
-           dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
-           h = dat.variables[var][:step,1:-1,1:-1]
-           ha = np.transpose(h,axes=(0,2,1)) #transpose lat/lon
-           
-           hmax = np.amax(ha,axis=0) # max values of all times
-         
-           vmax = np.maximum(hmax,vmax)
-           
+       vmax = np.amax(np.transpose(otp.ds.S1.values,axes=(0,2,1)), axis=0)           
    
        return np.ma.masked_array(vmax,self.xh.mask)
        
-       
-    def get_data(self,var,**kwargs): 
-          
-       step = kwargs.get('step', None)
-       
-       
-       stor = []
-       for folder in self.folders:
-           # read netcdf
-           dat=Dataset(folder+'/'+'trim-'+self.info['tag']+'.nc')
-           h = dat.variables[var]
-           if h.ndim == 2 :
-               ha = h[1:-1,1:-1].T
-           elif h.ndim == 3 : 
-               ha = h[:step,1:-1,1:-1]
-               ha = np.transpose(ha,axes=(0,2,1)) #transpose lat/lon
-           elif h.ndim == 4 : 
-               ha = h[:step,0,1:-1,1:-1]
-               ha = np.transpose(ha,axes=(0,2,1)) #transpose lat/lon
-                         
-           stor.append(ha)
-           
-       return  np.hstack(stor)  
-           
-        
+               
 class point:
     
     def __init__(self,**kwargs):
