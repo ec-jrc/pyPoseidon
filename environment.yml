@@ -21,6 +21,21 @@ dependencies:
   - urllib3
   - ffmpeg
   - ipyleaflet
+  - cartopy
   - pydap
   - ecmwf-api-client
   - geopandas
+  - xarray
+  - cartopy
+  - holoviews
+  - ioam::geoviews
+#mpi  
+  - gcc
+  - mpich
+  - netcdf-fortran
+  - ossuuid
+  - autoconf
+  - automake
+  - libtool
+  - defaults::m4
+    
