@@ -12,6 +12,9 @@ from tqdm import tqdm
 import time
 import xarray as xr
 import pandas as pd
+import holoviews as hv
+from cartopy import crs
+import geoviews as gv
 
 def gridd(lon1,lat1,lon2,lat2,nlats):
 
@@ -200,11 +203,14 @@ class jrc_ecmwf(meteo):
 
         f.close()
 
-      met = xr.Dataset({'pressure': (['time', 'x', 'y'],  np.array(pt)), 
-                          'u_velocity': (['time', 'x', 'y'], np.array(ut)),   
-                          'v_velocity': (['time', 'x', 'y'], np.array(vt))},   
-                          coords={'longitude': (['x', 'y'], lons),   
-                                  'latitude': (['x', 'y'], lats),   
+      met = xr.Dataset({'pressure': (['time', 'latitude', 'longitude'],  np.array(pt)), 
+                          'u_velocity': (['time', 'latitude', 'longitude'], np.array(ut)),   
+                          'v_velocity': (['time', 'latitude', 'longitude'], np.array(vt))},   
+#                          coords={'longitude': (['x', 'y'], lons),   
+#                                  'latitude': (['x', 'y'], lats),   
+                          coords={'longitude': ('longitude', lons[0,:]),   
+                                  'latitude': ('latitude', lats[:,0]),   
+                                  
                          'time': tt })   
 #                        'time': pd.date_range(date+datetime.timedelta(hours=ft1), periods=ft2-ft1, freq='{}H'.format(dft))})   
 #                        'reference_time': date })
@@ -220,6 +226,10 @@ class jrc_ecmwf(meteo):
       self.ft2 = ft2 
       self.dft = dft   
       
+      self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['pressure','u_velocity','v_velocity'])
+
+      self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['pressure','u_velocity','v_velocity'],crs=crs.PlateCarree())
+      
       
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
@@ -227,6 +237,7 @@ class jrc_ecmwf(meteo):
       sys.stdout.write('meteo done\n')
       sys.stdout.flush()
       #--------------------------------------------------------------------- 
+      
       
 #    def to_file(self,**kwargs):
 #        
@@ -241,7 +252,9 @@ class jrc_ecmwf(meteo):
 #      else:
           
 #          self.uvp.to_netcdf()  
+    
         
+            
       
 
 class gfs(meteo):
