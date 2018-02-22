@@ -265,22 +265,27 @@ class gfs(meteo):
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)
       maxlat = kwargs.get('maxlat', None) 
-      ts = kwargs.get('start_time', None)
-      te = kwargs.get('end_time', None)
-      
-      
-      if minlon < 0: minlon = minlon + 360.
-      
-      if maxlon < 0: maxlon = maxlon + 360.
-    
+      ts = kwargs.get('start_date', None)
+      te = kwargs.get('end_date', None)
+         
       url = kwargs.get('url', 'https://bluehub.jrc.ec.europa.eu/erddap/griddap/NCEP_Global_Best')
       
       data = xr.open_dataset(url)    
+      
+      if minlon < data.geospatial_lon_min : minlon = minlon + 360.
+      
+      if maxlon < data.geospatial_lon_min : maxlon = maxlon + 360.
+      
+      if minlon > data.geospatial_lon_max : minlon = minlon - 360.
+      
+      if maxlon > data.geospatial_lon_max : maxlon = maxlon - 360.
+      
       
       if ts < data.attrs['time_coverage_start'] :
           sys.stdout.flush()
           sys.stdout.write('\n')
           sys.stdout.write('time frame not available\n')
+          sys.stdout.write('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
           sys.stdout.flush()
           sys.exit(1)
           
@@ -288,6 +293,7 @@ class gfs(meteo):
           sys.stdout.flush()
           sys.stdout.write('\n')
           sys.stdout.write('time frame not available\n')
+          sys.stdout.write('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
           sys.stdout.flush()
           sys.exit(1)
       
@@ -325,5 +331,14 @@ class gfs(meteo):
               .sel(time=tslice)
               )
               
+      if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
+          c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+          tot['longitude'] = tot['longitude'] + c*360.
+      
       self.uvp = tot
+      
+      self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['prmslmsl','ugrd10m','vgrd10m'])
+
+      self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['prmslmsl','ugrd10m','vgrd10m'],crs=crs.PlateCarree())
+      
       

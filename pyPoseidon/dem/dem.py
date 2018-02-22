@@ -496,13 +496,16 @@ class erdap(dem):
       minlat = kwargs.get('minlat', None)
       maxlat = kwargs.get('maxlat', None) 
            
-      if minlon < 0: minlon = minlon + 360.
+      if minlon < -180 : minlon = minlon + 360.    
+      if maxlon < -180 : maxlon = maxlon + 360.
+      if minlon >  180 : minlon = minlon - 360.    
+      if maxlon >  180 : maxlon = maxlon - 360.
       
-      if maxlon < 0: maxlon = maxlon + 360.
-    
+      
       url = kwargs.get('url', 'http://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus')
             
       data = xr.open_dataset(url)    
+        
       
       i0=np.abs(data.longitude.data-minlon).argmin()
       i1=np.abs(data.longitude.data-maxlon).argmin()
@@ -511,12 +514,49 @@ class erdap(dem):
       j0=np.abs(data.latitude.data-minlat).argmin()
       j1=np.abs(data.latitude.data-maxlat).argmin()
       
-      dem = (
-          data.z
-          .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
-          )
       
-      self.ival = dem
+      if i0 > i1 :
+
+          sh = (
+              data.z
+              .isel(longitude=slice(i0,data.longitude.size),latitude=slice(j0,j1))
+              )
+          sh.longitude.values = sh.longitude.values -360.
+
+          sh1 = (
+              data.z
+              .isel(longitude=slice(0,i1),latitude=slice(j0,j1))
+              )
+              
+          dem = xr.concat([sh,sh1],dim='longitude')
+          
+      else:            
+      
+          dem = (
+              data.z
+              .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
+                 )
+      
+      self.val = dem
+      
+      
+      
+      if 'grid_x' in kwargs.keys():
+         grid_x = kwargs.get('grid_x', None)
+         grid_y = kwargs.get('grid_y', None)
+      # resample on the given grid
+      
+         xx, yy = np.meshgrid(self.val.longitude.data,self.val.latitude.data)
+              
+         orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
+         targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
+       
+         itopo = pyresample.kd_tree.resample_nearest(orig,self.val.data,targ,radius_of_influence=50000,fill_value=999999)
+
+         self.ival = itopo
+         self.ilons = grid_x
+         self.ilats = grid_y
+      
       
       
 class gebco(dem):
