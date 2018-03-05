@@ -15,6 +15,10 @@ import pandas as pd
 import holoviews as hv
 from cartopy import crs
 import geoviews as gv
+import importlib
+from pyPoseidon.utils.get_value import get_value
+from dateutil import parser
+
 
 def gridd(lon1,lat1,lon2,lat2,nlats):
 
@@ -88,13 +92,13 @@ class meteo:
     impl=None
     def __init__(self,**kwargs):
         msource = kwargs.get('meteo', None)
-        if msource == 'jrc_ecmwf' :
-            self.impl = jrc_ecmwf(**kwargs)
+        if msource == 'ecmwf_oper' :
+            self.impl = ecmwf_oper(**kwargs)
         else:
             self.impl = gfs(**kwargs)
                 
     
-class jrc_ecmwf(meteo):   
+class ecmwf_oper(meteo):   
         
     def __init__(self,**kwargs):
     
@@ -203,15 +207,14 @@ class jrc_ecmwf(meteo):
 
         f.close()
 
-      met = xr.Dataset({'pressure': (['time', 'latitude', 'longitude'],  np.array(pt)), 
-                          'u_velocity': (['time', 'latitude', 'longitude'], np.array(ut)),   
-                          'v_velocity': (['time', 'latitude', 'longitude'], np.array(vt))},   
-#                          coords={'longitude': (['x', 'y'], lons),   
-#                                  'latitude': (['x', 'y'], lats),   
+      met = xr.Dataset({'msl': (['time', 'latitude', 'longitude'],  np.array(pt)), 
+                          'u10': (['time', 'latitude', 'longitude'], np.array(ut)),   
+                          'v10': (['time', 'latitude', 'longitude'], np.array(vt)),   
+                          'lons': (['x', 'y'], lons),   
+                          'lats': (['x', 'y'], lats)},   
                           coords={'longitude': ('longitude', lons[0,:]),   
                                   'latitude': ('latitude', lats[:,0]),   
-                                  
-                         'time': tt })   
+                                  'time': tt })   
 #                        'time': pd.date_range(date+datetime.timedelta(hours=ft1), periods=ft2-ft1, freq='{}H'.format(dft))})   
 #                        'reference_time': date })
 
@@ -226,9 +229,9 @@ class jrc_ecmwf(meteo):
       self.ft2 = ft2 
       self.dft = dft   
       
-      self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['pressure','u_velocity','v_velocity'])
+      self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
 
-      self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['pressure','u_velocity','v_velocity'],crs=crs.PlateCarree())
+      self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'],crs=crs.PlateCarree())
       
       
       #--------------------------------------------------------------------- 
@@ -239,19 +242,15 @@ class jrc_ecmwf(meteo):
       #--------------------------------------------------------------------- 
       
       
-#    def to_file(self,**kwargs):
-#        
-#      model = kwargs.get('model', 'netcdf')
-#      rpath = kwargs.get('rpath', './')
-#      filename = kwargs.get('filename', 'out.nc')    
-#      
-#      if model == 'd3d' :
-#          
-#      elif model == 'schism' :
-#    
-#      else:
-          
-#          self.uvp.to_netcdf()  
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
     
         
             
@@ -267,9 +266,19 @@ class gfs(meteo):
       maxlat = kwargs.get('maxlat', None) 
       ts = kwargs.get('start_date', None)
       te = kwargs.get('end_date', None)
+      
+      ts = pd.to_datetime(ts)
+      te = pd.to_datetime(te)     
          
       url = kwargs.get('url', 'https://bluehub.jrc.ec.europa.eu/erddap/griddap/NCEP_Global_Best')
       
+      #--------------------------------------------------------------------- 
+      sys.stdout.flush()
+      sys.stdout.write('\n')
+      sys.stdout.write('extracting meteo from {}\n'.format(url))
+      sys.stdout.flush()
+      #---------------------------------------------------------------------      
+
       data = xr.open_dataset(url)    
       
       if minlon < data.geospatial_lon_min : minlon = minlon + 360.
@@ -279,9 +288,8 @@ class gfs(meteo):
       if minlon > data.geospatial_lon_max : minlon = minlon - 360.
       
       if maxlon > data.geospatial_lon_max : maxlon = maxlon - 360.
-      
-      
-      if ts < data.attrs['time_coverage_start'] :
+            
+      if ts < parser.parse(data.attrs['time_coverage_start']).replace(tzinfo=None) :
           sys.stdout.flush()
           sys.stdout.write('\n')
           sys.stdout.write('time frame not available\n')
@@ -289,7 +297,7 @@ class gfs(meteo):
           sys.stdout.flush()
           sys.exit(1)
           
-      if te > data.attrs['time_coverage_end'] :
+      if te > parser.parse(data.attrs['time_coverage_end']).replace(tzinfo=None) :
           sys.stdout.flush()
           sys.stdout.write('\n')
           sys.stdout.write('time frame not available\n')
@@ -335,10 +343,33 @@ class gfs(meteo):
           c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
           tot['longitude'] = tot['longitude'] + c*360.
       
-      self.uvp = tot
+      xx,yy=np.meshgrid(tot.longitude,tot.latitude)
+      
+      other = xr.Dataset({'lons': (['x', 'y'], xx), 
+                          'lats': (['x', 'y'], yy) })
+      
+      self.uvp = xr.merge([tot, other])
       
       self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['prmslmsl','ugrd10m','vgrd10m'])
 
       self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['prmslmsl','ugrd10m','vgrd10m'],crs=crs.PlateCarree())
       
       
+      
+      #--------------------------------------------------------------------- 
+      sys.stdout.flush()
+      sys.stdout.write('\n')
+      sys.stdout.write('meteo done\n')
+      sys.stdout.flush()
+      #--------------------------------------------------------------------- 
+      
+      
+    def output(self,solver=None,**kwargs):
+        
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['prmslmsl','ugrd10m','vgrd10m'],rpath=path)
