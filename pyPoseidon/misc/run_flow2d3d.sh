@@ -1,33 +1,32 @@
 #!/bin/bash
-    #
-    # This script is an example for running Delft3D-FLOW
-    # Adapt and use it for your own purpose
-    #
-    # adri.mourits@deltares.nl
-    # 27 Dec 2010
-    # 
-    #
-    # This script starts a single-domain Delft3D-FLOW computation on Linux
-    #
-
-
-    #
-    # Set the config file here
-    # 
-#argfile=config_flow2d3d.xml
 argfile=config_d_hydro.xml
 
+export ncores=$1
 
-export D3D=$1
-export ncores=$2
+
+if [ $# -gt 1 ]; then
+    source activate $2 #relevant conda env
+fi
+
+d3d=$D3D
+
+if [ $# -eq 3 ]; then
+    if [[ -z "${D3D}" ]]; then
+       d3d="$3"
+    fi
+fi
+
+if [ -z $d3d ];then
+   echo 'no executable'
+   exit 1 
+fi
 
     #
     # Set the directory containing delftflow.exe here
     #
-#export D3D_HOME=$D3D/bin/$ARCH
-exedir=$D3D/flow2d3d/bin
-libdir=$D3D/flow2d3d/bin
-scrlib=$D3D/../../src/lib
+exedir=$d3d/flow2d3d/bin
+libdir=$d3d/flow2d3d/bin
+scrlib=$d3d/../../src/lib
  
     #
     # No adaptions needed below
