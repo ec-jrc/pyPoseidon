@@ -13,7 +13,6 @@ from collections import OrderedDict
 import pandas as pd
 
 #local modules
-import mdf
 from grid import *
 from dep import *
 from bnd import *
@@ -94,7 +93,7 @@ class d3d(model):
         
         if not hasattr(self, 'date'): self.date = self.start_date
         
-        if self.end_date == None : exit(1)
+        if self.end_date == None : sys.exit(1)
         
         self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
@@ -102,7 +101,7 @@ class d3d(model):
         self.ft2 = kwargs.get('ft2', None)
         self.dft = kwargs.get('dft', 1)       
         self.tide = kwargs.get('tide', False)
-        self.atm = kwargs.get('atm', False)
+        self.atm = kwargs.get('atm', True)
 
         for attr, value in kwargs.iteritems():
                 if not hasattr(self, attr): setattr(self, attr, value)
@@ -135,7 +134,7 @@ class d3d(model):
           self.maxlon=self.x.max()
           self.minlat=self.y.min()
           self.maxlat=self.y.max()
-
+          
         else:
 
           ni=int(round((self.maxlon-self.minlon)/self.resolution)) #these are cell numbers
@@ -144,77 +143,76 @@ class d3d(model):
           self.maxlon=self.minlon+ni*self.resolution #adjust max lon to much the grid
           self.maxlat=self.minlat+nj*self.resolution
 
+        # set the grid 
+          x=np.linspace(self.minlon,self.maxlon,ni)
+          y=np.linspace(self.minlat,self.maxlat,nj)
+          gx,gy=np.meshgrid(x,y)
+
        
-        ni=ni+1 # transfrom to grid points
-        nj=nj+1
+    #      ni=ni+1 # transfrom to grid points
+    #      nj=nj+1
         
         self.ni=ni
         self.nj=nj
-        
-        if gx is None :
-        # set the grid 
-          x=np.linspace(self.minlon,self.maxlon,self.ni)
-          y=np.linspace(self.minlat,self.maxlat,self.nj)
-          gx,gy=np.meshgrid(x,y)
+ 
+        # Grid 
           
-        # Grid   
-        self.grid=Grid()
-        self.grid.x,self.grid.y=gx,gy
-        self.grid.shape = gx.shape        
+        self.grid=r2d(x=gx, y=gy)
+        
         
         #mdf
         if mdf_file :
-            inp, order = mdf.read(mdf_file)
+            self.mdf = pd.read_csv(mdf_file,sep='=')
         else:
-            inp, order = mdf.read(DATA_PATH+'default.mdf')
+            self.mdf = pd.read_csv(DATA_PATH+'default.mdf',sep='=')
         
-            self.mdf = Bunch({'inp':inp, 'order':order})    
+            self.mdf = self.mdf.set_index(self.mdf.columns[0]) # set index
             
             #define grid file
-            self.mdf.inp['Filcco']=self.tag+'.grd'
+            self.mdf.loc[self.mdf.index.str.contains('Filcco')]='#{}#'.format(self.tag+'.grd')
   
             #define enc file
-            self.mdf.inp['Filgrd']=self.tag+'.enc'
+            self.mdf.loc[self.mdf.index.str.contains('Filgrd')]='#{}#'.format(self.tag+'.enc')
   
             #define dep file
-            self.mdf.inp['Fildep']=self.tag+'.dep'
+            self.mdf.loc[self.mdf.index.str.contains('Fildep')]='#{}#'.format(self.tag+'.dep')
   
             #define obs file
-            self.mdf.inp['Filsta']='' #b.tag+'.obs'
+            self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##' #b.tag+'.obs'
    
             # adjust ni,nj
-            self.mdf.inp['MNKmax']=[self.ni+1,self.nj+1,1]  # add one like ddb
+            self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(self.ni+1,self.nj+1,1)  # add one like ddb
   
             # adjust iteration date
-            self.mdf.inp['Itdate']=self.date.strftime(format='%Y-%m-%d')
+            self.mdf.loc[self.mdf.index.str.contains('Itdate')]='#{}#'.format(self.date.strftime(format='%Y-%m-%d'))
   
             #set time unit
-            self.mdf.inp['Tunit']='M'
+            self.mdf.loc[self.mdf.index.str.contains('Tunit')]='#M#'
 
             #adjust iteration start
-            self.mdf.inp['Tstart']=[Tstart]
+            self.mdf.loc[self.mdf.index.str.contains('Tstart')]=Tstart
   
             #adjust iteration stop
-            self.mdf.inp['Tstop']=[Tstop]
+            self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
   
             #adjust time step
-            self.mdf.inp['Dt']=[1.]
+            self.mdf.loc[self.mdf.index.str.contains('Dt')]=[1.]
   
             #adjust time for output
-            self.mdf.inp['Flmap']=[Tstart,step,Tstop]
-            self.mdf.inp['Flhis']=[Tstart,1,Tstop]
-            self.mdf.inp['Flpp']=[0,0,0]
-            self.mdf.inp['Flrst']=[rstep]
+            self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{} {} {}'.format(Tstart,step,Tstop)
+            self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(Tstart,1,Tstop)
+            self.mdf.loc[self.mdf.index.str.contains('Flpp')]='0 0 0'
+            self.mdf.loc[self.mdf.index.str.contains('Flrst')]=rstep
   
             #time interval to smooth the hydrodynamic boundary conditions
-            self.mdf.inp['Tlfsmo']=[0.]
+            self.mdf.loc[self.mdf.index.str.contains('Tlfsmo')]=0.
 
-            if not self.atm: inp['Sub1'] = ' '
+            if not self.atm: self.mdf.loc['Sub1'] = ' '
 
           # set tide only run
             if self.tide :
-                inp['Filbnd']=self.tag+'.bnd'
-                inp['Filana']=self.tag+'.bca'
+                self.mdf.loc[self.mdf.index.str.contains('Filbnd')]='#{}#'.format(self.tag+'.bnd')
+                self.mdf.loc[self.mdf.index.str.contains('Filana')]='#{}#'.format(self.tag+'.bca')
  #           if 'Tidfor' not in order: order.append('Tidfor')
  #           inp['Tidfor']=[['M2','S2','N2','K2'], \
  #                       ['K1','O1','P1','Q1'], \
@@ -225,9 +223,9 @@ class d3d(model):
         # inp['Filic']=basename+'.ini'
 
           # netCDF output
-        if 'FlNcdf' not in self.mdf.order: self.mdf.order.append('FlNcdf')
+        if not 'FlNcdf ' in self.mdf.index: self.mdf.loc['FlNcdf '] = '#map his#'
 
-        self.mdf.inp['FlNcdf'] = 'map his'
+        
 
         # get bathymetry
         self.bath()
@@ -248,40 +246,47 @@ class d3d(model):
         z.update(kwargs)
 
         flag = get_value(self,kwargs,'update',None)
-
         # check if files exist
-        check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
-        if (np.any(check)==False) :              
-           self.meteo = meteo(**z)
-        elif ('meteo' in flag) : 
-           self.meteo = meteo(**z)        
+        if flag is not None:     
+            check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
+            if (np.any(check)==False) :              
+                self.meteo = meteo(**z)
+            elif 'meteo' in flag : 
+                self.meteo = meteo(**z)        
+            else:
+                sys.stdout.write('skipping meteo files ..\n')
         else:
-           sys.stdout.write('skipping meteo files ..\n')
+            self.meteo = meteo(**z)
         
         #dem
     def bath(self,**kwargs):
         z = self.__dict__.copy()        
         
-        z['grid_x'] = self.grid.x
-        z['grid_y'] = self.grid.y
+        z['grid_x'] = self.grid.grid.lons
+        z['grid_y'] = self.grid.grid.lats
         
         z.update(kwargs) 
         
         flag = get_value(self,kwargs,'update',None)
         # check if files exist
-        check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
-        if (np.any(check)==False) or ('dem' in flag) :
+        if flag is not None:
+            check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
+            if (np.any(check)==False) :
                 self.dem = dem(**z)  
+            elif 'dem' in flag :
+                self.dem = dem(**z)
+            else:
+                sys.stdout.write('skipping dem files ..\n')
         else:
-           sys.stdout.write('skipping dem files ..\n')
-                
+            self.dem = dem(**z)
+            
         
     def bc(self,**kwargs):
         #define boundaries
         z = self.__dict__.copy()        
         
-        z['lons'] = self.grid.x[0,:]
-        z['lats'] = self.grid.y[:,0]
+        z['lons'] = self.grid.grid.lons[0,:]
+        z['lats'] = self.grid.grid.lats[:,0]
         
         try:
             ba = -self.dem.impl.ival.astype(np.float)
@@ -308,10 +313,10 @@ class d3d(model):
                 blons=[]
                 blats=[]
                 for l1,l2 in val:
-                    blons.append(self.grid.x[l1[1]-1,l1[0]-1])   
-                    blats.append(self.grid.y[l1[1]-1,l1[0]-1])
-                    blons.append(self.grid.x[l2[1]-1,l2[0]-1])   
-                    blats.append(self.grid.y[l2[1]-1,l2[0]-1])
+                    blons.append(self.grid.grid.lons[l1[1]-1,l1[0]-1])   
+                    blats.append(self.grid.grid.lats[l1[1]-1,l1[0]-1])
+                    blons.append(self.grid.grid.lons[l2[1]-1,l2[0]-1])   
+                    blats.append(self.grid.grid.lats[l2[1]-1,l2[0]-1])
                        
                 blons = np.array(blons)#.ravel().reshape(-1,2)[:,0]
                 blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1] 
@@ -322,17 +327,25 @@ class d3d(model):
             setattr(self.tide, key, tval)        
                                                
     
-    def uvp(self,**kwargs):
+     
+    @staticmethod 
+    def to_force(ar,**kwargs):
                 
-        path = get_value(self,kwargs,'rpath','./') 
-                    
+        path = kwargs.get('rpath','./') 
+        
+        [p,u,v] = kwargs.get('vars','[None,None,None]')                
+        
         curvi = kwargs.get('curvi', False)
         
-        dlat=self.meteo.impl.lats[1,0]-self.meteo.impl.lats[0,0]
-        dlon=self.meteo.impl.lons[0,1]-self.meteo.impl.lons[0,0]
-        lat0=self.meteo.impl.lats[0,0] 
-        lon0=self.meteo.impl.lons[0,0] 
-
+        
+        
+        dlat=ar.lats[1,0]-ar.lats[0,0]
+        dlon=ar.lons[0,1]-ar.lons[0,0]
+        dlat=dlat.data.tolist() 
+        dlon=dlon.data.tolist()
+        lat0=ar.lats[0,0].data.tolist()
+        lon0=ar.lons[0,0].data.tolist()  
+        
         nodata=-9999.000
 
         if not os.path.exists(path):
@@ -358,8 +371,8 @@ class d3d(model):
         else:
            for f in fi:
               f.write('Filetype         = meteo_on_equidistant_grid\n')
-              f.write('n_cols           = {}\n'.format(self.meteo.impl.u.shape[2]))
-              f.write('n_rows           = {}\n'.format(self.meteo.impl.u.shape[1]))
+              f.write('n_cols           = {}\n'.format(ar[u].shape[2]))
+              f.write('n_rows           = {}\n'.format(ar[u].shape[1]))
               f.write('grid_unit        = degree\n')
         # code currently assumes lon and lat are increasing
               f.write('x_llcenter       = {:g}\n'.format(lon0))
@@ -383,16 +396,16 @@ class d3d(model):
         time0=pd.to_datetime('2000-01-01 00:00:00')
     
        # write time blocks
-        indx = self.meteo.impl.uvp.time.values - time0.to_datetime64()
+        indx = ar.time.values - time0.to_datetime64()
         indx = indx.astype('timedelta64[m]')/60
                  
         for it in range(indx.size): # nt + 0 hour    
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(indx[it].astype(int)))
 
-          np.savetxt(pfid,np.flipud(self.meteo.impl.p[it,:,:]),fmt='%.3f')
-          np.savetxt(ufid,np.flipud(self.meteo.impl.u[it,:,:]),fmt='%.3f')
-          np.savetxt(vfid,np.flipud(self.meteo.impl.v[it,:,:]),fmt='%.3f')
+          np.savetxt(pfid,np.flipud(ar[p][it,:,:]),fmt='%.3f')
+          np.savetxt(ufid,np.flipud(ar[u][it,:,:]),fmt='%.3f')
+          np.savetxt(vfid,np.flipud(ar[v][it,:,:]),fmt='%.3f')
 
     # write the same values for the end time
     #dt=dt+nt*60.
@@ -406,15 +419,17 @@ class d3d(model):
          # close files
         for f in fi:
            f.close()
-     
+    
             
     def run(self,**kwargs):
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
-        
-        bin_path = get_value(self,kwargs,'exec', None)   
+                
+        bin_path = get_value(self,kwargs,'exec', os.environ['D3D'])   
             
         ncores = get_value(self,kwargs,'ncores',1)
+        
+        conda_env = get_value(self,kwargs,'conda_env', None)
                 
         if not os.path.exists( calc_dir+'config_d_hydro.xml') :
             
@@ -438,10 +453,9 @@ class d3d(model):
           mode = os.stat(execf).st_mode
           mode |= (mode & 0o444) >> 2    # copy R bits to X
           os.chmod(execf, mode)
-        
-        
+                
         # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {}'.format(bin_path,ncores)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(ncores,conda_env,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
 #        for line in iter(ex.stderr.readline,b''): print line
 #        ex.stderr.close() 
         with open(calc_dir+'run.log', 'w') as f: 
@@ -504,45 +518,59 @@ class d3d(model):
             os.makedirs(path)
         
         #save mdf 
-        mdf.write(self.mdf.inp, path+self.tag+'.mdf',selection=self.mdf.order)
-
-        # check if files exist
-        check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
-        if (np.any(check)==False) or ('dem' in flag ) :
+        self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
+        
+        if flag is not None:
+            # check if files exist
+            check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
+            if (np.any(check)==False) or ('dem' in flag ) :
             #save grid
-            self.grid.write(path+self.tag+'.grd')
+                self.grid.to_file(filename = path+self.tag+'.grd')
+            else:
+                sys.stdout.write('skipping grid file ..\n')
+        else:
+            self.grid.to_file(filename = path+self.tag+'.grd')
+                
         
-        # check if files exist
-        check=[os.path.exists(self.rpath+'{}.dep'.format(self.tag))]   
-        if (np.any(check)==False) or ('dem' in flag) :
-            #save dem
-            try :
-                bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
-            except AttributeError:    
-                bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
-   #         bat[bat<-slevel]=np.nan #mask dry points
-            bat[bat.mask]=np.nan #mask the mask
-            bat=bat.data
+        #save dem
+        try :
+            bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
+        except AttributeError:    
+            bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
         
-            # Write bathymetry file
-            ba = Dep()
-            # append the line/column of nodata 
-            nodata=np.empty(self.ni)
-            nodata.fill(np.nan)
-            bat1=np.vstack((bat,nodata))
-            nodata=np.empty((self.nj+1,1))
-            nodata.fill(np.nan)
-            bat2=np.hstack((bat1,nodata))
-            ba.val = bat2
-            ba.shape = bat2.shape
+        mask = ~np.isnan(bat) # mask out potential nan points
+        mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
 
-            Dep.write(ba,path+self.tag+'.dep')
+        bat[mask]=np.nan #mask dry points
+            
+        # append the line/column of nodata 
+        nodata=np.empty(self.ni)
+        nodata.fill(np.nan)
+        bat1=np.vstack((bat,nodata))
+        nodata=np.empty((self.nj+1,1))
+        nodata.fill(np.nan)
+        bat2=np.hstack((bat1,nodata))
+
+        bat2[np.isnan(bat2)] = -999.
+            
+        # Write bathymetry file    
+        if flag is not None:
+            # check if files exist
+            check=[os.path.exists(self.rpath+'{}.dep'.format(self.tag))]   
+            if (np.any(check)==False) or ('dem' in flag) :
+                 np.savetxt(path+self.tag+'.dep',bat2)
+            else:
+                sys.stdout.write('skipping dem file ..\n')
+        else:
+            np.savetxt(path+self.tag+'.dep',bat2)
+                 
         
         #save meteo
         if self.atm:
            try:
-              self.uvp(**kwargs)
-           except AttributeError:
+              self.to_force(self.meteo.impl.uvp,vars=['prmslmsl','ugrd10m','vgrd10m'],rpath=path,**kwargs)
+           except AttributeError as e:
+              print e 
               pass
 
              
@@ -581,10 +609,21 @@ class d3d(model):
                                  f.write('{0:<3s}        {1:<.7e}   {2:<.7e}\n'.format(a,b,c))
                         
         #save obs
+        if flag is not None:
         
-        check=[os.path.exists(self.rpath+'{}.enc'.format(self.tag))]   
-        if (np.any(check)==False) or ('model' in flag) :
+            check=[os.path.exists(self.rpath+'{}.enc'.format(self.tag))]   
+            if (np.any(check)==False) or ('model' in flag) :
             #save enc
+            #write enc out
+                with open(path+self.tag+'.enc','w') as f:
+                    f.write('{:>5}{:>5}\n'.format(self.ni+1,1))  # add one like ddb
+                    f.write('{:>5}{:>5}\n'.format(self.ni+1,self.nj+1))
+                    f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
+                    f.write('{:>5}{:>5}\n'.format(1,1))
+                    f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
+                
+        else:
+            
             #write enc out
             with open(path+self.tag+'.enc','w') as f:
                 f.write('{:>5}{:>5}\n'.format(self.ni+1,1))  # add one like ddb
@@ -592,6 +631,7 @@ class d3d(model):
                 f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
                 f.write('{:>5}{:>5}\n'.format(1,1))
                 f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
+            
         
         
         
