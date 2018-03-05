@@ -1,6 +1,9 @@
 # 
 def get_value(mod,kwargs,key,default):
-        try:
-            return kwargs.get(key, mod.__dict__[key])
-        except KeyError: 
+        if key in kwargs.keys():
+            return kwargs.get(key)
+        elif key in mod.__dict__.keys():
+            return mod.__dict__[key]
+        else: 
             return default       
+
