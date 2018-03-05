@@ -7,11 +7,17 @@
 # the output of TAT interface
 TAT/D3/
 
+# the local Notebooks 
+Notebooks/
+
 # dotx files
 *.dotx
 
 # doc files
 *.doc
+
+# png files
+*.png
 
 # tif files
 *.tif
