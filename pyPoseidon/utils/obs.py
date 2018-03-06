@@ -17,31 +17,53 @@ class obs:
 
     def __init__(self,**kwargs):
         
-        self.sdate = kwargs.get('sdate', None)
-        self.edate = kwargs.get('edate', None)
+        self.sdate = kwargs.get('start_date', None)
+        self.edate = kwargs.get('end_date', None)
         self.point = kwargs.get('point', None)
-        
-    
-    def get_loc(self,**kwargs):
     
         minlon = kwargs.get('minlon', None)
         maxlon = kwargs.get('maxlon', None)
         minlat = kwargs.get('minlat', None)
         maxlat = kwargs.get('maxlat', None)
         
-        ioc = pd.read_csv(DATA_PATH+'ioc.csv')
+        db = kwargs.get('filename', DATA_PATH+'ioc.csv')
+        
+        ioc = pd.read_csv(db)
         
         w = ioc.loc[(ioc['Longitude'] > minlon) & (ioc['Longitude'] < maxlon) & (ioc['Latitude'] > minlat) & (ioc['Latitude'] < maxlat)]
         
         w.reset_index(inplace=True, drop=True)
         
-        self.points = w 
+        self.locations = w.copy() 
         
+        critech = pd.read_csv(DATA_PATH+'critech.csv')
+        
+        self.locations.assign(point="")
+        
+        for idx,[name,lat,lon] in self.locations.loc[:,['Station Name', 'Latitude','Longitude']].iterrows():
+                
+                try:
+                    self.locations.loc[idx,'point'] = critech[critech['Name'].str.contains(name)]['ID'].values[0]
+                except:
+                    self.locations.loc[idx,'point'] = np.nan
+                    pass
+                           
 
-    def getmes(self,**kwargs):
+    def loc(self,name,**kwargs):
+            
+        point=self.locations[self.locations['Station Name'].str.contains(name)]['point'].values[0]
+        return self.webcritech(point=int(point))
 
-        sdate = kwargs.get('sdate', self.sdate)
-        edate = kwargs.get('edate', self.edate)
+    def iloc(self,idx,**kwargs):
+            
+        point=self.locations.iloc[idx,:]['point']
+        return self.webcritech(point=int(point))
+
+
+    def webcritech(self,**kwargs):
+
+        sdate = kwargs.get('start_date', self.sdate)
+        edate = kwargs.get('end_date', self.edate)
         point = kwargs.get('point', self.point)
 
         pdate=min([self.edate+datetime.timedelta(hours=72),datetime.datetime.now()])
@@ -85,7 +107,7 @@ class obs:
         tg = tg.set_index(['time'])
         tg = tg.apply(pd.to_numeric)
         
-        self.data = tg
+        return tg
 
         
     def soest(self):

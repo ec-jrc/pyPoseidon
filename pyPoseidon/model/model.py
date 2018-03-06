@@ -24,7 +24,6 @@ from pyPoseidon.utils.get_value import get_value
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
 DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
-#info_data = ('lon0','lon1','lat0','lat1','date','tag','resolution','ft1','ft2')
 
 # strings to be used 
 le=['A','B']
@@ -407,15 +406,6 @@ class d3d(model):
           np.savetxt(ufid,np.flipud(ar[u][it,:,:]),fmt='%.3f')
           np.savetxt(vfid,np.flipud(ar[v][it,:,:]),fmt='%.3f')
 
-    # write the same values for the end time
-    #dt=dt+nt*60.
-    #for f in fi:
-    # f.write('TIME = {} hours since 1900-01-01 00:00:00 +00:00\n'.format(dt))
-
-    #np.savetxt(pfid,np.flipud(p/0.01),fmt='%.3f')
-    #np.savetxt(ufid,np.flipud(u),fmt='%.3f')
-    #np.savetxt(vfid,np.flipud(v),fmt='%.3f')
-
          # close files
         for f in fi:
            f.close()
@@ -430,30 +420,8 @@ class d3d(model):
         ncores = get_value(self,kwargs,'ncores',1)
         
         conda_env = get_value(self,kwargs,'conda_env', None)
-                
-        if not os.path.exists( calc_dir+'config_d_hydro.xml') :
-            
-          # edit and save config file
-          copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
-
-        xml=md.parse(calc_dir+'config_d_hydro.xml')
-
-        xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
- 
-    
-        with open(calc_dir+'config_d_hydro.xml','w') as f:
-            xml.writexml(f)
-
-        if not os.path.exists(calc_dir+'run_flow2d3d.sh') :
-
-          copy2(DATA_PATH + 'run_flow2d3d.sh',calc_dir+'run_flow2d3d.sh')
         
-          #make the script executable
-          execf = calc_dir+'run_flow2d3d.sh'
-          mode = os.stat(execf).st_mode
-          mode |= (mode & 0o444) >> 2    # copy R bits to X
-          os.chmod(execf, mode)
-                
+        
         # note that cwd is the folder where the executable is
         ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(ncores,conda_env,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
 #        for line in iter(ex.stderr.readline,b''): print line
@@ -464,16 +432,7 @@ class d3d(model):
             sys.stdout.write(line)
             sys.stdout.flush()  
         ex.stdout.close()            
-                 
-#        exitCode = ex.returncode
-#        print exitCode
-#        if (exitCode == 0):
-#        else:     
-#            for line in iter(ex.stderr.readline,b''): 
-#                sys.stdout.write(line)
-#                sys.stdout.flush()
-#            ex.stderr.close()        
-                 
+                                  
     
     def pickle(self,**kwargs):
         
@@ -634,4 +593,35 @@ class d3d(model):
             
         
         
+        calc_dir = get_value(self,kwargs,'rpath','./') 
+                
+        bin_path = get_value(self,kwargs,'exec', os.environ['D3D'])   
+            
+        ncores = get_value(self,kwargs,'ncores',1)
+        
+        conda_env = get_value(self,kwargs,'conda_env', None)
+                
+        if not os.path.exists( calc_dir+'config_d_hydro.xml') :
+            
+          # edit and save config file
+          copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
+
+        xml=md.parse(calc_dir+'config_d_hydro.xml')
+
+        xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
+ 
+    
+        with open(calc_dir+'config_d_hydro.xml','w') as f:
+            xml.writexml(f)
+
+        if not os.path.exists(calc_dir+'run_flow2d3d.sh') :
+
+          copy2(DATA_PATH + 'run_flow2d3d.sh',calc_dir+'run_flow2d3d.sh')
+        
+          #make the script executable
+          execf = calc_dir+'run_flow2d3d.sh'
+          mode = os.stat(execf).st_mode
+          mode |= (mode & 0o444) >> 2    # copy R bits to X
+          os.chmod(execf, mode)
+                
         

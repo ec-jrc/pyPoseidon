@@ -1,0 +1,1011 @@
+index,ID,Name,Group,Latency,Status,Details
+1,62,Faial Island,AZO TD,0m,,Details
+2,64,Terceira,AZO TD,0m,,Details
+4,56,"Hanasaki, Japan HAN",BOM,0m,,Details
+5,59,"Port Vila, Efate, Vanuatu",BOM,0m,,Details
+6,14,"Suva, Viti Levu, Fiji",BOM,0m,,Details
+8,22,175 NM S of Attu AK,DART Pacific,1h 7m,,Details
+9,44,"190 NM West-Southwest of San Diego, CA",DART Pacific,1h 7m,,Details
+10,41,"210 NM West of Coos Bay, OR",DART Pacific,1h 7m,,Details
+11,40,"230 NM West of Astoria, OR",DART Pacific,1h 7m,,Details
+12,39,"240 NM South of Dutch Harbor, AK",DART Pacific,1h 7m,,Details
+13,23,240NM SE of Kamchatka Peninsula,DART Pacific,1h 7m,,Details
+14,38,250 NM SE of Montauk Pt N.Y.,DART Pacific,1h 7m,,Details
+15,27,260 NM West-Southwest of Arica Chile,DART Pacific,1h 7m,,Details
+16,34,"295 NM Southeast of New Orleans, LA",DART Pacific,1h 7m,,Details
+17,45,"300 NM West-Northwest of Seattle, WA",DART Pacific,1h 7m,,Details
+18,43,"330 NM Southeast of Anchorage, AK",DART Pacific,1h 7m,,Details
+19,48,400 NM Southeast of Tonga,DART Pacific,1h 7m,,Details
+20,51,430 NM Southwest of Truk,DART Pacific,1h 7m,,Details
+21,25,"450 NM Northeast of Tokyo, Japan",DART Pacific,1h 7m,,Details
+22,49,610 NM Northeast of Saipan,DART Pacific,1h 7m,,Details
+23,29,"630 NM Southwest of Lima, Peru",DART Pacific,1h 7m,,Details
+24,28,"710 NM West-Southwest of Panama City, Panama",DART Pacific,1h 7m,,Details
+25,53,"740 NM West of Agana, Guam",DART Pacific,1h 7m,,Details
+26,52,"760 NM Northeast of Manila, Philippines",DART Pacific,1h 7m,,Details
+27,50,790 NM Northwest of Kwajalein,DART Pacific,1h 7m,,Details
+28,42,NW Pacific S AK,DART Pacific,1h 7m,,Details
+29,21,Station 21414 - NW Pacific,DART Pacific,1h 7m,,Details
+30,73,Station 21415 - 175 NM S of Attu AK,DART Pacific,1h 7m,,Details
+31,1595,"Station 32413 - 1000 NM WestNorthwest of Lima, Peru",DART Pacific,1h 7m,,Details
+32,1092,"Station 44402 - 136NM SE of Fire Island, NY.",DART Pacific,1h 7m,,Details
+33,68,"Station 46402 - 240 NM South of Dutch Harbor, AK",DART Pacific,1h 7m,,Details
+34,69,"Station 46403 - 230 NM Southeast of Shumagin Island, AK",DART Pacific,1h 7m,,Details
+35,11,Station 46408 - NW Pacific S AK,DART Pacific,1h 7m,,Details
+36,12,Station 46408 - NW Pacific S AK,DART Pacific,0m,,Details
+37,1096,"Station 46409 - 240 NM Southeast of Kodiak, AK",DART Pacific,1h 7m,,Details
+38,72,"Station 46411 - 260 NM Northwest of San Francisco, CA",DART Pacific,1h 7m,,Details
+39,10,"Station 46413 - East of ADAK, AK",DART Pacific,1h 7m,,Details
+40,66,Station 51425 - 370 NM NW of Apia,DART Pacific,1h 7m,,Details
+41,65,Station 52406 - 450 NM Northeast of the Guadalcanal,DART Pacific,1h 7m,,Details
+42,60,Station 55012 - DART Coral Sea,DART Pacific,1h 7m,,Details
+43,1437,Station 55012 - STB Coral Sea,DART Pacific,1h 7m,,Details
+44,61,Station 55015 - DART TASMAN SEA 1,DART Pacific,1h 7m,,Details
+45,1712,Station 55042 - Tasman Sea 2,DART Pacific,1h 7m,,Details
+46,1491,Station 56003 - STP Indian Ocean 3,DART Pacific,1h 7m,,Details
+48,2573,Denmark - Rodbyhavn,DMI,17m,,Details
+49,2574,Denmark -Bagenkop,DMI,17m,,Details
+50,2575,Denmark -Gedser,DMI,17m,,Details
+51,2576,Denmark -Hunderstend,DMI,17m,,Details
+53,1620,Lisbona (Press),EURO_WEATHER,0m,,Details
+54,1619,Lisbona (Temp),EURO_WEATHER,0m,,Details
+56,2359,Degerby,FMI,0m,,Details
+57,2342,Föglö Degerby ,FMI,1h 7m,,Details
+58,2358,Hamina,FMI,0m,,Details
+59,2344,Hamina Pitäjänsaari ,FMI,1h 7m,,Details
+60,2357,Hanko,FMI,0m,,Details
+61,2343,Hanko Pikku Kolalahti,FMI,1h 7m,,Details
+62,2356,Helsinki ,FMI,0m,,Details
+63,2331,Helsinki Kaivopuisto ,FMI,1h 7m,,Details
+64,2355,Kaskinen ,FMI,0m,,Details
+65,2341,Kaskinen Ådskär ,FMI,1h 7m,,Details
+66,2348,Kemi ,FMI,0m,,Details
+67,2333,Kemi Ajos ,FMI,1h 7m,,Details
+68,2354,Mäntyluoto ,FMI,0m,,Details
+69,2353,Oulu ,FMI,0m,,Details
+70,2339,Oulu Toppila ,FMI,1h 7m,,Details
+71,2347,Pietarsaaren Golf ,FMI,0m,,Details
+72,2340,Pietarsaari Leppäluoto ,FMI,1h 7m,,Details
+73,2345,Pori Mäntyluoto Kallo,FMI,1h 7m,,Details
+74,2352,Raahe ,FMI,0m,,Details
+75,2330,Raahe Lapaluoto ,FMI,1h 7m,,Details
+76,2351,Rauma ,FMI,0m,,Details
+77,2337,Rauma Ulko-Petäjäs ,FMI,1h 7m,,Details
+78,2350,Turku ,FMI,0m,,Details
+79,2338,Turku Ruissalo Saaronniemi,FMI,1h 7m,,Details
+80,2349,Vaasa ,FMI,0m,,Details
+81,2336,Vaasa Vaskiluoto ,FMI,1h 7m,,Details
+84,2542,Ign - Alicante2,Ign,23m,,Details
+85,2551,Ign - Almeria,Ign,23m,,Details
+86,2543,Ign - Murcia,Ign,1h 47m,,Details
+87,2545,Ign - Tenerife13,Ign,23m,,Details
+88,2546,Ign - Tenerife21,Ign,23m,,Details
+90,1992,USA - Alameda San Francisco Bay_IOOS,IOOS,30m,,Details
+91,1988,USA - Atlantic city_IOOS,IOOS,35m,,Details
+92,1989,USA - Westport_IOOS,IOOS,32m,,Details
+93,1990,USA -Playa de Fajardo_IOOS,IOOS,4h 17m,,Details
+94,1995,USA_Barbuda_IOOS,IOOS,31m,,Details
+95,1997,USA_Christiansted_IOOS,IOOS,32m,,Details
+96,1994,USA_Kwajalein_IOOS,IOOS,34m,,Details
+97,1998,USA_Magueyes Island_IOOS,IOOS,39m,,Details
+98,1993,USA_Pago Pago_IOOS,IOOS,29m,,Details
+101,2027,Scheveningen,NL,57m,,Details
+102,2030,Terschelling Noordzee,NL,57m,,Details
+104,2613,"Adak Island, AK",NOAA,6d 13h 7m,,Details
+105,2641,"Alameda, CA",NOAA,> 100d,,Details
+106,2753,"Alexandria Bay, NY",NOAA,19d 13h 7m,,Details
+107,2747,"Algonac, MI",NOAA,19d 13h 7m,,Details
+108,2614,"Alitak, AK",NOAA,> 100d,,Details
+109,2719,"Alpena, MI",NOAA,19d 13h 7m,,Details
+110,2744,"American Falls, NY",NOAA,19d 13h 7m,,Details
+111,2615,"Anchorage, AK",NOAA,> 100d,,Details
+112,2787,"Annapolis, MD",NOAA,19d 13h 7m,,Details
+113,2683,"Apalachicola, FL",NOAA,19d 13h 7m,,Details
+114,2826,"Apra Harbor, Guam, United States of America",NOAA,19d 13h 7m,,Details
+115,2842,"Aransas Wildlife Refuge, TX",NOAA,19d 13h 7m,,Details
+116,2661,"Arecibo, PR",NOAA,19d 13h 7m,,Details
+117,2642,"Arena Cove, CA",NOAA,> 100d,,Details
+118,2745,"Ashland Ave, NY",NOAA,19d 13h 7m,,Details
+119,2819,"Astoria, OR",NOAA,19d 13h 7m,,Details
+120,2616,"Atka, AK",NOAA,> 100d,,Details
+121,2804,"Atlantic City, NJ",NOAA,19d 13h 7m,,Details
+122,2843,"Baffin Bay, TX",NOAA,19d 13h 7m,,Details
+123,2788,"Baltimore, MD",NOAA,19d 13h 7m,,Details
+124,2782,"Bar Harbor, ME",NOAA,19d 13h 7m,,Details
+125,2662,"Barbuda, Antigua and Barbuda",NOAA,19d 13h 7m,,Details
+126,2800,"Bay Waveland Yacht Club, MS",NOAA,19d 13h 7m,,Details
+127,2604,"Bayou La Batre Bridge, AL",NOAA,> 100d,,Details
+128,2813,"Beaufort, NC",NOAA,19d 13h 7m,,Details
+129,2809,"Bergen Point West Reach, NY",NOAA,19d 13h 7m,,Details
+130,2639,"Bermuda, Ferry Reach Channel, Bermuda",NOAA,> 100d,,Details
+131,2640,"Bermuda, St. Georges Island, Bermuda",NOAA,> 100d,,Details
+132,2766,"Berwick, Atchafalaya River, LA",NOAA,19d 13h 7m,,Details
+133,2789,"Bishops Head, MD",NOAA,19d 13h 7m,,Details
+134,2844,"Bob Hall Pier, Corpus Christi, TX",NOAA,19d 13h 7m,,Details
+135,2643,"Bolinas, Bolinas Lagoon, CA",NOAA,> 100d,,Details
+136,2795,"Boston, MA",NOAA,19d 13h 7m,,Details
+137,2678,"Brandywine Shoal Light, DE",NOAA,19d 13h 7m,,Details
+138,2831,"Bridesburg, PA",NOAA,19d 13h 7m,,Details
+139,2675,"Bridgeport, CT",NOAA,19d 13h 7m,,Details
+140,2711,"Buffalo, NY",NOAA,19d 13h 7m,,Details
+141,2767,"Bulk Terminal, LA",NOAA,19d 13h 7m,,Details
+142,2805,"Burlington, Delaware River, NJ",NOAA,19d 13h 7m,,Details
+143,2768,"Calcasieu Pass, LA",NOAA,19d 13h 7m,,Details
+144,2725,"Calumet Harbor, IL",NOAA,19d 13h 7m,,Details
+145,2790,"Cambridge, MD",NOAA,19d 13h 7m,,Details
+146,2881,"Cape Disappointment, WA",NOAA,19d 13h 7m,,Details
+147,2806,"Cape May, NJ",NOAA,19d 13h 7m,,Details
+148,2734,"Cape Vincent, NY",NOAA,19d 13h 7m,,Details
+149,2769,"Carrollton, LA",NOAA,19d 13h 7m,,Details
+150,2684,"Cedar Key, FL",NOAA,19d 13h 7m,,Details
+151,2839,"Charleston, Cooper River Entrance, SC",NOAA,19d 13h 7m,,Details
+152,2820,"Charleston, OR",NOAA,19d 13h 7m,,Details
+153,2796,"Chatham, MA",NOAA,19d 13h 7m,,Details
+154,2882,"Cherry Point, WA",NOAA,19d 13h 7m,,Details
+155,2872,"Chesapeake Bay Bridge Tunnel, VA",NOAA,19d 13h 7m,,Details
+156,2791,"Chesapeake City, MD",NOAA,19d 13h 7m,,Details
+157,2605,"Chickasaw Creek, AL",NOAA,> 100d,,Details
+158,2663,"Christiansted Harbor, St Croix, VI",NOAA,19d 13h 7m,,Details
+159,2685,"Clearwater Beach, FL",NOAA,19d 13h 7m,,Details
+160,2712,"Cleveland, OH",NOAA,19d 13h 7m,,Details
+161,2606,"Coast Guard Sector Mobile, AL",NOAA,> 100d,,Details
+162,2835,"Conimicut Light, RI",NOAA,19d 13h 7m,,Details
+163,2617,"Cordova, AK",NOAA,> 100d,,Details
+164,2644,"Coyote Creek, CA",NOAA,> 100d,,Details
+165,2645,"Crescent City, CA",NOAA,19d 13h 7m,,Details
+166,2664,"Culebra, PR",NOAA,19d 13h 7m,,Details
+167,2783,"Cutler Farris Wharf, ME",NOAA,19d 13h 7m,,Details
+168,2873,"Dahlgren, VA",NOAA,19d 13h 7m,,Details
+169,2686,"Dames Point, FL",NOAA,19d 13h 7m,,Details
+170,2607,"Dauphin Island, AL",NOAA,> 100d,,Details
+171,2720,"De Tour Village, MI",NOAA,19d 13h 7m,,Details
+172,2679,"Delaware City, DE",NOAA,19d 13h 7m,,Details
+173,2801,"Dock E, Port of Pascagoula, MS",NOAA,19d 13h 7m,,Details
+174,2608,"Dog River Bridge, AL",NOAA,> 100d,,Details
+175,2748,"Dry Dock, MI",NOAA,19d 13h 7m,,Details
+176,2814,"Duck, NC",NOAA,19d 13h 7m,,Details
+177,2739,"Duluth, MN",NOAA,19d 13h 7m,,Details
+178,2749,"Dunn Paper, MI",NOAA,19d 13h 7m,,Details
+179,2845,"Eagle Point, TX",NOAA,19d 13h 7m,,Details
+180,2609,"East Fowl River Bridge, AL",NOAA,> 100d,,Details
+181,2784,"Eastport, ME",NOAA,19d 13h 7m,,Details
+182,2618,"Elfin Cove, AK",NOAA,> 100d,,Details
+183,2713,"Erie, PA",NOAA,19d 13h 7m,,Details
+184,2665,"Esperanza, Vieques Island, PR",NOAA,19d 13h 7m,,Details
+185,2721,"Essexville, MI",NOAA,19d 13h 7m,,Details
+186,2770,"Eugene Island, North of , Gulf of Mexico, LA",NOAA,19d 13h 7m,,Details
+187,2714,"Fairport, OH",NOAA,19d 13h 7m,,Details
+188,2666,"Fajardo, PR",NOAA,19d 13h 7m,,Details
+189,2797,"Fall River, MA",NOAA,19d 13h 7m,,Details
+190,2715,"Fermi Power Plant, MI",NOAA,19d 13h 7m,,Details
+191,2687,"Fernandina Beach, FL",NOAA,19d 13h 7m,,Details
+192,2750,"Fort Gratiot, MI",NOAA,19d 13h 7m,,Details
+193,2688,"Fort Myers, FL",NOAA,19d 13h 7m,,Details
+194,2803,"Fort Point, NH",NOAA,19d 13h 7m,,Details
+195,2706,"Fort Pulaski, GA",NOAA,19d 13h 7m,,Details
+196,2707,"Fort Wayne, MI",NOAA,19d 13h 7m,,Details
+197,2846,"Freeport, TX",NOAA,19d 13h 7m,,Details
+198,2771,"Freshwater Canal Locks, LA",NOAA,19d 13h 7m,,Details
+199,2883,"Friday Harbor, WA",NOAA,19d 13h 7m,,Details
+200,2847,"Galveston Bay Entrance, North Jetty, TX",NOAA,19d 13h 7m,,Details
+201,2848,"Galveston Pier 21, TX",NOAA,19d 13h 7m,,Details
+202,2849,"Galveston Railroad Bridge, TX",NOAA,19d 13h 7m,,Details
+203,2821,"Garibaldi, OR",NOAA,19d 13h 7m,,Details
+204,2708,"Gibraltar, MI",NOAA,19d 13h 7m,,Details
+205,2772,"Grand Isle, LA",NOAA,19d 13h 7m,,Details
+206,2740,"Grand Marais, MN",NOAA,19d 13h 7m,,Details
+207,2726,"Green Bay, WI",NOAA,19d 13h 7m,,Details
+208,2722,"Harbor Beach, MI",NOAA,19d 13h 7m,,Details
+209,2850,"High Island, TX",NOAA,19d 13h 7m,,Details
+210,2760,"Hilo, Hilo Bay, Kuhio Bay, HI",NOAA,19d 13h 7m,,Details
+211,2727,"Holland, MI",NOAA,19d 13h 7m,,Details
+212,2761,"Honolulu, HI",NOAA,19d 13h 7m,,Details
+213,2773,"I-10 Bonnet Carre Floodway, LA",NOAA,19d 13h 7m,,Details
+214,2689,"I-295 Bridge, St Johns River, FL",NOAA,19d 13h 7m,,Details
+215,2667,"Isabel Segunda, Vieques Island, PR",NOAA,19d 13h 7m,,Details
+216,2619,"Juneau, AK",NOAA,> 100d,,Details
+217,2762,"Kahului, Kahului Harbor, HI",NOAA,19d 13h 7m,,Details
+218,2763,"Kawaihae, HI",NOAA,19d 13h 7m,,Details
+219,2620,"Ketchikan, AK",NOAA,> 100d,,Details
+220,2728,"Kewaunee, WI",NOAA,19d 13h 7m,,Details
+221,2690,"Key West, FL",NOAA,19d 13h 7m,,Details
+222,2621,"King Cove, AK",NOAA,> 100d,,Details
+223,2810,"Kings Point, NY",NOAA,19d 13h 7m,,Details
+224,2874,"Kiptopeke, VA",NOAA,19d 13h 7m,,Details
+225,2622,"Kodiak Island, AK",NOAA,> 100d,,Details
+226,2646,"La Jolla, CA",NOAA,19d 13h 7m,,Details
+227,2884,"La Push, WA",NOAA,19d 13h 7m,,Details
+228,2775,"Lake Charles, LA",NOAA,19d 13h 7m,,Details
+229,2691,"Lake Worth Pier, FL",NOAA,19d 13h 7m,,Details
+230,2723,"Lakeport, MI",NOAA,19d 13h 7m,,Details
+231,2668,"Lameshur Bay, St John, VI",NOAA,19d 13h 7m,,Details
+232,2774,"LAWMA, Amerada Pass, LA",NOAA,19d 13h 7m,,Details
+233,2680,"Lewes, DE",NOAA,19d 13h 7m,,Details
+234,2875,"Lewisetta, VA",NOAA,19d 13h 7m,,Details
+235,2669,"Lime Tree Bay. St. Croix, VI",NOAA,19d 13h 7m,,Details
+236,2755,"Little Rapids, MI",NOAA,19d 13h 7m,,Details
+237,2885,"Longview, WA",NOAA,19d 13h 7m,,Details
+238,2647,"Los Angeles, CA",NOAA,19d 13h 7m,,Details
+239,2729,"Ludington, MI",NOAA,19d 13h 7m,,Details
+240,2724,"Mackinaw City, MI",NOAA,19d 13h 7m,,Details
+241,2670,"Magueyes Island, PR",NOAA,19d 13h 7m,,Details
+242,2851,"Manchester, TX",NOAA,19d 13h 7m,,Details
+243,2716,"Marblehead, OH",NOAA,19d 13h 7m,,Details
+244,2832,"Marcus Hook, PA",NOAA,19d 13h 7m,,Details
+245,2741,"Marquette C.G., MI",NOAA,19d 13h 7m,,Details
+246,2648,"Martinez-Amorco Pier, CA",NOAA,19d 13h 7m,,Details
+247,2852,"Matagorda Bay Entrance Channel, TX, TX",NOAA,19d 13h 7m,,Details
+248,2853,"Matagorda City, TX",NOAA,19d 13h 7m,,Details
+249,2671,"Mayaguez, PR",NOAA,19d 13h 7m,,Details
+250,2692,"Mayport (Bar Pilots Dock), FL",NOAA,19d 13h 7m,,Details
+251,2693,"Mckay Bay Entrance, FL",NOAA,19d 13h 7m,,Details
+252,2730,"Menominee, MI",NOAA,19d 13h 7m,,Details
+253,2731,"Milwaukee, WI",NOAA,19d 13h 7m,,Details
+254,2610,"Mobile State Docks, AL",NOAA,> 100d,,Details
+255,2764,"Mokuoloe, HI",NOAA,19d 13h 7m,,Details
+256,2672,"Mona Island, PR",NOAA,19d 13h 7m,,Details
+257,2876,"Money Point, VA",NOAA,19d 13h 7m,,Details
+258,2811,"Montauk, NY",NOAA,19d 13h 7m,,Details
+259,2649,"Monterey, CA",NOAA,19d 13h 7m,,Details
+260,2854,"Morgans Point, TX",NOAA,19d 13h 7m,,Details
+261,2751,"Mouth of the Black River, MI",NOAA,19d 13h 7m,,Details
+262,2798,"Nantucket Island, MA",NOAA,19d 13h 7m,,Details
+263,2694,"Naples, FL",NOAA,19d 13h 7m,,Details
+264,2765,"Nawiliwili, HI",NOAA,19d 13h 7m,,Details
+265,2886,"Neah Bay, WA",NOAA,19d 13h 7m,,Details
+266,2776,"New Canal Station, LA",NOAA,19d 13h 7m,,Details
+267,2676,"New Haven, CT",NOAA,19d 13h 7m,,Details
+268,2677,"New London, Thames River, CT",NOAA,19d 13h 7m,,Details
+269,2833,"Newbold, PA",NOAA,19d 13h 7m,,Details
+270,2836,"Newport, RI",NOAA,19d 13h 7m,,Details
+271,2746,"Niagara Intake, NY",NOAA,19d 13h 7m,,Details
+272,2623,"Nikiski, AK",NOAA,> 100d,,Details
+273,2624,"Nikolski, AK",NOAA,> 100d,,Details
+274,2625,"Nome, Norton Sound, AK",NOAA,> 100d,,Details
+275,2650,"North Spit, CA",NOAA,19d 13h 7m,,Details
+276,2792,"Ocean City Inlet, MD",NOAA,19d 13h 7m,,Details
+277,2754,"Ogdensburg, NY",NOAA,19d 13h 7m,,Details
+278,2651,"Oil Platform Harvest, CA",NOAA,19d 13h 7m,,Details
+279,2735,"Olcott, NY",NOAA,19d 13h 7m,,Details
+280,2695,"Old Port Tampa, FL",NOAA,19d 13h 7m,,Details
+281,2742,"Ontonagon, MI",NOAA,19d 13h 7m,,Details
+282,2815,"Oregon Inlet Marina, NC",NOAA,19d 13h 7m,,Details
+283,2736,"Oswego, NY",NOAA,19d 13h 7m,,Details
+284,2840,"Oyster Landing (N Inlet Estuary), SC",NOAA,19d 13h 7m,,Details
+285,2855,"Packery Channel, TX",NOAA,19d 13h 7m,,Details
+286,2827,"Pago Bay, Guam, United States of America",NOAA,19d 13h 7m,,Details
+287,2828,"Pago Pago, American Samoa, American Samoa",NOAA,19d 13h 7m,,Details
+288,2696,"Panama City Beach, FL",NOAA,19d 13h 7m,,Details
+289,2697,"Panama City, FL",NOAA,19d 13h 7m,,Details
+290,2802,"Pascagoula NOAA Lab, MS",NOAA,19d 13h 7m,,Details
+291,2698,"Pensacola, FL",NOAA,19d 13h 7m,,Details
+292,2834,"Philadelphia, PA",NOAA,19d 13h 7m,,Details
+293,2777,"Pilots Station East, SW Pass, LA",NOAA,19d 13h 7m,,Details
+294,2778,"Pilottown, LA",NOAA,19d 13h 7m,,Details
+295,2743,"Point Iroquois, MI",NOAA,19d 13h 7m,,Details
+296,2652,"Point Reyes, CA",NOAA,19d 13h 7m,,Details
+297,2626,"Port Alexander, AK",NOAA,> 100d,,Details
+298,2887,"Port Angeles, WA",NOAA,19d 13h 7m,,Details
+299,2856,"Port Aransas, TX",NOAA,19d 13h 7m,,Details
+300,2857,"Port Arthur, TX",NOAA,19d 13h 7m,,Details
+301,2653,"Port Chicago, CA",NOAA,19d 13h 7m,,Details
+302,2779,"Port Fourchon, Belle Pass, LA",NOAA,19d 13h 7m,,Details
+303,2732,"Port Inland, MI",NOAA,19d 13h 7m,,Details
+304,2858,"Port Isabel, TX",NOAA,19d 13h 7m,,Details
+305,2859,"Port Lavaca, TX",NOAA,19d 13h 7m,,Details
+306,2699,"Port Manatee, FL",NOAA,19d 13h 7m,,Details
+307,2860,"Port Mansfield, TX",NOAA,19d 13h 7m,,Details
+308,2861,"Port O&rsquo;Connor, TX",NOAA,19d 13h 7m,,Details
+309,2822,"Port Orford, OR",NOAA,19d 13h 7m,,Details
+310,2654,"Port San Luis, CA",NOAA,19d 13h 7m,,Details
+311,2888,"Port Townsend, WA",NOAA,19d 13h 7m,,Details
+312,2785,"Portland, ME",NOAA,19d 13h 7m,,Details
+313,2837,"Providence, RI",NOAA,19d 13h 7m,,Details
+314,2627,"Prudhoe Bay, AK",NOAA,> 100d,,Details
+315,2838,"Quonset Point, RI",NOAA,19d 13h 7m,,Details
+316,2700,"Racy Point, St Johns River, FL",NOAA,19d 13h 7m,,Details
+317,2628,"Red Dog Dock, AK",NOAA,> 100d,,Details
+318,2655,"Redwood City, CA",NOAA,19d 13h 7m,,Details
+319,2681,"Reedy Point, DE",NOAA,19d 13h 7m,,Details
+320,2656,"Richmond, CA",NOAA,19d 13h 7m,,Details
+321,2862,"Rincon Del San Jose, TX",NOAA,19d 13h 7m,,Details
+322,2737,"Rochester, NY",NOAA,19d 13h 7m,,Details
+323,2756,"Rock Cut, MI",NOAA,19d 13h 7m,,Details
+324,2863,"Rollover Pass, TX",NOAA,19d 13h 7m,,Details
+325,2864,"S. Bird Island, TX",NOAA,19d 13h 7m,,Details
+326,2757,"S.W. Pier, MI",NOAA,19d 13h 7m,,Details
+327,2866,"Sabine Pass North, TX",NOAA,19d 13h 7m,,Details
+328,2657,"San Diego, CA",NOAA,19d 13h 7m,,Details
+329,2658,"San Francisco, CA",NOAA,19d 13h 7m,,Details
+330,2673,"San Juan, La Puntilla, San Juan Bay, PR",NOAA,19d 13h 7m,,Details
+331,2867,"San Luis Pass, TX",NOAA,19d 13h 7m,,Details
+332,2829,"Sand Island, Midway Islands, United States of America",NOAA,19d 13h 7m,,Details
+333,2629,"Sand Point, AK",NOAA,> 100d,,Details
+334,2807,"Sandy Hook, NJ",NOAA,19d 13h 7m,,Details
+335,2659,"Santa Barbara, CA",NOAA,19d 13h 7m,,Details
+336,2660,"Santa Monica, CA",NOAA,19d 13h 7m,,Details
+337,2868,"Sargent, TX",NOAA,19d 13h 7m,,Details
+338,2889,"Seattle, WA",NOAA,19d 13h 7m,,Details
+339,2630,"Seldovia, AK",NOAA,> 100d,,Details
+340,2631,"Seward, AK",NOAA,> 100d,,Details
+341,2877,"Sewells Point, VA",NOAA,19d 13h 7m,,Details
+342,2780,"Shell Beach, LA",NOAA,19d 13h 7m,,Details
+343,2808,"Ship John Shoal, NJ",NOAA,19d 13h 7m,,Details
+344,2632,"Sitka, AK",NOAA,> 100d,,Details
+345,2633,"Skagway, AK",NOAA,> 100d,,Details
+346,2890,"Skamokawa, WA",NOAA,19d 13h 7m,,Details
+347,2793,"Solomons Island, MD",NOAA,19d 13h 7m,,Details
+348,2823,"South Beach, OR",NOAA,19d 13h 7m,,Details
+349,2869,"South Padre Island CG Station, TX",NOAA,19d 13h 7m,,Details
+350,2701,"Southbank Riverwalk, St Johns River, FL",NOAA,19d 13h 7m,,Details
+351,2865,"SPI Brazos Santiago, TX",NOAA,19d 13h 7m,,Details
+352,2841,"Springmaid Pier, SC",NOAA,19d 13h 7m,,Details
+353,2738,"St Clair Shores, MI",NOAA,19d 13h 7m,,Details
+354,2752,"St Clair State Police, MI",NOAA,19d 13h 7m,,Details
+355,2824,"St Helens, OR",NOAA,19d 13h 7m,,Details
+356,2702,"St Petersburg, Tampa Bay, FL",NOAA,19d 13h 7m,,Details
+357,2733,"Sturgeon Bay Canal, WI",NOAA,19d 13h 7m,,Details
+358,2717,"Sturgeon Point, NY",NOAA,19d 13h 7m,,Details
+359,2891,"Tacoma, WA",NOAA,19d 13h 7m,,Details
+360,2870,"Texas Point, Sabine Pass, TX",NOAA,19d 13h 7m,,Details
+361,2812,"The Battery, NY",NOAA,19d 13h 7m,,Details
+362,2892,"Toke Point, WA",NOAA,19d 13h 7m,,Details
+363,2794,"Tolchester Beach, MD",NOAA,19d 13h 7m,,Details
+364,2718,"Toledo, OH",NOAA,19d 13h 7m,,Details
+365,2703,"Trident Pier, FL",NOAA,19d 13h 7m,,Details
+366,2758,"U.S. Slip, MI",NOAA,19d 13h 7m,,Details
+367,2634,"Unalakleet, AK",NOAA,> 100d,,Details
+368,2635,"Unalaska, AK",NOAA,> 100d,,Details
+369,2816,"USCG Station Hatteras, NC",NOAA,19d 13h 7m,,Details
+370,2871,"USS Lexington, TX",NOAA,19d 13h 7m,,Details
+371,2704,"Vaca Key, FL",NOAA,19d 13h 7m,,Details
+372,2636,"Valdez, AK",NOAA,> 100d,,Details
+373,2893,"Vancouver, WA",NOAA,19d 13h 7m,,Details
+374,2637,"Village Cove, St Paul Island, AK",NOAA,> 100d,,Details
+375,2705,"Virginia Key, FL",NOAA,19d 13h 7m,,Details
+376,2878,"Wachapreague, VA",NOAA,19d 13h 7m,,Details
+377,2830,"Wake Island, Pacific Ocean, United States of America",NOAA,19d 13h 7m,,Details
+378,2682,"Washington, DC",NOAA,19d 13h 7m,,Details
+379,2825,"Wauna, OR",NOAA,19d 13h 7m,,Details
+380,2611,"Weeks Bay, Mobile Bay, AL",NOAA,> 100d,,Details
+381,2786,"Wells, ME",NOAA,19d 13h 7m,,Details
+382,2781,"West Bank 1, Bayou Gauche, LA",NOAA,19d 13h 7m,,Details
+383,2612,"West Fowl River Bridge, AL",NOAA,> 100d,,Details
+384,2759,"West Neebish Island, MI",NOAA,19d 13h 7m,,Details
+385,2894,"Westport, WA",NOAA,19d 13h 7m,,Details
+386,2817,"Wilmington, NC",NOAA,19d 13h 7m,,Details
+387,2709,"Windmill Point, MI",NOAA,19d 13h 7m,,Details
+388,2879,"Windmill Point, VA",NOAA,19d 13h 7m,,Details
+389,2799,"Woods Hole, MA",NOAA,19d 13h 7m,,Details
+390,2818,"Wrightsville Beach, NC",NOAA,19d 13h 7m,,Details
+391,2710,"Wyandotte, MI",NOAA,19d 13h 7m,,Details
+392,2674,"Yabucoa Harbor, PR",NOAA,19d 13h 7m,,Details
+393,2638,"Yakutat, Yakutat Bay, AK",NOAA,> 100d,,Details
+394,2880,"Yorktown USCG Training Center, VA",NOAA,19d 13h 7m,,Details
+396,1623,Sesimbra (Avg),PT TD,0m,,Details
+398,1613,B02 avg30,Setubal,0m,,Details
+399,1614,B02 avg300,Setubal,0m,,Details
+400,1616,B02 TS AlertLevel,Setubal,0m,,Details
+401,1615,B02 TS signal,Setubal,0m,,Details
+403,2033,SET-01 - Setubal,TAD,16m,,Details
+404,2051,SET-01-300-test,TAD,15m,,Details
+405,2050,SET-01-test,TAD,15m,,Details
+406,1618,TAD Setubal (Press),TAD,0m,,Details
+407,1617,TAD Setubal (Temp),TAD,0m,,Details
+408,1044,Tamosy Large Panel (Press),TAD,0m,,Details
+409,1043,Tamosy Large Panel (Temp),TAD,0m,,Details
+411,1014,Antarctica - Syowa ,TD UNESCO,1h 12m,,Details
+412,1028,Antarctica - Vernadsky ,TD UNESCO,28m,,Details
+413,1798,"Antigua, Barbuda & Redonda - Barbuda",TD UNESCO,31m,,Details
+414,1572,Argentina - Mar del Plata ,TD UNESCO,18m,,Details
+415,1504,Argentina - Puerto Deseado ,TD UNESCO,0m,,Details
+416,1794,Argentina - Puerto Deseado,TD UNESCO,18m,,Details
+417,1529,Argentina - Puerto Madryn ,TD UNESCO,18m,,Details
+418,2528,Argentina - Ushuaia,TD UNESCO,1h 34m,,Details
+419,827,Australia - Broome_AU ,TD UNESCO,20m,,Details
+420,820,Australia - Burnie_Tasmania_AU ,TD UNESCO,20m,,Details
+421,1294,Australia - Cape Cuvier Wharf,TD UNESCO,20m,,Details
+422,874,Australia - Cape_Ferguson_AU ,TD UNESCO,20m,,Details
+423,837,Australia - Christmas_Island_AU ,TD UNESCO,20m,,Details
+424,844,Australia - Cocos_Island_AU ,TD UNESCO,20m,,Details
+425,856,Australia - Darwin_AU ,TD UNESCO,20m,,Details
+426,870,Australia - Esperance_AU ,TD UNESCO,20m,,Details
+427,888,Australia - Groote Eylandt ,TD UNESCO,20m,,Details
+428,892,Australia - Hillarys_Harbor_AU ,TD UNESCO,20m,,Details
+429,966,Australia - Port_Kembla_AU ,TD UNESCO,20m,,Details
+430,974,Australia - Port_Stanavac_AU ,TD UNESCO,0m,,Details
+431,973,Australia - Portland_AU ,TD UNESCO,20m,,Details
+432,970,Australia - PtMurat ,TD UNESCO,20m,,Details
+433,985,Australia - Rosslyn_Bay_AU ,TD UNESCO,20m,,Details
+434,1008,Australia - Spring_Bay_AU ,TD UNESCO,20m,,Details
+435,1019,Australia - Thevenard_AU ,TD UNESCO,20m,,Details
+436,1400,Bahamas - Settlement pt,TD UNESCO,26m,,Details
+437,839,Bangladesh - Chittagong ,TD UNESCO,24m,,Details
+438,1805,Barahona,TD UNESCO,32m,,Details
+439,877,Brasil - Fortaleza ,TD UNESCO,22m,,Details
+440,990,Brasil - Salvador_Itaparica ,TD UNESCO,26m,,Details
+441,1876,Caleta Meteoro_CL,TD UNESCO,23m,,Details
+442,1277,Canada - Bamfield,TD UNESCO,3h 36m,,Details
+443,1353,Canada - Nain,TD UNESCO,3h 4m,,Details
+444,1696,Canada - St. Johns,TD UNESCO,3h 4m,,Details
+445,2410,Cayman Islands - George Town,TD UNESCO,23m,,Details
+446,1875,Chañaral_CL,TD UNESCO,13m,,Details
+447,2366,Chile - Ancud,TD UNESCO,9m,,Details
+448,1633,Chile - Ancud_Chile,TD UNESCO,13m,,Details
+449,1820,Chile - Antarctica Base Prat,TD UNESCO,25m,,Details
+450,2478,Chile - Antarctica Base Prat 3,TD UNESCO,19m,,Details
+451,1634,Chile - Antofagasta_CL,TD UNESCO,9m,,Details
+452,1637,Chile - Arica_CL,TD UNESCO,10m,,Details
+453,2413,Chile - Bahia Gregorio_CL,TD UNESCO,24m,,Details
+454,1714,Chile - Bahia Mansa_CL,TD UNESCO,10m,,Details
+455,2372,Chile - Bahia Mansa_CL 2,TD UNESCO,11m,,Details
+456,2376,Chile - Bucalemu_CL,TD UNESCO,14m,,Details
+457,829,Chile - Caldera_CL ,TD UNESCO,9m,,Details
+458,2389,Chile - Caleta Meteoro_CL,TD UNESCO,19m,,Details
+459,1719,Chile - Castro_CL,TD UNESCO,13m,,Details
+460,1502,Chile - Constitucion ,TD UNESCO,12m,,Details
+461,2392,Chile - Constitucion_CL,TD UNESCO,11m,,Details
+462,847,Chile - Coquimbo_CL ,TD UNESCO,9m,,Details
+463,2393,Chile - Coquimbo_CL 2,TD UNESCO,10m,,Details
+464,2397,Chile - Coronel_CL,TD UNESCO,9m,,Details
+465,849,Chile - Corral_CL ,TD UNESCO,18m,,Details
+466,2396,Chile - Corral_CL 2,TD UNESCO,12m,,Details
+467,865,Chile - Easter_CL ,TD UNESCO,20m,,Details
+468,2402,Chile - Easter_CL 2,TD UNESCO,21m,,Details
+469,2418,Chile - Huasco_CL 2,TD UNESCO,8m,,Details
+470,2419,Chile - Huasco_CL 3,TD UNESCO,7m,,Details
+471,901,Chile - Iquique_CL ,TD UNESCO,9m,,Details
+472,2423,Chile - Iquique_CL 2,TD UNESCO,15m,,Details
+473,904,Chile - Juan_Fernandez ,TD UNESCO,10m,,Details
+474,2425,Chile - Juan_Fernandez 2,TD UNESCO,10m,,Details
+475,1522,Chile - Lebu ,TD UNESCO,13m,,Details
+476,2433,Chile - Lebu 2,TD UNESCO,11m,,Details
+477,1726,Chile - Mejillones_CL,TD UNESCO,7m,,Details
+478,2448,Chile - Mejillones_CL 2,TD UNESCO,7m,,Details
+479,2463,Chile - Paposo_CL,TD UNESCO,10m,,Details
+480,2464,Chile - Paposo_CL 2,TD UNESCO,11m,,Details
+481,1730,Chile - Patache_CL,TD UNESCO,11m,,Details
+482,2466,Chile - Patache_CL 2,TD UNESCO,7m,,Details
+483,2470,Chile - Pichidangui_CL 2,TD UNESCO,7m,,Details
+484,2471,Chile - Pichidangui_CL 3,TD UNESCO,7m,,Details
+485,1674,Chile - PISAGUA_CL,TD UNESCO,16m,,Details
+486,2472,Chile - Pisagua_CL 2,TD UNESCO,7m,,Details
+487,1570,Chile - Puerto Chacabuco ,TD UNESCO,23m,,Details
+488,2469,Chile - Puerto Eden_CL,TD UNESCO,8m,,Details
+489,1731,Chile - Puerto Melinka_CL,TD UNESCO,23m,,Details
+490,2467,Chile - Puerto_Chacabuco_CL,TD UNESCO,9m,,Details
+491,1676,Chile - Puerto_Montt_CL,TD UNESCO,18m,,Details
+492,2475,Chile - Puerto_Montt_CL 2,TD UNESCO,9m,,Details
+493,979,Chile - Puerto_Williams_CL ,TD UNESCO,19m,,Details
+494,2489,Chile - Puerto_Williams_CL 2,TD UNESCO,24m,,Details
+495,1733,Chile - Punta Arenas_CL,TD UNESCO,25m,,Details
+496,2482,Chile - Punta Arenas_CL 2,TD UNESCO,24m,,Details
+497,2494,Chile - Queule_CL,TD UNESCO,10m,,Details
+498,2495,Chile - Queule_CL 2,TD UNESCO,7m,,Details
+499,2491,Chile - Quintero_CL 2,TD UNESCO,11m,,Details
+500,2496,Chile - Quiriquina_CL,TD UNESCO,11m,,Details
+501,2497,Chile - Quiriquina_CL 2,TD UNESCO,7m,,Details
+502,993,Chile - San_Antonio_CL ,TD UNESCO,12m,,Details
+503,2502,Chile - San_Antonio_CL 2,TD UNESCO,11m,,Details
+504,991,Chile - San_Felix_CL ,TD UNESCO,9m,,Details
+505,1017,Chile - Talcahuano_CL ,TD UNESCO,12m,,Details
+506,2518,Chile - Talcahuano_CL 2,TD UNESCO,11m,,Details
+507,2519,Chile - Taltal_CL 2,TD UNESCO,10m,,Details
+508,2523,Chile - Tocopilla_CL 2,TD UNESCO,7m,,Details
+509,2524,Chile - Tocopilla_CL 3,TD UNESCO,7m,,Details
+510,1026,Chile - Valparaiso_CL ,TD UNESCO,9m,,Details
+511,2529,Chile - Valparaiso_CL 2,TD UNESCO,2m,,Details
+512,2490,China - Qinglan,TD UNESCO,23m,,Details
+513,2507,China - Shenzhen,TD UNESCO,23m,,Details
+514,2538,China - Zhapo,TD UNESCO,23m,,Details
+515,1896,CL - Coronel_CL,TD UNESCO,11m,,Details
+516,1883,CL -Puerto Eden_CL,TD UNESCO,13m,,Details
+517,2378,Colombia - Buenaventura 1,TD UNESCO,51m,,Details
+518,2379,Colombia - Buenaventura 2,TD UNESCO,21m,,Details
+519,2446,Colombia - Malpelo 2,TD UNESCO,25m,,Details
+520,1602,Comores - Comores,TD UNESCO,29m,,Details
+521,1687,Cook Islands - Avatiu Rarotonga harbour wharf,TD UNESCO,0m,,Details
+522,1671,Cook Islands - Penrhyn_CK,TD UNESCO,26m,,Details
+523,981,Cook Islands - Rarotonga_CK ,TD UNESCO,14m,,Details
+524,1456,Costa Rica - Limon ,TD UNESCO,22m,,Details
+525,1467,Costa Rica - Quepos ,TD UNESCO,17m,,Details
+526,2377,Curaçao - Bullen Bay,TD UNESCO,21m,,Details
+527,894,Denmark - Hirtshals ,TD UNESCO,17m,,Details
+528,1692,"Denmark - Ittoqqortoormiit, Scoresbysund",TD UNESCO,13m,,Details
+529,2460,Denmark - Nuuk harbor,TD UNESCO,14m,,Details
+530,1685,"Denmark - Qaqortoq, Julianehab",TD UNESCO,12m,,Details
+531,1700,"Denmark - Thule, Pituffik",TD UNESCO,14m,,Details
+532,1576,Dominican Republic - Puerto Plata ,TD UNESCO,20m,,Details
+533,1575,Dominican Republic - Punta Cana ,TD UNESCO,15m,,Details
+534,1877,Dunkerque,TD UNESCO,21m,,Details
+535,817,Ecuador - Baltra Galapagos_EC,TD UNESCO,15m,,Details
+536,921,Ecuador - La_Libertad_EC ,TD UNESCO,14m,,Details
+537,994,Ecuador - SantaCruz Galapagos,TD UNESCO,16m,,Details
+538,1597,El Salvador - Acajutla_SV,TD UNESCO,16m,,Details
+539,1605,El Salvador - La_Union_SV,TD UNESCO,28m,,Details
+540,927,Fiji Islands - Lautoka_FJ ,TD UNESCO,14m,,Details
+541,1030,Fiji Islands - Suva_Viti_Levu_FJ ,TD UNESCO,14m,,Details
+542,1812,"Fort-de-France, Martinique",TD UNESCO,19m,,Details
+543,1438,France - Ajaccio ,TD UNESCO,12m,,Details
+544,1599,France - Ajaccio2,TD UNESCO,21m,,Details
+545,1443,France - Arcachon Eyrac ,TD UNESCO,11m,,Details
+546,1643,France - Boucau-Bayonne,TD UNESCO,12m,,Details
+547,2374,France - Boucau-Bayonne 2,TD UNESCO,24m,,Details
+548,1495,France - Boulogne-Sur-Mer ,TD UNESCO,14m,,Details
+549,2375,France - Boulogne-Sur-Mer 2,TD UNESCO,24m,,Details
+550,1284,France - Brest,TD UNESCO,14m,,Details
+551,1444,France - Calais ,TD UNESCO,12m,,Details
+552,2380,France - Calais 2,TD UNESCO,25m,,Details
+553,1500,France - Centuri ,TD UNESCO,13m,,Details
+554,1601,France - Centuri2,TD UNESCO,24m,,Details
+555,1289,France - Cherbourg,TD UNESCO,14m,,Details
+556,2387,France - Cherbourg 2,TD UNESCO,16m,,Details
+557,1445,France - Concarneau ,TD UNESCO,14m,,Details
+558,2391,France - Concarneau 2,TD UNESCO,15m,,Details
+559,1296,France - Dieppe,TD UNESCO,13m,,Details
+560,2399,France - Dieppe 2,TD UNESCO,15m,,Details
+561,2400,France - Dunkerque 2,TD UNESCO,16m,,Details
+562,1297,France - Dzaoudzi (Mayotte) FTP,TD UNESCO,14m,,Details
+563,1298,France - Dzaoudzi(Mayotte) GTS,TD UNESCO,25m,,Details
+564,1506,France - Fos-sur-Mer ,TD UNESCO,12m,,Details
+565,1649,France - Hienghene (New Caledonia),TD UNESCO,17m,,Details
+566,1651,France - Ile d'Aix,TD UNESCO,14m,,Details
+567,1736,France - Ile Rousse,TD UNESCO,14m,,Details
+568,1737,France - Ile Rousse2,TD UNESCO,33m,,Details
+569,2421,"France - Ile Royale, Kourou, French Guiana",TD UNESCO,14m,,Details
+570,2422,"France - Ile Royale, Kourou, French Guiana 2",TD UNESCO,21m,,Details
+571,1505,"France - La Desirade Island, Guadeloupe ",TD UNESCO,20m,,Details
+572,1721,France - La Figueirette,TD UNESCO,14m,,Details
+573,1722,France - La Figueirette2,TD UNESCO,22m,,Details
+574,1520,France - La Rochelle-Pallice ,TD UNESCO,13m,,Details
+575,2432,France - La Rochelle-Pallice 2,TD UNESCO,25m,,Details
+576,1659,France - Le Conquet,TD UNESCO,14m,,Details
+577,2434,France - Le Conquet 2,TD UNESCO,19m,,Details
+578,1523,France - Le Crouesty ,TD UNESCO,13m,,Details
+579,1328,France - Le Havre,TD UNESCO,14m,,Details
+580,2435,France - Le Havre 2,TD UNESCO,21m,,Details
+581,1524,France - Les Sables d'Olonne ,TD UNESCO,14m,,Details
+582,2437,France - Les Sables d'Olonne 2,TD UNESCO,18m,,Details
+583,2415,France - L'Herbaudière,TD UNESCO,12m,,Details
+584,2416,France - L'Herbaudière 2,TD UNESCO,22m,,Details
+585,1724,France - Lifou,TD UNESCO,2h 25m,,Details
+586,1337,France - Marseille,TD UNESCO,14m,,Details
+587,2534,France - Mata-Utu (Wallis island),TD UNESCO,15m,,Details
+588,2449,France - Mimizan,TD UNESCO,3h 7m,,Details
+589,2450,France - Mimizan 2,TD UNESCO,3h 8m,,Details
+590,1357,France - Nice,TD UNESCO,14m,,Details
+591,1608,France - Nice2,TD UNESCO,22m,,Details
+592,1536,France - Nouméa - Numbo (New Caledonia) ,TD UNESCO,14m,,Details
+593,953,France - Nuku_Hiva Marquesas,TD UNESCO,16m,,Details
+594,1666,"France - Papeete (Tahiti, French Polynesia)",TD UNESCO,16m,,Details
+595,1688,France - Pointe des Galets (Reunion Island) FTP,TD UNESCO,16m,,Details
+596,1578,France - Pointe des Galets (Reunion Island) GTS ,TD UNESCO,52m,,Details
+597,1821,France - Port Ferréol 2,TD UNESCO,22m,,Details
+598,1573,France - Port-Bloc ,TD UNESCO,34m,,Details
+599,2483,France - Port-La-Nouvelle,TD UNESCO,14m,,Details
+600,1704,France - Port-Tudy (Groix island),TD UNESCO,14m,,Details
+601,1683,France - Port-Vendres,TD UNESCO,14m,,Details
+602,1684,France - Port-Vendres2,TD UNESCO,18m,,Details
+603,1468,"France - Rangiroa Atoll (Tuamotu, French Polynesia) ",TD UNESCO,1h 7m,,Details
+604,1471,France - Roscoff ,TD UNESCO,14m,,Details
+605,2498,France - Roscoff 2,TD UNESCO,28m,,Details
+606,2510,France - Sainte Marie (Reunion island) 2,TD UNESCO,14m,,Details
+607,1475,France - Saint-Malo ,TD UNESCO,14m,,Details
+608,2514,France - Saint-Malo 2,TD UNESCO,24m,,Details
+609,1580,France - Saint-Nazaire ,TD UNESCO,12m,,Details
+610,2504,France - Sete,TD UNESCO,21m,,Details
+611,1741,France - Sète,TD UNESCO,14m,,Details
+612,1739,France - Socoa,TD UNESCO,14m,,Details
+613,1694,France - Socoa,TD UNESCO,0m,,Details
+614,1740,France - Socoa2,TD UNESCO,19m,,Details
+615,1584,France - Solenzara ,TD UNESCO,14m,,Details
+616,1610,France - Solenzara2,TD UNESCO,19m,,Details
+617,1702,France - Toulon,TD UNESCO,14m,,Details
+618,1611,France - Toulon2,TD UNESCO,21m,,Details
+619,1482,France - Tubuaï Austral Islands ,TD UNESCO,16m,,Details
+620,1494,Germany - Borkum Fischerbalje ,TD UNESCO,12m,,Details
+621,853,Germany - Cuxhaven ,TD UNESCO,12m,,Details
+622,1511,Germany - Helgoland Binnenhafen ,TD UNESCO,12m,,Details
+623,1512,Germany - Hörnum ,TD UNESCO,12m,,Details
+624,1517,Germany - LT Kiel ,TD UNESCO,12m,,Details
+625,1582,Germany - Sassnitz ,TD UNESCO,13m,,Details
+626,1708,Germany - Warnemünde,TD UNESCO,13m,,Details
+627,1452,Greece - Katakolo ,TD UNESCO,37m,,Details
+628,1463,Greece - Peiraias ,TD UNESCO,22m,,Details
+629,1477,Greece - Syros ,TD UNESCO,7m,,Details
+630,1732,"Grenada - Prickly Bay, Grenada",TD UNESCO,16m,,Details
+631,2442,"Hawaii; U.S.A. - Makai Pier, Waimanalo, Hawaii",TD UNESCO,16m,,Details
+632,2468,Honduras - Puerto Cortes,TD UNESCO,1h 7m,,Details
+633,2499,Honduras - Roatan Island Punta Gorda Harbor,TD UNESCO,3h 7m,,Details
+634,2493,Hong Kong - China - Quarry Bay,TD UNESCO,15m,,Details
+635,982,Iceland - Reykjavik ,TD UNESCO,13m,,Details
+636,1716,India - Chennai,TD UNESCO,31m,,Details
+637,1717,India - Cochin,TD UNESCO,30m,,Details
+638,1728,India - Nancowry,TD UNESCO,2h 27m,,Details
+639,1734,India - Port Blair,TD UNESCO,2h 28m,,Details
+640,1743,India - Visakhapatnam,TD UNESCO,2h 29m,,Details
+641,1271,Indonesia - Ambon,TD UNESCO,4h 31m,,Details
+642,2427,"Indonesia - Kolinamil, Jakarta Port",TD UNESCO,2h 20m,,Details
+643,1329,Indonesia - Lembar,TD UNESCO,2h 15m,,Details
+644,957,Indonesia - Padang ,TD UNESCO,2h 15m,,Details
+645,975,Indonesia - Prigi ,TD UNESCO,2h 13m,,Details
+646,986,Indonesia - Sabang ,TD UNESCO,2h 17m,,Details
+647,1397,Indonesia - Saumlaki,TD UNESCO,2h 11m,,Details
+648,2515,Indonesia - Surabaya,TD UNESCO,2h 22m,,Details
+649,1032,Indonesia - Waikelo ,TD UNESCO,2h 37m,,Details
+650,835,Iran - Chabahar ,TD UNESCO,2h 13m,,Details
+651,816,Ireland - Ballyglass pier  Belmullet,TD UNESCO,4h 43m,,Details
+652,832,Ireland - Castletownbere ,TD UNESCO,5h 52m,,Details
+653,934,Ireland - Malin Head Peninsular ,TD UNESCO,4h 1m,,Details
+654,2569,Ireland - New Ballyglass pier  Belmullet,TD UNESCO,4h 43m,,Details
+655,960,Islas del - Palmeira Cabo Verde,TD UNESCO,2h 22m,,Details
+656,834,Italy - Carloforte ,TD UNESCO,2h 12m,,Details
+657,1503,Italy - Catania ,TD UNESCO,2h 13m,,Details
+658,1508,Italy - Genova ,TD UNESCO,3h 2m,,Details
+659,899,Italy - Imperia ,TD UNESCO,3h 11m,,Details
+660,2360,Italy - Imperia 2,TD UNESCO,3h 35m,,Details
+661,1518,Italy - Lampedusa ,TD UNESCO,2h 6m,,Details
+662,1532,Italy - Messina ,TD UNESCO,2h 7m,,Details
+663,1574,Italy - Porto Torres ,TD UNESCO,2h 6m,,Details
+664,1022,Italy - TRIESTE ,TD UNESCO,2h 8m,,Details
+665,1483,Italy - Venice ,TD UNESCO,2h 10m,,Details
+666,2485,Jamaica - Port Royal,TD UNESCO,2h 16m,,Details
+667,1796,Japan - Abashiri,TD UNESCO,2h 18m,,Details
+668,1797,Japan - Aburatsu,TD UNESCO,2h 18m,,Details
+669,1799,Japan - Chichijima,TD UNESCO,2h 18m,,Details
+670,1800,Japan - Fukaura,TD UNESCO,2h 18m,,Details
+671,1802,Japan - Hakodate,TD UNESCO,2h 18m,,Details
+672,1803,Japan - Hamada,TD UNESCO,2h 18m,,Details
+673,890,Japan - Hanasaki ,TD UNESCO,2h 18m,,Details
+674,902,Japan - Ishigakijima ,TD UNESCO,2h 18m,,Details
+675,1815,Japan - Kushimoto,TD UNESCO,2h 18m,,Details
+676,1814,Japan - Kushiro,TD UNESCO,2h 18m,,Details
+677,1816,Japan - Mera,TD UNESCO,2h 18m,,Details
+678,1817,Japan - Minami-Tori-Shima,TD UNESCO,2h 18m,,Details
+679,1818,Japan - Nagasaki,TD UNESCO,2h 18m,,Details
+680,944,Japan - Naha ,TD UNESCO,2h 18m,,Details
+681,1819,Japan - Noto,TD UNESCO,2h 18m,,Details
+682,954,Japan - Ofunato ,TD UNESCO,2h 18m,,Details
+683,955,Japan - Omaezaki ,TD UNESCO,2h 18m,,Details
+684,1822,Japan - Sado,TD UNESCO,2h 18m,,Details
+685,1823,Japan - Saigo,TD UNESCO,2h 18m,,Details
+686,1021,Japan - Tosashimizu ,TD UNESCO,2h 18m,,Details
+687,1825,Japan - Toyama,TD UNESCO,2h 18m,,Details
+688,1826,Japan - Wakkanai,TD UNESCO,2h 18m,,Details
+689,923,Kenya - Lamu ,TD UNESCO,2h 21m,,Details
+690,940,Kenya - Mombasa ,TD UNESCO,2h 22m,,Details
+691,1879,Kerguelen Island,TD UNESCO,2h 8m,,Details
+692,1432,Kiribati - Christmas,TD UNESCO,2h 22m,,Details
+693,1655,Kiribati - Kanton_KI,TD UNESCO,2h 22m,,Details
+694,1410,Kiribati - Tarawa,TD UNESCO,2h 5m,,Details
+695,1878,"Leava (Futuna Island, Wallis & Futuna)",TD UNESCO,2h 13m,,Details
+696,1880,Lerwick2,TD UNESCO,2h 37m,,Details
+697,1588,Madagascar - Toamasina ,TD UNESCO,3h 3m,,Details
+698,924,Malaysia - Langkawi ,TD UNESCO,2h 11m,,Details
+699,882,Maldive Islands - Gan ,TD UNESCO,2h 19m,,Details
+700,891,Maldive Islands - Hanimadhoo ,TD UNESCO,2h 21m,,Details
+701,933,Maldive Islands - Male ,TD UNESCO,2h 22m,,Details
+702,1806,"Maré (New Caledonia, Loyalty Islands)",TD UNESCO,2h 11m,,Details
+703,1338,Marshall Islands - Majuro,TD UNESCO,2h 5m,,Details
+704,1795,Martinique - Fort-de-France,TD UNESCO,2h 13m,,Details
+705,1881,Matarani,TD UNESCO,12m,,Details
+706,951,Mauritania - Nouakchott ,TD UNESCO,2h 22m,,Details
+707,1268,Mauritius - Agalega,TD UNESCO,2h 21m,,Details
+708,1283,Mauritius - Blue Bay,TD UNESCO,2h 22m,,Details
+709,978,Mauritius - Pt.Louis ,TD UNESCO,2h 12m,,Details
+710,984,Mauritius - Rodrigues ,TD UNESCO,2h 10m,,Details
+711,1493,Mexico - Acapulco Club de Yates ,TD UNESCO,1h 24m,,Details
+712,1499,"Mexico - Ciudad del Carmen, Camp. ",TD UNESCO,0m,,Details
+713,1521,Mexico - Lazaro Cardenas ,TD UNESCO,1h 24m,,Details
+714,2481,Mexico - Puerto Angel,TD UNESCO,1h 41m,,Details
+715,1528,"Mexico - Puerto Madero, Chis. ",TD UNESCO,1h 34m,,Details
+716,2488,Mexico - Puerto Morelos 2,TD UNESCO,1h 6m,,Details
+717,1577,"Mexico - Puerto Morelos, Q. R. ",TD UNESCO,1h 27m,,Details
+718,1581,"Mexico - Salina Cruz, Oax. ",TD UNESCO,1h 34m,,Details
+719,2500,"Mexico - Salina Cruz, Oax. 2",TD UNESCO,1h 15m,,Details
+720,1592,"Mexico - Veracruz, Ver. ",TD UNESCO,1h 24m,,Details
+721,2539,"Mexico - Zihuatanejo, Gro",TD UNESCO,1h 15m,,Details
+722,859,Micronesia - Dekehtik Pohnpei_FM,TD UNESCO,2h 5m,,Details
+723,2426,Micronesia - Kapingamarangi_FM,TD UNESCO,2h 8m,,Details
+724,1711,Micronesia - Yap Island,TD UNESCO,2h 9m,,Details
+725,1607,"Monaco - Monaco, Fontvieille harbour",TD UNESCO,2h 4m,,Details
+726,2451,"Monaco - Monaco2, Fontvieille harbour",TD UNESCO,2h 16m,,Details
+727,942,Myanmar - Moulmein ,TD UNESCO,2h 7m,,Details
+728,1824,Myanmar - Sittwe,TD UNESCO,2h 6m,,Details
+729,1729,New Caledonia - Ouinne,TD UNESCO,2h 9m,,Details
+730,2368,New Zealand - Auckland_NZ,TD UNESCO,2h 9m,,Details
+731,1446,New Zealand - Castlepoint ,TD UNESCO,2h 9m,,Details
+732,1290,New Zealand - Chatham Island,TD UNESCO,2h 9m,,Details
+733,1567,New Zealand - Dunedin ,TD UNESCO,2h 8m,,Details
+734,1334,New Zealand - East Cape,TD UNESCO,2h 8m,,Details
+735,885,New Zealand - Gisborne ,TD UNESCO,2h 8m,,Details
+736,2409,New Zealand - Great_Barrier_Is,TD UNESCO,2h 9m,,Details
+737,1653,New Zealand - Jackson Bay,TD UNESCO,2h 5m,,Details
+738,1515,New Zealand - Kaikoura ,TD UNESCO,2h 9m,,Details
+739,1533,New Zealand - Manakau ,TD UNESCO,2h 8m,,Details
+740,945,New Zealand - Napier ,TD UNESCO,2h 8m,,Details
+741,2457,New Zealand - North_Cape,TD UNESCO,2h 8m,,Details
+742,1699,New Zealand - Port of Tauranga,TD UNESCO,2h 8m,,Details
+743,1466,New Zealand - Puysegur Welcome Bay ,TD UNESCO,2h 8m,,Details
+744,1469,New Zealand - Raoul Island Boat Cove ,TD UNESCO,2h 8m,,Details
+745,1470,New Zealand - Raoul Island Fishing Rock ,TD UNESCO,2h 8m,,Details
+746,1710,New Zealand - Wellington,TD UNESCO,2h 7m,,Details
+747,1882,Newlyn2,TD UNESCO,3h 37m,,Details
+748,2395,Nicaragua - Puerto Corinto,TD UNESCO,1h 20m,,Details
+749,2480,Nicaragua - Puerto Sandino,TD UNESCO,1h 45m,,Details
+750,1662,Niue - Niue,TD UNESCO,0m,,Details
+751,1272,Norway - Andenes,TD UNESCO,2h 7m,,Details
+752,1650,Norway - Honningsvåg,TD UNESCO,2h 7m,,Details
+753,1336,Norway - Måløy,TD UNESCO,2h 7m,,Details
+754,1664,Norway - Ny Ålesund,TD UNESCO,2h 7m,,Details
+755,1689,Norway - Rørvik,TD UNESCO,2h 7m,,Details
+756,1703,Norway - Tregde,TD UNESCO,2h 7m,,Details
+757,1707,Norway - Vardø,TD UNESCO,2h 7m,,Details
+758,2401,Oman - Duqm,TD UNESCO,2h 9m,,Details
+759,2535,Oman - Khawr Wudam,TD UNESCO,2h 9m,,Details
+760,937,Oman - Masirah ,TD UNESCO,2h 12m,,Details
+761,1460,Oman - Muscat ,TD UNESCO,2h 7m,,Details
+762,1459,Oman - Muscat (BGAN) ,TD UNESCO,3h 21m,,Details
+763,989,Oman - Salalah ,TD UNESCO,2h 4m,,Details
+764,2516,Oman - Sur,TD UNESCO,2h 23m,,Details
+765,1603,Pakistan - Gwadar,TD UNESCO,2h 10m,,Details
+766,1665,Pakistan - Ormara,TD UNESCO,2h 18m,,Details
+767,932,Palau Islands - Malakal ,TD UNESCO,2h 11m,,Details
+768,2371,Panamá - Bocas Del Toro,TD UNESCO,1h 4m,,Details
+769,929,Papua New Guinea - Lombrum_Manus_Is_PG ,TD UNESCO,2h 2m,,Details
+770,830,Perú - Callao La-Punta_PE,TD UNESCO,7m,,Details
+771,2517,Perú - Talara,TD UNESCO,2h 12m,,Details
+772,1447,Philippines - Currimao ,TD UNESCO,2h 34m,,Details
+773,2046,Philippines - Currimao_Prs,TD UNESCO,2h 34m,,Details
+774,857,Philippines - Davao_PH ,TD UNESCO,2h 5m,,Details
+775,2045,Philippines - Davao_PH_rad,TD UNESCO,2h 5m,,Details
+776,2047,Philippines - Davao_TEST_1,TD UNESCO,2h 5m,,Details
+777,2048,Philippines - Davao_TEST_2,TD UNESCO,2h 5m,,Details
+778,2049,Philippines - DavaoTEST3,TD UNESCO,2h 5m,,Details
+779,1327,Philippines - Legaspi,TD UNESCO,2h 7m,,Details
+780,1527,Philippines - Lubang ,TD UNESCO,2h 33m,,Details
+781,935,Philippines - Manila ,TD UNESCO,2h 9m,,Details
+782,1013,Philippines - Subic_Bay ,TD UNESCO,2h 6m,,Details
+783,1828,"Pointe à Pitre, Guadeloupe",TD UNESCO,2h 6m,,Details
+784,895,Polynésie Française (French Polynesia) - Hiva_Oa Marquesas,TD UNESCO,2h 5m,,Details
+785,2443,Polynésie Française (French Polynesia) - Makemo - Tuamotu,TD UNESCO,2h 22m,,Details
+786,983,Polynésie Française (French Polynesia) - Rikitea_PF ,TD UNESCO,2h 6m,,Details
+787,1813,Port Ferréol,TD UNESCO,2h 3m,,Details
+788,1273,Puerto Rico - Arecibo,TD UNESCO,2h 7m,,Details
+789,1454,Russia - Korsakov ,TD UNESCO,2h 8m,,Details
+790,2455,Russia - Nahodka,TD UNESCO,2h 8m,,Details
+791,2459,Russia - Nikol'skoe,TD UNESCO,2h 8m,,Details
+792,1464,Russia - Petropavlovsk ,TD UNESCO,2h 8m,,Details
+793,2477,Russia - Pos'et,TD UNESCO,2h 8m,,Details
+794,1465,Russia - Preobrazheniye ,TD UNESCO,2h 8m,,Details
+795,1472,Russia - Rudnaya Pristan ,TD UNESCO,2h 8m,,Details
+796,2511,Russia - Sosunovo,TD UNESCO,2h 8m,,Details
+797,2533,Russia - Vladivostok,TD UNESCO,2h 8m,,Details
+798,1829,"Saint Pierre et Miquelon, Canada",TD UNESCO,2h 4m,,Details
+799,2381,Saint Vincent & Grenadines - Calliaqua Coast Guard Base,TD UNESCO,3h 19m,,Details
+800,1585,Saint-Helena - Saint Helena ,TD UNESCO,2h 16m,,Details
+801,1025,Samoa; U.S.A. - Apia_Upolu_WS ,TD UNESCO,1h 59m,,Details
+802,1930,San Andres,TD UNESCO,1h 7m,,Details
+803,1929,Santa Marta,TD UNESCO,2h 7m,,Details
+804,1807,Semarang,TD UNESCO,2h 4m,,Details
+805,855,Sénégal - Dakar ,TD UNESCO,2h 21m,,Details
+806,925,Seychelles - Pt.LaRue ,TD UNESCO,2h 7m,,Details
+807,1695,Solomon Islands - Honiara,TD UNESCO,1h 59m,,Details
+808,1723,Solomon Islands - Lata_Wharf_SB,TD UNESCO,2h 34m,,Details
+809,1742,Solomon Islands - Tarekukure_Wharf_SB,TD UNESCO,1h 59m,,Details
+810,2394,Spain - Acoruna,TD UNESCO,2h 4m,,Details
+811,1439,Spain - Alcudia ,TD UNESCO,2h 4m,,Details
+812,1441,Spain - Algeciras ,TD UNESCO,2h 19m,,Details
+813,1630,Spain - Almeria,TD UNESCO,2h 8m,,Details
+814,1638,Spain - Arrecife,TD UNESCO,2h 4m,,Details
+815,819,Spain - Barcelona ,TD UNESCO,2h 4m,,Details
+816,1280,Spain - Bilbao3,TD UNESCO,2h 4m,,Details
+817,2373,Spain - Bonanza2,TD UNESCO,2h 4m,,Details
+818,2383,Spain - Carboneras,TD UNESCO,2h 4m,,Details
+819,2417,Spain - ElHierro,TD UNESCO,2h 4m,,Details
+820,873,Spain - Ferrol1 ,TD UNESCO,2h 4m,,Details
+821,2406,Spain - Ferrol2,TD UNESCO,2h 4m,,Details
+822,2407,Spain - Formentera,TD UNESCO,2h 4m,,Details
+823,2408,Spain - Fuerteventura,TD UNESCO,2h 4m,,Details
+824,2411,Spain - Gijon,TD UNESCO,2h 4m,,Details
+825,898,Spain - Huelva5 ,TD UNESCO,2h 5m,,Details
+826,1449,Spain - Ibiza2 ,TD UNESCO,2h 4m,,Details
+827,918,Spain - LaGomera ,TD UNESCO,2h 4m,,Details
+828,2430,Spain - Langosteira,TD UNESCO,2h 4m,,Details
+829,1455,Spain - LasPalmas2 ,TD UNESCO,2h 4m,,Details
+830,2440,Spain - Mahon,TD UNESCO,3h 20m,,Details
+831,2444,Spain - Malaga,TD UNESCO,2h 4m,,Details
+832,2447,Spain - Marin,TD UNESCO,2h 4m,,Details
+833,938,Spain - Melilla ,TD UNESCO,2h 4m,,Details
+834,1345,Spain - Motril2,TD UNESCO,2h 4m,,Details
+835,2501,Spain - Santander,TD UNESCO,2h 4m,,Details
+836,2505,Spain - Sevilla,TD UNESCO,2h 50m,,Details
+837,1478,Spain - Tarifa ,TD UNESCO,2h 4m,,Details
+838,2521,Spain - Tarragona,TD UNESCO,2h 4m,,Details
+839,1479,Spain - Tenerife2 ,TD UNESCO,2h 4m,,Details
+840,1706,Spain - Valencia,TD UNESCO,2h 4m,,Details
+841,2531,Spain - Vigo,TD UNESCO,2h 4m,,Details
+842,2532,Spain - Villagarcia,TD UNESCO,2h 4m,,Details
+843,846,Sri Lanka - Colombo ,TD UNESCO,2h 6m,,Details
+844,1448,Sri Lanka - Hambantota ,TD UNESCO,0m,,Details
+845,1023,Sri Lanka - Trinconmalee ,TD UNESCO,2h 43m,,Details
+846,886,Sweden - GoteborgTorshamnen ,TD UNESCO,3h 12m,,Details
+847,1005,Sweden - Smogen ,TD UNESCO,3h 10m,,Details
+848,1011,Sweden - Stockholm ,TD UNESCO,3h 12m,,Details
+849,1038,Tanzania - Zanzibar ,TD UNESCO,2h 9m,,Details
+850,1663,Tonga Island - Nuku'Alofa Harbour wharf,TD UNESCO,0m,,Details
+851,950,Tonga Island - Nukualofa_TO ,TD UNESCO,1h 59m,,Details
+852,2487,Trinidad & Tobago - Port of Spain,TD UNESCO,2h 35m,,Details
+853,2503,Trinidad & Tobago - Scarborough,TD UNESCO,2h 34m,,Details
+854,1609,Turkey - Sinop,TD UNESCO,2h 11m,,Details
+855,876,Tuvalu Islands - Fongafale_TV ,TD UNESCO,1h 56m,,Details
+856,1891,UK - Aberdeen,TD UNESCO,2h 37m,,Details
+857,1892,UK - Avonmouth Portbury,TD UNESCO,2h 37m,,Details
+858,1893,UK - Bangor,TD UNESCO,2h 22m,,Details
+859,1894,UK - Barmouth,TD UNESCO,2h 22m,,Details
+860,824,UK - Bermuda_UK ,TD UNESCO,2h 2m,,Details
+861,1895,UK - Bournemouth,TD UNESCO,2h 22m,,Details
+862,1897,UK - Cromer,TD UNESCO,2h 22m,,Details
+863,1898,UK - Deal Pier,TD UNESCO,1h 54m,,Details
+864,883,UK - Diego Garcia ,TD UNESCO,2h 0m,,Details
+865,1899,UK - Dover,TD UNESCO,2h 22m,,Details
+866,1901,UK - El Porvenir,TD UNESCO,1h 4m,,Details
+867,1902,UK - Fishguard,TD UNESCO,2h 22m,,Details
+868,1308,UK - Gibraltar(GTS),TD UNESCO,2h 50m,,Details
+869,2412,UK - Gough Island,TD UNESCO,2h 18m,,Details
+870,1904,UK - Harwich,TD UNESCO,2h 22m,,Details
+871,1905,UK - Herne Bay,TD UNESCO,1h 54m,,Details
+872,1906,UK - Heysham,TD UNESCO,2h 22m,,Details
+873,1907,UK - Hinkley Point,TD UNESCO,2h 22m,,Details
+874,1908,UK - Holyhead2,TD UNESCO,2h 22m,,Details
+875,1909,UK - Ilfracombe,TD UNESCO,2h 22m,,Details
+876,1910,UK - Immingham,TD UNESCO,2h 22m,,Details
+877,1911,UK - Jersey,TD UNESCO,2h 22m,,Details
+878,911,UK - King Edward Point ,TD UNESCO,2h 2m,,Details
+879,1912,UK - Kinlochbervie,TD UNESCO,2h 22m,,Details
+880,1913,UK - Leith,TD UNESCO,2h 22m,,Details
+881,1914,UK - Liverpool,TD UNESCO,2h 22m,,Details
+882,1915,UK - Llandudno,TD UNESCO,2h 37m,,Details
+883,1916,UK - Lowestoft,TD UNESCO,2h 22m,,Details
+884,1917,UK - Lymington,TD UNESCO,1h 54m,,Details
+885,1918,UK - Milford Haven,TD UNESCO,2h 22m,,Details
+886,1919,UK - Millport,TD UNESCO,2h 22m,,Details
+887,1920,UK - Mumbles,TD UNESCO,2h 22m,,Details
+888,1921,UK - Newhaven,TD UNESCO,2h 22m,,Details
+889,948,UK - Newlyn ,TD UNESCO,0m,,Details
+890,1922,UK - Newport,TD UNESCO,2h 22m,,Details
+891,1923,UK - North Shields,TD UNESCO,2h 22m,,Details
+892,1924,UK - Plymouth,TD UNESCO,2h 22m,,Details
+893,1927,UK - Port Isaac,TD UNESCO,4h 38m,,Details
+894,1925,UK - Portpatrick,TD UNESCO,2h 22m,,Details
+895,1926,UK - Portrush,TD UNESCO,2h 22m,,Details
+896,1928,UK - Portsmouth,TD UNESCO,2h 22m,,Details
+897,1931,UK - Sandown Pier,TD UNESCO,1h 54m,,Details
+898,1933,UK - Second Severn Crossing,TD UNESCO,2h 25m,,Details
+899,1932,UK - Sheerness,TD UNESCO,2h 22m,,Details
+900,1934,UK - St Marys,TD UNESCO,2h 22m,,Details
+901,1012,UK - Stornoway ,TD UNESCO,2h 22m,,Details
+902,1935,UK - Swanage Pier,TD UNESCO,1h 54m,,Details
+903,1938,UK - Tobermory,TD UNESCO,2h 22m,,Details
+904,1939,UK - Ullapool,TD UNESCO,2h 22m,,Details
+905,1941,UK - Weymouth,TD UNESCO,2h 22m,,Details
+906,1942,UK - Whitby,TD UNESCO,2h 22m,,Details
+907,1943,UK - Wic,TD UNESCO,2h 22m,,Details
+908,1944,UK - Workington,TD UNESCO,2h 22m,,Details
+909,1604,Ukraina - Kaciveli,TD UNESCO,0m,,Details
+910,1626,USA - Adak_AK,TD UNESCO,1h 57m,,Details
+911,1629,USA - Alameda_CA,TD UNESCO,2h 0m,,Details
+912,1628,USA - Alitak_US,TD UNESCO,1h 58m,,Details
+913,1632,USA - Anchorage_AK,TD UNESCO,1h 58m,,Details
+914,1635,USA - Apalachicola_FL,TD UNESCO,1h 6m,,Details
+915,1636,USA - Arena_Cove_CA,TD UNESCO,1h 58m,,Details
+916,1640,USA - Astoria_OR,TD UNESCO,1h 59m,,Details
+917,1275,"USA - Atka, AK",TD UNESCO,1h 58m,,Details
+918,1625,USA - Atlantic_City_NJ,TD UNESCO,1h 59m,,Details
+919,1641,USA - Baltimore_MD,TD UNESCO,2h 1m,,Details
+920,818,USA - Bar_Harbor_ME ,TD UNESCO,2h 1m,,Details
+921,1644,USA - Battery_The_NY,TD UNESCO,2h 1m,,Details
+922,821,USA - Beaufort_NC ,TD UNESCO,2h 4m,,Details
+923,825,USA - Boston_MA ,TD UNESCO,2h 1m,,Details
+924,1642,USA - Bridgeport_CT,TD UNESCO,2h 7m,,Details
+925,1645,USA - Cambridge_MD,TD UNESCO,2h 1m,,Details
+926,842,USA - Cape_May_NJ ,TD UNESCO,2h 1m,,Details
+927,836,USA - CharlestonOR ,TD UNESCO,2h 3m,,Details
+928,1646,USA - Cherry_Point_WA,TD UNESCO,1h 57m,,Details
+929,854,USA - Clearwater_Beach_FL ,TD UNESCO,1h 26m,,Details
+930,848,USA - Cordova_AK ,TD UNESCO,1h 58m,,Details
+931,851,USA - Crescent_City_CA ,TD UNESCO,2h 1m,,Details
+932,852,USA - Culebra_Is_PR ,TD UNESCO,2h 7m,,Details
+933,843,USA - CutlerNavalBase_ME ,TD UNESCO,0m,,Details
+934,860,USA - Dauphin_Island_AL ,TD UNESCO,1h 9m,,Details
+935,862,USA - Duck_Pier_NC ,TD UNESCO,1h 59m,,Details
+936,869,USA - East_Port_ME ,TD UNESCO,2h 2m,,Details
+937,867,USA - Elfin_Cove_AK ,TD UNESCO,2h 2m,,Details
+938,872,USA - Fernadina_Beach_FL ,TD UNESCO,1h 4m,,Details
+939,875,USA - Fort_Myers_FL ,TD UNESCO,1h 5m,,Details
+940,878,USA - Fort_Pulaski_GA ,TD UNESCO,2h 3m,,Details
+941,880,USA - Ft_Point San_Fran,TD UNESCO,1h 55m,,Details
+942,887,USA - Galveston_Pier_TX ,TD UNESCO,1h 9m,,Details
+943,889,USA - Guam (Apra Harbor) ,TD UNESCO,2h 1m,,Details
+944,893,USA - Hilo Hawaii,TD UNESCO,2h 2m,,Details
+945,897,USA - Honolulu Oahu,TD UNESCO,1h 56m,,Details
+946,903,USA - Johnston_US ,TD UNESCO,2h 0m,,Details
+947,1654,"USA - Kahului, Maui",TD UNESCO,2h 2m,,Details
+948,910,USA - Kawaihae Hawaii,TD UNESCO,2h 2m,,Details
+949,917,USA - Key_West_FL ,TD UNESCO,1h 8m,,Details
+950,1656,"USA - Kodiak Island, AK",TD UNESCO,2h 2m,,Details
+951,916,USA - Kwajalein_MH ,TD UNESCO,4h 3m,,Details
+952,920,USA - La_Jolla_CA ,TD UNESCO,2h 50m,,Details
+953,922,USA - LameshurBayStJohnVI ,TD UNESCO,2h 1m,,Details
+954,930,USA - Magueyes_Island_PR ,TD UNESCO,2h 3m,,Details
+955,939,USA - Midway ,TD UNESCO,1h 59m,,Details
+956,941,USA - Mona_Island_PR ,TD UNESCO,2h 0m,,Details
+957,1344,"USA - Montauk, NY",TD UNESCO,1h 54m,,Details
+958,2453,"USA - Montauk, NY 1",TD UNESCO,1h 58m,,Details
+959,946,USA - Nawiliwili Kauai,TD UNESCO,2h 26m,,Details
+960,952,USA - Nome_AK ,TD UNESCO,1h 56m,,Details
+961,2414,"USA - Oil Platform Harvest, CA",TD UNESCO,2h 19m,,Details
+962,958,USA - Pago Bay  Guam,TD UNESCO,2h 1m,,Details
+963,959,USA - Pago_Pago_AS ,TD UNESCO,2h 27m,,Details
+964,2473,USA - Palmyra Island,TD UNESCO,1h 59m,,Details
+965,1677,USA - Pensacola_FL,TD UNESCO,1h 8m,,Details
+966,1681,USA - Prudhoe_Bay_AK,TD UNESCO,1h 55m,,Details
+967,988,USA - Saipan_US ,TD UNESCO,1h 55m,,Details
+968,992,USA - San_Juan_PR ,TD UNESCO,1h 55m,,Details
+969,997,USA - Sand_Point_AK ,TD UNESCO,1h 57m,,Details
+970,1000,USA - Seward_AK ,TD UNESCO,1h 58m,,Details
+971,1003,USA - Sitka_AK ,TD UNESCO,1h 55m,,Details
+972,996,USA - South_Beach_OR ,TD UNESCO,1h 57m,,Details
+973,1010,USA - St_Croix_VI ,TD UNESCO,1h 56m,,Details
+974,881,USA - Tern Fr._Frigate_US,TD UNESCO,1h 57m,,Details
+975,1034,USA - Wake_US ,TD UNESCO,4h 54m,,Details
+976,1430,"USA - Westport,WA",TD UNESCO,1h 56m,,Details
+977,1429,"USA - Woods Hole, MA",TD UNESCO,1h 58m,,Details
+978,1434,USA - Yakutat,TD UNESCO,1h 56m,,Details
+979,2439,Vanuatu - Luganville,TD UNESCO,1h 53m,,Details
+980,1027,Vanuatu - Vanuatu ,TD UNESCO,1h 53m,,Details
+981,1885,Vernadsky - Faraday,TD UNESCO,1h 58m,,Details
+982,1686,Viet Nam - Qui_Nhon,TD UNESCO,1h 57m,,Details
+983,1031,Viet Nam - Vung Tau ,TD UNESCO,1h 59m,,Details
+984,1627,Yemen - Aden,TD UNESCO,3h 27m,,Details
+987,100007,TAD Large,TADSERVER,0m,,Details
+988,100029,SET-01,TADSERVER,0m,,Details
+989,100039,PDE-01,TADSERVER,2m,,Details
+990,100040,ISPRA-03,TADSERVER,1m,,Details
+991,100041,ISPRA-04,TADSERVER,4m,,Details
+992,100050,IPMA-IGCAS,TADSERVER,1m,,Details
+993,100052,IPMA-IGLAG,TADSERVER,1m,,Details
+994,100053,IPMA-IHPEN,TADSERVER,4m,,Details
+995,100054,IPMA-IHLEX,TADSERVER,4m,,Details
+996,100055,IPMA-IHSMA,TADSERVER,3m,,Details
+997,100056,IPMA-IHFUL,TADSERVER,4m,,Details
+998,100064,IDSL-01,TADSERVER,0m,,Details
+999,100068,ISPRA-09,TADSERVER,1m,,Details
+1000,100069,ISPRA-10,TADSERVER,3m,,Details
+1001,100071,ISPRA-11,TADSERVER,2m,,Details
+1002,100072,ISPRA-12,TADSERVER,2m,,Details
+1003,100075,NOA-01,TADSERVER,3m,,Details
+1004,100077,IDSL-04,TADSERVER,0m,,Details
+1005,100078,IDSL-05,TADSERVER,0m,,Details
+1006,100079,IDSL-06,TADSERVER,0m,,Details
+1007,100080,IDSL-07,TADSERVER,0m,,Details
+1008,100083,IDSL-10,TADSERVER,0m,,Details
+1009,100084,IDSL-11,TADSERVER,0m,,Details
+1010,100085,IDSL-12,TADSERVER,0m,,Details
+1011,100086,IDSL-13,TADSERVER,0m,,Details
+1012,100087,IDSL-14,TADSERVER,0m,,Details
+1013,100088,IDSL-15,TADSERVER,0m,,Details
+1014,100091,IDSL-18,TADSERVER,0m,,Details
+1015,100092,IDSL-19,TADSERVER,0m,,Details
+1016,100093,IDSL-20,TADSERVER,0m,,Details
+1017,100094,IDSL-21,TADSERVER,0m,,Details
+1018,100097,NOA-02,TADSERVER,1m,,Details
+1019,100101,SENTEZ-01,TADSERVER,1m,,Details
+1020,100106,NOA-03,TADSERVER,2m,,Details
+1021,100109,NOA-04,TADSERVER,2m,,Details
+1022,100110,NOA-05,TADSERVER,1m,,Details
+1023,100111,NOA-06,TADSERVER,1m,,Details
+1024,100113,NOA-08,TADSERVER,1m,,Details
+1025,100114,NOA-09,TADSERVER,1m,,Details
+1026,100115,NOA-10,TADSERVER,2m,,Details
+1027,100126,IDSL-31,TADSERVER,0m,,Details
