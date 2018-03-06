@@ -44,8 +44,6 @@ No tests are available at the moment.
 
 ## Acknowledgments
 
-Modified versions of modules from the project BOUT++ (https://github.com/boutproject/BOUT-dev) and OpenEarthTools (https://publicwiki.deltares.nl/display/OET/OpenEarth) are incorporated into pyPoseidon.
-
 * All the people that teach me stuff.  
 
 ## License
