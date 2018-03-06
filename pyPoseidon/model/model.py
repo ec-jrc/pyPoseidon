@@ -527,7 +527,7 @@ class d3d(model):
         #save meteo
         if self.atm:
            try:
-              self.to_force(self.meteo.impl.uvp,vars=['prmslmsl','ugrd10m','vgrd10m'],rpath=path,**kwargs)
+              self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
            except AttributeError as e:
               print e 
               pass

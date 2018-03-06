@@ -217,7 +217,6 @@ class ecmwf_oper(meteo):
                                   'time': tt })   
 #                        'time': pd.date_range(date+datetime.timedelta(hours=ft1), periods=ft2-ft1, freq='{}H'.format(dft))})   
 #                        'reference_time': date })
-
     
       self.p = np.array(pt)
       self.u = np.array(ut)
@@ -317,14 +316,14 @@ class gfs(meteo):
       if i0 > i1 :
 
           sh = (
-              data[['prmslmsl','ugrd10m', u'vgrd10m']]
+              data[['prmslmsl','ugrd10m', 'vgrd10m']]
               .isel(longitude=slice(i0,data.longitude.size),latitude=slice(j0,j1))
               .sel(time=tslice)
               )
           sh.longitude.values = sh.longitude.values -360.
 
           sh1 = (
-              data[['prmslmsl','ugrd10m', u'vgrd10m']]
+              data[['prmslmsl','ugrd10m', 'vgrd10m']]
               .isel(longitude=slice(0,i1),latitude=slice(j0,j1))
               .sel(time=tslice)
               )
@@ -334,7 +333,7 @@ class gfs(meteo):
       else:            
 
           tot = (
-              data[['prmslmsl','ugrd10m', u'vgrd10m']]
+              data[['prmslmsl','ugrd10m', 'vgrd10m']]
               .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
               .sel(time=tslice)
               )
@@ -350,9 +349,11 @@ class gfs(meteo):
       
       self.uvp = xr.merge([tot, other])
       
-      self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['prmslmsl','ugrd10m','vgrd10m'])
+      self.uvp.rename({'prmslmsl':'msl','ugrd10m':'u10','vgrd10m':'v10'}, inplace=True)
+      
+      self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
 
-      self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['prmslmsl','ugrd10m','vgrd10m'],crs=crs.PlateCarree())
+      self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'],crs=crs.PlateCarree())
       
       
       
@@ -372,4 +373,4 @@ class gfs(meteo):
                 
         s = getattr(model,solver) # get solver class
                 
-        s.to_force(self.uvp,vars=['prmslmsl','ugrd10m','vgrd10m'],rpath=path)
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
