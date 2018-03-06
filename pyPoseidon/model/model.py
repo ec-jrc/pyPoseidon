@@ -14,7 +14,6 @@ import pandas as pd
 
 #local modules
 from grid import *
-from dep import *
 from bnd import *
 import pyPoseidon
 from pyPoseidon.meteo import meteo
