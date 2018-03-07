@@ -7,8 +7,8 @@
 # the output of TAT interface
 TAT/D3/
 
-# the local Notebooks 
-Notebooks/
+# the local test folder 
+examples/test
 
 # dotx files
 *.dotx
