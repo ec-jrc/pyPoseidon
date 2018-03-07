@@ -28,5 +28,4 @@ dependencies:
   - cartopy
   - holoviews
   - ioam::geoviews 
-  - folium
-    
+  - bokeh::datashader  
