@@ -374,3 +374,27 @@ class gfs(meteo):
         s = getattr(model,solver) # get solver class
                 
         s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+        
+        
+class generic(meteo):
+    
+    def __init__(self,**kwargs):
+    
+        filename = kwargs.get('filename', None)
+        
+        self.uvp = xr.open_dataset(filename)
+         
+        self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
+
+        self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'],crs=crs.PlateCarree())
+                
+    
+    def output(self,solver=None,**kwargs):
+        
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
