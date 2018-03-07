@@ -594,8 +594,22 @@ class d3d(model):
         
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
+        
+        try:
+            bin_path = os.environ['D3D']
+        except:
+            bin_path = None
                 
-        bin_path = get_value(self,kwargs,'exec', os.environ['D3D'])   
+        bin_path = get_value(self,kwargs,'exec', bin_path) 
+        
+        if bin_path is None:
+            #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('D3D executable not given: Set D3D env variable or exec flag\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+              
             
         ncores = get_value(self,kwargs,'ncores',1)
         
