@@ -260,8 +260,8 @@ class d3d(model):
     def bath(self,**kwargs):
         z = self.__dict__.copy()        
         
-        z['grid_x'] = self.grid.grid.lons
-        z['grid_y'] = self.grid.grid.lats
+        z['grid_x'] = self.grid.grid.lons.values
+        z['grid_y'] = self.grid.grid.lats.values
         
         z.update(kwargs) 
         
