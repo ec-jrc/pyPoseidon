@@ -9,12 +9,11 @@ import pandas as pd
 import datetime
 from netCDF4 import Dataset
 from pyPoseidon.utils.get_value import get_value
-import xarray
 import holoviews as hv
 import geoviews as gv
 from cartopy import crs
 import xarray as xr
-
+import pyresample
 
 
 
@@ -53,7 +52,7 @@ class data:
         
         nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in folders]
         
-        ds = xarray.open_mfdataset(nfiles)
+        ds = xr.open_mfdataset(nfiles)
                 
         #grid points
         xg = ds.XCOR.values.T
@@ -75,37 +74,64 @@ class data:
         self.yh = np.ma.masked_array(yz, self.w)
         
         #velocity points
-        xu = self.x - self.dx/2.
-        yv = self.y - self.dy/2.
-       
+        xv = xz + self.dx/2.
+        yu = yz + self.dy/2.
+                
         self.times=ds.time.values
         
+        ovars = kwargs.get('vars', ['S1','U1','V1','WINDU','WINDV','PATM'])
         
-        # get S1
-        h =  ds.S1[:,1:-1,1:-1]
-        ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-        ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-        z = np.ma.masked_where(ww==True,ha) #mask land
-                
-        # get U1
-        h =  ds.U1[:,0,1:-1,1:-1]
-        ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-        ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-        zu = np.ma.masked_where(ww==True,ha) #mask land
-                
-        # get V1
-        h =  ds.V1[:,0,1:-1,1:-1]
-        ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-        ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-        zv = np.ma.masked_where(ww==True,ha) #mask land
-                
+        keys = [d for d in ds.variables.keys() if d in ovars]
         
-        self.vars=xr.Dataset({'S1':(['time','YZ','XZ'], z),
-                       'U1':(['time','YU','XU'], zu),
-                       'V1':(['time','YV','XV'], zv)},                       
-                     coords={'XZ':(self.xh[0,:]),'YZ':(self.yh[:,0]),
-                             'XU':(xu[0,1:-1]),'YU':(self.yh[:,0]),
-                             'XV':(self.xh[0,:]),'YV':(yv[1:-1,0]),                   
+        zkeys = [d for d in keys if d not in ['U1','V1']]
+        
+        dic = {}  
+        
+        for key in zkeys:
+            h =  ds[key][:,1:-1,1:-1]
+            ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
+            ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
+            dic.update({key :(['time','YZ','XZ'], np.ma.masked_where(ww==True,ha))}) #mask land
+        
+        if 'U1' in keys:        
+            # Get water velocities - U1
+            h =  ds['U1'][:,0,1:-1,1:-1] 
+            ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
+            ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
+            wu = np.ma.masked_where(ww==True,ha) #mask land
+            dic.update({'U1' :(['time','YU','XU'], wu)}) 
+        
+            #interpolate on XZ, YZ
+            orig = pyresample.geometry.SwathDefinition(lons=xz,lats=yu) # original points
+            targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
+            uz = []
+            for k in range(wu.shape[0]):
+                uz.append(pyresample.kd_tree.resample_nearest(orig,wu[k,:,:],targ,radius_of_influence=50000))
+         
+            dic.update({'U1Z' :(['time','YZ','XZ'], uz)})
+        
+        if 'V1' in keys:        
+            # Get water velocities - V1
+            h =  ds['V1'][:,0,1:-1,1:-1] 
+            ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
+            ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
+            wv = np.ma.masked_where(ww==True,ha) #mask land
+            dic.update({'V1' :(['time','YV','XV'], wv)}) 
+        
+            #interpolate on XZ, YZ
+            orig = pyresample.geometry.SwathDefinition(lons=xv,lats=yz) # original points
+            targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
+            vz = []
+            for k in range(wv.shape[0]):
+                vz.append(pyresample.kd_tree.resample_nearest(orig,wv[k,:,:],targ,radius_of_influence=50000))
+      
+            dic.update({'V1Z' : (['time','YZ','XZ'], vz)})
+       
+                 
+        self.vars=xr.Dataset(dic,                                              
+                     coords={'XZ':(xz[0,:]),'YZ':(yz[:,0]),
+                             'XU':(xz[0,:]),'YU':(yu[:,0]),
+                             'XV':(xv[0,:]),'YV':(yz[:,0]),                   
                      'time':self.times})
                      
         self.obs = obs(**self.info)
