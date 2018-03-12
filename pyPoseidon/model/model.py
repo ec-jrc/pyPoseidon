@@ -345,6 +345,11 @@ class d3d(model):
         lon0=ar.lons[0,0].data.tolist()  
         
         nodata=-9999.000
+        
+        pp = ar[p].fillna(nodata)
+        uu = ar[u].fillna(nodata)
+        vv = ar[v].fillna(nodata)
+        
 
         if not os.path.exists(path):
            os.makedirs(path)
@@ -401,9 +406,9 @@ class d3d(model):
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(indx[it].astype(int)))
 
-          np.savetxt(pfid,np.flipud(ar[p][it,:,:]),fmt='%.3f')
-          np.savetxt(ufid,np.flipud(ar[u][it,:,:]),fmt='%.3f')
-          np.savetxt(vfid,np.flipud(ar[v][it,:,:]),fmt='%.3f')
+          np.savetxt(pfid,np.flipud(pp[it,:,:]),fmt='%.3f')
+          np.savetxt(ufid,np.flipud(uu[it,:,:]),fmt='%.3f')
+          np.savetxt(vfid,np.flipud(vv[it,:,:]),fmt='%.3f')
 
          # close files
         for f in fi:
