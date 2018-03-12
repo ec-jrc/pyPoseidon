@@ -64,6 +64,7 @@ def update_quiver(num, Q, U, V, step):
     """updates the horizontal and vertical vector components by a
     fixed increment on each frame
     """
+
     Q.set_UVC(U[num,::step,::step],V[num,::step,::step])
 
     return Q,
@@ -103,8 +104,8 @@ def quiver(X,Y,U,V,t,**kwargs):
     plt.close()
     # you need to set blit=False, or the first set of arrows never gets
     # cleared on subsequent frames
-    return animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step),
-                               interval=np.size(t), blit=False, repeat=False)    
+    return animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
+                               interval=1, blit=False, repeat=False)    
     
  
 def video(fname, mimetype):
