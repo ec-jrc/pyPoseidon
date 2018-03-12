@@ -18,6 +18,9 @@ import geoviews as gv
 import importlib
 from pyPoseidon.utils.get_value import get_value
 from dateutil import parser
+from pyresample import bilinear, geometry, kd_tree
+from pyresample import utils
+import pyproj
 
 
 def gridd(lon1,lat1,lon2,lat2,nlats):
@@ -94,6 +97,10 @@ class meteo:
         msource = kwargs.get('meteo', None)
         if msource == 'ecmwf_oper' :
             self.impl = ecmwf_oper(**kwargs)
+        elif msource == 'hnms_oper' :
+            self.impl = hnms_oper(**kwargs)
+        elif msource == 'generic' :
+            self.impl = generic(**kwargs)
         else:
             self.impl = gfs(**kwargs)
                 
@@ -218,9 +225,6 @@ class ecmwf_oper(meteo):
 #                        'time': pd.date_range(date+datetime.timedelta(hours=ft1), periods=ft2-ft1, freq='{}H'.format(dft))})   
 #                        'reference_time': date })
     
-      self.p = np.array(pt)
-      self.u = np.array(ut)
-      self.v = np.array(vt)
       self.uvp = met
       self.lats = lats
       self.lons = lons   
@@ -380,14 +384,29 @@ class generic(meteo):
     
     def __init__(self,**kwargs):
     
-        filename = kwargs.get('filename', None)
+        filename = kwargs.get('mpaths', None)
+        
+        #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('extracting meteo from {}\n'.format(filename))
+        sys.stdout.flush()
+        #---------------------------------------------------------------------      
+        
         
         self.uvp = xr.open_dataset(filename)
          
         self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
 
         self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'],crs=crs.PlateCarree())
-                
+
+      #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
+      #--------------------------------------------------------------------- 
+
     
     def output(self,solver=None,**kwargs):
         
@@ -398,3 +417,177 @@ class generic(meteo):
         s = getattr(model,solver) # get solver class
                 
         s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+        
+        
+        
+class hnms_oper(meteo):
+    
+    def __init__(self,**kwargs):
+    
+        filenames = kwargs.get('mpaths', {})
+        
+        ncores = kwargs.get('ncores', 1)
+    
+        minlon = kwargs.get('minlon', None)
+        maxlon = kwargs.get('maxlon', None)
+        minlat = kwargs.get('minlat', None)
+        maxlat = kwargs.get('maxlat', None) 
+        
+        minlon = minlon - .1
+        maxlon = maxlon + .1
+        minlat = minlat - .1
+        maxlat = maxlat + .1
+  
+        # read the first file to get variables
+        f = open(filenames[0])
+        gid = grib_new_from_file(f)
+        
+        
+        Ni=grib_get(gid,'Ni')
+        Nj=grib_get(gid,'Nj')
+                
+        elat=grib_get_array(gid,'latitudes')
+        elon=grib_get_array(gid,'longitudes')
+        
+        elon = elon.reshape(Nj,Ni)
+        elat = elat.reshape(Nj,Ni)
+        
+        orig = geometry.SwathDefinition(lons=elon,lats=elat) # original grid
+        
+        gridType = grib_get(gid,'gridType')
+        
+        
+        #Set lat/lon window for interpolation
+        prj = pyproj.Proj('+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs')
+        [[a0,a1],[a2,a3]] = prj([minlon, minlat], [maxlon, maxlat])
+  
+        area_id = 'HNMS'
+        description = 'HNMS COSMO'
+        proj_id = 'eqc'
+        projection = '+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m'
+        x_size = Ni
+        y_size = Nj
+        area_extent = (a0, a1, a2, a3)
+        target_def = utils.get_area_def(area_id, description, proj_id, projection,
+                         x_size, y_size, area_extent)
+
+        lons,lats = geometry.AreaDefinition.get_lonlats(target_def) # out grid
+        #compute bilinear interoplation parameters
+        t_params, s_params, input_idxs, idx_ref = \
+                              bilinear.get_bil_info(orig, target_def, radius=50e3, nprocs=1)
+  
+        grib_release(gid)
+        f.close()                     
+  
+        # read grib file and append to xarray
+        pt=[]
+        ut=[]
+        vt=[]
+        tt=[]
+
+        for filename in filenames:
+
+          #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('extracting meteo from {}\n'.format(filename))
+            sys.stdout.flush()
+          #---------------------------------------------------------------------      
+
+
+            try: 
+                f = open(filename)
+            except:
+                print 'no file {}'.format(filename)
+                sys.exit(1)
+
+
+
+            try:    
+                for it in range(3):
+        
+                    gid = grib_new_from_file(f)
+    
+                    name=grib_get(gid, 'shortName')
+                    mv=grib_get(gid,'missingValue')
+
+                    date=grib_get(gid, 'date')
+                    dataTime=grib_get(gid, 'dataTime')
+                    stepRange=grib_get(gid, 'stepRange')
+
+                    values=grib_get_values(gid)    
+
+                    q = values.reshape(Nj,Ni)
+                       
+                    data = bilinear.get_sample_from_bil_info(q.ravel(), t_params, s_params,
+                                                             input_idxs, idx_ref,
+                                                             output_shape=target_def.shape)
+    
+#                    data = bilinear.resample_bilinear(q, orig, target_def,
+#                                           radius=50e3, neighbours=32,
+#                                           nprocs=ncores, fill_value=0,
+#                                           reduce_data=False, segments=None,
+#                                           epsilon=0)
+    
+                    timestamp =  datetime.datetime.strptime(str(date),'%Y%m%d')+datetime.timedelta(hours=dataTime/100) 
+
+
+                    if name == 'msl' : 
+                         pt.append(data)
+                         tt.append(timestamp+datetime.timedelta(hours=int(stepRange)))
+                    elif name == '10u':
+                         ut.append(data)
+                    elif name == '10v':
+                         vt.append(data)
+
+
+            # END OF FOR
+
+            except Exception as e:
+                print e
+                print 'ERROR in meteo file {}'.format(date)
+
+            f.close()
+
+        met = xr.Dataset({'msl': (['time', 'latitude', 'longitude'],  np.array(pt)), 
+                              'u10': (['time', 'latitude', 'longitude'], np.array(ut)),   
+                              'v10': (['time', 'latitude', 'longitude'], np.array(vt)),   
+                              'lons': (['x', 'y'], lons),   
+                              'lats': (['x', 'y'], lats)},   
+                              coords={'longitude': ('longitude', lons[0,:]),   
+                                      'latitude': ('latitude', lats[:,0]),   
+                                      'time': tt })
+        
+        #mask non values
+        met['msl'] = met.msl.where(met.msl>0)
+        met['u10'] = met.u10.where(met.msl>0)
+        met['v10'] = met.v10.where(met.msl>0)
+                                      
+        self.uvp = met
+        self.lats = lats
+        self.lons = lons   
+        
+    
+        self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
+
+        self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'],crs=crs.PlateCarree())
+      
+      
+      #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
+      #--------------------------------------------------------------------- 
+      
+      
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+    
