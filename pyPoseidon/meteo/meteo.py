@@ -99,6 +99,8 @@ class meteo:
             self.impl = ecmwf_oper(**kwargs)
         elif msource == 'hnms_oper' :
             self.impl = hnms_oper(**kwargs)
+        elif msource == 'am_oper' :
+            self.impl = am_oper(**kwargs)
         elif msource == 'generic' :
             self.impl = generic(**kwargs)
         else:
@@ -563,6 +565,176 @@ class hnms_oper(meteo):
         met['u10'] = met.u10.where(met.msl>0)
         met['v10'] = met.v10.where(met.msl>0)
                                       
+        self.uvp = met
+        self.lats = lats
+        self.lons = lons   
+        
+    
+        self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
+
+        self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'],crs=crs.PlateCarree())
+      
+      
+      #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
+      #--------------------------------------------------------------------- 
+      
+      
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+    
+
+class am_oper(meteo):
+    
+    def __init__(self,**kwargs):
+    
+        filenames = kwargs.get('mpaths', {})
+        
+        ncores = kwargs.get('ncores', 1)
+              
+        # read the first file to get variables
+        f = open(filenames[0])
+        gid = grib_new_from_file(f)
+        
+        
+        lonfgp=grib_get(gid,'longitudeOfFirstGridPointInDegrees')
+        latfgp=grib_get(gid,'latitudeOfFirstGridPointInDegrees')
+        lonlgp=grib_get(gid,'longitudeOfLastGridPointInDegrees')
+        latlgp=grib_get(gid,'latitudeOfLastGridPointInDegrees')
+
+        
+        Ni=grib_get(gid,'Ni')
+        Nj=grib_get(gid,'Nj')
+                
+        elat=grib_get_array(gid,'latitudes')
+        elon=grib_get_array(gid,'longitudes')
+        
+        if latfgp > latlgp :
+            elat = elat[::-1]
+        
+        lon = elon.reshape(Nj,Ni)
+        lat = elat.reshape(Nj,Ni)
+        
+        gridType = grib_get(gid,'gridType')
+        
+        minlon = kwargs.get('minlon', elon.min())
+        maxlon = kwargs.get('maxlon', elon.max())
+        minlat = kwargs.get('minlat', elat.min())
+        maxlat = kwargs.get('maxlat', elat.max()) 
+
+
+        grib_release(gid)
+        f.close()                     
+  
+
+  
+        if (minlon < elon.min()) or (maxlon > elon.max()) or (minlat < elat.min()) or (maxlat > elat.max()): 
+            print minlon,maxlon,minlat,maxlat
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('Meteo Problem!\n')
+            sys.stdout.write('Lon must be within {} and {}\n'.format(elon.min(),elon.max()))
+            sys.stdout.write('Lat must be within {} and {}\n'.format(elat.min(),elat.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+            
+        # get range of values
+        i1=np.abs(lon[0,:]-minlon).argmin()-2
+        i2=np.abs(lon[0,:]-maxlon).argmin()+2
+        j1=np.abs(lat[:,0]-minlat).argmin()-2
+        j2=np.abs(lat[:,0]-maxlat).argmin()+2
+    
+        if i1 < 0 : i1 = 0 # fix limits
+        if i2 > lon.shape[1] : i2 = lon.shape[1]   
+        if j1 < 0 : j1 = 0
+        if j2 > lat.shape[0]: j2 = lat.shape[0]
+        
+        # read grib file and append to xarray
+        pt=[]
+        ut=[]
+        vt=[]
+        tt=[]
+
+        for filename in filenames:
+
+        #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('extracting meteo from {}\n'.format(filename))
+            sys.stdout.flush()
+        #---------------------------------------------------------------------      
+
+            try: 
+                f = open(filename)
+            except:
+                print 'no file {}'.format(filename)
+                sys.exit(1)
+
+
+
+            try:    
+                for it in range(3):
+        
+                    gid = grib_new_from_file(f)
+    
+                    name=grib_get(gid, 'shortName')
+                    mv=grib_get(gid,'missingValue')
+
+                    date=grib_get(gid, 'date')
+                    dataTime=grib_get(gid, 'dataTime')
+                    stepRange=grib_get(gid, 'stepRange')
+
+                    values=grib_get_values(gid)    
+                    
+                    q = values.reshape(Nj,Ni)
+                    
+                    if latfgp > latlgp :
+                        q=np.flipud(q)
+
+                           
+                    timestamp =  datetime.datetime.strptime(str(date),'%Y%m%d')+datetime.timedelta(hours=dataTime/100) 
+
+
+                    lons, lats = lon[j1:j2,i1:i2],lat[j1:j2,i1:i2]
+                    data = deepcopy(q[j1:j2,i1:i2])
+
+
+                    if name == 'pmsl' : 
+                         pt.append(data)
+                         tt.append(timestamp+datetime.timedelta(hours=int(stepRange)))
+                    elif name == '10u':
+                         ut.append(data)
+                    elif name == '10v':
+                         vt.append(data)
+
+            # END OF FOR
+
+            except Exception as e:
+                print e
+                print 'ERROR in meteo file {}'.format(date)
+
+            f.close()
+
+            
+        met = xr.Dataset({'msl': (['time', 'latitude', 'longitude'],  np.array(pt)), 
+                              'u10': (['time', 'latitude', 'longitude'], np.array(ut)),   
+                              'v10': (['time', 'latitude', 'longitude'], np.array(vt)),   
+                              'lons': (['x', 'y'], lons),   
+                              'lats': (['x', 'y'], lats)},   
+                              coords={'longitude': ('longitude', lons[0,:]),   
+                                      'latitude': ('latitude', lats[:,0]),   
+                                      'time': tt })
+                                              
         self.uvp = met
         self.lats = lats
         self.lons = lons   
