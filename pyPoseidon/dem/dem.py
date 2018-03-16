@@ -1,12 +1,5 @@
 import numpy as np
-import netCDF4
-import scipy.interpolate
 import pyresample
-from pyPoseidon.utils.bfs import *
-from mpl_toolkits.basemap import Basemap
-from shapely import geometry, ops
-import matplotlib.path as mpltPath
-import geopandas as gp
 import xarray as xr
 import sys
 
@@ -217,6 +210,9 @@ class gebco(dem):
           )
       
       self.val = dem
+      xx,yy = np.meshgrid(dem.lon,dem.lat)
+      self.dlons = xx
+      self.dlats = yy
       
       
       if 'grid_x' in kwargs.keys():
