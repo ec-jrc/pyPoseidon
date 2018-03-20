@@ -4,9 +4,6 @@
 # mac files
 *.DS_Store
 
-# the output of TAT interface
-TAT/D3/
-
 # the local test folder 
 examples/test
 
@@ -49,15 +46,6 @@ examples/test
 
 # all temp folders
 tmp/
-
-#ignore notebook output folders
-report/
-TIDES/
-BATHYMETRY/
-src/
-TAT/
-utils_old/
-Notebooks_old/
 
 # Setuptools distribution folder.
 /dist/
