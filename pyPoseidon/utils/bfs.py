@@ -1,26 +1,22 @@
 from collections import deque
 
-
 class Solution(object):
-    def append_if(self, queue, x, y):
+    
+    def append_if(self, queue, x, y, island_counter):
+        
+        b = [[0, 1], [1, 0]], [[0, 1], [-1, 0]], [[0, -1], [1, 0]], [[0, -1], [-1, 0]]    
+        
         """Append to the queue only if in bounds of the grid and the cell value is 1."""
         if 0 <= x < len(self.grid) and 0 <= y < len(self.grid[0]):
             if self.grid[x][y] == '1':
-                queue.append((x, y))
-
-    def append_if_(self, queue, x, y, i):
-        """Append to the queue only if in bounds of the grid and the cell value is 1."""
-        if 0 <= x < len(self.grid) and 0 <= y < len(self.grid[0]):
-            if self.grid[x][y] == '1':
-              if 0 <= x+i[0] < len(self.grid) and 0 <= y+i[1] < len(self.grid[0]):
-                 if self.grid[x+i[0]][y+i[1]] == '1' : 
-                     queue.append((x, y))
-              elif 0 <= x+i[2] < len(self.grid) and 0 <= y+i[3] < len(self.grid[0]):
-                 if self.grid[x+i[2]][y+i[3]] == '1' : 
-                     queue.append((x, y))
-#             elif 0 <= x+i[4] < len(self.grid) and 0 <= y+i[5] < len(self.grid[0]):
-#                if self.grid[x+i[4]][y+i[5]] == '1' :
-#                    queue.append((x, y))
+#                queue.append((x, y))
+                for [i,j],[k,l] in b:
+                    try:
+                        if self.grid[x+i][y+j] in ['1', island_counter] and self.grid[x+k][y+l] in ['1', island_counter]:
+                            queue.append((x, y))
+                            break
+                    except:pass
+                
 
     def mark_neighbors(self, row, col, island_counter):
         """Mark all the cells in the current island with value = 2. Breadth-first search."""
@@ -31,21 +27,17 @@ class Solution(object):
             x, y = queue.pop()
             self.grid[x][y] = island_counter
 
-#           self.append_if_(queue, x - 1, y, [-1,0,0,1,0,-1])
-#           self.append_if_(queue, x, y - 1, [0,-1,-1,0,1,0])
-#           self.append_if_(queue, x + 1, y, [1,0,0,-1,0,1])
-#           self.append_if_(queue, x, y + 1, [0,1,-1,0,1,0])
-
-            self.append_if_(queue, x - 1, y, [0,1,0,-1])
-            self.append_if_(queue, x, y - 1, [-1,0,1,0])
-            self.append_if_(queue, x + 1, y, [0,1,0,-1])
-            self.append_if_(queue, x, y + 1, [-1,0,1,0])
-#            self.append_if(queue, x - 1, y - 1)
-#            self.append_if(queue, x + 1, y - 1)
-#            self.append_if(queue, x + 1, y + 1)
-#            self.append_if(queue, x - 1, y + 1)
+            self.append_if(queue, x - 1, y, island_counter)
+            self.append_if(queue, x, y - 1, island_counter)
+            self.append_if(queue, x + 1, y, island_counter)
+            self.append_if(queue, x, y + 1, island_counter)
+     #       self.append_if(queue, x - 1, y - 1)
+     #       self.append_if(queue, x + 1, y - 1)
+     #       self.append_if(queue, x + 1, y + 1)
+     #       self.append_if(queue, x - 1, y + 1)
 
 
+            
     def numIslands(self, grid):
         """
         :type grid: List[List[str]]
@@ -70,3 +62,5 @@ class Solution(object):
                     self.mark_neighbors(row, col, island_counter)
 
         return island_counter
+
+

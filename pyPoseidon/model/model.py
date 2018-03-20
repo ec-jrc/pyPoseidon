@@ -498,11 +498,11 @@ class d3d(model):
         #save dem
         try :
             bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
+            mask = bat==999999
         except AttributeError:    
             bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
-        
-        mask = ~np.isnan(bat) # mask out potential nan points
-        mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
+            mask = ~np.isnan(bat) # mask out potential nan points
+            mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
 
         bat[mask]=np.nan #mask dry points
             
