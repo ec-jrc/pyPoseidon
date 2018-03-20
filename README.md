@@ -1,5 +1,5 @@
-STORM SURGE ESTIMATION
-==============================
+Framework for Hydrological simulations
+=======================================
 
 This is a development project utilizing (for now) the DELFT3D open source code for considering storm surge. The purpose is to create, run and analyze a storm surge computation based on Python scripts and thus avoid the Matlab based GUI that Deltares uses. The procedure is outlined in Jupyter notebooks in order to have clarity and transparency.
 
