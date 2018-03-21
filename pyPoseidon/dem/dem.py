@@ -2,6 +2,7 @@ import numpy as np
 import pyresample
 import xarray as xr
 import sys
+from pyPoseidon.utils.fix import *
 
 class dem:
     impl=None
@@ -84,6 +85,11 @@ class emodnet(dem):
        sys.stdout.flush()
        #--------------------------------------------------------------------- 
        
+    def adjust(self,shpfile,**kwargs):
+         
+         fix(self,shpfile,**kwargs)
+
+
 
 class erdap(dem):
     
@@ -172,6 +178,11 @@ class erdap(dem):
       #--------------------------------------------------------------------- 
       
       
+    def adjust(self,shpfile,**kwargs):
+         
+           fix(self,shpfile,**kwargs)
+      
+      
 class gebco(dem):
     
     def __init__(self,**kwargs):
@@ -240,5 +251,8 @@ class gebco(dem):
       #--------------------------------------------------------------------- 
       
      
+    def adjust(self,shpfile,**kwargs):
+         
+         fix(self,shpfile,**kwargs)
 
     
