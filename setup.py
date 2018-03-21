@@ -19,7 +19,7 @@ setup(name='pyPoseidon',
       author='George Breyiannis',
       author_email='gbreyiannis@gmail.com',
       license='GPLv3+',
-      packages=['pyPoseidon', 'pyPoseidon.model','pyPoseidon.meteo','pyPoseidon.dem','pyPoseidon.utils','pyPoseidon.tide'],
+      packages=['pyPoseidon', 'pyPoseidon.model','pyPoseidon.meteo','pyPoseidon.dem','pyPoseidon.utils','pyPoseidon.tide','pyPoseidon.grid'],
       classifiers=[
           'Programming Language :: Python',
           'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',

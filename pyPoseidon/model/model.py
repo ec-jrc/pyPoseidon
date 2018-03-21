@@ -13,7 +13,7 @@ from collections import OrderedDict
 import pandas as pd
 
 #local modules
-from grid import *
+from pyPoseidon.grid import *
 from bnd import *
 import pyPoseidon
 from pyPoseidon.meteo import meteo
@@ -155,7 +155,7 @@ class d3d(model):
  
         # Grid 
           
-        self.grid=r2d(x=gx, y=gy)
+        self.grid=grid(type='r2d',x=gx, y=gy)
         
         
         #mdf
@@ -260,8 +260,8 @@ class d3d(model):
     def bath(self,**kwargs):
         z = self.__dict__.copy()        
         
-        z['grid_x'] = self.grid.grid.lons.values
-        z['grid_y'] = self.grid.grid.lats.values
+        z['grid_x'] = self.grid.impl.grid.lons.values
+        z['grid_y'] = self.grid.impl.grid.lats.values
         
         z.update(kwargs) 
         
@@ -283,8 +283,8 @@ class d3d(model):
         #define boundaries
         z = self.__dict__.copy()        
         
-        z['lons'] = self.grid.grid.lons[0,:]
-        z['lats'] = self.grid.grid.lats[:,0]
+        z['lons'] = self.grid.impl.grid.lons[0,:]
+        z['lats'] = self.grid.impl.grid.lats[:,0]
         
         try:
             ba = -self.dem.impl.ival.astype(np.float)
@@ -311,10 +311,10 @@ class d3d(model):
                 blons=[]
                 blats=[]
                 for l1,l2 in val:
-                    blons.append(self.grid.grid.lons[l1[1]-1,l1[0]-1])   
-                    blats.append(self.grid.grid.lats[l1[1]-1,l1[0]-1])
-                    blons.append(self.grid.grid.lons[l2[1]-1,l2[0]-1])   
-                    blats.append(self.grid.grid.lats[l2[1]-1,l2[0]-1])
+                    blons.append(self.grid.impl.grid.lons[l1[1]-1,l1[0]-1])   
+                    blats.append(self.grid.impl.grid.lats[l1[1]-1,l1[0]-1])
+                    blons.append(self.grid.impl.grid.lons[l2[1]-1,l2[0]-1])   
+                    blats.append(self.grid.impl.grid.lats[l2[1]-1,l2[0]-1])
                        
                 blons = np.array(blons)#.ravel().reshape(-1,2)[:,0]
                 blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1] 
@@ -492,17 +492,18 @@ class d3d(model):
             else:
                 sys.stdout.write('skipping grid file ..\n')
         else:
-            self.grid.to_file(filename = path+self.tag+'.grd')
+            self.grid.impl.to_file(filename = path+self.tag+'.grd')
                 
         
         #save dem
         try :
-            bat = -self.dem.impl.fval.astype(float) #reverse for the hydro run
-            mask = bat==999999
+            bat = -self.dem.impl.fval.dem.values.astype(float) #reverse for the hydro run
+       #     mask = bat==999999
         except AttributeError:    
             bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
-            mask = ~np.isnan(bat) # mask out potential nan points
-            mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
+        
+        mask = ~np.isnan(bat) # mask out potential nan points
+        mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
 
         bat[mask]=np.nan #mask dry points
             

@@ -4,7 +4,16 @@ import xarray as xr
 import pandas as pd
 
 
-class r2d:
+class grid:
+    
+    def __init__(self, type=None, **kwargs):
+        impl=None
+        if type == 'r2d':
+            self.impl = r2d(**kwargs)
+        elif type == 'gsh':
+            self.impl = gsh(**kwargs)            
+
+class r2d(grid):
     """Regular 2d grid for d3d
     """
     def __init__(self, **kwargs):
@@ -65,6 +74,6 @@ class r2d:
         
 
 
-class gsh:
+class gsh(grid):
     """Unstructured triangular grid from Jigsaw
     """
