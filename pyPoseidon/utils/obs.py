@@ -64,7 +64,6 @@ class obs:
         url='http://webcritech.jrc.ec.europa.eu/SeaLevelsDb/Home/ShowBuoyData?id={}&dateMin={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&dateMax={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&field=&options='\
                                  .format(point,sdate.year,sdate.month,sdate.day,sdate.hour,0,pdate.year,pdate.month,pdate.day,pdate.hour,0)
 
-        print url
         response=urllib2.urlopen(url)
         ls=response.readlines()
         lp=[elem.strip().split(',')  for elem in ls]
