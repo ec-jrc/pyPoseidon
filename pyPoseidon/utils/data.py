@@ -165,63 +165,44 @@ class point:
             
     def tseries(self,**kwargs):
         
-        var = kwargs.get('var', None)
-        step = kwargs.get('step', None)
+        var = kwargs.get('var', 'S1')
         method = kwargs.get('method', 'nearest')
         
         plat=float(self.lat)
         plon=float(self.lon)
         
-        j=np.abs(self.data.xh.data[0,:]-plon).argmin()
-        i=np.abs(self.data.yh.data[:,0]-plat).argmin()
+        i=np.abs(self.data[var].XZ-plon).argmin().values
+        j=np.abs(self.data[var].YZ-plat).argmin().values
+        
+                       
+        xb, yb = self.data[var].XZ[i-2:i+5],self.data[var].YZ[j-2:j+5] # retrieve nearby grid values
+        plons, plats = np.meshgrid(xb,yb)
+                       
+        vals = self.data[var][:,j-2:j+5,i-2:i+5].values
                 
-        frames=[] 
+        mask = np.isnan(vals[0,:,:])
+                
+        mlons=np.ma.masked_array(plons,mask)
+        mlats=np.ma.masked_array(plats,mask)
         
-        for folder in self.data.folders:
-            
-            #read reference date
-            inp, order = mdf.read(folder+'/'+self.data.info['tag']+'.mdf')
-            refdat = inp['Itdate']
-            refdate = datetime.datetime.strptime(refdat,'%Y-%m-%d')
-                   
-            dat=Dataset(folder+'/'+'trim-'+self.data.info['tag']+'.nc')
-        
-            tv=dat.variables['time'][:step]
-            
-            t = [refdate+datetime.timedelta(seconds=np.int(it)) for it in tv]
-            
-            ndt = tv.shape[0]
-        
-            xb, yb = self.data.xh[i-3:i+4,j-3:j+4],self.data.yh[i-3:i+4,j-3:j+4] # retrieve nearby grid values
-            orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
+        orig = pyresample.geometry.SwathDefinition(lons=mlons,lats=mlats) # create original swath grid
                                    
-            targ = pyresample.geometry.SwathDefinition(lons=np.array([plon,plon]),lats=np.array([plat,plat])) #  point
-            
-            
-            pval=[]
-            for it in range(ndt):
-                # note the transposition of the D3D variables
-                svalues = dat.variables[var][it,j-2:j+5,i-2:i+5]
-                mask = xb.mask
-                vals = np.ma.masked_array(svalues,mask=mask) # values as nearby points ! land in masked !!
-                #print vals
-                vals.fill_value=999999
+        targ = pyresample.geometry.SwathDefinition(lons=np.array([plon,plon]),lats=np.array([plat,plat])) #  point
+        
+        svals = []
                 
-                if method == 'nearest':
-                    s = pyresample.kd_tree.resample_nearest(orig,vals,targ,radius_of_influence=50000,fill_value=999999)
-                elif method == 'gauss':
-                    s = pyresample.kd_tree.resample_gauss(orig,vals,targ,radius_of_influence=50000,fill_value=999999,sigmas=25000)
+        if method == 'nearest':
+            for k in range(vals.shape[0]):
+                s = pyresample.kd_tree.resample_nearest(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=999)
+                svals.append(s[0])
+        elif method == 'gauss':
+            for k in range(vals.shape[0]):
+                s = pyresample.kd_tree.resample_gauss(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=999,sigmas=25000)                
+                svals.append(s[0])
                 
-                pval.append(s[0])
-                
-                
-            tdat = pd.DataFrame({'time':t,var:pval})
-                        
-            frames.append(tdat)
 
-
-        pdata = pd.concat(frames)
-        setattr(self, var, pdata.set_index(['time']))
+        pdata = pd.DataFrame({'time':self.data[var].time, self.data[var].name : svals})
+        setattr(self, self.data[var].name, pdata.set_index(['time']))
         
         
 class node:
