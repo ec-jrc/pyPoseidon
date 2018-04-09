@@ -35,7 +35,7 @@ class obs:
         critech.loc[:,['lon','lat']] = critech.loc[:,['lon','lat']].apply(pd.to_numeric)
      
         w = critech.loc[(critech['lon'] > minlon) & (critech['lon'] < maxlon) & (critech['lat'] > minlat) & (critech['lat'] < maxlat) \
-                    & (pd.to_datetime(critech['Min. Time']) < self.sdate)]
+                    & (pd.to_datetime(critech['Min. Time']) < self.sdate) & ~df['Min. Time'].str.contains('Jan 0001') & ~df['Min. Time'].str.contains('Jan 1970')]
         
         w.reset_index(inplace=True, drop=True)
         
