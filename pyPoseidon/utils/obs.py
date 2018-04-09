@@ -7,7 +7,7 @@ import pandas as pd
 import pkg_resources
 import pyPoseidon
 import os
-
+import sys
 
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
 DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
@@ -26,37 +26,30 @@ class obs:
         minlat = kwargs.get('minlat', None)
         maxlat = kwargs.get('maxlat', None)
         
-        db = kwargs.get('filename', DATA_PATH+'ioc.csv')
+            
+#        db = kwargs.get('filename', DATA_PATH+'ioc.csv')
         
-        ioc = pd.read_csv(db)
+#        ioc = pd.read_csv(db)
+        critech = pd.read_csv(DATA_PATH+'critech.csv')
         
-        w = ioc.loc[(ioc['Longitude'] > minlon) & (ioc['Longitude'] < maxlon) & (ioc['Latitude'] > minlat) & (ioc['Latitude'] < maxlat)]
+        critech.loc[:,['lon','lat']] = critech.loc[:,['lon','lat']].apply(pd.to_numeric)
+     
+        w = critech.loc[(critech['lon'] > minlon) & (critech['lon'] < maxlon) & (critech['lat'] > minlat) & (critech['lat'] < maxlat) \
+                    & (pd.to_datetime(critech['Min. Time']) < self.sdate)]
         
         w.reset_index(inplace=True, drop=True)
         
         self.locations = w.copy() 
-        
-        critech = pd.read_csv(DATA_PATH+'critech.csv')
-        
-        self.locations.assign(point="")
-        
-        for idx,[name,lat,lon] in self.locations.loc[:,['Station Name', 'Latitude','Longitude']].iterrows():
-                
-                try:
-                    self.locations.loc[idx,'point'] = critech[critech['Name'].str.contains(name)]['ID'].values[0]
-                except:
-                    self.locations.loc[idx,'point'] = np.nan
-                    pass
-                           
+                                   
 
     def loc(self,name,**kwargs):
             
-        point=self.locations[self.locations['Station Name'].str.contains(name)]['point'].values[0]
+        point=self.locations[self.locations['Name'].str.contains(name)]['ID'].values[0]
         return self.webcritech(point=int(point))
 
     def iloc(self,idx,**kwargs):
             
-        point=self.locations.iloc[idx,:]['point']
+        point=self.locations.iloc[idx,:]['ID']
         return self.webcritech(point=int(point))
 
 
@@ -68,10 +61,10 @@ class obs:
 
         pdate=min([self.edate+datetime.timedelta(hours=72),datetime.datetime.now()])
 
-
         url='http://webcritech.jrc.ec.europa.eu/SeaLevelsDb/Home/ShowBuoyData?id={}&dateMin={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&dateMax={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&field=&options='\
                                  .format(point,sdate.year,sdate.month,sdate.day,sdate.hour,0,pdate.year,pdate.month,pdate.day,pdate.hour,0)
 
+        print url
         response=urllib2.urlopen(url)
         ls=response.readlines()
         lp=[elem.strip().split(',')  for elem in ls]
@@ -103,11 +96,19 @@ class obs:
             rt.append(datetime.datetime.strptime(a,'%d %b %Y %H:%M:%S'))
             vt.append([b,c,d])
 
-        tg = pd.DataFrame(np.column_stack([rt,vt]),columns = ['time', 'Total Sea Level', 'Tide', 'Storm Surge'])
-        tg = tg.set_index(['time'])
-        tg = tg.apply(pd.to_numeric)
-        
-        return tg
+        try:
+            tg = pd.DataFrame(np.column_stack([rt,vt]),columns = ['time', 'Total Sea Level', 'Tide', 'Storm Surge'])
+            tg = tg.set_index(['time'])
+            tg = tg.apply(pd.to_numeric)
+            return tg        
+        except:
+            #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('problem with time series acquisition\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+            return None
 
         
     def soest(self):
