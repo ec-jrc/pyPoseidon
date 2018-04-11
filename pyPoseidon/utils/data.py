@@ -170,22 +170,15 @@ class point:
         
         plat=float(self.lat)
         plon=float(self.lon)
-        
-        i=np.abs(self.data[var].XZ-plon).argmin().values
-        j=np.abs(self.data[var].YZ-plat).argmin().values
-        
+ 
+        i=np.abs(self.data.xh[0,:].data-plon).argmin()
+        j=np.abs(self.data.yh[:,0].data-plat).argmin()
                        
-        xb, yb = self.data[var].XZ[i-2:i+5],self.data[var].YZ[j-2:j+5] # retrieve nearby grid values
-        plons, plats = np.meshgrid(xb,yb)
+        xb, yb = self.data.xh[j-5:j+5,i-5:i+5],self.data.yh[j-5:j+5,i-5:i+5]
                        
-        vals = self.data[var][:,j-2:j+5,i-2:i+5].values
-                
-        mask = np.isnan(vals[0,:,:])
-                
-        mlons=np.ma.masked_array(plons,mask)
-        mlats=np.ma.masked_array(plats,mask)
-        
-        orig = pyresample.geometry.SwathDefinition(lons=mlons,lats=mlats) # create original swath grid
+        vals = self.data.vars[var][:,j-5:j+5,i-5:i+5].values
+                        
+        orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
                                    
         targ = pyresample.geometry.SwathDefinition(lons=np.array([plon,plon]),lats=np.array([plat,plat])) #  point
         
@@ -201,8 +194,8 @@ class point:
                 svals.append(s[0])
                 
 
-        pdata = pd.DataFrame({'time':self.data[var].time, self.data[var].name : svals})
-        setattr(self, self.data[var].name, pdata.set_index(['time']))
+        pdata = pd.DataFrame({'time':self.data.vars[var].time, self.data.vars[var].name : svals})
+        setattr(self, self.data.vars[var].name, pdata.set_index(['time']))
         
         
 class node:
