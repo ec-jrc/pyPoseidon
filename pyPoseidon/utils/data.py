@@ -4,6 +4,7 @@ import os
 from pyPoseidon.model import *
 from pyPoseidon.utils.vis import *
 from pyPoseidon.utils.obs import obs
+from pyPoseidon.grid import *
 import pyresample
 import pandas as pd
 import datetime
