@@ -419,7 +419,7 @@ class d3d(model):
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
                 
-        bin_path = get_value(self,kwargs,'exec', os.environ['D3D'])   
+        bin_path = get_value(self,kwargs,'exec', None)   
             
         ncores = get_value(self,kwargs,'ncores',1)
                 
