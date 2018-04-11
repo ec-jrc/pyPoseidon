@@ -29,3 +29,6 @@ dependencies:
   - holoviews
   - ioam::geoviews 
   - bokeh::datashader  
+  - gcc
+  - mpich
+  - netcdf-fortran
