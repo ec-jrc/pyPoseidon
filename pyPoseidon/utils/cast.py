@@ -66,22 +66,21 @@ class dcast(cast):
 #            for attr, value in self.info.iteritems():
 #                setattr(m, attr, value)
             m=model(**info)
-                               
+            
             #update the properties 
             m.impl.date = date
             m.impl.model['date'] = date
-            m.impl.mpath=meteo 
-            m.impl.model['mpath'] = meteo
+            m.impl.mpaths=[meteo] 
+            m.impl.model['mpaths'] = [meteo]
             m.impl.rpath=rpath 
             m.impl.model['rpath'] = rpath
-            
-            
+                        
             # copy/link necessary files
 
             for filename in cfiles:
-        #        copy2(ppath+filename,rpath+filename)
-             if os.path.exists(rpath+filename)==False: 
-                os.symlink(fpath+filename,rpath+filename)
+                 copy2(ppath+filename,rpath+filename)
+        #     if os.path.exists(rpath+filename)==False: 
+        #        os.symlink(fpath+filename,rpath+filename)
             
             copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
                 
@@ -109,33 +108,34 @@ class dcast(cast):
             if np.any(check)==False :
                
                 m.force()
-                m.uvp()  #write u,v,p files 
+                m.impl.to_force(m.impl.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
         
             else:
                 sys.stdout.write('meteo files present\n')
             
             
             # modify mdf file    
-            inp, order = mdf.read(rpath+m.impl.tag+'.mdf')    
+            mdf = pd.read_csv(rpath+m.impl.tag+'.mdf',sep='=')    
             
+            mdf = mdf.set_index(mdf.columns[0])
             
             # adjust iteration date
             tstart = (date.hour+m.impl.ft1)*60
             tend = tstart + (m.impl.ft2)*60
             
-            inp['Itdate']=datetime.datetime.strftime(date,'%Y-%m-%d')
-            inp['Tstart']=[tstart]
-            inp['Tstop']=[tend]
-            inp['Flmap']  = [tstart,60,tend]
-            inp['Flhis']  = [tstart,inp['Dt'][0],tend]
+            dt = mdf.loc[mdf.index.str.contains('Dt')].values[0]
+            
+            mdf.loc[mdf.index.str.contains('Itdate')]='#{}#'.format(datetime.datetime.strftime(date,'%Y-%m-%d'))
+            mdf.loc[mdf.index.str.contains('Tstart')]=tstart
+            mdf.loc[mdf.index.str.contains('Tstop')]=tend
+            mdf.loc[mdf.index.str.contains('Flmap')]='{} {} {}'.format(tstart,m.impl.step,tend)
+            mdf.loc[mdf.index.str.contains('Flhis')]='{} {} {}'.format(tstart,dt,tend)
 
 
-            if 'Restid' not in order : order.append('Restid')
-              # adjust restart file   
-            inp['Restid']=outresfile
+            if not 'Restid' in mdf.index: mdf.loc['Restid'] = outresfile # adjust restart file
 
             # update mdf
-            mdf.write(inp, rpath+m.impl.tag+'.mdf',selection=order)
+            mdf.to_csv(rpath+m.impl.tag+'.mdf',sep='=')
                                   
             # run case
             sys.stdout.write('executing\n')

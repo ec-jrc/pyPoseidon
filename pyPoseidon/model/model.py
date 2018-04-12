@@ -109,15 +109,17 @@ class d3d(model):
                       
     def set(self,**kwargs):
 
-        gx = get_value(self,kwargs,'x',None)#kwargs.get('x', None)
-        gy = get_value(self,kwargs,'y',None)#kwargs.get('y', None)    
+        gx = get_value(self,kwargs,'x',None)
+        gy = get_value(self,kwargs,'y',None)    
         mdf_file = kwargs.get('mdf', None)  
         Tstart = self.start_date.hour*60     
         Tstop = int((self.end_date - self.start_date).total_seconds()/60)
 
-        step = get_value(self,kwargs,'step',0)#kwargs.get('step', None)
-        rstep = get_value(self,kwargs,'rstep',0)#kwargs.get('rstep', None)
-                                        
+        step = get_value(self,kwargs,'step',0)
+        rstep = get_value(self,kwargs,'rstep',0)
+        dt = get_value(self,kwargs,'dt',1)
+        
+                                       
         resmin=self.resolution*60
               
         # computei ni,nj / correct lat/lon
@@ -198,7 +200,7 @@ class d3d(model):
   
             #adjust time for output
             self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{} {} {}'.format(Tstart,step,Tstop)
-            self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(Tstart,1,Tstop)
+            self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(Tstart,dt,Tstop)
             self.mdf.loc[self.mdf.index.str.contains('Flpp')]='0 0 0'
             self.mdf.loc[self.mdf.index.str.contains('Flrst')]=rstep
   
