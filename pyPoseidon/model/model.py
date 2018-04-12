@@ -73,7 +73,7 @@ class model:
 class d3d(model):
     
     def __init__(self,**kwargs):
-        
+                
         self.minlon = kwargs.get('minlon', None)
         self.maxlon = kwargs.get('maxlon', None)
         self.minlat = kwargs.get('minlat', None)
@@ -117,7 +117,7 @@ class d3d(model):
 
         step = get_value(self,kwargs,'step',0)
         rstep = get_value(self,kwargs,'rstep',0)
-        dt = get_value(self,kwargs,'dt',1)
+        dt = get_value(self,kwargs,'Dt',1)
         
                                        
         resmin=self.resolution*60
@@ -166,53 +166,56 @@ class d3d(model):
         else:
             self.mdf = pd.read_csv(DATA_PATH+'default.mdf',sep='=')
         
-            self.mdf = self.mdf.set_index(self.mdf.columns[0]) # set index
+        self.mdf = self.mdf.set_index(self.mdf.columns[0]) # set index
+        
+        
+        mdfidx = self.mdf.index.str.strip() # store the stripped names
             
-            #define grid file
-            self.mdf.loc[self.mdf.index.str.contains('Filcco')]='#{}#'.format(self.tag+'.grd')
+        #define grid file
+        self.mdf.loc[self.mdf.index.str.contains('Filcco')]='#{}#'.format(self.tag+'.grd')
   
-            #define enc file
-            self.mdf.loc[self.mdf.index.str.contains('Filgrd')]='#{}#'.format(self.tag+'.enc')
+        #define enc file
+        self.mdf.loc[self.mdf.index.str.contains('Filgrd')]='#{}#'.format(self.tag+'.enc')
   
-            #define dep file
-            self.mdf.loc[self.mdf.index.str.contains('Fildep')]='#{}#'.format(self.tag+'.dep')
+        #define dep file
+        self.mdf.loc[self.mdf.index.str.contains('Fildep')]='#{}#'.format(self.tag+'.dep')
   
-            #define obs file
-            self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##' #b.tag+'.obs'
+        #define obs file
+        self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##' #b.tag+'.obs'
    
-            # adjust ni,nj
-            self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(self.ni+1,self.nj+1,1)  # add one like ddb
+        # adjust ni,nj
+        self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(self.ni+1,self.nj+1,1)  # add one like ddb
   
-            # adjust iteration date
-            self.mdf.loc[self.mdf.index.str.contains('Itdate')]='#{}#'.format(self.date.strftime(format='%Y-%m-%d'))
+        # adjust iteration date
+        self.mdf.loc[self.mdf.index.str.contains('Itdate')]='#{}#'.format(self.date.strftime(format='%Y-%m-%d'))
   
-            #set time unit
-            self.mdf.loc[self.mdf.index.str.contains('Tunit')]='#M#'
+        #set time unit
+        self.mdf.loc[self.mdf.index.str.contains('Tunit')]='#M#'
 
-            #adjust iteration start
-            self.mdf.loc[self.mdf.index.str.contains('Tstart')]=Tstart
+        #adjust iteration start
+        self.mdf.loc[self.mdf.index.str.contains('Tstart')]=Tstart
   
-            #adjust iteration stop
-            self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
+        #adjust iteration stop
+        self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
   
-            #adjust time step
-            self.mdf.loc[self.mdf.index.str.contains('Dt')]=[1.]
+        #adjust time step
+        self.mdf.loc[self.mdf.index.str.contains('Dt')]=[1.]
   
-            #adjust time for output
-            self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{} {} {}'.format(Tstart,step,Tstop)
-            self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(Tstart,dt,Tstop)
-            self.mdf.loc[self.mdf.index.str.contains('Flpp')]='0 0 0'
-            self.mdf.loc[self.mdf.index.str.contains('Flrst')]=rstep
+        #adjust time for output
+        self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{} {} {}'.format(Tstart,step,Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(Tstart,dt,Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flpp')]='0 0 0'
+        self.mdf.loc[self.mdf.index.str.contains('Flrst')]=rstep
   
-            #time interval to smooth the hydrodynamic boundary conditions
-            self.mdf.loc[self.mdf.index.str.contains('Tlfsmo')]=0.
+        #time interval to smooth the hydrodynamic boundary conditions
+        self.mdf.loc[self.mdf.index.str.contains('Tlfsmo')]=0.
 
-            if not self.atm: self.mdf.loc['Sub1'] = ' '
+        if not self.atm: self.mdf.loc['Sub1'] = ' '
 
-          # set tide only run
-            if self.tide :
-                self.mdf.loc[self.mdf.index.str.contains('Filbnd')]='#{}#'.format(self.tag+'.bnd')
-                self.mdf.loc[self.mdf.index.str.contains('Filana')]='#{}#'.format(self.tag+'.bca')
+        # set tide only run
+        if self.tide :
+            self.mdf.loc[self.mdf.index.str.contains('Filbnd')]='#{}#'.format(self.tag+'.bnd')
+            self.mdf.loc[self.mdf.index.str.contains('Filana')]='#{}#'.format(self.tag+'.bca')
  #           if 'Tidfor' not in order: order.append('Tidfor')
  #           inp['Tidfor']=[['M2','S2','N2','K2'], \
  #                       ['K1','O1','P1','Q1'], \
@@ -223,8 +226,14 @@ class d3d(model):
         # inp['Filic']=basename+'.ini'
 
           # netCDF output
-        if not 'FlNcdf ' in self.mdf.index: self.mdf.loc['FlNcdf '] = '#map his#'
+        if not 'FlNcdf' in mdfidx: 
+            self.mdf.reindex(self.mdf.index.values.tolist()+['FlNcdf '])
+            
+        self.mdf.loc['FlNcdf '] = '#map his#'
 
+        # Check for any other mdf variable in input
+        for key,val in kwargs.iteritems():
+            if key in mdfidx: self.mdf.loc[self.mdf.index.str.contains(key)] = val
         
 
         # get bathymetry

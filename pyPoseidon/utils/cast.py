@@ -119,6 +119,8 @@ class dcast(cast):
             
             mdf = mdf.set_index(mdf.columns[0])
             
+            mdfidx = mdf.index.str.strip() # store the stripped names
+            
             # adjust iteration date
             tstart = (date.hour+m.impl.ft1)*60
             tend = tstart + (m.impl.ft2)*60
@@ -131,8 +133,10 @@ class dcast(cast):
             mdf.loc[mdf.index.str.contains('Flmap')]='{} {} {}'.format(tstart,m.impl.step,tend)
             mdf.loc[mdf.index.str.contains('Flhis')]='{} {} {}'.format(tstart,dt,tend)
 
+            if not 'Restid' in mdfidx: 
+                mdf.reindex(mdf.index.values.tolist()+['Restid'])
 
-            if not 'Restid' in mdf.index: mdf.loc['Restid'] = outresfile # adjust restart file
+            mdf.loc['Restid'] = outresfile # adjust restart file
 
             # update mdf
             mdf.to_csv(rpath+m.impl.tag+'.mdf',sep='=')
