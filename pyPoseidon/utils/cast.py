@@ -134,9 +134,9 @@ class dcast(cast):
             mdf.loc[mdf.index.str.contains('Flhis')]='{} {} {}'.format(tstart,dt,tend)
 
             if not 'Restid' in mdfidx: 
-                mdf.reindex(mdf.index.values.tolist()+['Restid'])
+                mdf.reindex(mdf.index.values.tolist()+['Restid '])
 
-            mdf.loc['Restid'] = outresfile # adjust restart file
+            mdf.loc['Restid '] = outresfile # adjust restart file
 
             # update mdf
             mdf.to_csv(rpath+m.impl.tag+'.mdf',sep='=')
