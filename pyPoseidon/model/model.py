@@ -433,9 +433,11 @@ class d3d(model):
         bin_path = get_value(self,kwargs,'exec', None)   
             
         ncores = get_value(self,kwargs,'ncores',1)
+        
+        conda_env = get_value(self,kwargs,'conda_env', None)
                 
         # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {}'.format(ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
 #        for line in iter(ex.stderr.readline,b''): print line
 #        ex.stderr.close() 
         with open(calc_dir+'run.log', 'w') as f: 
@@ -607,12 +609,7 @@ class d3d(model):
         
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
-        
-        try:
-            bin_path = os.environ['D3D']
-        except:
-            bin_path = None
-                
+                        
         bin_path = get_value(self,kwargs,'exec', bin_path) 
         
         if bin_path is None:

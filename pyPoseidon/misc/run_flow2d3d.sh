@@ -3,15 +3,13 @@ argfile=config_d_hydro.xml
 
 export ncores=$1
 
-source activate pyPoseidon
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-
-d3d=$D3D
+if [ $# -gt 2 ]; then
+    source activate $3 #relevant conda env
+	export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+fi
 
 if [ $# -eq 2 ]; then
-#    if [[ -z "${D3D}" ]]; then
        d3d="$2"
-#    fi
 fi
 
 if [ -z $d3d ];then
