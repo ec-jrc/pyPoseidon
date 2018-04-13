@@ -106,6 +106,8 @@ class d3d(model):
             
         self.model = self.__dict__.copy()    
         self.model['solver'] = self.__class__.__name__    
+        
+        self.epath = kwargs.get('epath', None)
                       
     def set(self,**kwargs):
 
@@ -430,14 +432,18 @@ class d3d(model):
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
                 
-        bin_path = get_value(self,kwargs,'exec', None)   
+        bin_path = get_value(self,kwargs,'epath', None)   
             
         ncores = get_value(self,kwargs,'ncores',1)
         
         conda_env = get_value(self,kwargs,'conda_env', None)
-                
-        # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        
+        if conda_env is None:        
+            # note that cwd is the folder where the executable is
+            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {}'.format(ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        else:
+            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            
 #        for line in iter(ex.stderr.readline,b''): print line
 #        ex.stderr.close() 
         with open(calc_dir+'run.log', 'w') as f: 
@@ -610,7 +616,7 @@ class d3d(model):
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
                         
-        bin_path = get_value(self,kwargs,'exec', bin_path) 
+        bin_path = get_value(self,kwargs,'epath', None) 
         
         if bin_path is None:
             #--------------------------------------------------------------------- 

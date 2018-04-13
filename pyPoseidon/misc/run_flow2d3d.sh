@@ -4,11 +4,11 @@ argfile=config_d_hydro.xml
 export ncores=$1
 
 if [ $# -gt 2 ]; then
-    source activate $3 #relevant conda env
+	source activate $3 #relevant conda env
 	export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 fi
 
-if [ $# -eq 2 ]; then
+if [ $# -gt 1 ]; then
        d3d="$2"
 fi
 
