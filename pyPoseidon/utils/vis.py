@@ -54,7 +54,7 @@ def contour(grid_x,grid_y,z,t,**kwargs):
     plt.close()
     
     if 'savepath' in kwargs.keys(): 
-        savepath = kwargs.get('path', './')
+        path = kwargs.get('savepath', './')
         v.save(path, writer = FFWriter)      
     else:
         return v
