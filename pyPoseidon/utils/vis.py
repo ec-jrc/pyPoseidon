@@ -16,6 +16,7 @@ FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix
 def contour(grid_x,grid_y,z,t,**kwargs):
     fig, ax = plt.subplots(figsize=(12,8)) 
     [v1,v2] = kwargs.get('vrange', [None,None])
+    nv = kwargs.get('nv', 10)
     
     title = kwargs.get('title', None)
     
@@ -23,7 +24,7 @@ def contour(grid_x,grid_y,z,t,**kwargs):
         v1=z.min()
         v2=z.max()
     
-    v=np.linspace(z.min(),z.max(),10,endpoint=True)
+    v=np.linspace(v1,v2,nv,endpoint=True)
     ## CHOOSE YOUR PROJECTION
  #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
     ax = plt.axes(projection=ccrs.PlateCarree())
