@@ -20,7 +20,7 @@ dic={'minlon':-35., # lat/lon window
      'meteo':'ecmwf_oper',
      'dem': 'emodnet',
      'dpath' : '/COASTAL/BATHYMETRY/EMODNET/TEMP_bathymetry.nc',
-     'exec':'/TEST/brey/DELFT3D/7545/bin/lnx64/', #exec folder of solver 
+     'epath':'/TEST/brey/DELFT3D/7545/bin/lnx64/', #exec folder of solver 
      'ncores': 32, #number of cores
      'rpath':'/COASTAL/DELFT3D/EUR/20100201.00/', #location of calc folder
     }

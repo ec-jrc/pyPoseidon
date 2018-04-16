@@ -622,7 +622,7 @@ class d3d(model):
             #--------------------------------------------------------------------- 
             sys.stdout.flush()
             sys.stdout.write('\n')
-            sys.stdout.write('D3D executable path (exec) not given\n')
+            sys.stdout.write('D3D executable path (epath) not given\n')
             sys.stdout.flush()
             #--------------------------------------------------------------------- 
               
