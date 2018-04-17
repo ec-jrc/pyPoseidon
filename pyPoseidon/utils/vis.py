@@ -15,16 +15,14 @@ FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix
  
 def contour(grid_x,grid_y,z,t,**kwargs):
     fig, ax = plt.subplots(figsize=(12,8)) 
-    [v1,v2] = kwargs.get('vrange', [None,None])
+    vmin = kwargs.get('vmin', z.min())
+    vmax = kwargs.get('vmax', z.max())
+    
     nv = kwargs.get('nv', 10)
     
     title = kwargs.get('title', None)
-    
-    if not v1:
-        v1=z.min()
-        v2=z.max()
-    
-    v=np.linspace(v1,v2,nv,endpoint=True)
+        
+    vrange=np.linspace(vmin,vmax,nv,endpoint=True)
     ## CHOOSE YOUR PROJECTION
  #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
     ax = plt.axes(projection=ccrs.PlateCarree())
@@ -33,7 +31,7 @@ def contour(grid_x,grid_y,z,t,**kwargs):
     ax.set_aspect('equal')
     ims = []
     for i in range(len(t)):
-        im = ax.contourf(grid_x, grid_y, z[i,:,:], v, vmin=v1, vmax=v2, transform=ccrs.PlateCarree())
+        im = ax.contourf(grid_x, grid_y, z[i,:,:], vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
 #        im = ax.contourf(x,y,z[i,:,:],v,vmin=v1,vmax=v2,latlon=True)
         add_arts = im.collections
         text = 'time={}'.format(t[i])
@@ -47,7 +45,7 @@ def contour(grid_x,grid_y,z,t,**kwargs):
 
 
 #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
-    cbar = fig.colorbar(im,ticks=v,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
+    cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
 #plt.colorbar()
 
     v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
