@@ -78,42 +78,21 @@ def fix(b,shpfile, nc=10):
     tmask = np.invert(tmask) 
         
     #find islands    
-    grid = np.invert(tmask).astype(int).astype(str)
-    grid = [list(x) for x in grid]
+    p = rmt(tmask,xp,nc) 
     
+    # repeat until convergence
+    k=0
+    while True:
+        p1 = rmt(p,xp,nc)
+        k+=1
+        print k
+        if np.array_equal(p1,p) : break
+        p = p1
     
-    isls = Solution().numIslands(grid)
-    #print(isls)
-    mgrid = np.array(grid).astype(int)
-    nps = []
-    for i in range(1, isls + 1):
-        nps.append(np.sum(mgrid != i))
-
-    # put all islands in a geopandas DataFrame    
-    grs = pd.DataFrame([(val, idx) for (idx, val) in enumerate(nps)],columns=['val','idx'])
-    grs = grs.sort_values('val').reset_index(drop=True) #sort them
-    grs['np']=mgrid.size-grs.val # count number of points in islands
+    wmask = p1
     
-    ne = grs[grs.np>nc].index.max() #consider only the islands with more than nc cells
-    #merge all big areas
-    mask={}
-    for i in range(ne):
-        vm = np.ma.masked_array(mgrid, mgrid != grs.loc[i,'idx']+1)
-        vm[np.invert(vm.mask)] = 1    
-        mask.update({str(i):vm})
-        
-    #merge masks
-    fmask=np.zeros(xp.shape, dtype=bool) # initiate    
-    for key, val in mask.iteritems():
-        fmask = np.logical_xor(val.mask,fmask)
-    
-    if ne % 2 == 0:    
-        wmask = np.invert(fmask) # this is wet
-    else:
-        wmask = fmask
-    
+       
     ##resample bathymetry
-    
     xw=np.ma.masked_array(xp,wmask) #wet points 
     yw=np.ma.masked_array(yp,wmask) 
     
@@ -161,4 +140,40 @@ def internal(cg, xp, yp):
         gmask = np.logical_and(gmask,xi[i][0].mask)    
     
     return gmask
+
+def rmt(imask,xp,nc):
+    grid = np.invert(imask).astype(int).astype(str)
+    grid = [list(x) for x in grid]
+    isls = Solution().numIslands(grid)
+
+    mgrid = np.array(grid).astype(int)
+    nps = []
+    for i in range(1, isls + 1):
+        nps.append(np.sum(mgrid != i))
+    
+    grs = pd.DataFrame([(val, idx) for (idx, val) in enumerate(nps)],columns=['val','idx'])
+
+    grs = grs.sort_values('val').reset_index(drop=True)
+    
+    grs['np']=mgrid.size-grs.val # count number of points in islands
+    
+    ne = grs[grs.np>nc].index.max() + 1
+        
+    mask={}
+    for i in range(ne):
+        b = mgrid.copy()
+        vm = np.ma.masked_array(b, b != grs.loc[i,'idx']+1)
+        vm[np.invert(vm.mask)] = 1    
+        mask.update({str(i):vm})
+
+    fmask=np.zeros(xp.shape, dtype=bool) # initiate
+
+#merge masks
+    for key, val in mask.iteritems():
+        fmask = np.logical_xor(val.mask,fmask)
+
+    if ne % 2 == 0:    
+        return np.invert(fmask) # this is wet
+    else:
+        return fmask
 
