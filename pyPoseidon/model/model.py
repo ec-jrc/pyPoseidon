@@ -17,7 +17,7 @@ from pyPoseidon.grid import *
 from bnd import *
 import pyPoseidon
 from pyPoseidon.meteo import meteo
-from pyPoseidon.dem import dem
+from pyPoseidon.dem import *
 from pyPoseidon.utils.get_value import get_value
 
 #retrieve the module path
