@@ -29,7 +29,7 @@ class data:
         self.folders = folders #[os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
         
         #check if many tags present
-        ifiles = glob.glob(self.folders[0]+'*_info.pkl')
+        ifiles = glob.glob(self.folders[0]+'/*_info.pkl')
         
         if len(ifiles) > 1:
             #--------------------------------------------------------------------- 
@@ -43,7 +43,7 @@ class data:
         tag = kwargs.get('tag', None)
         
         if tag :
-            ifile = self.folders[0]+tag+'_info.pkl'
+            ifile = self.folders[0]+'/'+tag+'_info.pkl'
         else:
             ifile = ifiles[0]
                        
