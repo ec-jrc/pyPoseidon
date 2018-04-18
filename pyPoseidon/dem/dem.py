@@ -55,16 +55,12 @@ class emodnet(dem):
 
       lons, lats = np.meshgrid(lon[i1:i2],lat[j1:j2])
       topo = data.depth[j1:j2,i1:i2]
-        
-      self.val = topo
-      self.dlons = lons 
-      self.dlats = lats
-      
-      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  self.val), 
-                            'dlons': (['i', 'j'], self.dlons),   
-                            'dlats': (['i', 'j'], self.dlats)}, 
-                            coords={'dlon': ('dlon', self.dlons[0,:]),   
-                                    'dlat': ('dlat', self.dlats[:,0])})         
+              
+      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  topo), 
+                            'dlons': (['i', 'j'], lons),   
+                            'dlats': (['i', 'j'], lats)}, 
+                            coords={'dlon': ('dlon', lons[0,:]),   
+                                    'dlat': ('dlat', lats[:,0])})         
       
          
       if 'grid_x' in kwargs.keys():
@@ -76,16 +72,12 @@ class emodnet(dem):
           targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
           itopo = pyresample.kd_tree.resample_nearest(orig,self.val.data,targ,radius_of_influence=50000,fill_value=999999)
-
-          self.ival = itopo
-          self.ilons = grid_x
-          self.ilats = grid_y
        
-          dem = xr.Dataset({'ival': (['ilat', 'ilon'],  self.ival), 
-                               'ilons': (['k', 'l'], self.ilons),   
-                               'ilats': (['k', 'l'], self.ilats)}, 
-                               coords={'ilon': ('ilon', self.ilons[0,:]),   
-                                       'ilat': ('ilat', self.ilats[:,0])})         
+          dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
+                               'ilons': (['k', 'l'], grid_x),   
+                               'ilats': (['k', 'l'], grid_y)}, 
+                               coords={'ilon': ('ilon', grid_x[0,:]),   
+                                       'ilat': ('ilat', grid_y[:,0])})         
       
           self.dem = xr.merge([self.dem,dem])
        
@@ -159,14 +151,8 @@ class erdap(dem):
               data.z
               .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
                  )
-      
-      self.val = dem
-      
-      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  self.val), 
-                            'dlons': (['i', 'j'], self.dlons),   
-                            'dlats': (['i', 'j'], self.dlats)}, 
-                            coords={'dlon': ('dlon', self.dlons[0,:]),   
-                                    'dlat': ('dlat', self.dlats[:,0])})         
+            
+      self.dem = dem       
       
       
       if 'grid_x' in kwargs.keys():
@@ -174,26 +160,22 @@ class erdap(dem):
          grid_y = kwargs.get('grid_y', None)
       # resample on the given grid
       
-         xx, yy = np.meshgrid(self.val.longitude.data,self.val.latitude.data)
+         xx, yy = np.meshgrid(dem.longitude.data,dem.latitude.data)
               
          orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
          targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-         itopo = pyresample.kd_tree.resample_nearest(orig,self.val.data,targ,radius_of_influence=50000,fill_value=999999)
+         itopo = pyresample.kd_tree.resample_nearest(orig,dem.data,targ,radius_of_influence=50000,fill_value=999999)
 
-         self.ival = itopo
-         self.ilons = grid_x
-         self.ilats = grid_y
+      
+         idem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
+                               'ilons': (['k', 'l'], grid_x),   
+                               'ilats': (['k', 'l'], grid_y)}, 
+                               coords={'ilon': ('ilon', grid_x[0,:]),   
+                                       'ilat': ('ilat', grid_y[:,0])})         
       
       
-         dem = xr.Dataset({'ival': (['ilat', 'ilon'],  self.ival), 
-                               'ilons': (['k', 'l'], self.ilons),   
-                               'ilats': (['k', 'l'], self.ilats)}, 
-                               coords={'ilon': ('ilon', self.ilons[0,:]),   
-                                       'ilat': ('ilat', self.ilats[:,0])})         
-      
-      
-         self.dem = xr.merge([self.dem,dem])
+         self.dem = xr.merge([self.dem,idem])
                
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
@@ -245,17 +227,14 @@ class gebco(dem):
           .isel(lon=slice(i0,i1),lat=slice(j0,j1))
           )
       
-      self.val = dem
       xx,yy = np.meshgrid(dem.lon,dem.lat)
-      self.dlons = xx
-      self.dlats = yy
       
       
-      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  self.val), 
-                            'dlons': (['i', 'j'], self.dlons),   
-                            'dlats': (['i', 'j'], self.dlats)}, 
-                            coords={'dlon': ('dlon', self.dlons[0,:]),   
-                                    'dlat': ('dlat', self.dlats[:,0])})         
+      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  dem), 
+                            'dlons': (['i', 'j'], xx),   
+                            'dlats': (['i', 'j'], yy)}, 
+                            coords={'dlon': ('dlon', xx[0,:]),   
+                                    'dlat': ('dlat', yy[:,0])})         
       
       
       if 'grid_x' in kwargs.keys():
@@ -263,22 +242,18 @@ class gebco(dem):
          grid_y = kwargs.get('grid_y', None)
       # resample on the given grid
       
-         xx, yy = np.meshgrid(self.val.lon.data,self.val.lat.data)
+         xx, yy = np.meshgrid(dem.lon.data,dem.lat.data)
               
          orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
          targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-         itopo = pyresample.kd_tree.resample_nearest(orig,self.val.data,targ,radius_of_influence=50000,fill_value=999999)
-
-         self.ival = itopo
-         self.ilons = grid_x
-         self.ilats = grid_y
+         itopo = pyresample.kd_tree.resample_nearest(orig,dem.data,targ,radius_of_influence=50000,fill_value=999999)
         
-         dem = xr.Dataset({'ival': (['ilat', 'ilon'],  self.ival), 
-                               'ilons': (['k', 'l'], self.ilons),   
-                               'ilats': (['k', 'l'], self.ilats)}, 
-                               coords={'ilon': ('ilon', self.ilons[0,:]),   
-                                       'ilat': ('ilat', self.ilats[:,0])})         
+         dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
+                               'ilons': (['k', 'l'], grid_x),   
+                               'ilats': (['k', 'l'], grid_y)}, 
+                               coords={'ilon': ('ilon', grid_x[0,:]),   
+                                       'ilat': ('ilat', grid_y[:,0])})         
       
       
          self.dem = xr.merge([self.dem,dem])
