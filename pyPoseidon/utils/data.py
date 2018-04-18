@@ -38,7 +38,6 @@ class data:
               sys.stdout.write('more than one configuration, specify tag argument \n')
               sys.stdout.flush()
             #--------------------------------------------------------------------- 
-              sys.exit(1)
                     
         tag = kwargs.get('tag', None)
         
@@ -46,6 +45,13 @@ class data:
             ifile = self.folders[0]+'/'+tag+'_info.pkl'
         else:
             ifile = ifiles[0]
+        
+        #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('reading data based on {} \n'.format(ifile))
+        sys.stdout.flush()
+        #--------------------------------------------------------------------- 
                        
         with open(ifile, 'r') as f:
                           self.info=pickle.load(f)  
