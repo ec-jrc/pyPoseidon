@@ -15,8 +15,8 @@ def fix(b,shpfile, nc=10):
     shp = gp.GeoDataFrame.from_file(shpfile)
 
            
-    xp = b.ilons
-    yp = b.ilats
+    xp = b.dem.ilons
+    yp = b.dem.ilats
     
     
     #put them all in a list
