@@ -15,8 +15,8 @@ def fix(b,shpfile, nc=10):
     shp = gp.GeoDataFrame.from_file(shpfile)
 
            
-    xp = b.dem.ilons
-    yp = b.dem.ilats
+    xp = b.dem.ilons.values
+    yp = b.dem.ilats.values
     
     
     #put them all in a list
@@ -97,10 +97,10 @@ def fix(b,shpfile, nc=10):
     yw=np.ma.masked_array(yp,wmask) 
     
     #mask positive bathymetry 
-    wet = np.ma.masked_array(b.val,b.val>0)
+    wet = np.ma.masked_array(b.dem.val.values,b.dem.val.values>0)
    # wet.fill_value = 0.
-    mx = np.ma.masked_array(b.dlons,b.val>0) 
-    my = np.ma.masked_array(b.dlats,b.val>0)
+    mx = np.ma.masked_array(b.dem.dlons.values,b.dem.val.values>0) 
+    my = np.ma.masked_array(b.dem.dlats.values,b.dem.val.values>0)
     
     orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
     targ = pyresample.geometry.SwathDefinition(lons=xw,lats=yw) # wet points
