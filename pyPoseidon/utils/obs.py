@@ -17,8 +17,14 @@ class obs:
 
     def __init__(self,**kwargs):
         
-        self.sdate = kwargs.get('start_date', None)
-        self.edate = kwargs.get('end_date', None)
+        sdate = kwargs.get('start_date', None)
+        edate = kwargs.get('end_date', None)
+        sd = kwargs.get('sa_date', sdate)
+        ed = kwargs.get('se_date', edate)
+        
+        self.sdate = pd.to_datetime(sd)
+        self.edate = pd.to_datetime(ed)
+        
         self.point = kwargs.get('point', None)
     
         minlon = kwargs.get('minlon', None)
@@ -59,7 +65,7 @@ class obs:
         edate = kwargs.get('end_date', self.edate)
         point = kwargs.get('point', self.point)
 
-        pdate=min([self.edate+datetime.timedelta(hours=72),datetime.datetime.now()])
+        pdate=min([self.edate+datetime.timedelta(hours=72),datetime.datetime.now()])        
 
         url='http://webcritech.jrc.ec.europa.eu/SeaLevelsDb/Home/ShowBuoyData?id={}&dateMin={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&dateMax={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&field=&options='\
                                  .format(point,sdate.year,sdate.month,sdate.day,sdate.hour,0,pdate.year,pdate.month,pdate.day,pdate.hour,0)

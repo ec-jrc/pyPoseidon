@@ -155,7 +155,10 @@ class data:
                              'XV':(xv[0,:]),'YV':(yz[:,0]),                   
                      'time':self.times})
                      
-        self.obs = obs(**self.info)
+        dic = self.info.copy()   # start with x's keys and values
+        dic.update(kwargs)    # modifies z with y's keys and values & returns None
+              
+        self.obs = obs(**dic)
                 
     def hview(self,var,**kwargs):
         
