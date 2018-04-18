@@ -15,7 +15,8 @@ import geoviews as gv
 from cartopy import crs
 import xarray as xr
 import pyresample
-
+import glob
+import sys
 
 
 FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix_fmt','yuv420p'])
@@ -26,8 +27,27 @@ class data:
     def __init__(self,folders,**kwargs):
         
         self.folders = folders #[os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
-               
-        with open(self.folders[0]+'/info.pkl', 'r') as f:
+        
+        #check if many tags present
+        ifiles = glob.glob(self.folders[0]+'*_info.pkl')
+        
+        if len(ifiles) > 1:
+            #--------------------------------------------------------------------- 
+              sys.stdout.flush()
+              sys.stdout.write('\n')
+              sys.stdout.write('more than one configuration, specify tag argument \n')
+              sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+              sys.exit(1)
+                    
+        tag = kwargs.get('tag', None)
+        
+        if tag :
+            ifile = self.folders[0]+tag+'_info.pkl'
+        else:
+            ifile = ifiles[0]
+                       
+        with open(ifile, 'r') as f:
                           self.info=pickle.load(f)  
                         
         grid=r2d.read_file(self.folders[0]+'/'+self.info['tag']+'.grd')

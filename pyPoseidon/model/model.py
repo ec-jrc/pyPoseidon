@@ -438,15 +438,17 @@ class d3d(model):
         
         conda_env = get_value(self,kwargs,'conda_env', None)
         
+        argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
+        
         if conda_env is None:        
             # note that cwd is the folder where the executable is
-            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {}'.format(ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         else:
-            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {} {}'.format(argfile,ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
             
 #        for line in iter(ex.stderr.readline,b''): print line
 #        ex.stderr.close() 
-        with open(calc_dir+'run.log', 'w') as f: 
+        with open(calc_dir+self.tag+'_run.log', 'w') as f: 
           for line in iter(ex.stdout.readline,b''): 
             f.write(line)   
             sys.stdout.write(line)
@@ -469,13 +471,13 @@ class d3d(model):
 #         dic = {k: self.__dict__.get(k, None) for k in lista}
 #         dic['model'] = self.__class__.__name__
 #         dic = dict(dic, **{k: self.__dict__.get(k, None).impl.__class__.__name__ for k in ['meteo','dem']})
-         with open(path+'info.pkl', 'w') as f:
+         with open(path+self.tag+'_info.pkl', 'w') as f:
                pickle.dump(self.model,f)
                
          z=self.model.copy()
          for attr, value in z.iteritems():
              if isinstance(value, datetime.datetime) : z[attr]=z[attr].isoformat()
-         json.dump(z,open(path+'model.txt','w'))      
+         json.dump(z,open(path+self.tag+'_model.txt','w'))      
     
     @staticmethod
     def read(filename,**kwargs):
@@ -516,7 +518,7 @@ class d3d(model):
             bat = -self.dem.impl.dem.fval.values.astype(float) #reverse for the hydro run
        #     mask = bat==999999
         except AttributeError:    
-            bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
+            bat = -self.dem.impl.dem.ival.values.astype(float) #reverse for the hydro run
         
         mask = ~np.isnan(bat) # mask out potential nan points
         mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
@@ -630,18 +632,18 @@ class d3d(model):
         ncores = get_value(self,kwargs,'ncores',1)
         
         conda_env = get_value(self,kwargs,'conda_env', None)
-                
-        if not os.path.exists( calc_dir+'config_d_hydro.xml') :
+                        
+        if not os.path.exists( calc_dir+self.tag+'_hydro.xml') :
             
           # edit and save config file
-          copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+'config_d_hydro.xml')          
+          copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+self.tag+'_hydro.xml')          
 
-        xml=md.parse(calc_dir+'config_d_hydro.xml')
+        xml=md.parse(calc_dir+self.tag+'_hydro.xml')
 
         xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
  
     
-        with open(calc_dir+'config_d_hydro.xml','w') as f:
+        with open(calc_dir+self.tag+'_hydro.xml','w') as f:
             xml.writexml(f)
 
         if not os.path.exists(calc_dir+'run_flow2d3d.sh') :
