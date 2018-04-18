@@ -110,10 +110,11 @@ def fix(b,shpfile, nc=10):
     
     bw = np.ma.masked_array(b2_near,wmask)
         
-    b.fval = xr.Dataset({'dem': (['latitude', 'longitude'],  bw)},   
+    fval = xr.Dataset({'fval': (['latitude', 'longitude'],  bw)},   
                                   coords={'longitude': ('longitude', xp[0,:]),   
                                           'latitude': ('latitude', yp[:,0])})
     
+    b.dem = xr.merge([b.dem,fval])
     
 def internal(cg, xp, yp):
     

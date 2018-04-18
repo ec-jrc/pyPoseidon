@@ -59,31 +59,42 @@ class emodnet(dem):
       self.val = topo
       self.dlons = lons 
       self.dlats = lats
+      
+      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  self.val), 
+                            'dlons': (['i', 'j'], self.dlons),   
+                            'dlats': (['i', 'j'], self.dlats)}, 
+                            coords={'dlon': ('dlon', self.dlons[0,:]),   
+                                    'dlat': ('dlat', self.dlats[:,0])})         
+      
          
       if 'grid_x' in kwargs.keys():
-       grid_x = kwargs.get('grid_x', None)
-       grid_y = kwargs.get('grid_y', None)
-    # resample on the given grid
-       ilon=lons[0,:]
-       ilat=lats[:,0]
+          grid_x = kwargs.get('grid_x', None)
+          grid_y = kwargs.get('grid_y', None)
+           # resample on the given grid
               
-       orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlats) # original points
-       targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
+          orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlats) # original points
+          targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-       itopo = pyresample.kd_tree.resample_nearest(orig,self.val.data,targ,radius_of_influence=50000,fill_value=999999)
+          itopo = pyresample.kd_tree.resample_nearest(orig,self.val.data,targ,radius_of_influence=50000,fill_value=999999)
 
-       self.ival = itopo
-       self.ilons = grid_x
-       self.ilats = grid_y
+          self.ival = itopo
+          self.ilons = grid_x
+          self.ilats = grid_y
        
+          dem = xr.Dataset({'ival': (['ilat', 'ilon'],  self.ival), 
+                               'ilons': (['k', 'l'], self.ilons),   
+                               'ilats': (['k', 'l'], self.ilats)}, 
+                               coords={'ilon': ('ilon', self.ilons[0,:]),   
+                                       'ilat': ('ilat', self.ilats[:,0])})         
+      
+          self.dem = xr.merge([self.dem,dem])
        
-       
-       #--------------------------------------------------------------------- 
-       sys.stdout.flush()
-       sys.stdout.write('\n')
-       sys.stdout.write('dem done\n')
-       sys.stdout.flush()
-       #--------------------------------------------------------------------- 
+      #--------------------------------------------------------------------- 
+      sys.stdout.flush()
+      sys.stdout.write('\n')
+      sys.stdout.write('dem done\n')
+      sys.stdout.flush()
+      #--------------------------------------------------------------------- 
        
     def adjust(self,shpfile,**kwargs):
          
@@ -151,6 +162,11 @@ class erdap(dem):
       
       self.val = dem
       
+      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  self.val), 
+                            'dlons': (['i', 'j'], self.dlons),   
+                            'dlats': (['i', 'j'], self.dlats)}, 
+                            coords={'dlon': ('dlon', self.dlons[0,:]),   
+                                    'dlat': ('dlat', self.dlats[:,0])})         
       
       
       if 'grid_x' in kwargs.keys():
@@ -170,6 +186,15 @@ class erdap(dem):
          self.ilats = grid_y
       
       
+         dem = xr.Dataset({'ival': (['ilat', 'ilon'],  self.ival), 
+                               'ilons': (['k', 'l'], self.ilons),   
+                               'ilats': (['k', 'l'], self.ilats)}, 
+                               coords={'ilon': ('ilon', self.ilons[0,:]),   
+                                       'ilat': ('ilat', self.ilats[:,0])})         
+      
+      
+         self.dem = xr.merge([self.dem,dem])
+               
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
       sys.stdout.write('\n')
@@ -226,6 +251,13 @@ class gebco(dem):
       self.dlats = yy
       
       
+      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  self.val), 
+                            'dlons': (['i', 'j'], self.dlons),   
+                            'dlats': (['i', 'j'], self.dlats)}, 
+                            coords={'dlon': ('dlon', self.dlons[0,:]),   
+                                    'dlat': ('dlat', self.dlats[:,0])})         
+      
+      
       if 'grid_x' in kwargs.keys():
          grid_x = kwargs.get('grid_x', None)
          grid_y = kwargs.get('grid_y', None)
@@ -241,7 +273,16 @@ class gebco(dem):
          self.ival = itopo
          self.ilons = grid_x
          self.ilats = grid_y
+        
+         dem = xr.Dataset({'ival': (['ilat', 'ilon'],  self.ival), 
+                               'ilons': (['k', 'l'], self.ilons),   
+                               'ilats': (['k', 'l'], self.ilats)}, 
+                               coords={'ilon': ('ilon', self.ilons[0,:]),   
+                                       'ilat': ('ilat', self.ilats[:,0])})         
       
+      
+         self.dem = xr.merge([self.dem,dem])
+         
       
       #--------------------------------------------------------------------- 
       sys.stdout.flush()

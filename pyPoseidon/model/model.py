@@ -502,9 +502,9 @@ class d3d(model):
         if flag is not None:
             # check if files exist
             check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
-            if (np.any(check)==False) or ('dem' in flag ) :
+            if (np.any(check)==False) or ('grid' in flag ) :
             #save grid
-                self.grid.to_file(filename = path+self.tag+'.grd')
+                self.grid.impl.to_file(filename = path+self.tag+'.grd')
             else:
                 sys.stdout.write('skipping grid file ..\n')
         else:
@@ -513,7 +513,7 @@ class d3d(model):
         
         #save dem
         try :
-            bat = -self.dem.impl.fval.dem.values.astype(float) #reverse for the hydro run
+            bat = -self.dem.impl.dem.fval.values.astype(float) #reverse for the hydro run
        #     mask = bat==999999
         except AttributeError:    
             bat = -self.dem.impl.ival.astype(float) #reverse for the hydro run
@@ -550,7 +550,7 @@ class d3d(model):
            try:
               self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
            except AttributeError as e:
-              print e 
+             # print e 
               pass
 
              
