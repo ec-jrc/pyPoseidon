@@ -228,8 +228,6 @@ class ecmwf_oper(meteo):
 #                        'reference_time': date })
     
       self.uvp = met
-      self.lats = lats
-      self.lons = lons   
       self.ft1 = ft1
       self.ft2 = ft2 
       self.dft = dft   
@@ -566,9 +564,6 @@ class hnms_oper(meteo):
         met['v10'] = met.v10.where(met.msl>0)
                                       
         self.uvp = met
-        self.lats = lats
-        self.lons = lons   
-        
     
         self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
 
@@ -736,9 +731,6 @@ class am_oper(meteo):
                                       'time': tt })
                                               
         self.uvp = met
-        self.lats = lats
-        self.lons = lons   
-        
     
         self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
 
