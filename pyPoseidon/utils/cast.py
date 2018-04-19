@@ -96,7 +96,11 @@ class dcast(cast):
             except OSError, e:
               if e.errno == errno.EEXIST:
                   sys.stdout.write('Restart link present\n')
-              pass 
+                  sys.stdout.write('overwriting\n')
+                  os.remove(rpath+'tri-rst.'+outresfile)
+                  os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+              else:
+                  raise e            
 
             #get new meteo 
 
@@ -150,6 +154,9 @@ class dcast(cast):
             m.run()
 
             m.save()
+            
+            #cleanup
+            os.remove(rpath+'tri-rst.'+outresfile)
             
             logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
             
