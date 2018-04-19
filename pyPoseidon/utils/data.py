@@ -163,7 +163,13 @@ class data:
                      
         dic = self.info.copy()   # start with x's keys and values
         dic.update(kwargs)    # modifies z with y's keys and values & returns None
-              
+        
+        if 'sa_date' not in dic.keys():
+            dic.update({'sa_date':self.vars.time.values[0]})
+            
+        if 'se_date' not in dic.keys():
+            dic.update({'se_date':self.vars.time.values[-1]})
+               
         self.obs = obs(**dic)
                 
     def hview(self,var,**kwargs):
