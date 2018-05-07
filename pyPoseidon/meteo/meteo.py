@@ -109,7 +109,7 @@ class ecmwf_oper(meteo):
       filenames = kwargs.get('mpaths', {})
       ft1 = kwargs.get('ft1', 0)
       ft2 = kwargs.get('ft2', 11)
-      dft = kwargs.get('dft', 1)
+      dft = kwargs.get('dft', 1)      
       
       start_date = kwargs.get('start_date', None)
       self.start_date = pd.to_datetime(start_date)

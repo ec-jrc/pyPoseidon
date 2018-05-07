@@ -96,8 +96,8 @@ class d3d(model):
         
         self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
-        self.ft1 = kwargs.get('ft1', None)
-        self.ft2 = kwargs.get('ft2', None)
+        self.ft1 = kwargs.get('ft1', 0)
+        self.ft2 = kwargs.get('ft2', 11)
         self.dft = kwargs.get('dft', 1)       
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
