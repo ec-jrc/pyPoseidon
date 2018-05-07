@@ -11,12 +11,13 @@ from bunch import Bunch
 import json
 from collections import OrderedDict
 import pandas as pd
+import glob
 
 #local modules
 from pyPoseidon.grid import *
 from bnd import *
 import pyPoseidon
-from pyPoseidon.meteo import meteo
+from pyPoseidon.meteo import *
 from pyPoseidon.dem import *
 from pyPoseidon.utils.get_value import get_value
 
@@ -239,13 +240,13 @@ class d3d(model):
         
 
         # get bathymetry
-        self.bath()
+        self.bath(**kwargs)
 
         # get boundaries
         self.bc()
                 
         #get meteo
-        if self.atm :  self.force()
+        if self.atm :  self.force(**kwargs)
         
         #get tide
         if self.tide : self.tidebc()
@@ -254,6 +255,7 @@ class d3d(model):
         #meteo
     def force(self,**kwargs):
         z = self.__dict__.copy()
+                
         z.update(kwargs)
 
         flag = get_value(self,kwargs,'update',None)
@@ -455,6 +457,13 @@ class d3d(model):
             sys.stdout.flush()  
         ex.stdout.close()            
                                   
+        #cleanup
+#        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
+#        for filename in tempfiles:
+#            try:
+#                os.remove(filename)
+#            except OSError:
+#                pass
     
     def pickle(self,**kwargs):
         
@@ -514,26 +523,30 @@ class d3d(model):
                 
         
         #save dem
-        try :
-            bat = -self.dem.impl.dem.fval.values.astype(float) #reverse for the hydro run
+        try:
+            try :
+                bat = -self.dem.impl.dem.fval.values.astype(float) #reverse for the hydro run
        #     mask = bat==999999
-        except AttributeError:    
-            bat = -self.dem.impl.dem.ival.values.astype(float) #reverse for the hydro run
+            except AttributeError:    
+                bat = -self.dem.impl.dem.ival.values.astype(float) #reverse for the hydro run
         
-        mask = ~np.isnan(bat) # mask out potential nan points
-        mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
+            mask = ~np.isnan(bat) # mask out potential nan points
+            mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
 
-        bat[mask]=np.nan #mask dry points
+            bat[mask]=np.nan #mask dry points
             
         # append the line/column of nodata 
-        nodata=np.empty(self.ni)
-        nodata.fill(np.nan)
-        bat1=np.vstack((bat,nodata))
-        nodata=np.empty((self.nj+1,1))
-        nodata.fill(np.nan)
-        bat2=np.hstack((bat1,nodata))
+            nodata=np.empty(self.ni)
+            nodata.fill(np.nan)
+            bat1=np.vstack((bat,nodata))
+            nodata=np.empty((self.nj+1,1))
+            nodata.fill(np.nan)
+            bat2=np.hstack((bat1,nodata))
 
-        bat2[np.isnan(bat2)] = -999.
+            bat2[np.isnan(bat2)] = -999.
+            
+        except AttributeError:
+            sys.stdout.write('No dem file ..')
             
         # Write bathymetry file    
         if flag is not None:
