@@ -12,7 +12,7 @@ def readme():
 
 
 setup(name='pyPoseidon',
-      version='0.1',
+      version='0.1.0',
       description='Storm Surge analysis tool',
       long_description=readme(),
       url='https://github.com/brey/pyPoseidon',
