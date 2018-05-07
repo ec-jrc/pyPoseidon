@@ -109,7 +109,8 @@ class d3d(model):
         self.model['solver'] = self.__class__.__name__    
         
         self.epath = kwargs.get('epath', None)
-                      
+        
+                          
     def set(self,**kwargs):
 
         gx = get_value(self,kwargs,'x',None)
@@ -121,8 +122,7 @@ class d3d(model):
         step = get_value(self,kwargs,'step',0)
         rstep = get_value(self,kwargs,'rstep',0)
         dt = get_value(self,kwargs,'Dt',1)
-        
-                                       
+                                               
         resmin=self.resolution*60
               
         # computei ni,nj / correct lat/lon

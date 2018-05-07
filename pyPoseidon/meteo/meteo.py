@@ -135,7 +135,6 @@ class ecmwf_oper(meteo):
       
       for filename in filenames:
         
-        print 'filename', filename  
         #--------------------------------------------------------------------- 
         sys.stdout.flush()
         sys.stdout.write('\n')
@@ -154,7 +153,7 @@ class ecmwf_oper(meteo):
           try:
             gid = grib_new_from_file(f)#,headers_only = True)
             if gid is None: 
-                sys.stdout.write('problem retrieving data from {}\n'.format(filename))
+                sys.stdout.write('end of file {}\n'.format(filename))
                 break
             
             date=grib_get(gid, 'date')
@@ -164,7 +163,7 @@ class ecmwf_oper(meteo):
             tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
 
                 
-            if (ft1 <= int(stepRange) <= ft2) :
+            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date):
                 
                 name,varin,ilon,ilat=getd(gid)    
             
@@ -172,7 +171,7 @@ class ecmwf_oper(meteo):
                 grib_release(gid)
                 if int(stepRange) > ft2 : break
                 continue
-
+                
             lon=ilon[0,:]
             lat=ilat[:,0]
            

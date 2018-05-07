@@ -66,11 +66,13 @@ class dcast(cast):
 #            for attr, value in self.info.iteritems():
 #                setattr(m, attr, value)
             m=model(**info)
-            
+                        
             if type(meteo) is not list : meteo = [meteo] # make it a list so that it works for meteo 
             #update the properties 
             m.impl.date = date
             m.impl.model['date'] = date
+            m.impl.start_date = date
+            m.impl.model['start_date'] = date            
             m.impl.mpaths=meteo 
             m.impl.model['mpaths'] = meteo
             m.impl.rpath=rpath 
@@ -108,9 +110,10 @@ class dcast(cast):
             sys.stdout.write('process meteo\n')
             sys.stdout.flush()
 
+            flag = get_value(self,kwargs,'update',None)
             
             check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]   
-            if np.any(check)==False :
+            if (np.any(check)==False) or ('meteo' in flag):
                
                 m.force()
                 m.impl.to_force(m.impl.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
@@ -127,11 +130,12 @@ class dcast(cast):
             mdfidx = mdf.index.str.strip() # store the stripped names
             
             # adjust iteration date
-            tstart = (date.hour+m.impl.ft1)*60
-            tend = tstart + (m.impl.ft2)*60
+            tstart = date.hour*60  
+            m.impl.end_date = m.impl.start_date + pd.to_timedelta(m.impl.time_frame)   
+            tend = tstart + int((m.impl.end_date - m.impl.start_date).total_seconds()/60)
             
-            dt = mdf.loc[mdf.index.str.contains('Dt')].values[0]
-            
+            dt = mdf.loc[mdf.index.str.contains('Dt')].values[0][0]
+                        
             mdf.loc[mdf.index.str.contains('Itdate')]='#{}#'.format(datetime.datetime.strftime(date,'%Y-%m-%d'))
             mdf.loc[mdf.index.str.contains('Tstart')]=tstart
             mdf.loc[mdf.index.str.contains('Tstop')]=tend
