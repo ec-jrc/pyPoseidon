@@ -110,7 +110,7 @@ class erdap(dem):
       
       
       
-      url = kwargs.get('url', 'http://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus')
+      url = kwargs.get('dem_url', 'http://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus')
             
     #--------------------------------------------------------------------- 
       sys.stdout.flush()
