@@ -361,6 +361,8 @@ class gfs_erdap(meteo):
       
       self.uvp = xr.merge([tot, other])
       
+      self.uvp.attrs =  tot.attrs
+      
       self.uvp.rename({'prmslmsl':'msl','ugrd10m':'u10','vgrd10m':'v10'}, inplace=True)
       
       self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
