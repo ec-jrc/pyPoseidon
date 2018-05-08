@@ -7,7 +7,6 @@ from shutil import copy2
 import subprocess
 import sys
 import pkg_resources
-from bunch import Bunch
 import json
 from collections import OrderedDict
 import pandas as pd
