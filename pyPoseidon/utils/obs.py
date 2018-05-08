@@ -116,21 +116,21 @@ class obs:
             return None
 
         
-    def soest(self):
+#    def soest(self):
         
-        url = 'https://uhslc.soest.hawaii.edu/thredds/dodsC/uhslc/fdh/OS_UH-FDH329_20170628_D'
-        dataset = open_url(url)
+#        url = 'https://uhslc.soest.hawaii.edu/thredds/dodsC/uhslc/fdh/OS_UH-FDH329_20170628_D'
+#        dataset = open_url(url)
         
-        t = dataset['time']
+#        t = dataset['time']
         
-        info = bunch(dataset.attributes['NC_GLOBAL'])
+#        info = bunch(dataset.attributes['NC_GLOBAL'])
         
-        tref = t.attributes['units'].split()[-1]
+#        tref = t.attributes['units'].split()[-1]
         
-        self.tref = parse(tref)
+#        self.tref = parse(tref)
         
         
-        time = [self.tref + datetime.timedelta(days = ta) for ta in t.data[:]]
+#        time = [self.tref + datetime.timedelta(days = ta) for ta in t.data[:]]
         
         #find the index for the time frame we want
         #start_day =  
