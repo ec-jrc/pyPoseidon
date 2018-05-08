@@ -113,7 +113,7 @@ class data:
         zkeys = [d for d in keys if d not in ['U1','V1']]
         
         dic = {}  
-        
+                
         for key in zkeys:
             h =  ds[key][:,1:-1,1:-1]
             ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
@@ -160,6 +160,12 @@ class data:
                              'XU':(xz[0,:]),'YU':(yu[:,0]),
                              'XV':(xv[0,:]),'YV':(yz[:,0]),                   
                      'time':self.times})
+                     
+                     
+        #clean duplicates
+        val,idx = np.unique(self.vars.time, return_index=True) 
+
+        self.vars = self.vars.isel(time=idx)
                      
         dic = self.info.copy()   # start with x's keys and values
         dic.update(kwargs)    # modifies z with y's keys and values & returns None
