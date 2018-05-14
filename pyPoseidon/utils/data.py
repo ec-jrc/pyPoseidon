@@ -163,9 +163,7 @@ class data:
                      
                      
         #clean duplicates
-        val,idx = np.unique(self.vars.time, return_index=True) 
-
-        self.vars = self.vars.isel(time=idx)
+        self.vars = self.vars.sel(time=~self.vars.indexes['time'].duplicated())
                      
         dic = self.info.copy()   # start with x's keys and values
         dic.update(kwargs)    # modifies z with y's keys and values & returns None
