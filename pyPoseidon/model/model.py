@@ -483,6 +483,7 @@ class d3d(model):
                pickle.dump(self.model,f)
                
          z=self.model.copy()
+         z['version']=pyPoseidon.__version__
          for attr, value in z.iteritems():
              if isinstance(value, datetime.datetime) : z[attr]=z[attr].isoformat()
          json.dump(z,open(path+self.tag+'_model.txt','w'))      
