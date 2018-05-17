@@ -68,10 +68,10 @@ class emodnet(dem):
           grid_y = kwargs.get('grid_y', None)
            # resample on the given grid
               
-          orig = pyresample.geometry.SwathDefinition(lons=self.dlons,lats=self.dlats) # original points
+          orig = pyresample.geometry.SwathDefinition(lons=lons,lats=lats) # original points
           targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-          itopo = pyresample.kd_tree.resample_nearest(orig,self.val.data,targ,radius_of_influence=50000,fill_value=999999)
+          itopo = pyresample.kd_tree.resample_nearest(orig,topo.data,targ,radius_of_influence=50000,fill_value=999999)
        
           dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
                                'ilons': (['k', 'l'], grid_x),   
