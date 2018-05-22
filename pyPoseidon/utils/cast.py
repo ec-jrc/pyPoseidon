@@ -63,8 +63,12 @@ class dcast(cast):
             with open(rpath+self.tag+'_info.pkl', 'r') as f:
                           info=pickle.load(f)
             
-#            for attr, value in self.info.iteritems():
-#                setattr(m, attr, value)
+            args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
+            for attr in list(args):
+                info[attr] = kwargs[attr]
+            
+#            for attr, value in self.iteritems():
+#                setattr(info, attr, value)
             m=model(**info)
                         
             if type(meteo) is not list : meteo = [meteo] # make it a list so that it works for meteo 
