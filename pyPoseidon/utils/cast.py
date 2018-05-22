@@ -67,21 +67,17 @@ class dcast(cast):
             for attr in list(args):
                 info[attr] = kwargs[attr]
             
+            #update the properties   
+            info['date'] = date
+            info['start_date'] = date
+            info['mpaths'] = meteo
+            info['rpath'] = rpath
+            
+            
 #            for attr, value in self.iteritems():
 #                setattr(info, attr, value)
             m=model(**info)
-                        
-            if type(meteo) is not list : meteo = [meteo] # make it a list so that it works for meteo 
-            #update the properties 
-            m.impl.date = date
-            m.impl.model['date'] = date
-            m.impl.start_date = date
-            m.impl.model['start_date'] = date            
-            m.impl.mpaths=meteo 
-            m.impl.model['mpaths'] = meteo
-            m.impl.rpath=rpath 
-            m.impl.model['rpath'] = rpath
-            
+                                    
             # copy/link necessary files
 
             for filename in cfiles:
