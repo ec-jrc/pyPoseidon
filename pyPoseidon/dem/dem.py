@@ -73,11 +73,19 @@ class emodnet(dem):
        
           itopo = pyresample.kd_tree.resample_nearest(orig,topo.data,targ,radius_of_influence=50000,fill_value=999999)
        
-          dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
+          if len(grid_x.shape) > 1: 
+                 
+              dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
                                'ilons': (['k', 'l'], grid_x),   
                                'ilats': (['k', 'l'], grid_y)}, 
                                coords={'ilon': ('ilon', grid_x[0,:]),   
                                        'ilat': ('ilat', grid_y[:,0])})         
+          elif len(grid_x.shape) == 1:
+             
+             dem = xr.Dataset({'ival': (['k'],  itopo), 
+                        'ilons': (['k'], grid_x),   
+                        'ilats': (['k'], grid_y)}
+                             )
       
           self.dem = xr.merge([self.dem,dem])
        
@@ -167,13 +175,19 @@ class erdap(dem):
        
          itopo = pyresample.kd_tree.resample_nearest(orig,dem.data,targ,radius_of_influence=50000,fill_value=999999)
 
-      
-         idem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
+         if len(grid_x.shape) > 1: 
+             idem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
                                'ilons': (['k', 'l'], grid_x),   
                                'ilats': (['k', 'l'], grid_y)}, 
                                coords={'ilon': ('ilon', grid_x[0,:]),   
                                        'ilat': ('ilat', grid_y[:,0])})         
       
+         elif len(grid_x.shape) == 1:
+            idem = xr.Dataset({'ival': (['k'],  itopo), 
+                              'ilons': (['k'], grid_x),   
+                              'ilats': (['k'], grid_y)} 
+                              )         
+            
       
          self.dem = xr.merge([self.dem,idem])
                
@@ -249,13 +263,20 @@ class gebco(dem):
        
          itopo = pyresample.kd_tree.resample_nearest(orig,dem.data,targ,radius_of_influence=50000,fill_value=999999)
         
-         dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
+        
+         if len(grid_x.shape) > 1:         
+             dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
                                'ilons': (['k', 'l'], grid_x),   
                                'ilats': (['k', 'l'], grid_y)}, 
                                coords={'ilon': ('ilon', grid_x[0,:]),   
                                        'ilat': ('ilat', grid_y[:,0])})         
-      
-      
+         elif len(grid_x.shape) == 1:
+             dem = xr.Dataset({'ival': (['k'],  itopo), 
+                        'ilons': (['k'], grid_x),   
+                        'ilats': (['k'], grid_y)}
+                             )
+                         
+       
          self.dem = xr.merge([self.dem,dem])
          
       

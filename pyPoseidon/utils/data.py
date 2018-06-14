@@ -17,20 +17,45 @@ import xarray as xr
 import pyresample
 import glob
 import sys
-
+import subprocess
+import scipy.interpolate 
 
 FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix_fmt','yuv420p'])
    
 class data:   
+    
+    def __init__(self,**kwargs):
+    
+       solver = kwargs.get('solver',None)
+       impl=None
+       if solver == 'd3d':
+           self.impl = d3d(**kwargs)
+       elif solver == 'schism':
+           self.impl = schism(**kwargs)  
+       else:
+           sys.stdout.flush()
+           sys.stdout.write('\n')
+           sys.stdout.write('solver is not defined, exiting \n')
+           sys.stdout.flush()
+           sys.exit(1)             
        
+
+class d3d(data):
         
-    def __init__(self,folders,**kwargs):
+    def __init__(self,**kwargs):
         
-        self.folders = folders #[os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
+        rpath = kwargs.get('rpath','./')
+        
+        folders = kwargs.get('folders',None)  #[os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
+        
+        if folders :
+            self.folders = folders
+        else:
+            self.folders = [rpath]
         
         #check if many tags present
         ifiles = glob.glob(self.folders[0]+'/*_info.pkl')
-        
+                
         if len(ifiles) > 1:
             #--------------------------------------------------------------------- 
               sys.stdout.flush()
@@ -77,9 +102,9 @@ class data:
             
             # read array
         
-        nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in folders]
+        nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in self.folders]
         
-        ds = xr.open_mfdataset(nfiles)
+        ds = xr.open_mfdataset(nfiles, autoclose=True)
                 
         #grid points
         xg = ds.XCOR.values.T
@@ -192,8 +217,79 @@ class data:
             return contour(self.xh,self.yh,self.vars[var[0]],self.times,**kwargs)
         elif len(var) == 2:
             return quiver(self.xh,self.yh,self.vars[var[0]],self.vars[var[1]],self.times,**kwargs)
+
+
+class schism(data):
             
+    def __init__(self,**kwargs):     
+        
+        rpath = kwargs.get('rpath','./')
+        
+        folders = kwargs.get('folders',None)  #[os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
+        
+        if folders :
+            self.folders = folders
+        else:
+            self.folders = [rpath]
+           
+        self.epath = kwargs.get('combine_exec', None)
+    
+        ncores = get_value(self,kwargs,'ncores',1)
+    
+        sys.stdout.write('Combining output\n')
+        sys.stdout.flush()  
+        
+        
+        inu = len(glob.glob(self.folders[0] + 'outputs/schout_000*_1.nc'))
+        
+        
+        for folder in self.folders:   
+            ex=subprocess.Popen(args=['{} {} {}'.format(self.epath,0,inu-1)], cwd=folder, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            for line in iter(ex.stderr.readline, b''):
+                sys.stderr.write(line)
+                sys.stderr.flush()  
             
+            ex.stderr.close()
+            for line in iter(ex.stdout.readline, b''):
+                    sys.stdout.write(line)
+                    sys.stdout.flush()            
+            ex.stdout.close()
+    
+        
+            cfiles = glob.glob(folder + 'outputs/schout_[!00].nc')
+            cfiles.sort()
+    
+        gr = xr.open_mfdataset(folder + 'outputs/schout_0.nc', autoclose=True, drop_variables=['time'])
+        
+        drops = gr.variables.keys()
+        
+        var = xr.open_mfdataset(cfiles, autoclose=True, drop_variables=drops)
+    
+        self.vars = xr.merge([gr,var])
+    
+        tag = kwargs.get('tag', None)
+        
+        dic={}
+        
+        try:
+            
+            with open(self.folders[0]+tag +'_info.pkl', 'r') as f:
+                      self.info=pickle.load(f)  
+    
+            dic = self.info.copy()   # start with x's keys and values
+            dic.update(kwargs)    # modifies z with y's keys and values & returns None
+    
+        except:
+            pass
+    
+        if 'sa_date' not in dic.keys():
+            dic.update({'sa_date':self.vars.time.values[0]})
+        
+        if 'se_date' not in dic.keys():
+            dic.update({'se_date':self.vars.time.values[-1]})
+    
+        self.obs = obs(**dic)        
+        
                    
 class point:
     
@@ -205,7 +301,7 @@ class point:
             
     def tseries(self,**kwargs):
         
-        var = kwargs.get('var', 'S1')
+        var = kwargs.get('var', None)
         method = kwargs.get('method', 'nearest')
         
         plat=float(self.lat)
@@ -236,6 +332,26 @@ class point:
 
         pdata = pd.DataFrame({'time':self.data.vars[var].time, self.data.vars[var].name : svals})
         setattr(self, self.data.vars[var].name, pdata.set_index(['time']))
+        
+        
+    def stseries(self,**kwargs):
+        
+        var = kwargs.get('var', None)
+        method = kwargs.get('method', 'nearest')
+        
+        plat=float(self.lat)
+        plon=float(self.lon)
+        
+        points = pd.concat([self.data.SCHISM_hgrid_node_x[0,:].to_dataframe(), self.data.SCHISM_hgrid_node_y[0,:].to_dataframe()], axis=1)
+        points = points.drop(columns=['time'])
+        values = self.data[var].values
+        
+        svals = []
+        for k in range(self.data[var].time.size):
+            svals.append( scipy.interpolate.griddata(points.values, values[k,:], (plat, plon), method=method) )   
+        
+        pdata = pd.DataFrame({'time':self.data[var].time, self.data[var].name : svals})
+        setattr(self, self.data[var].name, pdata.set_index(['time']))
         
         
 class node:

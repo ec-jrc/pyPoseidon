@@ -11,6 +11,7 @@ import json
 from collections import OrderedDict
 import pandas as pd
 import glob
+from shutil import copyfile
 
 #local modules
 from pyPoseidon.grid import *
@@ -670,3 +671,397 @@ class d3d(model):
           os.chmod(execf, mode)
                 
         
+class schism(model):
+    
+    def __init__(self,**kwargs):
+                
+        self.minlon = kwargs.get('minlon', None)
+        self.maxlon = kwargs.get('maxlon', None)
+        self.minlat = kwargs.get('minlat', None)
+        self.maxlat = kwargs.get('maxlat', None)
+               
+        start_date = kwargs.get('start_date', None)
+        self.start_date = pd.to_datetime(start_date)
+        
+        if 'time_frame' in kwargs:
+            time_frame = kwargs.get('time_frame', None)
+            self.end_date = self.start_date + pd.to_timedelta(time_frame)
+        else:
+            end_date = kwargs.get('end_date', None)
+            self.end_date = pd.to_datetime(end_date)
+        
+        if not hasattr(self, 'date'): self.date = self.start_date
+        
+        if self.end_date == None : sys.exit(1)
+        
+        self.tag = kwargs.get('tag', 'schism')
+        self.resolution = kwargs.get('resolution', None)
+        self.ft1 = kwargs.get('ft1', 0)
+        self.ft2 = kwargs.get('ft2', 11)
+        self.dft = kwargs.get('dft', 1)       
+        self.tide = kwargs.get('tide', False)
+        self.atm = kwargs.get('atm', True)
+
+        for attr, value in kwargs.iteritems():
+                if not hasattr(self, attr): setattr(self, attr, value)
+            
+        self.model = self.__dict__.copy()    
+        self.model['solver'] = self.__class__.__name__    
+        
+        self.epath = kwargs.get('epath', None)
+    
+                          
+    def set(self,**kwargs):
+
+
+        hgrid = kwargs.get('hgrid',None)
+        Tstart = self.start_date.hour*60     
+        Tstop = int((self.end_date - self.start_date).total_seconds()/60)
+
+        step = get_value(self,kwargs,'step',0)
+        rstep = get_value(self,kwargs,'rstep',0)
+        dt = get_value(self,kwargs,'dt',400)
+                                               
+        resmin=self.resolution*60
+        
+        dic = get_value(self,kwargs,'params',None)
+        param_file = get_value(self,kwargs,'param',None)
+              
+      
+        # Grid         
+        self.grid=grid(type='tri2d',**kwargs)
+
+
+        # get bathymetry
+        self.bath(**kwargs)
+
+        # get boundaries
+        # self.bc()
+                
+        #get meteo
+        if self.atm :  self.force(**kwargs)
+        
+        #get tide
+        if self.tide : self.tidebc()
+        
+        #param
+        if param_file :
+            params = pd.read_csv(param_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
+
+            print params
+            fix_list = [k for k in param.attrs if '=' in k ]
+
+            for k in fix_list:
+                name, value = params.attrs[params.attrs == k].values[0].split('=')
+                params.attrs[params.attrs == k] = name
+                params.vals[params.attrs == name] = value
+                
+            params = params.set_index('attrs')
+        elif dic :
+            params = pd.DataFrame.from_dict(dic,orient = 'index')
+        else:
+            with open(DATA_PATH + 'dparams.pkl', 'r') as f:
+                              params=pickle.load(f)
+            #update 
+            params.loc['start_hour'] = self.start_date.hour
+            params.loc['start_day'] = self.start_date.day
+            params.loc['start_month'] = self.start_date.month
+            params.loc['start_year'] = self.start_date.year
+            params.loc['rnday'] = (Tstop-Tstart)/(60*24.)
+            params.loc['dt'] = dt
+            
+        
+        self.params = params
+
+        #meteo
+    def force(self,**kwargs):
+        z = self.__dict__.copy()
+                
+        z.update(kwargs)
+
+        flag = get_value(self,kwargs,'update',None)
+        # check if files exist
+        if flag is not None:     
+            check=[os.path.exists(z['rpath']+'sflux/sflux_air_1.001.nc')] # for f in ['u.amu','v.amv','p.amp']]   
+            if (np.any(check)==False) :              
+                self.meteo = meteo(**z)
+            elif 'meteo' in flag : 
+                self.meteo = meteo(**z)        
+            else:
+                sys.stdout.write('skipping meteo ..\n')
+        else:
+            self.meteo = meteo(**z)
+        
+        #dem
+    def bath(self,**kwargs):
+        z = self.__dict__.copy()        
+        
+        z['grid_x'] = self.grid.impl.grid.x.dropna('id').values
+        z['grid_y'] = self.grid.impl.grid.y.dropna('id').values
+        
+        z.update(kwargs) 
+        
+        flag = get_value(self,kwargs,'update',None)
+        # check if files exist
+        if flag is not None:
+            if 'dem' in flag :
+                self.dem = dem(**z)
+            else:
+                sys.stdout.write('reading dem ..\n')
+        else:
+            self.dem = dem(**z)
+
+    def output(self,**kwargs):      
+        
+        path = get_value(self,kwargs,'rpath','./') 
+        flag = get_value(self,kwargs,'update',None)
+        
+        
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
+        # save sflux_inputs.txt
+        if not os.path.exists(path+'sflux'):
+            os.makedirs(path+'sflux')
+        
+        with open(path+'sflux/sflux_inputs.txt', 'w') as f:
+            f.write('&sflux_inputs\n')
+            f.write('/ \n\n')
+            
+        # save bctides.in
+        nobs = [key for key in self.grid.impl.grid.variables.keys() if 'open' in key]
+        
+        with open(path + 'bctides.in', 'w') as f:
+            f.write('Header\n')
+            f.write('{} {}\n'.format(0, 40.)) #  ntip tip_dp
+            f.write('{}\n'.format(0)) #nbfr
+            f.write('{}\n'.format(len(nobs))) #number of open boundaries
+            for i in range(len(nobs)):
+                nnodes = self.grid.impl.grid.to_dataframe().loc[:,[nobs[i]]].dropna().size
+                f.write('{} {} {} {} {}\n'.format(nnodes,2,0,0,0)) # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
+                f.write('{}\n'.format(0)) # ethconst !constant elevation value for this segment    
+       
+       #save vgrid.in
+        with open(path + 'vgrid.in', 'w') as f:
+            f.write('{}\n'.format(2)) #ivcor (1: LSC2; 2: SZ)
+            f.write('{} {} {}\n'.format(2,1,1.e6)) #nvrt(=Nz); kz (# of Z-levels); hs (transition depth between S and Z)
+            f.write('Z levels\n') # Z levels !Z-levels in the lower portion
+            f.write('{} {}\n'.format(1,-1.e6)) #!level index, z-coordinates, z-coordinate of the last Z-level must match -hs 
+            f.write('S levels\n') # S-levels below 
+            f.write('{} {} {}\n'.format(40.,1.,1.e-4))  #constants used in S-transformation: h_c, theta_b, theta_f
+            f.write('{} {}\n'.format(1,-1.)) #first S-level (sigma-coordinate must be -1)
+            f.write('{} {}\n'.format(2,0.)) # levels index, sigma-coordinate, last sigma-coordinate must be 0
+
+       # save params.in
+        
+        self.params.to_csv(path + 'param.in', header=None, sep='=')  #save to file
+             
+        
+        #save hgrid.gr3
+        try:
+            
+            bat = -self.dem.impl.dem.ival.values.astype(float) #reverse for the hydro run
+                                    
+            self.grid.impl.grid.z.loc[:bat.size] = bat
+                                    
+            self.grid.impl.to_file(filename= path+'hgrid.gr3')
+            
+        except AttributeError as e:
+            print e
+            sys.stdout.write('No dem file ..')
+            
+        # save hgrid.ll 
+        
+        copyfile(path+'hgrid.gr3', path+'hgrid.ll')    
+                 
+                 
+        # manning file
+        manfile=path+'manning.gr3'
+        
+        nn = self.grid.impl.grid.x[np.isfinite(self.grid.impl.grid.x.values)].size
+        n3e = self.grid.impl.grid.a.size
+        
+        with open(manfile,'w') as f:
+            f.write('\t 0 \n')
+            f.write('\t {} {}\n'.format(n3e,nn))
+            
+        self.grid.impl.grid['man']=.12
+        
+        man = self.grid.impl.grid.to_dataframe().loc[:,['x','y','man']].dropna()
+        
+        man.to_csv(manfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['x','y','man'] )
+        
+        e = self.grid.impl.grid.to_dataframe().loc[:,['nv','a','b', 'c']]
+        
+        e.to_csv(manfile,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c']) 
+        
+        
+        # windrot_geo2proj
+        
+        windfile=path+'windrot_geo2proj.gr3'
+        
+        with open(windfile,'w') as f:
+            f.write('\t 0 \n')
+            f.write('\t {} {}\n'.format(n3e,nn))
+            
+        self.grid.impl.grid['windrot']=0.000001
+        
+        wd = self.grid.impl.grid.to_dataframe().loc[:,['x','y','windrot']].dropna()
+        
+        wd.to_csv(windfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['x','y','windrot'] )
+        
+        e.to_csv(windfile,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c'])
+        
+        
+        #save meteo
+        if self.atm:
+           try:
+              self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
+           except AttributeError as e:
+              print e 
+              pass
+
+             
+                                
+        
+        calc_dir = get_value(self,kwargs,'rpath','./') 
+                        
+        bin_path = get_value(self,kwargs,'epath', None) 
+        
+        if bin_path is None:
+            #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('Schism executable path (epath) not given\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+              
+            
+        ncores = get_value(self,kwargs,'ncores',1)
+        
+        conda_env = get_value(self,kwargs,'conda_env', None)
+                        
+            
+        with open(calc_dir + 'launchSchism.sh', 'w') as f:
+            if conda_env :
+                f.write('source activate {}\n'.format(conda_env))
+            f.write('exec={}\n'.format(bin_path))
+            f.write('mkdir outputs\n')
+            f.write('mpirun -N {} $exec\n'.format(ncores))   
+                 
+          #make the script executable
+        execf = calc_dir+'launchSchism.sh'
+        mode = os.stat(execf).st_mode
+        mode |= (mode & 0o444) >> 2    # copy R bits to X
+        os.chmod(execf, mode)
+
+    @staticmethod 
+    def to_force(ar,**kwargs):
+                
+        path = kwargs.get('rpath','./') 
+        
+        [p,u,v] = kwargs.get('vars','[None,None,None]')                
+            
+        xx, yy = np.meshgrid(ar.longitude.data, ar.latitude.data) 
+        
+        zero = np.zeros(ar[p].data.shape)
+        
+        tlist = (ar.time.data - ar.time.data[0]).astype('timedelta64[s]')/3600.
+        
+        tlist = tlist.astype(float)/24.
+        
+        udate = pd.to_datetime(ar.time[0].data).strftime('%Y-%m-%d')
+        
+        bdate = pd.to_datetime(ar.time[0].data).strftime('%Y %m %d %H').split(' ')
+        
+        bdate = [int(q) for q in bdate]
+        
+        sout= xr.Dataset({'prmsl':(['time', 'nx_grid', 'ny_grid'], ar[p].data),
+                          'uwind':(['time','nx_grid','ny_grid'], ar[u].data),
+                          'vwind':(['time','nx_grid','ny_grid'], ar[v].data),
+                          'spfh':(['time','nx_grid','ny_grid'], zero),
+                          'stmp':(['time','nx_grid','ny_grid'], zero),
+                          'lon':(['nx_grid','ny_grid'], xx),
+                          'lat':(['nx_grid','ny_grid'], yy)},
+                     coords={'time':tlist})
+                     
+        sout.attrs={'description' : 'Schism forsing',
+            'history' :'JRC Ispra European Commission',
+            'source' : 'netCDF4 python module'}
+            
+        sout.time.attrs={   'long_name':      'Time',
+                            'standard_name':  'time',
+                            'base_date':      bdate,
+                            'units':          udate}
+                            
+        sout.lat.attrs={'units': 'degrees_north',
+                       'long_name': 'Latitude',
+                       'standard_name':'latitude'}
+                       
+        sout.prmsl.attrs={'units': 'Pa',
+                       'long_name': 'Pressure reduced to MSL',
+                       'standard_name':'air_pressure_at_sea_level'}
+                       
+        sout.uwind.attrs={'units': 'm/s',
+                       'long_name': 'Surface Eastward Air Velocity',
+                       'standard_name':'eastward_wind'}
+                       
+        sout.vwind.attrs={'units': 'm/s',
+                       'long_name': 'Surface Northward Air Velocity',
+                       'standard_name':'northward_wind'}
+                       
+        sout.spfh.attrs={'units': '1',
+                       'long_name': 'Surface Specific Humidity (2m AGL)',
+                       'standard_name':'specific_humidity'}               
+                       
+        sout.stmp.attrs={'units': 'degrees',
+                       'long_name': 'Surface Temperature',
+                       'standard_name':'surface temperature'}
+               
+               
+        sout.to_netcdf(path+'sflux/sflux_air_1.001.nc')
+                                         
+                
+    def run(self,**kwargs):
+        
+        calc_dir = get_value(self,kwargs,'rpath','./') 
+                
+        bin_path = get_value(self,kwargs,'epath', None)   
+            
+        ncores = get_value(self,kwargs,'ncores',1)
+        
+        conda_env = get_value(self,kwargs,'conda_env', None)
+                
+            # note that cwd is the folder where the executable is
+        ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            
+        with open(calc_dir+'err.log', 'w') as f: 
+          for line in iter(ex.stderr.readline,b''): 
+            f.write(line)   
+            sys.stdout.write(line)
+            sys.stdout.flush()  
+        ex.stderr.close()            
+
+        with open(calc_dir+'run.log', 'w') as f: 
+          for line in iter(ex.stdout.readline,b''): 
+            f.write(line)   
+            sys.stdout.write(line)
+            sys.stdout.flush()  
+        ex.stdout.close()            
+                                  
+    def save(self,**kwargs):
+               
+         path = get_value(self,kwargs,'rpath','./')
+        
+#         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
+#         dic = {k: self.__dict__.get(k, None) for k in lista}
+#         dic['model'] = self.__class__.__name__
+#         dic = dict(dic, **{k: self.__dict__.get(k, None).impl.__class__.__name__ for k in ['meteo','dem']})
+         with open(path+self.tag+'_info.pkl', 'w') as f:
+               pickle.dump(self.model,f)
+               
+         z=self.model.copy()
+         z['version']=pyPoseidon.__version__
+         for attr, value in z.iteritems():
+             if isinstance(value, datetime.datetime) : z[attr]=z[attr].isoformat()
+         json.dump(z,open(path+self.tag+'_model.txt','w'))      

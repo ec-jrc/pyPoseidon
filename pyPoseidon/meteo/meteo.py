@@ -162,8 +162,7 @@ class ecmwf_oper(meteo):
             timestamp = pd.to_datetime(str(date)) + pd.to_timedelta('{}H'.format(dataTime/100.))
             tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
 
-                
-            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date):
+            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date + datetime.timedelta(hours=int(stepRange))):
                 
                 name,varin,ilon,ilat=getd(gid)    
             
