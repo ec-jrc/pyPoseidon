@@ -128,7 +128,7 @@ def video(fname, mimetype):
 
 @xr.register_dataset_accessor('splot')
 
-class plot(object):
+class splot(object):
     
     def __init__(self, xarray_obj):
         self._obj = xarray_obj    
