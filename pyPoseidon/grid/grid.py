@@ -18,15 +18,22 @@ class r2d(grid):
     """
     def __init__(self, **kwargs):
         
-        gx    = kwargs.get('x', None)
-        gy    = kwargs.get('y', None)
-        attrs = kwargs.get('attrs', {'Coordinate System': 'Spherical', 'alfori': 0.0, 'xori': 0.0, 'yori': 0.0})
+        if 'grid_file' in kwargs.keys(): 
+            
+            self.Dataset = self.read_file(**kwargs)
         
-        g = xr.Dataset({'lons': (['x', 'y'], gx),   
+        else:
+        
+            gx    = kwargs.get('x', None)
+            gy    = kwargs.get('y', None)
+            attrs = kwargs.get('attrs', {'Coordinate System': 'Spherical', 'alfori': 0.0, 'xori': 0.0, 'yori': 0.0})
+        
+            g = xr.Dataset({'lons': (['x', 'y'], gx),   
                         'lats': (['x', 'y'], gy)})
-        g.attrs = attrs
+            
+            g.attrs = attrs
         
-        self.grid = g
+            self.Dataset = g
         
 
     @staticmethod
@@ -59,16 +66,16 @@ class r2d(grid):
                     
     def to_file(self, filename, **kwargs):
         with open(filename,'w') as f:
-            f.write('Coordinate System= {}\n'.format(self.grid.attrs['Coordinate System']))
-            f.write('{} {}\n'.format(self.grid.lons.shape[1],self.grid.lons.shape[0]))
-            f.write('{} {} {}\n'.format(self.grid.attrs['xori'],self.grid.attrs['yori'],self.grid.attrs['alfori']))
-            for i in range(self.grid.lons.shape[0]):
+            f.write('Coordinate System= {}\n'.format(self.Dataset.attrs['Coordinate System']))
+            f.write('{} {}\n'.format(self.Dataset.lons.shape[1],self.Dataset.lons.shape[0]))
+            f.write('{} {} {}\n'.format(self.Dataset.attrs['xori'],self.Dataset.attrs['yori'],self.Dataset.attrs['alfori']))
+            for i in range(self.Dataset.lons.shape[0]):
                 f.write('ETA=  {} '.format(i+1))
-                f.write(' '.join(map(str, self.grid.lons[i,:].values)))
+                f.write(' '.join(map(str, self.Dataset.lons[i,:].values)))
                 f.write('\n')
-            for i in range(self.grid.lats.shape[0]):
+            for i in range(self.Dataset.lats.shape[0]):
                 f.write('ETA=  {} '.format(i+1))
-                f.write(' '.join(map(str, self.grid.lats[i,:].values)))
+                f.write(' '.join(map(str, self.Dataset.lats[i,:].values)))
                 f.write('\n')
 
         
@@ -77,22 +84,22 @@ class tri2d(grid):
     """Unstructured triangular 2d grid
     """
     def __init__(self, **kwargs):
+                    
+        if 'grid_file' in kwargs.keys(): 
             
-        if 'hgrid' in kwargs.keys(): 
-            
-            self.grid = self.read_file(**kwargs)
+            self.Dataset = self.read_file(**kwargs)
         
         else:
     
             g = None # create grid with JIGSAW
     
-            self.grid = g
+            self.Dataset = g
     
     
     @staticmethod
     def read_file(**kwargs):
         
-        hgrid  = kwargs.get('hgrid', None)
+        hgrid  = kwargs.get('grid_file', None)
         
         sys.stdout.flush()
         sys.stdout.write('\n')
@@ -163,27 +170,27 @@ class tri2d(grid):
     
     def to_file(self, filename, **kwargs):
         
-        nn = self.grid.x[np.isfinite(self.grid.x.values)].size
-        n3e = self.grid.a.size        
+        nn = self.Dataset.x[np.isfinite(self.Dataset.x.values)].size
+        n3e = self.Dataset.a.size        
                 
         with open(filename,'w') as f:
             f.write('\t uniform.gr3\n')
             f.write('\t {} {}\n'.format(n3e,nn))
         
-        q = self.grid.to_dataframe().loc[:,['x','y','z']].dropna()
+        q = self.Dataset.to_dataframe().loc[:,['x','y','z']].dropna()
         
         q.to_csv(filename,index=True, sep='\t', header=None,mode='a', float_format='%.10f', columns=['x','y','z'])   
         
-        e = self.grid.to_dataframe().loc[:,['nv','a','b', 'c']] 
+        e = self.Dataset.to_dataframe().loc[:,['nv','a','b', 'c']] 
             
         e.to_csv(filename,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c'])           
         
         # open boundaries
-        keys = [k for k in self.grid.variables.keys() if 'open' in k]
+        keys = [k for k in self.Dataset.variables.keys() if 'open' in k]
 
         if keys :
         
-            obound = self.grid.to_dataframe().loc[:,keys] # get the dataframe
+            obound = self.Dataset.to_dataframe().loc[:,keys] # get the dataframe
 
             nob = obound.shape[1] # number of boundaries
 
@@ -200,11 +207,11 @@ class tri2d(grid):
 
         # land boundaries                      
 
-        keys = [k for k in self.grid.variables.keys() if 'land' in k]
+        keys = [k for k in self.Dataset.variables.keys() if 'land' in k]
 
         if keys :
 
-            lbound = self.grid.to_dataframe().loc[:,keys] # get the dataframe
+            lbound = self.Dataset.to_dataframe().loc[:,keys] # get the dataframe
 
             nlb = lbound.shape[1] # number of boundaries
 
@@ -215,7 +222,7 @@ class tri2d(grid):
                 f.write('{} = Total number of land boundary nodes\n'.format(lps.sum()))
                 for i in range(nlb):
                     dat = lbound['land boundary {}'.format(i + 1)].dropna().astype(int)
-                    f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.grid.type.values[i],i + 1))
+                    f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.values[i],i + 1))
                     dat.to_csv(f,index=None)
 
         

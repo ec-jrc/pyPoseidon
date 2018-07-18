@@ -8,15 +8,15 @@ import pyresample
 import pandas as pd
 import xarray as xr
 
-def fix(b,shpfile, nc=10):
+def fix(dem,shpfile, nc=10):
     
     #define coastline
     
     shp = gp.GeoDataFrame.from_file(shpfile)
 
            
-    xp = b.dem.ilons.values
-    yp = b.dem.ilats.values
+    xp = dem.Dataset.ilons.values
+    yp = dem.Dataset.ilats.values
     
     
     #put them all in a list
@@ -97,10 +97,10 @@ def fix(b,shpfile, nc=10):
     yw=np.ma.masked_array(yp,wmask) 
     
     #mask positive bathymetry 
-    wet = np.ma.masked_array(b.dem.val.values,b.dem.val.values>0)
+    wet = np.ma.masked_array(dem.Dataset.val.values,dem.Dataset.val.values>0)
    # wet.fill_value = 0.
-    mx = np.ma.masked_array(b.dem.dlons.values,b.dem.val.values>0) 
-    my = np.ma.masked_array(b.dem.dlats.values,b.dem.val.values>0)
+    mx = np.ma.masked_array(dem.Dataset.dlons.values,dem.Dataset.val.values>0) 
+    my = np.ma.masked_array(dem.Dataset.dlats.values,dem.Dataset.val.values>0)
     
     orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
     targ = pyresample.geometry.SwathDefinition(lons=xw,lats=yw) # wet points
@@ -114,7 +114,7 @@ def fix(b,shpfile, nc=10):
                                   coords={'longitude': ('longitude', xp[0,:]),   
                                           'latitude': ('latitude', yp[:,0])})
     
-    b.dem = xr.merge([b.dem,fval])
+    dem.Dataset = xr.merge([dem.Dataset,fval])
     
 def internal(cg, xp, yp):
     

@@ -56,7 +56,7 @@ class emodnet(dem):
       lons, lats = np.meshgrid(lon[i1:i2],lat[j1:j2])
       topo = data.depth[j1:j2,i1:i2]
               
-      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  topo), 
+      self.Dataset = xr.Dataset({'val': (['dlat', 'dlon'],  topo), 
                             'dlons': (['i', 'j'], lons),   
                             'dlats': (['i', 'j'], lats)}, 
                             coords={'dlon': ('dlon', lons[0,:]),   
@@ -87,7 +87,7 @@ class emodnet(dem):
                         'ilats': (['k'], grid_y)}
                              )
       
-          self.dem = xr.merge([self.dem,dem])
+          self.Dataset = xr.merge([self.Dataset,dem])
        
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
@@ -160,7 +160,7 @@ class erdap(dem):
               .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
                  )
             
-      self.dem = dem       
+      self.Dataset = dem       
       
       
       if 'grid_x' in kwargs.keys():
@@ -189,7 +189,7 @@ class erdap(dem):
                               )         
             
       
-         self.dem = xr.merge([self.dem,idem])
+         self.Dataset = xr.merge([self.Dataset,idem])
                
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
@@ -212,7 +212,7 @@ class gebco(dem):
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)
       maxlat = kwargs.get('maxlat', None) 
-           
+                 
       if minlon < -180: minlon = minlon + 360.
       
       if maxlon < -180: maxlon = maxlon + 360.
@@ -244,7 +244,7 @@ class gebco(dem):
       xx,yy = np.meshgrid(dem.lon,dem.lat)
       
       
-      self.dem = xr.Dataset({'val': (['dlat', 'dlon'],  dem), 
+      self.Dataset = xr.Dataset({'val': (['dlat', 'dlon'],  dem), 
                             'dlons': (['i', 'j'], xx),   
                             'dlats': (['i', 'j'], yy)}, 
                             coords={'dlon': ('dlon', xx[0,:]),   
@@ -277,7 +277,7 @@ class gebco(dem):
                              )
                          
        
-         self.dem = xr.merge([self.dem,dem])
+         self.Dataset = xr.merge([self.Dataset,dem])
          
       
       #--------------------------------------------------------------------- 
