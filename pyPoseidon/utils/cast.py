@@ -35,7 +35,8 @@ class dcast(cast):
     def run(self,**kwargs):
         
                       
-        files=[self.tag+'_hydro.xml',self.tag+'.grd',self.tag+'.enc',self.tag+'.obs',self.tag+'.dep', self.tag+'.bnd', self.tag+'.bca','run_flow2d3d.sh']
+        files=[self.tag+'_hydro.xml',self.tag+'.enc',self.tag+'.obs', self.tag+'.bnd', self.tag+'.bca','run_flow2d3d.sh']
+        files_sym=[self.tag+'.grd',self.tag+'.dep']
         
                 
         prev=self.folders[0]
@@ -86,6 +87,19 @@ class dcast(cast):
                  copy2(ppath+filename,rpath+filename)
         #     if os.path.exists(rpath+filename)==False: 
         #        os.symlink(fpath+filename,rpath+filename)
+        
+        
+            #symlink the big files
+            for filename in files_sym:
+                ipath = glob.glob(self.path+self.folders[0]+'/'+filename)[0]
+                try:
+                    os.symlink(ipath,rpath+filename)
+                except OSError, e:
+                  if e.errno == errno.EEXIST:
+                      sys.stdout.write('Restart link present\n')
+                      sys.stdout.write('overwriting\n')
+                      os.remove(rpath+filename)
+                      os.symlink(ipath,rpath+filename)
             
             copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
                 
