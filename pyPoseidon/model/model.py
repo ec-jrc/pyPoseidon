@@ -818,21 +818,21 @@ class schism(model):
     def set(self,**kwargs):
 
 
-        hgrid = kwargs.get('grid_file',None)
+        self.hgrid = kwargs.get('grid_file',None)
         
-        Tstart = self.start_date.hour*60     
-        Tstop = int((self.end_date - self.start_date).total_seconds()/60)
+        self.Tstart = self.start_date.hour*60     
+        self.Tstop = int((self.end_date - self.start_date).total_seconds()/60)
 
-        step = get_value(self,kwargs,'step',0)
-        rstep = get_value(self,kwargs,'rstep',0)
-        dt = get_value(self,kwargs,'dt',400)
+        self.step = get_value(self,kwargs,'step',0)
+        self.rstep = get_value(self,kwargs,'rstep',0)
+        self.dt = get_value(self,kwargs,'dt',400)
                                                        
                                   
         # Grid         
         self.grid=pgrid.grid(type='tri2d',**kwargs)
                  
         # set lat/lon from file
-        if hgrid:
+        if self.hgrid:
             self.minlon = self.grid.impl.Dataset.x.dropna('id').values.min()
             self.maxlon = self.grid.impl.Dataset.x.dropna('id').values.max()
             self.minlat = self.grid.impl.Dataset.y.dropna('id').values.min()
@@ -888,8 +888,8 @@ class schism(model):
             params.loc['start_day'] = self.start_date.day
             params.loc['start_month'] = self.start_date.month
             params.loc['start_year'] = self.start_date.year
-            params.loc['rnday'] = (Tstop-Tstart)/(60*24.)
-            params.loc['dt'] = dt
+            params.loc['rnday'] = (self.Tstop-self.Tstart)/(60*24.)
+            params.loc['dt'] = self.dt
             
         
         self.params = params
@@ -924,7 +924,7 @@ class schism(model):
         
         dpath =  get_value(self,kwargs,'dpath',None)        
         
-        z.update({dpath:dpath})
+        z.update({'dpath':dpath})
                 
         flag = get_value(self,kwargs,'update',None)
         # check if files exist
@@ -932,7 +932,7 @@ class schism(model):
             if 'dem' in flag :
                 self.dem = pdem.dem(**z)
             else:
-                sys.stdout.write('reading dem ..\n')
+                sys.stdout.write('dem from grid file\n')
         else:
             self.dem = pdem.dem(**z)
 
@@ -993,9 +993,15 @@ class schism(model):
             
         except AttributeError as e:
             print e
-            sys.stdout.write('No dem file ..')
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('Keeping bathymetry from hgrid.gr3 ..\n')
+            sys.stdout.flush()
             
-        # save hgrid.ll 
+            
+        # save grid files 
+        
+        copyfile(self.hgrid, path+'hgrid.gr3') #copy original grid file
         
         copyfile(path+'hgrid.gr3', path+'hgrid.ll')    
                  

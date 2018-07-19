@@ -2,7 +2,7 @@ import numpy as np
 import pyresample
 import xarray as xr
 import sys
-from pyPoseidon.utils.fix import *
+from pyPoseidon.utils.fix import fix
 
 class dem:
     impl=None

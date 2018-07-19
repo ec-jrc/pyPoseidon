@@ -6,7 +6,9 @@ from shutil import copy2
 import logging
 import glob
 import pickle
-from pyPoseidon.model import *
+import pyPoseidon.model as pm
+from pyPoseidon.utils.get_value import get_value
+import pandas as pd
 
 class cast:
     impl=None
@@ -76,7 +78,7 @@ class dcast(cast):
             
 #            for attr, value in self.iteritems():
 #                setattr(info, attr, value)
-            m=model(**info)
+            m=pm.model(**info)
                                     
             # copy/link necessary files
 

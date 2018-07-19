@@ -1,7 +1,6 @@
 import numpy as np
 import pickle
 import os
-#from pyPoseidon.model import *
 from pyPoseidon.utils.vis import *
 from pyPoseidon.utils.obs import obs
 from pyPoseidon.grid import *
