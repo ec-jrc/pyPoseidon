@@ -1,9 +1,7 @@
 #!/TEST/brey/miniconda3/envs/pyPoseidon/bin/python
 # coding: utf-8
 # ## An example workflow
-from pyPoseidon.model import *
-from pyPoseidon.dem import *
-from pyPoseidon.meteo import *
+import pyPoseidon.model as pm
 import datetime
 
 #define in a dictionary the properties of the model..

@@ -1,7 +1,7 @@
 #!/TEST/brey/miniconda3/envs/pyPoseidon/bin/python
 # coding: utf-8
 # ## hindcast example
-from pyPoseidon.utils.cast import *
+from pyPoseidon.utils import cast
 
 # ### setup
 #read the info from the first run
