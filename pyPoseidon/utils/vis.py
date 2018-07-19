@@ -134,11 +134,13 @@ class splot(object):
         self._obj = xarray_obj    
         
  
-    def contour(self,var,**kwargs):
-        x = self._obj.SCHISM_hgrid_node_x[:].values
-        y = self._obj.SCHISM_hgrid_node_y[:].values
-        t = self._obj.time.values
-        tri3 = self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
+    def contour(self,var,**kwargs):        
+        
+        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        t = kwargs.get('t',self._obj.time.values)
+        
+        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
     
         it = kwargs.get('it', None)
@@ -174,10 +176,12 @@ class splot(object):
         return p   
     
     def contourf(self,var,**kwargs):
-        x = self._obj.SCHISM_hgrid_node_x[:].values
-        y = self._obj.SCHISM_hgrid_node_y[:].values
-        t = self._obj.time.values
-        tri3 = self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
+        
+        
+        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        t = kwargs.get('t',self._obj.time.values)
+        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
     
         it = kwargs.get('it', None)
@@ -215,11 +219,11 @@ class splot(object):
             
     
     def quiver(self,var,**kwargs):
-        x = self._obj.SCHISM_hgrid_node_x[:].values
-        y = self._obj.SCHISM_hgrid_node_y[:].values
-        t = self._obj.time.values
+        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        t = kwargs.get('t',self._obj.time.values)
         
-        tri3 = self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
+        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
     
         it = kwargs.get('it', None)
@@ -254,10 +258,10 @@ class splot(object):
         return p   
         
     def grid(self,**kwargs):
-         
-        x = self._obj.SCHISM_hgrid_node_x[:].values
-        y = self._obj.SCHISM_hgrid_node_y[:].values
-        tri3 = self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
+                  
+        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
          
          
@@ -283,13 +287,13 @@ class splot(object):
     
     def qframes(self,var,**kwargs):
         
-        x = self._obj.SCHISM_hgrid_node_x[:].values
-        y = self._obj.SCHISM_hgrid_node_y[:].values
+        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         
-        u = self._obj[var].values[:,:,0]
-        v = self._obj[var].values[:,:,1]
+        u = kwargs.get('u',self._obj[var].values[:,:,0])
+        v = kwargs.get('v',self._obj[var].values[:,:,1])
         
-        t = self._obj.time.values
+        t = kwargs.get('t',self._obj.time.values)
         
         scale = kwargs.get('scale', .1)
         
@@ -337,10 +341,10 @@ class splot(object):
  
     def frames(self,var,**kwargs):
     
-        x = self._obj.SCHISM_hgrid_node_x[:].values
-        y = self._obj.SCHISM_hgrid_node_y[:].values
-        t = self._obj.time.values
-        tri3 = self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
+        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        t = kwargs.get('t',self._obj.time.values)
+        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
     
         z = self._obj[var].values

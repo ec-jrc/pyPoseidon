@@ -56,6 +56,9 @@ class model:
     
     def read(self,**kwargs):
         self.impl.read(**kwargs)
+        
+    def config(self,**kwargs):
+        self.impl.config(**kwargs)    
 
     def force(self,**kwargs):
         self.impl.force(**kwargs)
@@ -76,14 +79,13 @@ class model:
     def read_model(filename,**kwargs):
                 
         end = filename.split('.')[-1]
-        
+
         if end in ['txt','json'] :
-            info = pd.read_json(filename).T.to_dict()[0]
-        elif end is 'pkl':
+            info = pd.read_json(filename,lines=True).T.to_dict()[0]
+        elif end in ['pkl']:
             info = pd.read_pickle(filename)
         
-        b = model(**info)
-        return b                
+        return model(**info)
     
     @staticmethod           
     def read_folder(rfolder,**kwargs):
@@ -93,14 +95,41 @@ class model:
                 
         if s : 
             hfile = rfolder + '/hgrid.gr3' # Grid
-            b = model(solver=schism,param_file=s[0],grid_file=hfile)
+            b = schism()
+            params = pd.read_csv(s[0],engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
+
+            fix_list = [k for k in params.attrs if '=' in k ]
+
+            for k in fix_list:
+                try:
+                    name, value = params.loc[params.attrs == k,'attrs'].values[0].split('=')
+                    params.loc[params.attrs == k,'attrs'] = name
+                    params.loc[params.attrs == name,'vals'] = value
+                except:
+                    pass
+                
+            b.params = params.set_index('attrs')
+            b.grid = pgrid.grid(type='tri2d',grid_file=hfile)
                                 
         elif d :
             gfile = glob.glob(rfolder + '/*.grd') # Grid
             dfile = glob.glob(rfolder + '/*.dep') # bathymetry
             
-            b = model(solver=d3d,mdf_file=d[0],grid_file=gfile, dem_file=dfile)
-                       
+            b = d3d()
+            b.mdf = pd.read_csv(d[0],sep='=')
+            b.mdf = b.mdf.set_index(b.mdf.columns[0]) # set index
+            b.grid = pgrid.grid('r2d',grid_file=gfile[0])
+            #bath
+            rdem = np.loadtxt(dfile[0])
+            zx=b.grid.impl.Dataset.lons.values
+            zy=b.grid.impl.Dataset.lats.values
+            
+            b.dem = xr.Dataset({'ival': (['ilat', 'ilon'],  rdem[:-1,:-1]), 
+                             'ilons': (['k', 'l'], zx),   
+                             'ilats': (['k', 'l'], zy)}, 
+                             coords={'ilon': ('ilon', zx[0,:]),   
+                                     'ilat': ('ilat', zy[:,0])})         
+                                                            
         else:
             #--------------------------------------------------------------------- 
             sys.stdout.flush()
@@ -134,7 +163,14 @@ class d3d(model):
         
         if not hasattr(self, 'date'): self.date = self.start_date
         
-        if self.end_date == None : sys.exit(1)
+        if self.end_date == None : 
+            #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('model not set properly, No end_date\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+            
         
         self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
@@ -157,13 +193,12 @@ class d3d(model):
 
         gx = get_value(self,kwargs,'x',None)
         gy = get_value(self,kwargs,'y',None)    
-        mdf_file = kwargs.get('mdf_file', None)  
-        Tstart = self.start_date.hour*60     
-        Tstop = int((self.end_date - self.start_date).total_seconds()/60)
+        self.Tstart = self.start_date.hour*60     
+        self.Tstop = int((self.end_date - self.start_date).total_seconds()/60)
 
-        step = get_value(self,kwargs,'step',0)
-        rstep = get_value(self,kwargs,'rstep',0)
-        dt = get_value(self,kwargs,'Dt',1)
+        self.step = get_value(self,kwargs,'step',0)
+        self.rstep = get_value(self,kwargs,'rstep',0)
+        self.dt = get_value(self,kwargs,'Dt',1)
                                                
         resmin=self.resolution*60
               
@@ -204,8 +239,25 @@ class d3d(model):
           
         self.grid=pgrid.grid(type='r2d',x=gx, y=gy)
         
+        # get bathymetry
+        self.bath(**kwargs)
+
+        # get boundaries
+        self.bc()
+                
+        #get meteo
+        if self.atm :  self.force(**kwargs)
+        
+        #get tide
+        if self.tide : self.tidebc()
+        
+        self.config(**kwargs)
         
         #mdf
+    def config(self,**kwargs):  
+        
+        mdf_file = kwargs.get('mdf_file', None)  
+
         if mdf_file :
             self.mdf = pd.read_csv(mdf_file,sep='=')
         else:
@@ -238,19 +290,19 @@ class d3d(model):
         self.mdf.loc[self.mdf.index.str.contains('Tunit')]='#M#'
 
         #adjust iteration start
-        self.mdf.loc[self.mdf.index.str.contains('Tstart')]=Tstart
+        self.mdf.loc[self.mdf.index.str.contains('Tstart')]=self.Tstart
   
         #adjust iteration stop
-        self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
+        self.mdf.loc[self.mdf.index.str.contains('Tstop')]=self.Tstop
   
         #adjust time step
-        self.mdf.loc[self.mdf.index.str.contains('Dt')]=[1.]
+        self.mdf.loc[self.mdf.index.str.contains('Dt')]=[self.dt]
   
         #adjust time for output
-        self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{} {} {}'.format(Tstart,step,Tstop)
-        self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(Tstart,dt,Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{} {} {}'.format(self.Tstart,self.step,self.Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(self.Tstart,self.dt,self.Tstop)
         self.mdf.loc[self.mdf.index.str.contains('Flpp')]='0 0 0'
-        self.mdf.loc[self.mdf.index.str.contains('Flrst')]=rstep
+        self.mdf.loc[self.mdf.index.str.contains('Flrst')]=self.rstep
   
         #time interval to smooth the hydrodynamic boundary conditions
         self.mdf.loc[self.mdf.index.str.contains('Tlfsmo')]=0.
@@ -281,26 +333,13 @@ class d3d(model):
             if key in mdfidx: self.mdf.loc[self.mdf.index.str.contains(key)] = val
         
 
-        # get bathymetry
-        self.bath(**kwargs)
-
-        # get boundaries
-        self.bc()
-                
-        #get meteo
-        if self.atm :  self.force(**kwargs)
-        
-        #get tide
-        if self.tide : self.tidebc()
-        
-
         #meteo
     def force(self,**kwargs):
         z = self.__dict__.copy()
                 
         mpaths =  get_value(self,kwargs,'mpaths',None)        
         
-        z.update({mpaths:mpaths})
+        z.update({'mpaths':mpaths})
 
         flag = get_value(self,kwargs,'update',None)
         # check if files exist
@@ -324,7 +363,7 @@ class d3d(model):
         
         dpath =  get_value(self,kwargs,'dpath',None)        
         
-        z.update({dpath:dpath})
+        z.update({'dpath':dpath})
         
         if 'dem_file' in kwargs.keys():
             
@@ -544,7 +583,7 @@ class d3d(model):
          z['version']=pyPoseidon.__version__
          for attr, value in z.iteritems():
              if isinstance(value, datetime.datetime) : z[attr]=z[attr].isoformat()
-         json.dump(z,open(path+self.tag+'_model.txt','w'))      
+         json.dump(z,open(path+self.tag+'_model.json','w'))      
     
     @staticmethod
     def read(filename,**kwargs):
@@ -749,7 +788,14 @@ class schism(model):
         
         if not hasattr(self, 'date'): self.date = self.start_date
         
-        if self.end_date == None : sys.exit(1)
+        if self.end_date == None : 
+            #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('model not set properly, No end_date\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+            
         
         self.tag = kwargs.get('tag', 'schism')
         self.resolution = kwargs.get('resolution', None)
@@ -773,6 +819,7 @@ class schism(model):
 
 
         hgrid = kwargs.get('grid_file',None)
+        
         Tstart = self.start_date.hour*60     
         Tstop = int((self.end_date - self.start_date).total_seconds()/60)
 
@@ -780,8 +827,6 @@ class schism(model):
         rstep = get_value(self,kwargs,'rstep',0)
         dt = get_value(self,kwargs,'dt',400)
                                                        
-        dic = get_value(self,kwargs,'params',None)
-        param_file = get_value(self,kwargs,'param_file',None)
                                   
         # Grid         
         self.grid=pgrid.grid(type='tri2d',**kwargs)
@@ -810,16 +855,27 @@ class schism(model):
         #get tide
         if self.tide : self.tidebc()
         
+        
+        self.config(**kwargs)
+    
         #param
+    def config(self,**kwargs): 
+        
+        dic = get_value(self,kwargs,'params',None)
+        param_file = get_value(self,kwargs,'param_file',None)
+           
         if param_file :
             params = pd.read_csv(param_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
 
             fix_list = [k for k in params.attrs if '=' in k ]
 
             for k in fix_list:
-                name, value = params.attrs[params.attrs == k].values[0].split('=')
-                params.attrs[params.attrs == k] = name
-                params.vals[params.attrs == name] = value
+                try:
+                    name, value = params.loc[params.attrs == k,'attrs'].values[0].split('=')
+                    params.loc[params.attrs == k,'attrs'] = name
+                    params.loc[params.attrs == name,'vals'] = value
+                except:
+                    pass
                 
             params = params.set_index('attrs')
         elif dic :
@@ -845,8 +901,6 @@ class schism(model):
         mpaths =  get_value(self,kwargs,'mpaths',None)        
         
         z.update({'mpaths':mpaths})
-
-        print z['mpaths']
         
         flag = get_value(self,kwargs,'update',None)
         # check if files exist

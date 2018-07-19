@@ -18,9 +18,11 @@ class r2d(grid):
     """
     def __init__(self, **kwargs):
         
-        if 'grid_file' in kwargs.keys(): 
+        grid_file  = kwargs.get('grid_file', None)
+                    
+        if grid_file :             
             
-            self.Dataset = self.read_file(**kwargs)
+            self.Dataset = self.read_file(grid_file)
         
         else:
         
@@ -85,9 +87,11 @@ class tri2d(grid):
     """
     def __init__(self, **kwargs):
                     
-        if 'grid_file' in kwargs.keys(): 
-            
-            self.Dataset = self.read_file(**kwargs)
+        grid_file  = kwargs.get('grid_file', None)
+                    
+        if grid_file: 
+              
+            self.Dataset = self.read_file(grid_file)
         
         else:
     
@@ -97,10 +101,8 @@ class tri2d(grid):
     
     
     @staticmethod
-    def read_file(**kwargs):
-        
-        hgrid  = kwargs.get('grid_file', None)
-        
+    def read_file(hgrid,**kwargs):
+                
         sys.stdout.flush()
         sys.stdout.write('\n')
         sys.stdout.write('reading grid from {}\n'.format(hgrid))
