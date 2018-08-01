@@ -121,47 +121,64 @@ class tri2d(grid):
         e = pd.read_csv(hgrid,skiprows=nn+2,header=None,delim_whitespace=True,engine='python',nrows=ne,names=['id','nv','a','b','c'])
         e=e.set_index(['id'])
     
-        #open boundaries
-        nob, tbn = pd.read_csv(hgrid,header=None,skiprows=ne+nn+2,nrows=2,delimiter='=')[0]
-        
-        ns = ne + nn + 2 + 2
-        nnob = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].values[0]
-        label = ' '.join(pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:])
-        op = pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnob,names=[label])
-        for i in range(1, nob):
-            ns = ns + 1 + nnob
+        #Number of open boundaries
+        nob = pd.read_csv(hgrid,header=None,skiprows=ne+nn+2,nrows=1,delimiter='=')[0]
+
+        if nob.values > 0:
+            #Total number of open boundary nodes
+            ton = pd.read_csv(hgrid,header=None,skiprows=ne+nn+3,nrows=1,delimiter='=')[0]
+
+            ns = ne + nn + 2 + 2
             nnob = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].values[0]
-            label = ' '.join( pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:] )
-            op = pd.concat([op,pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnob,names=[label])], axis=1)
+            label = ' '.join(pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:])
+            op = pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnob,names=[label])
+            for i in range(1, nob):
+                ns = ns + 1 + nnob
+                nnob = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].values[0]
+                label = ' '.join( pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:] )
+                op = pd.concat([op,pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnob,names=[label])], axis=1)
 
-        op.index.name = 'id' # set index name to match q,e
-        op.index = op.index + 1 #  ''
+            op.index.name = 'id' # set index name to match q,e
+            op.index = op.index + 1 #  ''
         
-        #land boundaries
-        nlb, tbn = pd.read_csv(hgrid,header=None,skiprows=ns + 1 + nnob,nrows=2,delimiter='=')[0]
+        else:
+            ns = ne + nn + 3
+            nnob = 0
+            op = pd.DataFrame({})
         
-        ns = ns + 1 + nnob + 2
-        nnlb, btype = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].str.split()[0]
-        nnlb = int(nnlb)
-        label = ' '.join(pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:])
-        bt=[btype]
-        lp = pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnlb,names=[label])
-        for i in range(1, nlb):
-            ns = ns + 1 + nnlb
-            nnlb, btype  = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].str.split()[0]
+        #Number of land boundaries
+        nlb = pd.read_csv(hgrid,header=None,skiprows=ns + 1 + nnob,nrows=1,delimiter='=')[0]
+
+        if nlb.values > 0:
+            #Total number of land boundary nodes
+            tln = pd.read_csv(hgrid,header=None,skiprows=ns + 1 + nnob + 1,nrows=1,delimiter='=')[0]
+
+            ns = ns + 1 + nnob + 2
+            nnlb, btype = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].str.split()[0]
             nnlb = int(nnlb)
+            label = ' '.join(pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:])
+            bt=[btype]
+            lp = pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnlb,names=[label])
+            for i in range(1, nlb):
+                ns = ns + 1 + nnlb
+                nnlb, btype  = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].str.split()[0]
+                nnlb = int(nnlb)
 
-            bt.append(btype)
-            label = ' '.join( pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:] )
-            lp = pd.concat([lp,pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnlb,names=[label])], axis=1)
+                bt.append(btype)
+                label = ' '.join( pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:] )
+                lp = pd.concat([lp,pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnlb,names=[label])], axis=1)
 
-        lp.index.name = 'id' # set index name to match q,e
-        lp.index = lp.index + 1 #  ''
+            lp.index.name = 'id' # set index name to match q,e
+            lp.index = lp.index + 1 #  ''
         
-        #DataFrame with the type of land boundary
-        bbt = pd.DataFrame({'type':bt})
-        bbt.index.name = 'id'
-        bbt.index = bbt.index + 1
+            #DataFrame with the type of land boundary
+            bbt = pd.DataFrame({'type':bt})
+            bbt.index.name = 'id'
+            bbt.index = bbt.index + 1
+        
+        else:
+            lp=pd.DataFrame({})
+            bbt = pd.DataFrame({})
     
         # merge to one xarray DataSet
         g = xr.merge([q.to_xarray(), e.to_xarray(), op.to_xarray(), lp.to_xarray(), bbt.to_xarray()])
