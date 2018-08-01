@@ -78,6 +78,20 @@ def getd(gid):
               dat=_redtoreg(ny,ss,values,mv)
               dat=np.flipud(dat)
 
+            elif grib_get(gid,'gridType') == 'regular_ll':
+
+                Ni=grib_get(gid,'Ni')
+                Nj=grib_get(gid,'Nj')
+                lat=grib_get_array(gid,'latitudes')
+                lat=lat.reshape(Nj,Ni)
+                lat=np.flipud(lat)
+                lon=grib_get_array(gid,'longitudes')
+                lon=lon.reshape(Nj,Ni)
+
+                values=grib_get_values(gid)
+                dat=values.reshape(Nj,Ni)
+                dat=np.flipud(dat)
+        
             grib_release(gid)
 
             return name,dat,lon,lat
@@ -97,6 +111,9 @@ class meteo:
             self.impl = generic(**kwargs)
         elif msource == 'gfs_oper' :
             self.impl = gfs_oper(**kwargs)
+        elif msource == 'erai' :
+            self.impl = erai(**kwargs)
+            
         
         else:
             self.impl = gfs_erdap(**kwargs)
@@ -109,21 +126,23 @@ class ecmwf_oper(meteo):
       filenames = kwargs.get('mpaths', {})
       ft1 = kwargs.get('ft1', 0)
       ft2 = kwargs.get('ft2', 11)
-      dft = kwargs.get('dft', 1)      
-      
+      dft = kwargs.get('dft', 1)
+                  
       start_date = kwargs.get('start_date', None)
       self.start_date = pd.to_datetime(start_date)
       
       if 'time_frame' in kwargs:
-          time_frame = kwargs.get('time_frame', None)
-          self.end_date = self.start_date + pd.to_timedelta(time_frame)
+            time_frame = kwargs.get('time_frame', None)
+            self.end_date = self.start_date + pd.to_timedelta(time_frame)
       else:
-          end_date = kwargs.get('end_date', None)
-          self.end_date = pd.to_datetime(end_date)      
+            end_date = kwargs.get('end_date', None)
+            self.end_date = pd.to_datetime(end_date)
+            self.time_frame = self.end_date - self.start_date
+          
                             
       minlon = kwargs.get('minlon', None)
       maxlon = kwargs.get('maxlon', None)
-      minlat = kwargs.get('minlat', None)
+      minlat = kwargs.get('minlat', None)   
       maxlat = kwargs.get('maxlat', None) 
           
       # read grib file and append to xarray
@@ -132,6 +151,11 @@ class ecmwf_oper(meteo):
       ut=[]
       vt=[]
       tt=[]
+
+
+      sR = 0 # copmute the time step of the data
+      dsR = 0
+
       
       for filename in filenames:
         
@@ -147,8 +171,6 @@ class ecmwf_oper(meteo):
       	except:
         	print 'no file {}'.format(filename)
          	sys.exit(1)
-
-
         while True:
           try:
             gid = grib_new_from_file(f)#,headers_only = True)
@@ -159,16 +181,18 @@ class ecmwf_oper(meteo):
             date=grib_get(gid, 'date')
             dataTime=grib_get(gid, 'dataTime')
             stepRange=grib_get(gid, 'stepRange')
+            dsR_=int(stepRange)-sR # current time step
+            dsR = max(dsR_, dsR) #save the max 
+            sR=int(stepRange) #update for future comparison
             timestamp = pd.to_datetime(str(date)) + pd.to_timedelta('{}H'.format(dataTime/100.))
             tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
-
-            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date + datetime.timedelta(hours=int(stepRange))):
+            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date + pd.to_timedelta('{}H'.format(dsR))):
                 
                 name,varin,ilon,ilat=getd(gid)    
             
             else:
                 grib_release(gid)
-                if int(stepRange) > ft2 : break
+                if tstamp > self.end_date + pd.to_timedelta('{}H'.format(dsR)): break
                 continue
                 
             lon=ilon[0,:]
@@ -328,14 +352,14 @@ class gfs_erdap(meteo):
 
           sh = (
               data[['prmslmsl','ugrd10m', 'vgrd10m']]
-              .isel(longitude=slice(i0,data.longitude.size),latitude=slice(j0,j1))
+              .isel(longitude=slice(i0,data.longitude.size),latitude=slice(j0,j1+1))
               .sel(time=tslice)
               )
           sh.longitude.values = sh.longitude.values -360.
 
           sh1 = (
               data[['prmslmsl','ugrd10m', 'vgrd10m']]
-              .isel(longitude=slice(0,i1),latitude=slice(j0,j1))
+              .isel(longitude=slice(0,i1+1),latitude=slice(j0,j1+1))
               .sel(time=tslice)
               )
               
@@ -345,7 +369,7 @@ class gfs_erdap(meteo):
 
           tot = (
               data[['prmslmsl','ugrd10m', 'vgrd10m']]
-              .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
+              .isel(longitude=slice(i0,i1+1),latitude=slice(j0,j1+1))
               .sel(time=tslice)
               )
               
@@ -825,14 +849,14 @@ class gfs_oper(meteo):
 
           sh = (
               data[['prmslmsl','ugrd10m', 'vgrd10m']]
-              .isel(lon=slice(i0,data.lon.size),lat=slice(j0,j1))
+              .isel(lon=slice(i0,data.lon.size),lat=slice(j0,j1+1))
               .sel(time=tslice)
               )
           sh.lon.values = sh.lon.values -360.
 
           sh1 = (
               data[['prmslmsl','ugrd10m', 'vgrd10m']]
-              .isel(lon=slice(0,i1),lat=slice(j0,j1))
+              .isel(lon=slice(0,i1+1),lat=slice(j0,j1+1))
               .sel(time=tslice)
               )
               
@@ -842,7 +866,7 @@ class gfs_oper(meteo):
 
           tot = (
               data[['prmslmsl','ugrd10m', 'vgrd10m']]
-              .isel(lon=slice(i0,i1),lat=slice(j0,j1))
+              .isel(lon=slice(i0,i1+1),lat=slice(j0,j1+1))
               .sel(time=tslice)
               )
               
@@ -883,4 +907,167 @@ class gfs_oper(meteo):
                 
         s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
         
+    
+
+class erai(meteo):
+    
+    def __init__(self,**kwargs):
+    
+      filenames = kwargs.get('mpaths', {})
+      ft1 = kwargs.get('ft1', 0)
+      ft2 = kwargs.get('ft2', 11)
+      dft = kwargs.get('dft', 1)
+                  
+      start_date = kwargs.get('start_date', None)
+      self.start_date = pd.to_datetime(start_date)
+      
+      if 'time_frame' in kwargs:
+            time_frame = kwargs.get('time_frame', None)
+            self.end_date = self.start_date + pd.to_timedelta(time_frame)
+      else:
+            end_date = kwargs.get('end_date', None)
+            self.end_date = pd.to_datetime(end_date)
+            self.time_frame = self.end_date - self.start_date
+          
+                            
+      minlon = kwargs.get('minlon', None)
+      maxlon = kwargs.get('maxlon', None)
+      minlat = kwargs.get('minlat', None)   
+      maxlat = kwargs.get('maxlat', None) 
+       
+       
+       # read grib file and append to xarray
+
+      pt=[]
+      ut=[]
+      vt=[]
+      tt=[]
+
+          
+      for filename in filenames:
+        
+          #--------------------------------------------------------------------- 
+          sys.stdout.flush()
+          sys.stdout.write('\n')
+          sys.stdout.write('extracting meteo from {}\n'.format(filename))
+          sys.stdout.flush()
+          #---------------------------------------------------------------------        
+
+          try: 
+              f = open(filename)
+          except:
+              print 'no file {}'.format(filename)
+              sys.exit(1)
+          while True:
+              try:
+                  gid = grib_new_from_file(f)#,headers_only = True)
+                  if gid is None: 
+                      sys.stdout.write('end of file {}\n'.format(filename))
+                      break
+            
+                  date=grib_get(gid, 'date')
+                  dataTime=grib_get(gid, 'dataTime')
+                  stepRange=grib_get(gid, 'stepRange')
+                  timestamp = pd.to_datetime(str(date)) + pd.to_timedelta('{}H'.format(dataTime/100.))
+                  tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
+                  if tstamp <= pd.to_datetime(self.end_date):
+                
+                      name,varin,ilon,ilat=getd(gid)    
+
+                  else:
+                      grib_release(gid)
+                      if tstamp > pd.to_datetime(self.end_date) : break
+                      continue
+                
+                  lon=ilon[0,:]
+                  lat=ilat[:,0]
+           
+              # verbose 
+              #--------------------------------------------------------------------- 
+                  sys.stdout.flush()
+                  sys.stdout.write('\n')
+                  sys.stdout.write('retrieving {} at {}\n'.format(name, tstamp))
+                  sys.stdout.flush()
+              #---------------------------------------------------------------------        
+        
+        
+              # shift grid according to minlon
+                  if minlon < 0. :
+                      lon=lon-180.
+                      zlon=lon.shape[0]
+                      varin_ = np.hstack([varin[:,zlon/2:],varin[:,0:zlon/2]])
+                      varin  = varin_
+
+                  i1=np.abs(lon-minlon).argmin()-2
+                  i2=np.abs(lon-maxlon).argmin()+2
+                  j1=np.abs(lat-minlat).argmin()-2
+                  j2=np.abs(lat-maxlat).argmin()+2
+    
+                  if i1 < 0 : i1 = 0 # fix limits
+                  if i2 > lon.shape[0] : i2 = lon.shape[0]   
+                  if j1 < 0 : j1 = 0
+                  if j2 > lat.shape[0]: j2 = lat.shape[0]
+            
+
+                  lons, lats = np.meshgrid(lon[i1:i2],lat[j1:j2])
+                  data = deepcopy(varin[j1:j2,i1:i2])
+
+              # mask the window
+
+                  if name == 'msl' : 
+                           pt.append(data)
+                           tt.append(tstamp)
+                  elif name == '10u':
+                           ut.append(data)
+                  elif name == '10v':
+                           vt.append(data)
+
+
+          # END OF FOR
+
+              except Exception as e:
+                  print e
+                  print 'ERROR in meteo file {}'.format(date)
+
+          f.close()
+
+      met = xr.Dataset({'msl': (['time', 'latitude', 'longitude'],  np.array(pt)), 
+                                'u10': (['time', 'latitude', 'longitude'], np.array(ut)),   
+                                'v10': (['time', 'latitude', 'longitude'], np.array(vt)),   
+                                'lons': (['x', 'y'], lons),   
+                                'lats': (['x', 'y'], lats)},   
+                                coords={'longitude': ('longitude', lons[0,:]),   
+                                        'latitude': ('latitude', lats[:,0]),   
+                                        'time': tt })   
+
+      self.uvp = met
+      self.ft1 = ft1
+      self.ft2 = ft2 
+      self.dft = dft   
+      
+      self.hview = hv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'])
+
+      self.gview = gv.Dataset(self.uvp,kdims=['time','longitude','latitude'],vdims=['msl','u10','v10'],crs=crs.PlateCarree())
+      
+      
+      #--------------------------------------------------------------------- 
+      sys.stdout.flush()
+      sys.stdout.write('\n')
+      sys.stdout.write('meteo done\n')
+      sys.stdout.flush()
+      #--------------------------------------------------------------------- 
+      
+      
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+    
+        
+      
     
