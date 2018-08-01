@@ -365,7 +365,7 @@ class schism(data):
             #store them in a list
             out=[]
             for i in range(len(keys)):
-                ifiles = [f for f in files if '{}_'.format(i) in f]
+                ifiles = [f for f in files if '{:04d}_'.format(i) in f]
                 out.append(xr.open_mfdataset(ifiles))
                 
             #convert times to Timestamp
@@ -700,11 +700,7 @@ class schism(data):
             
 
             dat = xr.merge([xe,xn,xg])#MERGE
-             
-            dat.attrs = {'Conventions': 'CF-1.0, UGRID-1.0', 'title': 'SCHISM Model output', 'source': 'SCHISM model output version v10', 'references': 'http://ccrm.vims.edu/schismweb/',
-                         'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
-            
-            
+                         
             datai.append(dat) #append to list 
             
             savenc = kwargs.get('savenc',False)
@@ -714,6 +710,9 @@ class schism(data):
     
 
         self.Dataset = xr.merge(datai) #save final xarray
+                
+        self.Dataset.attrs = {'Conventions': 'CF-1.0, UGRID-1.0', 'title': 'SCHISM Model output', 'source': 'SCHISM model output version v10', 'references': 'http://ccrm.vims.edu/schismweb/',
+                     'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
                 
         tag = kwargs.get('tag', None)
         
