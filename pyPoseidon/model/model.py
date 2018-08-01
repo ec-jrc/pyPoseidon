@@ -15,9 +15,9 @@ from shutil import copyfile
 import xarray as xr
 
 #local modules
-import pyPoseidon.grid as pgrid
 from bnd import *
 import pyPoseidon
+import pyPoseidon.grid as pgrid
 import pyPoseidon.meteo as pmeteo
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.get_value import get_value
@@ -160,6 +160,7 @@ class d3d(model):
         else:
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
+            self.time_frame = self.end_date - self.start_date
         
         if not hasattr(self, 'date'): self.date = self.start_date
         
@@ -180,27 +181,25 @@ class d3d(model):
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
 
-        for attr, value in kwargs.iteritems():
-                if not hasattr(self, attr): setattr(self, attr, value)
-            
-        self.model = self.__dict__.copy()    
-        self.model['solver'] = self.__class__.__name__    
+        self.solver = self.__class__.__name__    
         
         self.epath = kwargs.get('epath', None)
+        
+        self.Tstart = self.start_date.hour*60     
+        self.Tstop = self.Tstart + int(pd.to_timedelta(self.time_frame).total_seconds()/60)
+
+        self.step = get_value(self,kwargs,'step',0)
+        self.rstep = get_value(self,kwargs,'rstep',0)
+        self.dt = get_value(self,kwargs,'Dt',1)
+                                               
+        for attr, value in kwargs.iteritems():
+                if not hasattr(self, attr): setattr(self, attr, value)
         
                           
     def set(self,**kwargs):
 
         gx = get_value(self,kwargs,'x',None)
         gy = get_value(self,kwargs,'y',None)    
-        self.Tstart = self.start_date.hour*60     
-        self.Tstop = int((self.end_date - self.start_date).total_seconds()/60)
-
-        self.step = get_value(self,kwargs,'step',0)
-        self.rstep = get_value(self,kwargs,'rstep',0)
-        self.dt = get_value(self,kwargs,'Dt',1)
-                                               
-        resmin=self.resolution*60
               
         # computei ni,nj / correct lat/lon
 
@@ -234,6 +233,7 @@ class d3d(model):
         
         self.ni=ni
         self.nj=nj
+         
  
         # Grid 
           
@@ -256,7 +256,7 @@ class d3d(model):
         #mdf
     def config(self,**kwargs):  
         
-        mdf_file = kwargs.get('mdf_file', None)  
+        mdf_file = kwargs.get('config_file', None)  
 
         if mdf_file :
             self.mdf = pd.read_csv(mdf_file,sep='=')
@@ -328,10 +328,23 @@ class d3d(model):
             
         self.mdf.loc['FlNcdf '] = '#map his#'
 
+        other = kwargs.get('config', None) 
+        if other:
         # Check for any other mdf variable in input
-        for key,val in kwargs.iteritems():
-            if key in mdfidx: self.mdf.loc[self.mdf.index.str.contains(key)] = val
+            for key,val in other.iteritems():
+                if key in mdfidx: 
+                    self.mdf.loc[self.mdf.index.str.contains(key)] = val
+                else:
+                    self.mdf.loc[key] = val
         
+        
+        output = kwargs.get('output', False)
+        
+        if output: 
+            #save mdf 
+            path = get_value(self,kwargs,'rpath','./') 
+            self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
+            
 
         #meteo
     def force(self,**kwargs):
@@ -385,7 +398,18 @@ class d3d(model):
             elif 'dem' in flag :
                 self.dem = pdem.dem(**z)
             else:
-                sys.stdout.write('skipping dem files ..\n')
+                sys.stdout.write('reading local dem file ..\n')
+                dem_file = z['rpath']+self.tag+'.dep'
+                rdem = np.loadtxt(dem_file)
+                zx=self.grid.impl.Dataset.lons.values
+                zy=self.grid.impl.Dataset.lats.values
+            
+                self.dem = xr.Dataset({'ival': (['ilat', 'ilon'],  rdem[:-1,:-1]), 
+                                 'ilons': (['k', 'l'], zx),   
+                                 'ilats': (['k', 'l'], zy)}, 
+                                 coords={'ilon': ('ilon', zx[0,:]),   
+                                         'ilat': ('ilat', zy[:,0])})         
+                
         else:
             self.dem = pdem.dem(**z)
                 
@@ -572,18 +596,37 @@ class d3d(model):
                
          path = get_value(self,kwargs,'rpath','./')
         
-#         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
-#         dic = {k: self.__dict__.get(k, None) for k in lista}
-#         dic['model'] = self.__class__.__name__
-#         dic = dict(dic, **{k: self.__dict__.get(k, None).impl.__class__.__name__ for k in ['meteo','dem']})
+         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
+         dic = {k: self.__dict__.get(k, None) for k in lista}
+
+         grid=self.__dict__.get('grid', None)
+         if isinstance(grid,np.str):
+             dic.update({'grid':grid})
+         elif isinstance(grid,pgrid.grid):
+             dic.update({'grid':grid.impl.__class__.__name__})
+         
+         dem=self.__dict__.get('dem', None)
+         if isinstance(dem,np.str):
+             dic.update({'dem':dem})
+         elif isinstance(dem,pdem.dem):
+             dic.update({'dem':dem.impl.__class__.__name__})
+
+         meteo=self.__dict__.get('meteo', None)
+         if isinstance(meteo,np.str):
+             dic.update({'meteo':meteo})
+         elif isinstance(meteo,pmeteo.meteo):
+             dic.update({'meteo':meteo.impl.__class__.__name__})
+
+         dic['version']=pyPoseidon.__version__
+         
          with open(path+self.tag+'_info.pkl', 'w') as f:
-               pickle.dump(self.model,f)
-               
-         z=self.model.copy()
-         z['version']=pyPoseidon.__version__
-         for attr, value in z.iteritems():
-             if isinstance(value, datetime.datetime) : z[attr]=z[attr].isoformat()
-         json.dump(z,open(path+self.tag+'_model.json','w'))      
+               pickle.dump(dic,f)
+                        
+         for attr, value in dic.iteritems():
+             if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
+             if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
+             if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
+         json.dump(dic,open(path+self.tag+'_model.json','w'))      
     
     @staticmethod
     def read(filename,**kwargs):
@@ -782,10 +825,11 @@ class schism(model):
         if 'time_frame' in kwargs:
             time_frame = kwargs.get('time_frame', None)
             self.end_date = self.start_date + pd.to_timedelta(time_frame)
-        else:
+        elif 'end_date' in kwargs:
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
-        
+            self.time_frame = self.end_date - self.start_date
+
         if not hasattr(self, 'date'): self.date = self.start_date
         
         if self.end_date == None : 
@@ -804,30 +848,28 @@ class schism(model):
         self.dft = kwargs.get('dft', 1)       
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
-
-        for attr, value in kwargs.iteritems():
-                if not hasattr(self, attr): setattr(self, attr, value)
-            
-        self.model = self.__dict__.copy()    
-        self.model['solver'] = self.__class__.__name__    
-        
+    
         self.epath = kwargs.get('epath', None)
     
-    
+        self.Tstart = self.start_date.hour*60     
+        self.Tstop = self.Tstart + int((self.end_date - self.start_date).total_seconds()/60)
+        
+        self.step = get_value(self,kwargs,'step',0)
+        self.rstep = get_value(self,kwargs,'rstep',0)
+        self.dt = get_value(self,kwargs,'dt',400)
+        
+        self.solver = self.__class__.__name__    
+        
+                                                   
+        for attr, value in kwargs.iteritems():
+            if not hasattr(self, attr): setattr(self, attr, value)  
+         
                           
     def set(self,**kwargs):
 
 
         self.hgrid = kwargs.get('grid_file',None)
-        
-        self.Tstart = self.start_date.hour*60     
-        self.Tstop = int((self.end_date - self.start_date).total_seconds()/60)
-
-        self.step = get_value(self,kwargs,'step',0)
-        self.rstep = get_value(self,kwargs,'rstep',0)
-        self.dt = get_value(self,kwargs,'dt',400)
-                                                       
-                                  
+                                         
         # Grid         
         self.grid=pgrid.grid(type='tri2d',**kwargs)
                  
@@ -837,12 +879,7 @@ class schism(model):
             self.maxlon = self.grid.impl.Dataset.x.dropna('id').values.max()
             self.minlat = self.grid.impl.Dataset.y.dropna('id').values.min()
             self.maxlat = self.grid.impl.Dataset.y.dropna('id').values.max()
-            
-            self.model['minlon'] = self.minlon  #update model dict
-            self.model['maxlon'] = self.maxlon
-            self.model['minlat'] = self.minlat
-            self.model['maxlat'] = self.maxlat
-                         
+                                     
         # get bathymetry
         self.bath(**kwargs)
 
@@ -861,8 +898,8 @@ class schism(model):
         #param
     def config(self,**kwargs): 
         
-        dic = get_value(self,kwargs,'params',None)
-        param_file = get_value(self,kwargs,'param_file',None)
+        dic = get_value(self,kwargs,'configx    ',None)
+        param_file = get_value(self,kwargs,'config_file',None)
            
         if param_file :
             params = pd.read_csv(param_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
@@ -878,21 +915,31 @@ class schism(model):
                     pass
                 
             params = params.set_index('attrs')
-        elif dic :
-            params = pd.DataFrame.from_dict(dic,orient = 'index')
         else:
             with open(DATA_PATH + 'dparams.pkl', 'r') as f:
                               params=pickle.load(f)
-            #update 
-            params.loc['start_hour'] = self.start_date.hour
-            params.loc['start_day'] = self.start_date.day
-            params.loc['start_month'] = self.start_date.month
-            params.loc['start_year'] = self.start_date.year
-            params.loc['rnday'] = (self.Tstop-self.Tstart)/(60*24.)
-            params.loc['dt'] = self.dt
+        
+        if dic :
+            for key,val in dic.iteritems():
+                params.loc[key] = val
+            
+        #update 
+        params.loc['start_hour'] = self.start_date.hour
+        params.loc['start_day'] = self.start_date.day
+        params.loc['start_month'] = self.start_date.month
+        params.loc['start_year'] = self.start_date.year
+        params.loc['rnday'] = (self.Tstop-self.Tstart)/(60*24.)
+        params.loc['dt'] = self.dt
             
         
         self.params = params
+        
+        output = kwargs.get('output', False)
+                
+        if output: 
+            #save params 
+            path = get_value(self,kwargs,'rpath','./') 
+            self.params.to_csv(path + 'param.in', header=None, sep='=')  #save to file
 
         #meteo
     def force(self,**kwargs):
@@ -985,14 +1032,13 @@ class schism(model):
         #save hgrid.gr3
         try:
             
-            bat = -self.dem.impl.Dataset.ival.values.astype(float) #reverse for the hydro run
+            bat = -self.dem.impl.Dataset.ival.values.astype(float) #minus for the hydro run
                                     
             self.grid.impl.Dataset.z.loc[:bat.size] = bat
                                     
             self.grid.impl.to_file(filename= path+'hgrid.gr3')
             
         except AttributeError as e:
-            print e
             sys.stdout.flush()
             sys.stdout.write('\n')
             sys.stdout.write('Keeping bathymetry from hgrid.gr3 ..\n')
@@ -1015,14 +1061,16 @@ class schism(model):
         with open(manfile,'w') as f:
             f.write('\t 0 \n')
             f.write('\t {} {}\n'.format(n3e,nn))
-            
-        self.grid.impl.Dataset['man']=.12
         
-        man = self.grid.impl.Dataset.to_dataframe().loc[:,['x','y','man']].dropna()
+        mn = xr.Dataset({'man': ('id', np.ones(nn)*.12), 'id': np.arange(1,nn+1)})
+                    
+        self.grid.impl.Dataset=xr.merge([self.grid.impl.Dataset, mn])
+        
+        man = self.grid.impl.Dataset.get(['x','y','man']).to_dataframe().dropna()
         
         man.to_csv(manfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['x','y','man'] )
         
-        e = self.grid.impl.Dataset.to_dataframe().loc[:,['nv','a','b', 'c']]
+        e = self.grid.impl.Dataset.get(['nv','a','b', 'c']).to_dataframe()
         
         e.to_csv(manfile,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c']) 
         
@@ -1035,9 +1083,11 @@ class schism(model):
             f.write('\t 0 \n')
             f.write('\t {} {}\n'.format(n3e,nn))
             
-        self.grid.impl.Dataset['windrot']=0.000001
+        wdr = xr.Dataset({'windrot': ('id', np.ones(nn)*0.000001), 'id': np.arange(1,nn+1)})
         
-        wd = self.grid.impl.Dataset.to_dataframe().loc[:,['x','y','windrot']].dropna()
+        self.grid.impl.Dataset=xr.merge([self.grid.impl.Dataset, wdr])
+               
+        wd = self.grid.impl.Dataset.get(['x','y','windrot']).to_dataframe().dropna()
         
         wd.to_csv(windfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['x','y','windrot'] )
         
@@ -1096,14 +1146,15 @@ class schism(model):
         xx, yy = np.meshgrid(ar.longitude.data, ar.latitude.data) 
         
         zero = np.zeros(ar[p].data.shape)
-        
-        tlist = (ar.time.data - ar.time.data[0]).astype('timedelta64[s]')/3600.
-        
-        tlist = tlist.astype(float)/24.
-        
+                       
         udate = pd.to_datetime(ar.time[0].data).strftime('%Y-%m-%d')
         
         bdate = pd.to_datetime(ar.time[0].data).strftime('%Y %m %d %H').split(' ')
+        
+        tlist = (ar.time.data - pd.to_datetime([udate]).values).astype('timedelta64[s]')/3600.
+        
+        tlist = tlist.astype(float)/24.
+        
         
         bdate = [int(q) for q in bdate]
         
@@ -1123,7 +1174,7 @@ class schism(model):
         sout.time.attrs={   'long_name':      'Time',
                             'standard_name':  'time',
                             'base_date':      bdate,
-                            'units':          udate}
+                            'units':          udate }
                             
         sout.lat.attrs={'units': 'degrees_north',
                        'long_name': 'Latitude',
@@ -1182,21 +1233,41 @@ class schism(model):
             f.write(line)   
             sys.stdout.write(line)
             sys.stdout.flush()  
-        ex.stdout.close()            
+        ex.stdout.close()         
+        
                                   
     def save(self,**kwargs):
                
          path = get_value(self,kwargs,'rpath','./')
         
-#         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
-#         dic = {k: self.__dict__.get(k, None) for k in lista}
-#         dic['model'] = self.__class__.__name__
-#         dic = dict(dic, **{k: self.__dict__.get(k, None).impl.__class__.__name__ for k in ['meteo','dem']})
+         lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
+         dic = {k: self.__dict__.get(k, None) for k in lista}
+
+         grid=self.__dict__.get('grid', None)
+         if isinstance(grid,np.str):
+             dic.update({'grid':grid})
+         elif isinstance(grid,pgrid.grid):
+             dic.update({'grid':grid.impl.__class__.__name__})
+         
+         dem=self.__dict__.get('dem', None)
+         if isinstance(dem,np.str):
+             dic.update({'dem':dem})
+         elif isinstance(dem,pdem.dem):
+             dic.update({'dem':dem.impl.__class__.__name__})
+
+         meteo=self.__dict__.get('meteo', None)
+         if isinstance(meteo,np.str):
+             dic.update({'meteo':meteo})
+         elif isinstance(meteo,pmeteo.meteo):
+             dic.update({'meteo':meteo.impl.__class__.__name__})
+
+         dic['version']=pyPoseidon.__version__
+
          with open(path+self.tag+'_info.pkl', 'w') as f:
-               pickle.dump(self.model,f)
+               pickle.dump(dic,f)
                
-         z=self.model.copy()
-         z['version']=pyPoseidon.__version__
-         for attr, value in z.iteritems():
-             if isinstance(value, datetime.datetime) : z[attr]=z[attr].isoformat()
-         json.dump(z,open(path+self.tag+'_model.json','w'))      
+         for attr, value in dic.iteritems():
+             if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
+             if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
+             if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
+         json.dump(dic,open(path+self.tag+'_model.json','w'))      
