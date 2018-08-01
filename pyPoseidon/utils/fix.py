@@ -9,7 +9,7 @@ import pandas as pd
 import xarray as xr
 import sys
 
-def fix(dem,shpfile, nc=10):
+def fix(dem,shpfile,**kwargs):
     
     #--------------------------------------------------------------------- 
     sys.stdout.flush()
@@ -18,6 +18,7 @@ def fix(dem,shpfile, nc=10):
     sys.stdout.flush()
     #--------------------------------------------------------------------- 
     
+    nc = kwargs.get('nc', 10)
     
     #define coastline
     
@@ -102,7 +103,12 @@ def fix(dem,shpfile, nc=10):
     while True:
         p1 = rmt(p,xp,nc)
         k+=1
-        print k
+        #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('... adjusting ...\n')
+        sys.stdout.flush()
+        #---------------------------------------------------------------------  
         if np.array_equal(p1,p) : break
         p = p1
     
@@ -118,7 +124,7 @@ def fix(dem,shpfile, nc=10):
     return wmask, cg
         
     
-def bmatch(dem,wmask):
+def bmatch(dem,wmask,**kwargs):
        
     #--------------------------------------------------------------------- 
     sys.stdout.flush()
@@ -126,7 +132,8 @@ def bmatch(dem,wmask):
     sys.stdout.write('resample bathymetry\n')
     sys.stdout.flush()
     #--------------------------------------------------------------------- 
-       
+    
+    ncores = kwargs.get('ncores', 1)
        
     xp = dem.Dataset.ilons.values
     yp = dem.Dataset.ilats.values

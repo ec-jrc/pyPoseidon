@@ -115,7 +115,7 @@ class emodnet(dem):
     def adjust(self,shpfile,**kwargs):
          
          wmask, cg = fix(self,shpfile,**kwargs)
-         bmatch(self,wmask)
+         bmatch(self,wmask,**kwargs)
 
 
 
@@ -236,7 +236,7 @@ class erdap(dem):
     def adjust(self,shpfile,**kwargs):
          
          wmask, cg = fix(self,shpfile,**kwargs)
-         bmatch(self,wmask)
+         bmatch(self,wmask,**kwargs)
          
       
 class gebco(dem):
@@ -341,6 +341,6 @@ class gebco(dem):
     def adjust(self,shpfile,**kwargs):
          
          wmask, cg = fix(self,shpfile,**kwargs)
-         bmatch(self,wmask)
+         bmatch(self,wmask,**kwargs)
          
     
