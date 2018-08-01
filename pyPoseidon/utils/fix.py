@@ -7,8 +7,17 @@ from pyPoseidon.utils.bfs import *
 import pyresample
 import pandas as pd
 import xarray as xr
+import sys
 
 def fix(dem,shpfile, nc=10):
+    
+    #--------------------------------------------------------------------- 
+    sys.stdout.flush()
+    sys.stdout.write('\n')
+    sys.stdout.write('optimize grid\n')
+    sys.stdout.flush()
+    #--------------------------------------------------------------------- 
+    
     
     #define coastline
     
@@ -47,7 +56,6 @@ def fix(dem,shpfile, nc=10):
     cll = geometry.MultiLineString(cl) #join them into a Multiline
     cg = ops.linemerge(cll) #merge parts if possible
     
-    
     #check if the grid polygons intersect the shoreline
     gps = []
     igps = []
@@ -64,6 +72,7 @@ def fix(dem,shpfile, nc=10):
                     igps.append([i,j])
                     igps.append([i+1,j])
     
+        
     #create a mask of all cells not intersecting the shoreline
     imask=np.ones(xp.shape, dtype=bool)
     for [i,j] in igps:
@@ -77,6 +86,14 @@ def fix(dem,shpfile, nc=10):
     tmask =  np.logical_and(np.invert(imask),gmask)
     tmask = np.invert(tmask) 
         
+        
+    #--------------------------------------------------------------------- 
+    sys.stdout.flush()
+    sys.stdout.write('\n')
+    sys.stdout.write('eliminate isolated wet regions\n')
+    sys.stdout.flush()
+    #--------------------------------------------------------------------- 
+        
     #find islands    
     p = rmt(tmask,xp,nc) 
     
@@ -89,32 +106,71 @@ def fix(dem,shpfile, nc=10):
         if np.array_equal(p1,p) : break
         p = p1
     
-    wmask = p1
+    wmask = p1   
     
+    #--------------------------------------------------------------------- 
+    sys.stdout.flush()
+    sys.stdout.write('\n')
+    sys.stdout.write('done \n')
+    sys.stdout.flush()
+    #--------------------------------------------------------------------- 
+    
+    return wmask, cg
+        
+    
+def bmatch(dem,wmask):
        
+    #--------------------------------------------------------------------- 
+    sys.stdout.flush()
+    sys.stdout.write('\n')
+    sys.stdout.write('resample bathymetry\n')
+    sys.stdout.flush()
+    #--------------------------------------------------------------------- 
+       
+       
+    xp = dem.Dataset.ilons.values
+    yp = dem.Dataset.ilats.values
+          
     ##resample bathymetry
     xw=np.ma.masked_array(xp,wmask) #wet points 
     yw=np.ma.masked_array(yp,wmask) 
     
+    # fill the nan, if present, we values in order to compute values there if needed.
+    dem.Dataset.val.data[np.isnan(dem.Dataset.val)]=9999. 
+    
     #mask positive bathymetry 
-    wet = np.ma.masked_array(dem.Dataset.val.values,dem.Dataset.val.values>0)
+    wet = np.ma.masked_array(dem.Dataset.val,dem.Dataset.val>0)
    # wet.fill_value = 0.
-    mx = np.ma.masked_array(dem.Dataset.dlons.values,dem.Dataset.val.values>0) 
-    my = np.ma.masked_array(dem.Dataset.dlats.values,dem.Dataset.val.values>0)
+    mx = np.ma.masked_array(dem.Dataset.dlons,dem.Dataset.val.values>0) 
+    my = np.ma.masked_array(dem.Dataset.dlats,dem.Dataset.val.values>0)
     
     orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
     targ = pyresample.geometry.SwathDefinition(lons=xw,lats=yw) # wet points
     
     # with nearest using only the water values
-    b2_near = pyresample.kd_tree.resample_nearest(orig,wet,targ,radius_of_influence=50000,fill_value=999999)
     
-    bw = np.ma.masked_array(b2_near,wmask)
+    grid_con = pyresample.image.ImageContainerNearest(wet, orig, radius_of_influence=50000,fill_value=np.nan, nprocs=ncores)
+
+    area_con = grid_con.resample(targ)
+
+    result = area_con.image_data
+               
+    bw = np.ma.masked_array(result,wmask)
         
-    fval = xr.Dataset({'fval': (['latitude', 'longitude'],  bw)},   
-                                  coords={'longitude': ('longitude', xp[0,:]),   
-                                          'latitude': ('latitude', yp[:,0])})
+    fval = xr.Dataset({'fval': (['ilat', 'ilon'],  bw)},   
+                                  coords={'ilon': ('ilon', xp[0,:]),   
+                                          'ilat': ('ilat', yp[:,0])})
     
     dem.Dataset = xr.merge([dem.Dataset,fval])
+    
+    #--------------------------------------------------------------------- 
+    sys.stdout.flush()
+    sys.stdout.write('\n')
+    sys.stdout.write('done \n')
+    sys.stdout.flush()
+    #--------------------------------------------------------------------- 
+    
+    
     
 def internal(cg, xp, yp):
     
