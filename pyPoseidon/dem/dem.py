@@ -2,7 +2,7 @@ import numpy as np
 import pyresample
 import xarray as xr
 import sys
-from pyPoseidon.utils.fix import fix
+from pyPoseidon.utils.fix import *
 
 class dem:
     impl=None
@@ -23,12 +23,13 @@ class emodnet(dem):
       minlon = kwargs.get('minlon', None)
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)
-      maxlat = kwargs.get('maxlat', None)       
+      maxlat = kwargs.get('maxlat', None) 
+      ncores = kwargs.get('ncores', 1)       
       properties = kwargs.get('properties', {})    
         
       url = kwargs.get('dpath', None)      
     # open NetCDF data in 
-      data = xr.open_dataset(url)    
+      data = xr.open_mfdataset(url)    
       
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
@@ -64,6 +65,14 @@ class emodnet(dem):
       
          
       if 'grid_x' in kwargs.keys():
+          #--------------------------------------------------------------------- 
+          sys.stdout.flush()
+          sys.stdout.write('\n')
+          sys.stdout.write('.. interpolating on grid ..\n')
+          sys.stdout.flush()
+          #---------------------------------------------------------------------      
+          
+          
           grid_x = kwargs.get('grid_x', None)
           grid_y = kwargs.get('grid_y', None)
            # resample on the given grid
@@ -71,7 +80,14 @@ class emodnet(dem):
           orig = pyresample.geometry.SwathDefinition(lons=lons,lats=lats) # original points
           targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-          itopo = pyresample.kd_tree.resample_nearest(orig,topo.data,targ,radius_of_influence=50000,fill_value=999999)
+ #         itopo = pyresample.kd_tree.resample_nearest(orig,topo.values,targ,radius_of_influence=50000,fill_value=np.nan, nprocs=ncores)
+
+          grid_con = pyresample.image.ImageContainerNearest(topo.values, orig, radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+ 
+          area_con = grid_con.resample(targ)
+
+          itopo = area_con.image_data
+
        
           if len(grid_x.shape) > 1: 
                  
@@ -98,7 +114,8 @@ class emodnet(dem):
        
     def adjust(self,shpfile,**kwargs):
          
-         fix(self,shpfile,**kwargs)
+         wmask, cg = fix(self,shpfile,**kwargs)
+         bmatch(self,wmask)
 
 
 
@@ -110,6 +127,8 @@ class erdap(dem):
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)
       maxlat = kwargs.get('maxlat', None) 
+      ncores = kwargs.get('ncores', 1)       
+      
            
       if minlon < -180 : minlon = minlon + 360.    
       if maxlon < -180 : maxlon = maxlon + 360.
@@ -164,6 +183,14 @@ class erdap(dem):
       
       
       if 'grid_x' in kwargs.keys():
+         #--------------------------------------------------------------------- 
+         sys.stdout.flush()
+         sys.stdout.write('\n')
+         sys.stdout.write('.. interpolating on grid ..\n')
+         sys.stdout.flush()
+         #---------------------------------------------------------------------      
+          
+          
          grid_x = kwargs.get('grid_x', None)
          grid_y = kwargs.get('grid_y', None)
       # resample on the given grid
@@ -173,7 +200,14 @@ class erdap(dem):
          orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
          targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-         itopo = pyresample.kd_tree.resample_nearest(orig,dem.data,targ,radius_of_influence=50000,fill_value=999999)
+#         itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=50000,fill_value=np.nan, nprocs=ncores)
+ 
+         grid_con = pyresample.image.ImageContainerNearest(dem.values, orig, radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+
+         area_con = grid_con.resample(targ)
+
+         itopo = area_con.image_data
+
 
          if len(grid_x.shape) > 1: 
              idem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
@@ -201,8 +235,9 @@ class erdap(dem):
       
     def adjust(self,shpfile,**kwargs):
          
-           fix(self,shpfile,**kwargs)
-      
+         wmask, cg = fix(self,shpfile,**kwargs)
+         bmatch(self,wmask)
+         
       
 class gebco(dem):
     
@@ -212,6 +247,8 @@ class gebco(dem):
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)
       maxlat = kwargs.get('maxlat', None) 
+      ncores = kwargs.get('ncores', 1)       
+      
                  
       if minlon < -180: minlon = minlon + 360.
       
@@ -227,7 +264,7 @@ class gebco(dem):
       #---------------------------------------------------------------------      
       
             
-      data = xr.open_dataset(url)    
+      data = xr.open_mfdataset(url)    
       
       i0=np.abs(data.lon.data-minlon).argmin()
       i1=np.abs(data.lon.data-maxlon).argmin()
@@ -252,17 +289,30 @@ class gebco(dem):
       
       
       if 'grid_x' in kwargs.keys():
+          
+         #--------------------------------------------------------------------- 
+         sys.stdout.flush()
+         sys.stdout.write('\n')
+         sys.stdout.write('.. interpolating on grid ..\n')
+         sys.stdout.flush()
+         #---------------------------------------------------------------------      
+          
          grid_x = kwargs.get('grid_x', None)
          grid_y = kwargs.get('grid_y', None)
       # resample on the given grid
-      
-         xx, yy = np.meshgrid(dem.lon.data,dem.lat.data)
-              
+                    
          orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
          targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
        
-         itopo = pyresample.kd_tree.resample_nearest(orig,dem.data,targ,radius_of_influence=50000,fill_value=999999)
-        
+         # with nearest using only the water values        
+       
+     #    itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+         
+         grid_con = pyresample.image.ImageContainerNearest(dem.values, orig, radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+
+         area_con = grid_con.resample(targ)
+
+         itopo = area_con.image_data
         
          if len(grid_x.shape) > 1:         
              dem = xr.Dataset({'ival': (['ilat', 'ilon'],  itopo), 
@@ -290,6 +340,7 @@ class gebco(dem):
      
     def adjust(self,shpfile,**kwargs):
          
-         fix(self,shpfile,**kwargs)
-
+         wmask, cg = fix(self,shpfile,**kwargs)
+         bmatch(self,wmask)
+         
     
