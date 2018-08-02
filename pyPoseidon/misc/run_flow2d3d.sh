@@ -5,7 +5,7 @@ export argfile=$1
 export ncores=$2
 
 if [ $# -gt 3 ]; then
-	source activate $4 #relevant conda env
+	source $4/activate $5 #relevant conda env
 	export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 fi
 
