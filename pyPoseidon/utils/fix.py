@@ -9,6 +9,7 @@ import pandas as pd
 import xarray as xr
 import sys
 import pp
+import os
 
 def fix(dem,shpfile,**kwargs):
     
@@ -67,6 +68,8 @@ def fix(dem,shpfile,**kwargs):
     
     #------------------------------------------------------------------------------
     #check if the grid polygons intersect the shoreline USING PP
+    PYTHONPATH =  os.environ['PYTHONPATH'] #SAVE PYTHONPATH in order to reset it afterwards
+    
     job_server = pp.Server() 
        
     if ncores > job_server.get_ncpus(): ncores = job_server.get_ncpus() # make sure we don't overclock
@@ -108,6 +111,9 @@ def fix(dem,shpfile,**kwargs):
     ps = np.vstack([ps, bgps]) # final stack
     
     job_server.destroy()
+    
+    os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH
+    
     #------------------------------------------------------------------------------
         
     #create a mask of all cells not intersecting the shoreline
