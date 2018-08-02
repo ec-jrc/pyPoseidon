@@ -227,14 +227,13 @@ class d3d(model):
           y=np.linspace(self.minlat,self.maxlat,nj)
           gx,gy=np.meshgrid(x,y)
 
-       
+
     #      ni=ni+1 # transfrom to grid points
     #      nj=nj+1
         
         self.ni=ni
         self.nj=nj
-         
- 
+                 
         # Grid 
           
         self.grid=pgrid.grid(type='r2d',x=gx, y=gy)
@@ -560,13 +559,15 @@ class d3d(model):
         
         conda_env = get_value(self,kwargs,'conda_env', None)
         
-        argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
+        conda_bin = get_value(self,kwargs,'conda_bin', None)
         
+        argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
+                        
         if conda_env is None:        
             # note that cwd is the folder where the executable is
             ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         else:
-            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {} {}'.format(argfile,ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {} {} {}'.format(argfile,ncores,bin_path,conda_bin,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
             
 #        for line in iter(ex.stderr.readline,b''): print line
 #        ex.stderr.close() 
