@@ -1,13 +1,14 @@
 import numpy as np
 import geopandas as gp
 import matplotlib.path as mpltPath
-from shapely import geometry, ops
+import shapely 
 from mpl_toolkits.basemap import Basemap
 from pyPoseidon.utils.bfs import *
 import pyresample
 import pandas as pd
 import xarray as xr
 import sys
+import pp
 
 def fix(dem,shpfile,**kwargs):
     
@@ -19,6 +20,7 @@ def fix(dem,shpfile,**kwargs):
     #--------------------------------------------------------------------- 
     
     nc = kwargs.get('nc', 10)
+    ncores = kwargs.get('ncores', 1)
     
     #define coastline
     
@@ -40,53 +42,89 @@ def fix(dem,shpfile,**kwargs):
         except:
             ls.append(il)
             
-    sall = geometry.MultiLineString(ls) # join
-    c = ops.linemerge(sall) #merge
+    sall = shapely.geometry.MultiLineString(ls) # join
+    c = shapely.ops.linemerge(sall) #merge
     
     #Select the Line Strings that correspond to our grid
     #create a polygon of the grid
-    grp=geometry.Polygon([(xp.min(),yp.min()),(xp.min(),yp.max()),(xp.max(),yp.max()),(xp.max(),yp.min())])    
+    grp=shapely.geometry.Polygon([(xp.min(),yp.min()),(xp.min(),yp.max()),(xp.max(),yp.max()),(xp.max(),yp.min())])    
     
     cl=[] #initialize
     #add Polygons if they intersect with the grid
     for i in range(len(c)):
-        z = geometry.Polygon(c[i])
+        z = shapely.geometry.Polygon(c[i])
         if z.intersects(grp): 
                 cl.append(c[i])
     
-    cll = geometry.MultiLineString(cl) #join them into a Multiline
-    cg = ops.linemerge(cll) #merge parts if possible
+    cll = shapely.geometry.MultiLineString(cl) #join them into a Multiline
+    cg = shapely.ops.linemerge(cll) #merge parts if possible
     
-    #check if the grid polygons intersect the shoreline
-    gps = []
-    igps = []
-    for i in range(0,xp.shape[0]-1):
-        for j in range(0,xp.shape[1]-1):
-            p = geometry.Polygon([(xp[i,j],yp[i,j]),(xp[i+1,j],yp[i+1,j]),(xp[i+1,j+1],yp[i+1,j+1]),(xp[i,j+1],yp[i,j+1])])
-            if not p.intersects(cg): 
-                gps.append(p)
-                igps.append([i+1,j+1])
-                if i == 0 : 
-                    igps.append([i,j])
-                    igps.append([i,j+1])
-                if j == 0 : 
-                    igps.append([i,j])
-                    igps.append([i+1,j])
+    # brake if no coastline
+    if cg.geom_type == 'GeometryCollection' :
+        wmask = np.zeros(xp.shape, dtype=bool)
+        return wmask, cg
     
+    
+    #------------------------------------------------------------------------------
+    #check if the grid polygons intersect the shoreline USING PP
+    job_server = pp.Server() 
+       
+    if ncores > job_server.get_ncpus(): ncores = job_server.get_ncpus() # make sure we don't overclock
+    
+    job_server.set_ncpus(ncores)
+    
+    #split the array
+    
+    n = xp.shape[0]
+    l=range(n)
+    k = ncores
+    
+    b = [l[i * (n // k) + min(i, n % k):(i+1) * (n // k) + min(i+1, n % k)] for i in range(k)]
+    
+    jobs=[]
+    for l in range(ncores):
+        extra=b[l][-1]+1 # add one to consider the jump between parts
+        part = b[l]+[extra]
+        if part[-1] >= xp.shape[0] : part = part[:-1] #control the last element
+        xl=xp[part,:]
+        yl=yp[part,:]   
+
+        jobs.append(job_server.submit(loop,(xl,yl,cg,),modules=('shapely',)))
+
+    ps=jobs[0]()
+    for l in range(1,ncores):    
+        ps = np.vstack([ps, [[i+b[l][0],j] for [i,j] in jobs[l]()]]) # fix global index by adding the first index of part    
+    
+    #Add extra points from boundary    
+    bgps=[]
+    for [i,j] in ps:
+        if i == 1 : 
+            bgps.append([i-1,j-1])
+            bgps.append([i-1,j])
+        if j == 1 : 
+            bgps.append([i-1,j-1])
+            bgps.append([i,j-1])
+            
+    ps = np.vstack([ps, bgps]) # final stack
+    
+    job_server.destroy()
+    #------------------------------------------------------------------------------
         
     #create a mask of all cells not intersecting the shoreline
     imask=np.ones(xp.shape, dtype=bool)
-    for [i,j] in igps:
+    for [i,j] in ps:
         imask[i,j]=0                
     
     #Find points inside coastline (land)
     gmask = internal(cg,xp,yp)
-    
-    
+ 
     # merge gmask and imask
     tmask =  np.logical_and(np.invert(imask),gmask)
-    tmask = np.invert(tmask) 
-        
+    tmask = np.invert(tmask)         
+    
+    # break if there are no internal points
+    if gmask.sum() == 0 : 
+        return imask, cg
         
     #--------------------------------------------------------------------- 
     sys.stdout.flush()
@@ -94,7 +132,7 @@ def fix(dem,shpfile,**kwargs):
     sys.stdout.write('eliminate isolated wet regions\n')
     sys.stdout.flush()
     #--------------------------------------------------------------------- 
-        
+                
     #find islands    
     p = rmt(tmask,xp,nc) 
     
@@ -161,8 +199,11 @@ def bmatch(dem,wmask,**kwargs):
     area_con = grid_con.resample(targ)
 
     result = area_con.image_data
-               
+                   
     bw = np.ma.masked_array(result,wmask)
+        
+    if np.isnan(bw).all() == True: # use the ivals if all is Nan, e.g. only land
+        bw = dem.Dataset.ival.values
         
     fval = xr.Dataset({'fval': (['ilat', 'ilon'],  bw)},   
                                   coords={'ilon': ('ilon', xp[0,:]),   
@@ -186,8 +227,24 @@ def internal(cg, xp, yp):
     #collect the internal points
     xi=[]
     yi=[]
-    for i in range(len(cg)):
-        z = geometry.Polygon(cg[i])
+    
+    if cg.geom_type.startswith('Multi'): # many LineStrings
+    
+        for i in range(len(cg)):
+            z = shapely.geometry.Polygon(cg[i])
+            path = mpltPath.Path(zip(z.boundary.xy[0],z.boundary.xy[1]))
+
+            inside = path.contains_points(points)
+
+            if np.sum(inside) > 0:
+                X = np.ma.masked_array(xp,mask=np.invert(inside)),
+                Y = np.ma.masked_array(yp,mask=np.invert(inside))
+                xi.append(X)
+                yi.append(Y) 
+                
+    else: #Single LineString
+    
+        z = shapely.geometry.Polygon(cg)
         path = mpltPath.Path(zip(z.boundary.xy[0],z.boundary.xy[1]))
 
         inside = path.contains_points(points)
@@ -196,7 +253,7 @@ def internal(cg, xp, yp):
             X = np.ma.masked_array(xp,mask=np.invert(inside)),
             Y = np.ma.masked_array(yp,mask=np.invert(inside))
             xi.append(X)
-            yi.append(Y)    
+            yi.append(Y) 
     
     #merge the masks 
     gmask=np.ones(xi[0][0].shape, dtype=bool)
@@ -222,7 +279,7 @@ def rmt(imask,xp,nc):
     grs['np']=mgrid.size-grs.val # count number of points in islands
     
     ne = grs[grs.np>nc].index.max() + 1
-        
+                    
     mask={}
     for i in range(ne):
         b = mgrid.copy()
@@ -241,3 +298,17 @@ def rmt(imask,xp,nc):
     else:
         return fmask
 
+
+
+def loop(xp,yp,cg):
+#check if the grid polygons intersect the shoreline
+    gps = []
+    igps = []
+    for i in range(xp.shape[0]-1):
+        for j in range(xp.shape[1]-1):
+            p = shapely.geometry.Polygon([(xp[i,j],yp[i,j]),(xp[i+1,j],yp[i+1,j]),(xp[i+1,j+1],yp[i+1,j+1]),(xp[i,j+1],yp[i,j+1])])
+            if not p.intersects(cg): 
+                gps.append(p)
+                igps.append([i+1,j+1])
+    
+    return igps
