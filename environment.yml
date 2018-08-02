@@ -26,4 +26,7 @@ dependencies:
   - holoviews=1.10.1
   - ioam::geoviews=1.4.3
   - bokeh=0.12.15 
-  - bokeh::datashader=0.6.5  
+  - bokeh::datashader=0.6.5
+  - pip
+  - pip:
+  	- https://www.parallelpython.com/downloads/pp/pp-1.6.6.tar.gz  
