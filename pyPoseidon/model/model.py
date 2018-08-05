@@ -180,6 +180,7 @@ class d3d(model):
         self.dft = kwargs.get('dft', 1)       
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
+        self.ofilename = kwargs.get('ofilename', None)
 
         self.solver = self.__class__.__name__    
         
@@ -277,7 +278,10 @@ class d3d(model):
         self.mdf.loc[self.mdf.index.str.contains('Fildep')]='#{}#'.format(self.tag+'.dep')
   
         #define obs file
-        self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##' #b.tag+'.obs'
+        if self.ofilename :
+            self.mdf.loc[self.mdf.index.str.contains('Filsta')]='#{}#'.format(self.tag+'.obs') 
+        else:
+            self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##'
    
         # adjust ni,nj
         self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(self.ni+1,self.nj+1,1)  # add one like ddb
@@ -568,23 +572,37 @@ class d3d(model):
             ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         else:
             ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {} {} {}'.format(argfile,ncores,bin_path,conda_bin,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        
+        
+        with open(calc_dir+self.tag+'_run.log', 'w') as f: #save output
             
-#        for line in iter(ex.stderr.readline,b''): print line
-#        ex.stderr.close() 
-        with open(calc_dir+self.tag+'_run.log', 'w') as f: 
-          for line in iter(ex.stdout.readline,b''): 
-            f.write(line)   
-            sys.stdout.write(line)
-            sys.stdout.flush()  
-        ex.stdout.close()            
-                                  
-        #cleanup
-#        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
-#        for filename in tempfiles:
-#            try:
-#                os.remove(filename)
-#            except OSError:
-#                pass
+            for line in iter(ex.stdout.readline,b''): 
+                f.write(line)   
+                sys.stdout.write(line)
+                sys.stdout.flush()  
+            
+            for line in iter(ex.stderr.readline,b''):
+                sys.stdout.write(line)
+                sys.stdout.flush()  
+                tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
+         
+                biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
+                with open(biggest, "r") as f1:
+                    for line in f1:
+                        f.write(line)
+                            
+      #cleanup  
+        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*') + glob.glob(calc_dir+'/TMP_*')
+                                
+        for filename in tempfiles:
+            try:
+                os.remove(filename)
+            except OSError:
+                pass
+
+        ex.stdout.close()  
+        ex.stderr.close() 
+
     
     def pickle(self,**kwargs):
         
@@ -685,7 +703,7 @@ class d3d(model):
             bat2=np.hstack((bat1,nodata))
 
             bat2[np.isnan(bat2)] = -999.
-            
+                        
         except AttributeError:
             sys.stdout.write('No dem file ..')
             
@@ -745,6 +763,56 @@ class d3d(model):
                                  f.write('{0:<3s}        {1:<.7e}   {2:<.7e}\n'.format(a,b,c))
                         
         #save obs
+        
+        ofilename = get_value(self,kwargs,'ofilename',None) 
+
+        if ofilename:
+        
+            obs_points = pd.read_csv(ofilename,delimiter='\t',header=None,names=['index','Name','lat','lon'])
+            obs_points = obs_points.set_index('index',drop=True).reset_index(drop=True) #reset index if any
+        
+            b=np.ma.masked_array(bat,np.isnan(bat)) # mask land
+        
+            i_indx, j_indx = self.vpoints(self.grid.impl.Dataset,obs_points,b,**kwargs)
+                    
+            obs_points['i']=i_indx
+            obs_points['j']=j_indx
+        
+            #drop NaN points
+            obs = obs_points.dropna().copy()
+        
+            obs = obs.reset_index(drop=True) #reset index
+        
+            obs['i']=obs['i'].values.astype(int)
+            obs['j']=obs['j'].values.astype(int)
+            obs['new_lat']=self.grid.impl.Dataset.y[obs.i.values].values #Valid point
+            obs['new_lon']=self.grid.impl.Dataset.x[obs.j.values].values 
+        
+            self.obs = obs #store it
+          
+            obs.Name = obs.Name.str.strip().apply(lambda name:name.replace(' ', '')) #Remove spaces to write to file
+            sort = sorted(obs.Name.values,key=len) # sort the names to get the biggest word
+            wsize = len(sort[-1])# size of bigget word in order to align below
+        
+            if flag is not None:
+        
+                check=[os.path.exists(self.rpath+'{}.obs'.format(self.tag))]   
+                if (np.any(check)==False) or ('model' in flag) :
+        
+                    # Add one in the indices due to python/fortran convention
+                    with open(self.rpath+'{}.obs'.format(self.tag),'w') as f: 
+                        for l in range(obs.shape[0]): 
+                            f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l],obs.j[l]+1,obs.i[l]+1,wsize))
+
+         
+            else:
+                # Add one in the indices due to python/fortran convention
+                with open(self.rpath+'{}.obs'.format(self.tag),'w') as f:
+                    for l in range(obs.shape[0]): 
+                        f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l],obs.j[l]+1,obs.i[l]+1,wsize))
+              
+        
+        #save enc file
         if flag is not None:
         
             check=[os.path.exists(self.rpath+'{}.enc'.format(self.tag))]   
@@ -810,6 +878,52 @@ class d3d(model):
           mode |= (mode & 0o444) >> 2    # copy R bits to X
           os.chmod(execf, mode)
                 
+    @staticmethod
+    def vpoints(grid,obs_points,bat,**kwargs):
+        
+        idx=[]
+        jdx=[]
+        for m in range(obs_points.shape[0]):
+            lat, lon = obs_points.loc[m,['lat','lon']]
+            nearest = grid.sel(x=[lon],y=[lat], method='nearest')
+            j = np.abs(grid.x.values-nearest.x.values).argmin()
+            i = np.abs(grid.y.values-nearest.y.values).argmin()
+            if bat[i,j] :
+                idx.append(i) 
+                jdx.append(j)
+            else:
+                bnear=bat[i-5:i+6,j-5:j+6] # near by grid nodes
+        
+                rlon = grid.lons[i-5:i+6,j-5:j+6]-lon
+                rlat = grid.lats[i-5:i+6,j-5:j+6]-lat
+                rad = np.sqrt(rlon**2+rlat**2) # radial distance from the obs point
+        
+                rmask = rad.values[bnear.mask==False] #mask the distance array with the valid mask from dem
+                
+                rmask.sort() # sort to start close and move further away
+                if rmask.size > 0 :
+                    
+                    for r in rmask: # Find the closest valid point
+                        [[k,l]] = np.argwhere(rad.values==r)
+                        if bnear[k-1:k+1,l-1:l+1].mask.sum() == 0:
+                            break# The point is valid point
+
+                    xv = rad[k,l].x.values #lat, lon of valid point
+                    yv = rad[k,l].y.values
+        
+                    #final i,j
+                    j = np.abs(grid.x.values-xv).argmin()
+                    i = np.abs(grid.y.values-yv).argmin()
+
+                    idx.append(i) 
+                    jdx.append(j) 
+          
+                else:
+            
+                    idx.append(np.nan)
+                    jdx.append(np.nan)
+
+        return idx,jdx
         
 class schism(model):
     

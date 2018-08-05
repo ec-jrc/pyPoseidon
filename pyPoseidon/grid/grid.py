@@ -30,8 +30,10 @@ class r2d(grid):
             gy    = kwargs.get('y', None)
             attrs = kwargs.get('attrs', {'Coordinate System': 'Spherical', 'alfori': 0.0, 'xori': 0.0, 'yori': 0.0})
         
-            g = xr.Dataset({'lons': (['x', 'y'], gx),   
-                        'lats': (['x', 'y'], gy)})
+            g = xr.Dataset({'lons': (['y', 'x'], gx),   
+                        'lats': (['y', 'x'], gy)},
+                        coords={'x': ('x', gx[0,:]),   
+                                'y': ('y', gy[:,0])})         
             
             g.attrs = attrs
         
@@ -57,9 +59,12 @@ class r2d(grid):
         
         lons=data[0,:,:]
         lats=data[1,:,:]      
-          
-        g = xr.Dataset({'lons': (['x', 'y'], lons),   
-                        'lats': (['x', 'y'], lats)})
+                        
+        g = xr.Dataset({'lons': (['y', 'x'], lons),   
+                        'lats': (['y', 'x'], lats)},
+                         coords={'x': ('x', lons[0,:]),   
+                                 'y': ('y', lats[:,0])})         
+                        
                         
         g.attrs = {'Coordinate System': cs, 'alfori': alfori, 'xori': xori, 'yori': yori}
         
