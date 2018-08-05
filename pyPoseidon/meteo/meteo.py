@@ -912,7 +912,7 @@ class gfs_oper(meteo):
 class erai(meteo):
     
     def __init__(self,**kwargs):
-    
+        
       filenames = kwargs.get('mpaths', {})
       ft1 = kwargs.get('ft1', 0)
       ft2 = kwargs.get('ft2', 11)
@@ -928,8 +928,8 @@ class erai(meteo):
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
             self.time_frame = self.end_date - self.start_date
-          
-                            
+      
+                                      
       minlon = kwargs.get('minlon', None)
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)   
@@ -970,7 +970,7 @@ class erai(meteo):
                   stepRange=grib_get(gid, 'stepRange')
                   timestamp = pd.to_datetime(str(date)) + pd.to_timedelta('{}H'.format(dataTime/100.))
                   tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
-                  if tstamp <= pd.to_datetime(self.end_date):
+                  if (tstamp >= pd.to_datetime(self.start_date)) & (tstamp <= pd.to_datetime(self.end_date)):
                 
                       name,varin,ilon,ilat=getd(gid)    
 
