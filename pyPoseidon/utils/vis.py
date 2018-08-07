@@ -10,9 +10,7 @@ import xarray as xr
 rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['animation.embed_limit'] = '200.'
-        
-FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix_fmt','yuv420p'])
- 
+         
 def contour(grid_x,grid_y,z,t,**kwargs):
     fig, ax = plt.subplots(figsize=(12,8)) 
     vmin = kwargs.get('vmin', z.min())
@@ -49,14 +47,10 @@ def contour(grid_x,grid_y,z,t,**kwargs):
 #plt.colorbar()
 
     v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
-     
+  
     plt.close()
-    
-    if 'savepath' in kwargs.keys(): 
-        path = kwargs.get('savepath', './')
-        v.save(path, writer = FFWriter)      
-    else:
-        return v
+  
+    return v
 
 
 def update_quiver(num, Q, U, V, step):
@@ -113,8 +107,10 @@ def quiver(X,Y,U,V,t,**kwargs):
     plt.close()
     # you need to set blit=False, or the first set of arrows never gets
     # cleared on subsequent frames
-    return animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
+    v = animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
                                 blit=False, repeat=False)#, interval=1)    
+    
+    return v
     
  
 def video(fname, mimetype):
@@ -332,11 +328,7 @@ class splot(object):
         v = animation.FuncAnimation(fig, update_qframes, fargs=(Q, u, v), blit=False, repeat=False,
                                frames = range(0,np.size(t)))   
         
-        if 'savepath' in kwargs.keys(): 
-            path = kwargs.get('savepath', './')
-            v.save(path, writer = FFWriter)      
-        else:
-            return v
+        return v
                 
  
     def frames(self,var,**kwargs):
@@ -387,10 +379,6 @@ class splot(object):
      
         plt.close()
     
-        if 'savepath' in kwargs.keys(): 
-            path = kwargs.get('savepath', './')
-            v.save(path, writer = FFWriter)      
-        else:
-            return v
+        return v
  
       
