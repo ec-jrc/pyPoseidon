@@ -73,7 +73,10 @@ def fix(dem,shpfile,**kwargs):
     try:
         #------------------------------------------------------------------------------
         #check if the grid polygons intersect the shoreline USING PP
-        PYTHONPATH =  os.environ['PYTHONPATH'] #SAVE PYTHONPATH in order to reset it afterwards
+        try:
+            PYTHONPATH =  os.environ['PYTHONPATH'] #SAVE PYTHONPATH in order to reset it afterwards
+        except:
+            pass
     
         job_server = pp.Server() 
        
@@ -117,9 +120,19 @@ def fix(dem,shpfile,**kwargs):
     
         job_server.destroy()
     
-        os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH
-    
-    except:
+        try:
+            os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH    
+        except:
+            pass
+            
+    except :
+        
+        #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('..serial..\n')
+        sys.stdout.flush()
+        #--------------------------------------------------------------------- 
         
         gps = []
         igps = []
