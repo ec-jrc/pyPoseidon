@@ -121,7 +121,13 @@ def fix(dem,shpfile,**kwargs):
         job_server.destroy()
     
         try:
-            os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH    
+            if PYTHONPATH :
+                os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH 
+            else:    
+                try :
+                    del os.environ['PYTHONPATH']
+                except:
+                    pass 
         except:
             pass
             
