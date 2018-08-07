@@ -18,7 +18,6 @@ import sys
 import subprocess
 import scipy.interpolate 
 
-FFWriter = animation.FFMpegWriter(fps=30, extra_args=['-vcodec', 'libx264','-pix_fmt','yuv420p'])
    
 class data:   
     
@@ -78,6 +77,7 @@ class d3d(data):
                        
         with open(ifile, 'r') as f:
                           self.info=pickle.load(f)  
+                                                  
                         
         grid=r2d.read_file(self.folders[0]+'/'+self.info['tag']+'.grd')
             
@@ -98,91 +98,112 @@ class d3d(data):
         self.grid = grid
             
             
-            # read array
+        # READ DATA
+            
+        dfiles = []      
+        for folder in self.folders:
+            dfiles = dfiles +  glob.glob(folder +'/d3d_' + self.info['tag'] + '.nc')
         
-        nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in self.folders]
+        if dfiles: # previously saved datasets
+
+            self.Dataset = xr.open_mfdataset(dfiles, autoclose=True)
+            #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('reading precompiled data ...\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+            
+            
+        else:  # on demand construction
+                                                  
+            #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('Compiling data ...\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+                                                                                            
+                                                            
+            nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in self.folders]
         
-        ds = xr.open_mfdataset(nfiles, autoclose=True)
+            ds = xr.open_mfdataset(nfiles, autoclose=True)
                 
-        #grid points
-        xg = ds.XCOR.values.T
-        yg = ds.YCOR.values.T   
-        self.x = xg
-        self.y = yg
+            #grid points
+            xg = ds.XCOR.values.T
+            yg = ds.YCOR.values.T   
         
-        self.dx = self.x[0,1]-self.x[0,0]
-        self.dy = self.y[1,0]-self.y[0,0]        
+            dx = xg[0,1]-xg[0,0]
+            dy = yg[1,0]-yg[0,0]        
         
-        #pressure points       
-        xz = self.x - self.dx/2.
-        yz = self.y - self.dy/2.
+            #pressure points       
+            xz = xg - dx/2.
+            yz = yg - dy/2.
         
-        xz = xz[1:-1,1:-1]  
-        yz = yz[1:-1,1:-1]  
+            xz = xz[1:-1,1:-1]  
+            yz = yz[1:-1,1:-1]  
         
-        self.xh = np.ma.masked_array(xz, self.w) #mask land
-        self.yh = np.ma.masked_array(yz, self.w)
         
-        #velocity points
-        xv = xz + self.dx/2.
-        yu = yz + self.dy/2.
+            #velocity points
+            xv = xz + dx/2.
+            yu = yz + dy/2.
                 
-        self.times=ds.time.values
+            times=ds.time.values
         
-        ovars = kwargs.get('vars', ['S1','U1','V1','WINDU','WINDV','PATM'])
+            ovars = kwargs.get('vars', ['S1','U1','V1','WINDU','WINDV','PATM'])
         
-        keys = [d for d in ds.variables.keys() if d in ovars]
+            keys = [d for d in ds.variables.keys() if d in ovars]
         
-        zkeys = [d for d in keys if d not in ['U1','V1']]
+            zkeys = [d for d in keys if d not in ['U1','V1']]
         
-        dic = {}  
+            dic = {}  
                 
-        for key in zkeys:
-            h =  ds[key][:,1:-1,1:-1]
-            ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-            ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-            dic.update({key :(['time','YZ','XZ'], np.ma.masked_where(ww==True,ha))}) #mask land
+            for key in zkeys:
+                h =  ds[key][:,1:-1,1:-1]
+                ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
+                ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
+                dic.update({key :(['time','YZ','XZ'], np.ma.masked_where(ww==True,ha))}) #mask land
         
-        if 'U1' in keys:        
+            if 'U1' in keys:        
             # Get water velocities - U1
-            h =  ds['U1'][:,0,1:-1,1:-1] 
-            ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-            ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-            wu = np.ma.masked_where(ww==True,ha) #mask land
-            dic.update({'U1' :(['time','YU','XU'], wu)}) 
+                h =  ds['U1'][:,0,1:-1,1:-1] 
+                ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
+                ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
+                wu = np.ma.masked_where(ww==True,ha) #mask land
+                dic.update({'U1' :(['time','YU','XU'], wu)}) 
         
             #interpolate on XZ, YZ
-            orig = pyresample.geometry.SwathDefinition(lons=xz,lats=yu) # original points
-            targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
-            uz = []
-            for k in range(wu.shape[0]):
-                uz.append(pyresample.kd_tree.resample_nearest(orig,wu[k,:,:],targ,radius_of_influence=50000))
+                orig = pyresample.geometry.SwathDefinition(lons=xz,lats=yu) # original points
+                targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
+                uz = []
+                for k in range(wu.shape[0]):
+                    uz.append(pyresample.kd_tree.resample_nearest(orig,wu[k,:,:],targ,radius_of_influence=50000))
          
-            dic.update({'U1Z' :(['time','YZ','XZ'], uz)})
+                dic.update({'U1Z' :(['time','YZ','XZ'], uz)})
         
-        if 'V1' in keys:        
-            # Get water velocities - V1
-            h =  ds['V1'][:,0,1:-1,1:-1] 
-            ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-            ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-            wv = np.ma.masked_where(ww==True,ha) #mask land
-            dic.update({'V1' :(['time','YV','XV'], wv)}) 
+            if 'V1' in keys:        
+                # Get water velocities - V1
+                h =  ds['V1'][:,0,1:-1,1:-1] 
+                ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
+                ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
+                wv = np.ma.masked_where(ww==True,ha) #mask land
+                dic.update({'V1' :(['time','YV','XV'], wv)}) 
         
-            #interpolate on XZ, YZ
-            orig = pyresample.geometry.SwathDefinition(lons=xv,lats=yz) # original points
-            targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
-            vz = []
-            for k in range(wv.shape[0]):
-                vz.append(pyresample.kd_tree.resample_nearest(orig,wv[k,:,:],targ,radius_of_influence=50000))
+                #interpolate on XZ, YZ
+                orig = pyresample.geometry.SwathDefinition(lons=xv,lats=yz) # original points
+                targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
+                vz = []
+                for k in range(wv.shape[0]):
+                    vz.append(pyresample.kd_tree.resample_nearest(orig,wv[k,:,:],targ,radius_of_influence=50000))
       
-            dic.update({'V1Z' : (['time','YZ','XZ'], vz)})
-       
+                dic.update({'V1Z' : (['time','YZ','XZ'], vz)})
+                       
                  
-        self.Dataset=xr.Dataset(dic,                                              
+            self.Dataset=xr.Dataset(dic,                                              
                      coords={'XZ':(xz[0,:]),'YZ':(yz[:,0]),
                              'XU':(xz[0,:]),'YU':(yu[:,0]),
                              'XV':(xv[0,:]),'YV':(yz[:,0]),                   
-                     'time':self.times})
+                     'time':times})
                      
                      
         #clean duplicates
@@ -198,6 +219,13 @@ class d3d(data):
             dic.update({'se_date':self.Dataset.time.values[-1]})
                
         self.obs = obs(**dic)
+        
+        
+        savenc = kwargs.get('savenc',False)
+        
+        if savenc :
+            self.Dataset.to_netcdf(rpath+'d3d_'+self.info['tag']+'.nc')                             
+        
                 
     def hview(self,var,**kwargs):
         
@@ -210,11 +238,15 @@ class d3d(data):
     
                                    
     def frames(self,var,**kwargs):
+
+        X, Y = np.meshgrid(self.Dataset.XZ.values,self.Dataset.YZ.values)
+        xh = np.ma.masked_array(X, self.w) #mask land
+        yh = np.ma.masked_array(Y, self.w)
         
         if len(var) == 1 :  
-            return contour(self.xh,self.yh,self.Dataset[var[0]],self.times,**kwargs)
+            return contour(xh,yh,self.Dataset[var[0]],self.Dataset.time.values,**kwargs)
         elif len(var) == 2:
-            return quiver(self.xh,self.yh,self.Dataset[var[0]],self.Dataset[var[1]],self.times,**kwargs)
+            return quiver(xh,yh,self.Dataset[var[0]],self.Dataset[var[1]],self.Dataset.time.values,**kwargs)
 
 
 class schism(data):
@@ -788,12 +820,16 @@ class point:
         
         plat=float(self.lat)
         plon=float(self.lon)
- 
-        i=np.abs(self.data.xh[0,:].data-plon).argmin()
-        j=np.abs(self.data.yh[:,0].data-plat).argmin()
-                       
-        xb, yb = self.data.xh[j-5:j+5,i-5:i+5],self.data.yh[j-5:j+5,i-5:i+5]
-                       
+         
+        X, Y = np.meshgrid(self.data.Dataset.XZ.values,self.data.Dataset.YZ.values)
+        xh = np.ma.masked_array(X, self.data.w) #mask land
+        yh = np.ma.masked_array(Y, self.data.w)
+                  
+        i=np.abs(X[0,:]-plon).argmin()
+        j=np.abs(Y[:,0]-plat).argmin()
+                               
+        xb, yb = xh[j-5:j+5,i-5:i+5],yh[j-5:j+5,i-5:i+5]
+                               
         vals = self.data.Dataset[var][:,j-5:j+5,i-5:i+5].values
                         
         orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
@@ -804,11 +840,11 @@ class point:
                 
         if method == 'nearest':
             for k in range(vals.shape[0]):
-                s = pyresample.kd_tree.resample_nearest(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=999)
+                s = pyresample.kd_tree.resample_nearest(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=np.nan)
                 svals.append(s[0])
         elif method == 'gauss':
             for k in range(vals.shape[0]):
-                s = pyresample.kd_tree.resample_gauss(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=999,sigmas=25000)                
+                s = pyresample.kd_tree.resample_gauss(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=np.nan,sigmas=25000)                
                 svals.append(s[0])
                 
 
