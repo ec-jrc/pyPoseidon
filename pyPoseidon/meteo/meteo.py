@@ -186,13 +186,13 @@ class ecmwf_oper(meteo):
             sR=int(stepRange) #update for future comparison
             timestamp = pd.to_datetime(str(date)) + pd.to_timedelta('{}H'.format(dataTime/100.))
             tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
-            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date + pd.to_timedelta('{}H'.format(dsR))):
+            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date): #+ pd.to_timedelta('{}H'.format(dsR))):
                 
                 name,varin,ilon,ilat=getd(gid)    
             
             else:
                 grib_release(gid)
-                if tstamp > self.end_date + pd.to_timedelta('{}H'.format(dsR)): break
+                if tstamp > self.end_date : break #+ pd.to_timedelta('{}H'.format(dsR)): break
                 continue
                 
             lon=ilon[0,:]
