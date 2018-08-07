@@ -8,8 +8,12 @@ import pyresample
 import pandas as pd
 import xarray as xr
 import sys
-import pp
 import os
+
+try:
+    import pp
+except:
+    pass
 
 def fix(dem,shpfile,**kwargs):
     
@@ -66,54 +70,73 @@ def fix(dem,shpfile,**kwargs):
         return wmask, cg
     
     
-    #------------------------------------------------------------------------------
-    #check if the grid polygons intersect the shoreline USING PP
-    PYTHONPATH =  os.environ['PYTHONPATH'] #SAVE PYTHONPATH in order to reset it afterwards
+    try:
+        #------------------------------------------------------------------------------
+        #check if the grid polygons intersect the shoreline USING PP
+        PYTHONPATH =  os.environ['PYTHONPATH'] #SAVE PYTHONPATH in order to reset it afterwards
     
-    job_server = pp.Server() 
+        job_server = pp.Server() 
        
-    if ncores > job_server.get_ncpus(): ncores = job_server.get_ncpus() # make sure we don't overclock
+        if ncores > job_server.get_ncpus(): ncores = job_server.get_ncpus() # make sure we don't overclock
     
-    job_server.set_ncpus(ncores)
+        job_server.set_ncpus(ncores)
     
-    #split the array
+        #split the array
     
-    n = xp.shape[0]
-    l=range(n)
-    k = ncores
+        n = xp.shape[0]
+        l=range(n)
+        k = ncores
     
-    b = [l[i * (n // k) + min(i, n % k):(i+1) * (n // k) + min(i+1, n % k)] for i in range(k)]
+        b = [l[i * (n // k) + min(i, n % k):(i+1) * (n // k) + min(i+1, n % k)] for i in range(k)]
     
-    jobs=[]
-    for l in range(ncores):
-        extra=b[l][-1]+1 # add one to consider the jump between parts
-        part = b[l]+[extra]
-        if part[-1] >= xp.shape[0] : part = part[:-1] #control the last element
-        xl=xp[part,:]
-        yl=yp[part,:]   
+        jobs=[]
+        for l in range(ncores):
+            extra=b[l][-1]+1 # add one to consider the jump between parts
+            part = b[l]+[extra]
+            if part[-1] >= xp.shape[0] : part = part[:-1] #control the last element
+            xl=xp[part,:]
+            yl=yp[part,:]   
 
-        jobs.append(job_server.submit(loop,(xl,yl,cg,),modules=('shapely',)))
+            jobs.append(job_server.submit(loop,(xl,yl,cg,),modules=('shapely',)))
 
-    ps=jobs[0]()
-    for l in range(1,ncores):    
-        ps = np.vstack([ps, [[i+b[l][0],j] for [i,j] in jobs[l]()]]) # fix global index by adding the first index of part    
+        ps=jobs[0]()
+        for l in range(1,ncores):    
+            ps = np.vstack([ps, [[i+b[l][0],j] for [i,j] in jobs[l]()]]) # fix global index by adding the first index of part    
     
-    #Add extra points from boundary    
-    bgps=[]
-    for [i,j] in ps:
-        if i == 1 : 
-            bgps.append([i-1,j-1])
-            bgps.append([i-1,j])
-        if j == 1 : 
-            bgps.append([i-1,j-1])
-            bgps.append([i,j-1])
+        #Add extra points from boundary    
+        bgps=[]
+        for [i,j] in ps:
+            if i == 1 : 
+                bgps.append([i-1,j-1])
+                bgps.append([i-1,j])
+            if j == 1 : 
+                bgps.append([i-1,j-1])
+                bgps.append([i,j-1])
             
-    ps = np.vstack([ps, bgps]) # final stack
+        ps = np.vstack([ps, bgps]) # final stack
     
-    job_server.destroy()
+        job_server.destroy()
     
-    os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH
+        os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH
     
+    except:
+        
+        gps = []
+        igps = []
+        for i in range(0,xp.shape[0]-1):
+            for j in range(0,xp.shape[1]-1):
+                p = shapely.geometry.Polygon([(xp[i,j],yp[i,j]),(xp[i+1,j],yp[i+1,j]),(xp[i+1,j+1],yp[i+1,j+1]),(xp[i,j+1],yp[i,j+1])])
+                if not p.intersects(cg): 
+                    gps.append(p)
+                    igps.append([i+1,j+1])
+                    if i == 0 : 
+                        igps.append([i,j])
+                        igps.append([i,j+1])
+                    if j == 0 : 
+                        igps.append([i,j])
+                        igps.append([i+1,j])
+        
+        ps = igps                
     #------------------------------------------------------------------------------
         
     #create a mask of all cells not intersecting the shoreline
