@@ -585,11 +585,13 @@ class d3d(model):
                 sys.stdout.write(line)
                 sys.stdout.flush()  
                 tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
-         
-                biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
-                with open(biggest, "r") as f1:
-                    for line in f1:
-                        f.write(line)
+                try:
+                    biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
+                    with open(biggest, "r") as f1:
+                        for line in f1:
+                            f.write(line)
+                except:
+                    pass
                             
       #cleanup  
         tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*') + glob.glob(calc_dir+'/TMP_*')
