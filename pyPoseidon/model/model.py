@@ -157,10 +157,11 @@ class d3d(model):
         if 'time_frame' in kwargs:
             time_frame = kwargs.get('time_frame', None)
             self.end_date = self.start_date + pd.to_timedelta(time_frame)
+            self.time_frame = time_frame
         else:
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
-            self.time_frame = self.end_date - self.start_date
+            self.time_frame = self.end_date - self.start_date            
         
         if not hasattr(self, 'date'): self.date = self.start_date
         
@@ -594,13 +595,13 @@ class d3d(model):
                     pass
                             
       #cleanup  
-        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*') + glob.glob(calc_dir+'/TMP_*')
+#        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*') + glob.glob(calc_dir+'/TMP_*')
                                 
-        for filename in tempfiles:
-            try:
-                os.remove(filename)
-            except OSError:
-                pass
+#        for filename in tempfiles:
+#            try:
+#                os.remove(filename)
+#            except OSError:
+#                pass
 
         ex.stdout.close()  
         ex.stderr.close() 
