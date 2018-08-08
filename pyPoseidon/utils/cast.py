@@ -45,7 +45,7 @@ class dcast(cast):
         cf = [glob.glob(self.path+prev+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
                     
-        for date,folder,meteo in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:]):
+        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frames[1:]):
             
             ppath = self.path+'/{}/'.format(prev)
             if not os.path.exists(ppath):
@@ -73,10 +73,10 @@ class dcast(cast):
             #update the properties   
             info['date'] = date
             info['start_date'] = date
+            info['time_frame'] = time_frame
             info['mpaths'] = meteo
             info['rpath'] = rpath
-            
-            
+                        
 #            for attr, value in self.iteritems():
 #                setattr(info, attr, value)
             m=pm.model(**info)
@@ -177,7 +177,7 @@ class dcast(cast):
             m.save()
             
             #cleanup
-            os.remove(rpath+'tri-rst.'+outresfile)
+     #       os.remove(rpath+'tri-rst.'+outresfile)
             
             logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
             
