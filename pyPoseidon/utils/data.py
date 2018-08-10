@@ -99,6 +99,8 @@ class d3d(data):
             
             
         # READ DATA
+        savenc = kwargs.get('savenc',False)
+        
             
         dfiles = []      
         for folder in self.folders:
@@ -204,10 +206,21 @@ class d3d(data):
                              'XU':(xz[0,:]),'YU':(yu[:,0]),
                              'XV':(xv[0,:]),'YV':(yz[:,0]),                   
                      'time':times})
+            
+        
                      
                      
         #clean duplicates
         self.Dataset = self.Dataset.sel(time=~self.Dataset.indexes['time'].duplicated())
+        
+        if savenc :
+            self.Dataset.to_netcdf(rpath+'d3d_'+self.info['tag']+'.nc')
+            for filename in nfiles:
+                try:
+                    os.remove(filename)
+                except OSError:
+                    pass
+                                           
                      
         dic = self.info.copy()   # start with x's keys and values
         dic.update(kwargs)    # modifies z with y's keys and values & returns None
@@ -221,10 +234,6 @@ class d3d(data):
         self.obs = obs(**dic)
         
         
-        savenc = kwargs.get('savenc',False)
-        
-        if savenc :
-            self.Dataset.to_netcdf(rpath+'d3d_'+self.info['tag']+'.nc')                             
         
                 
     def hview(self,var,**kwargs):

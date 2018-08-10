@@ -192,8 +192,11 @@ class d3d(model):
 
         self.step = get_value(self,kwargs,'step',0)
         self.rstep = get_value(self,kwargs,'rstep',0)
-        self.dt = get_value(self,kwargs,'Dt',1)
+        self.ostep = get_value(self,kwargs,'ostep',1)
                                                
+        if self.rstep == 'end': # save a restart file at the end
+            self.rstep = int(self.time_frame.total_seconds()/60)                          
+                                             
         for attr, value in kwargs.iteritems():
                 if not hasattr(self, attr): setattr(self, attr, value)
         
@@ -298,13 +301,10 @@ class d3d(model):
   
         #adjust iteration stop
         self.mdf.loc[self.mdf.index.str.contains('Tstop')]=self.Tstop
-  
-        #adjust time step
-        self.mdf.loc[self.mdf.index.str.contains('Dt')]=[self.dt]
-  
+    
         #adjust time for output
-        self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{} {} {}'.format(self.Tstart,self.step,self.Tstop)
-        self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{} {} {}'.format(self.Tstart,self.dt,self.Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{:d} {:d} {:d}'.format(self.Tstart,self.step,self.Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{:d} {:d} {:d}'.format(self.Tstart,self.ostep,self.Tstop)
         self.mdf.loc[self.mdf.index.str.contains('Flpp')]='0 0 0'
         self.mdf.loc[self.mdf.index.str.contains('Flrst')]=self.rstep
   
@@ -590,18 +590,27 @@ class d3d(model):
                     biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
                     with open(biggest, "r") as f1:
                         for line in f1:
-                            f.write(line)
+                            f.write(line)   
                 except:
                     pass
                             
       #cleanup  
-#        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*') + glob.glob(calc_dir+'/TMP_*')
+        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
+        biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
+        with open(calc_dir+self.tag+'_run.log', 'a') as f: #save diagnosis 
+            with open(biggest, "r") as f1:
+                for line in f1:
+                    f.write(line)   
+            
+        
+      
+        tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*') + glob.glob(calc_dir+'/TMP_*')
                                 
-#        for filename in tempfiles:
-#            try:
-#                os.remove(filename)
-#            except OSError:
-#                pass
+        for filename in tempfiles:
+            try:
+                os.remove(filename)
+            except OSError:
+                pass
 
         ex.stdout.close()  
         ex.stderr.close() 
@@ -773,6 +782,9 @@ class d3d(model):
         
             obs_points = pd.read_csv(ofilename,delimiter='\t',header=None,names=['index','Name','lat','lon'])
             obs_points = obs_points.set_index('index',drop=True).reset_index(drop=True) #reset index if any
+            
+            obs_points = obs_points[(obs_points.lon.between(self.grid.impl.Dataset.lons.values.min(),self.grid.impl.Dataset.lons.values.max())) 
+                                    & (obs_points.lat.between(self.grid.impl.Dataset.lats.values.min(),self.grid.impl.Dataset.lats.values.max()))]
         
             b=np.ma.masked_array(bat,np.isnan(bat)) # mask land
         
@@ -805,14 +817,14 @@ class d3d(model):
                     # Add one in the indices due to python/fortran convention
                     with open(self.rpath+'{}.obs'.format(self.tag),'w') as f: 
                         for l in range(obs.shape[0]): 
-                            f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l],obs.j[l]+1,obs.i[l]+1,wsize))
+                            f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
 
          
             else:
                 # Add one in the indices due to python/fortran convention
                 with open(self.rpath+'{}.obs'.format(self.tag),'w') as f:
                     for l in range(obs.shape[0]): 
-                        f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l],obs.j[l]+1,obs.i[l]+1,wsize))
+                        f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
               
         
         #save enc file

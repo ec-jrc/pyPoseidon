@@ -9,6 +9,7 @@ import pickle
 import pyPoseidon.model as pm
 from pyPoseidon.utils.get_value import get_value
 import pandas as pd
+from pyPoseidon.utils import data
 
 class cast:
     impl=None
@@ -76,11 +77,13 @@ class dcast(cast):
             info['time_frame'] = time_frame
             info['mpaths'] = meteo
             info['rpath'] = rpath
-                        
+            if self.rstep:
+                info['rstep'] = self.rstep
+                                    
 #            for attr, value in self.iteritems():
 #                setattr(info, attr, value)
             m=pm.model(**info)
-                                    
+                                                         
             # copy/link necessary files
 
             for filename in cfiles:
@@ -137,35 +140,9 @@ class dcast(cast):
             else:
                 sys.stdout.write('meteo files present\n')
             
-            
-            # modify mdf file    
-            mdf = pd.read_csv(rpath+m.impl.tag+'.mdf',sep='=')    
-            
-            mdf = mdf.set_index(mdf.columns[0])
-            
-            mdfidx = mdf.index.str.strip() # store the stripped names
-            
-            # adjust iteration date
-            tstart = date.hour*60  
-            m.impl.end_date = m.impl.start_date + pd.to_timedelta(m.impl.time_frame)   
-            tend = tstart + int((m.impl.end_date - m.impl.start_date).total_seconds()/60)
-            
-            dt = mdf.loc[mdf.index.str.contains('Dt')].values[0][0]
-                        
-            mdf.loc[mdf.index.str.contains('Itdate')]='#{}#'.format(datetime.datetime.strftime(date,'%Y-%m-%d'))
-            mdf.loc[mdf.index.str.contains('Tstart')]=tstart
-            mdf.loc[mdf.index.str.contains('Tstop')]=tend
-            mdf.loc[mdf.index.str.contains('Flmap')]='{} {} {}'.format(tstart,m.impl.step,tend)
-            mdf.loc[mdf.index.str.contains('Flhis')]='{} {} {}'.format(tstart,dt,tend)
-
-            if not 'Restid' in mdfidx: 
-                mdf.reindex(mdf.index.values.tolist()+['Restid '])
-
-            mdf.loc['Restid '] = outresfile # adjust restart file
-
-            # update mdf
-            mdf.to_csv(rpath+m.impl.tag+'.mdf',sep='=')
-                                  
+            # modify mdf file
+            m.config(config_file = ppath+m.impl.tag+'.mdf', config={'Restid':outresfile}, output=True)
+                                              
             # run case
             sys.stdout.write('executing\n')
             sys.stdout.flush()
@@ -177,7 +154,11 @@ class dcast(cast):
             m.save()
             
             #cleanup
-     #       os.remove(rpath+'tri-rst.'+outresfile)
+            os.remove(rpath+'tri-rst.'+outresfile)
+            
+            # save compiled nc file
+            
+            out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
             
             logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
             
