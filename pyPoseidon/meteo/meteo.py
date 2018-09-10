@@ -1,3 +1,13 @@
+"""
+Meteo module
+
+"""
+# Copyright 2018 European Union
+# This file is part of [software name], a software written by [author's name] ([JRC unit])
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
+# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+# See the Licence for the specific language governing permissions and limitations under the Licence. 
+
 import numpy as np
 import datetime
 import glob
@@ -24,9 +34,6 @@ import pyproj
 
 def gridd(lon1,lat1,lon2,lat2,nlats):
 
-            #   lon1, lat1 = self.longitude_first_gridpoint, self.latitude_first_gridpoint
-            #   lon2, lat2 = self.longitude_last_gridpoint, self.latitude_last_gridpoint
-            #   nlats = self.points_in_y_direction
                 # ECMWF 'reduced' gaussian grid.
                 nlons = 2*nlats
                 delon = 360./nlons
