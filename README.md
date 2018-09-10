@@ -1,7 +1,7 @@
 Framework for Hydrological simulations
 =======================================
 
-This is a development project utilising multiple solvers (currently DELFT3D, SCHISM) for considering storm surge. The purpose is to create a simple, portable and transparent way of setting up, running and analysing hydrodynamic computations through python scripts and Jupyter Notebooks (http://jupyter.org). See Notebooks in examples/ and Notebooks/ for relevant prototypes.
+This is a development project utilising multiple solvers (currently DELFT3D & SCHISM) for considering storm surge. The purpose is to create a simple, portable and transparent way of setting up, running and analysing hydrodynamic computations through python scripts and Jupyter Notebooks (http://jupyter.org). See Notebooks in examples/ and Notebooks/ for relevant prototypes.
 
 ## Instalation
 
@@ -47,6 +47,7 @@ Navigate to the pyPoseidon/examples & pyPoseidon/Notebook folders for using the 
 ### Prerequisities
 
 DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. See Wiki for more details.
+
 SCHISM needs to be compiled for your system. You can download it from  http://columbia.vims.edu/schism/tags/. See http://ccrm.vims.edu/schismweb/ for more info.
 
 ## Tests
