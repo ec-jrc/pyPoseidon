@@ -215,13 +215,18 @@ class d3d(model):
 
         # Grid 
           
-        self.grid=pgrid.grid(type='r2d',**kwargs)#x=gx, y=gy)
+        self.grid=pgrid.grid(type='r2d',**kwargs)
         #update class variables
         self.minlon = self.grid.impl.Dataset.x.values.min()
         self.maxlon = self.grid.impl.Dataset.x.values.max()
         self.minlat = self.grid.impl.Dataset.y.values.min()
         self.maxlat = self.grid.impl.Dataset.y.values.max()
         self.nj, self.ni  = self.grid.impl.Dataset.lons.shape
+        
+        kwargs['minlon']=self.minlon
+        kwargs['maxlon']=self.maxlon
+        kwargs['minlat']=self.minlat
+        kwargs['maxlat']=self.maxlat
         
         
         # get bathymetry
