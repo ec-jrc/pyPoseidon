@@ -35,9 +35,24 @@ class r2d(grid):
             self.Dataset = self.read_file(grid_file)
         
         else:
-        
-            gx    = kwargs.get('x', None)
-            gy    = kwargs.get('y', None)
+            
+            minlon = kwargs.get('minlon', None)
+            maxlon = kwargs.get('maxlon', None)
+            minlat = kwargs.get('minlat', None)
+            maxlat = kwargs.get('maxlat', None)
+            resolution = kwargs.get('resolution', None)
+            
+            ni=int(round((maxlon-minlon)/resolution)) #these are cell numbers
+            nj=int(round((maxlat-minlat)/resolution))
+  
+            maxlon=minlon+ni*resolution #adjust max lon to much the grid
+            maxlat=minlat+nj*resolution
+
+            # set the grid 
+            x=np.linspace(minlon,maxlon,ni)
+            y=np.linspace(minlat,maxlat,nj)
+            gx,gy=np.meshgrid(x,y)
+
             attrs = kwargs.get('attrs', {'Coordinate System': 'Spherical', 'alfori': 0.0, 'xori': 0.0, 'yori': 0.0})
         
             g = xr.Dataset({'lons': (['y', 'x'], gx),   

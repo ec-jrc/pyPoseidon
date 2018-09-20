@@ -213,45 +213,16 @@ class d3d(model):
                           
     def set(self,**kwargs):
 
-        gx = get_value(self,kwargs,'x',None)
-        gy = get_value(self,kwargs,'y',None)    
-              
-        # computei ni,nj / correct lat/lon
-
-        if gx :
-            
-          self.x=gx
-          self.y=gy
-              
-          nj,ni=self.x.shape
-          self.minlon=self.x.min()
-          self.maxlon=self.x.max()
-          self.minlat=self.y.min()
-          self.maxlat=self.y.max()
-          
-        else:
-
-          ni=int(round((self.maxlon-self.minlon)/self.resolution)) #these are cell numbers
-          nj=int(round((self.maxlat-self.minlat)/self.resolution))
-  
-          self.maxlon=self.minlon+ni*self.resolution #adjust max lon to much the grid
-          self.maxlat=self.minlat+nj*self.resolution
-
-        # set the grid 
-          x=np.linspace(self.minlon,self.maxlon,ni)
-          y=np.linspace(self.minlat,self.maxlat,nj)
-          gx,gy=np.meshgrid(x,y)
-
-
-    #      ni=ni+1 # transfrom to grid points
-    #      nj=nj+1
-        
-        self.ni=ni
-        self.nj=nj
-                 
         # Grid 
           
-        self.grid=pgrid.grid(type='r2d',x=gx, y=gy)
+        self.grid=pgrid.grid(type='r2d',**kwargs)#x=gx, y=gy)
+        #update class variables
+        self.minlon = self.grid.impl.Dataset.x.values.min()
+        self.maxlon = self.grid.impl.Dataset.x.values.max()
+        self.minlat = self.grid.impl.Dataset.y.values.min()
+        self.maxlat = self.grid.impl.Dataset.y.values.max()
+        self.nj, self.ni  = self.grid.impl.Dataset.lons.shape
+        
         
         # get bathymetry
         self.bath(**kwargs)

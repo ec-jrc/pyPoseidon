@@ -30,4 +30,4 @@ dependencies:
   - pyviz::hvplot
   - pip
   - pip:
-  	- https://www.parallelpython.com/downloads/pp/pp-1.6.6.tar.gz  
+    - https://www.parallelpython.com/downloads/pp/pp-1.6.6.tar.gz  
