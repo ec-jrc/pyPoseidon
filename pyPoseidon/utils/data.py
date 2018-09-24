@@ -421,11 +421,12 @@ class schism(data):
                 
             #convert times to Timestamp
             date = header2.loc[:,['start_year','start_month','start_day','start_hour','utc_start']]
+            date = date.astype(int) # make int
             date.columns=['year','month','day','hour','utc'] # rename the columns
             #set the start timestamp
-            sdate = pd.Timestamp(year=date.year.values, month=date.month.values, day=date.day.values, hour=date.hour.values, tz=date.utc.values)
+            sdate = pd.Timestamp(year=date.year.values[0], month=date.month.values[0], day=date.day.values[0], hour=date.hour.values[0], tz=date.utc.values[0])
             #get times as timestamps
-            times = pd.to_datetime(out[0].time.values, unit='s', origin=sdate)
+            times = pd.to_datetime(out[0].time.values, unit='s', origin=sdate.tz_convert(None))
 
             # combine grid
             cnodes = nodes.global_n.drop_duplicates() # drop duplicate global nodes
@@ -498,8 +499,16 @@ class schism(data):
                 eds = np.array(eds)
 
                 df = pd.DataFrame(eds)
-                idsd = df[df.apply(sorted, axis=1).duplicated()].index.values # find the duplicates
-                df_ = df.drop(idsd) #drop them 
+                #with pandas
+ #               idsd = df[df.apply(sorted, axis=1).duplicated()].index.values # find the duplicates
+ #               df_ = df.drop(idsd) #drop them 
+                dic = {0:[a for [a,b] in df.apply(sorted, axis=1)],1:[b for [a,b] in df.apply(sorted, axis=1)]}
+                df_ = pd.DataFrame(dic).drop_duplicates()
+                #with numpy
+#                a = np.sort(df.values)
+#                unq, indx = np.unique(a, axis=0, return_index=True)
+#                df_ = pd.DataFrame(a[np.sort(indx)])
+                
                 df_.index = re.loc[key,'global_n'].values
     
                 edk.append(df_)#make a pandas DataFrame
@@ -649,7 +658,7 @@ class schism(data):
             #grid based
             
             #compute cs
-            klev = np.arange(header2.kz,header2.nvrt+1)
+            klev = np.arange(header2.kz.values[0],header2.nvrt.values[0]+1)
             k = klev-header2.kz.values
 
 

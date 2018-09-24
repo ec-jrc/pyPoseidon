@@ -11,7 +11,6 @@ Visualization module
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap, shiftgrid
 from matplotlib import animation,rc
 from cartopy import crs
 import cartopy.crs as ccrs

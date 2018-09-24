@@ -12,7 +12,6 @@ import numpy as np
 import geopandas as gp
 import matplotlib.path as mpltPath
 import shapely 
-from mpl_toolkits.basemap import Basemap
 from pyPoseidon.utils.bfs import *
 import pyresample
 import pandas as pd
