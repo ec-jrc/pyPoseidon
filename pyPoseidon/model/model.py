@@ -1097,7 +1097,10 @@ class schism(model):
             else:
                 sys.stdout.write('dem from grid file\n')
         else:
-            self.dem = pdem.dem(**z)
+            if dpath:
+                self.dem = pdem.dem(**z)
+            else:
+                sys.stdout.write('dem from grid file\n')
 
     def output(self,**kwargs):      
         
