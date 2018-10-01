@@ -251,7 +251,7 @@ def bmatch(dem,wmask,**kwargs):
     
     # with nearest using only the water values
     
-    grid_con = pyresample.image.ImageContainerNearest(wet, orig, radius_of_influence=50000,fill_value=np.nan, nprocs=ncores)
+    grid_con = pyresample.image.ImageContainerNearest(wet, orig, radius_of_influence=50000,fill_value=np.nan)#, nprocs=ncores)
 
     area_con = grid_con.resample(targ)
 

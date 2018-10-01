@@ -92,7 +92,7 @@ class emodnet(dem):
        
  #         itopo = pyresample.kd_tree.resample_nearest(orig,topo.values,targ,radius_of_influence=50000,fill_value=np.nan, nprocs=ncores)
 
-          grid_con = pyresample.image.ImageContainerNearest(topo.values, orig, radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+          grid_con = pyresample.image.ImageContainerNearest(topo.values, orig, radius_of_influence=50000,fill_value=np.nan)#,nprocs=ncores)
  
           area_con = grid_con.resample(targ)
 
@@ -212,7 +212,7 @@ class erdap(dem):
        
 #         itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=50000,fill_value=np.nan, nprocs=ncores)
  
-         grid_con = pyresample.image.ImageContainerNearest(dem.values, orig, radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+         grid_con = pyresample.image.ImageContainerNearest(dem.values, orig, radius_of_influence=50000,fill_value=np.nan)#,nprocs=ncores)
 
          area_con = grid_con.resample(targ)
 
@@ -318,7 +318,7 @@ class gebco(dem):
        
      #    itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
          
-         grid_con = pyresample.image.ImageContainerNearest(dem.values, orig, radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+         grid_con = pyresample.image.ImageContainerNearest(dem.values, orig, radius_of_influence=50000,fill_value=np.nan)#,nprocs=ncores)
 
          area_con = grid_con.resample(targ)
 
