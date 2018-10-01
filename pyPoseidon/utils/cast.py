@@ -89,7 +89,7 @@ class dcast(cast):
             info['rpath'] = rpath
             if self.rstep:
                 info['rstep'] = self.rstep
-                                    
+            
 #            for attr, value in self.iteritems():
 #                setattr(info, attr, value)
             m=pm.model(**info)
@@ -139,9 +139,10 @@ class dcast(cast):
             sys.stdout.write('process meteo\n')
             sys.stdout.flush()
 
-            flag = get_value(self,kwargs,'update',None)
+            flag = get_value(self,kwargs,'update',[])
             
-            check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]   
+            check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]
+
             if (np.any(check)==False) or ('meteo' in flag):
                
                 m.force()
@@ -159,7 +160,7 @@ class dcast(cast):
          
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-            m.run()
+#            m.run()
 
             m.save()
             
@@ -168,7 +169,7 @@ class dcast(cast):
             
             # save compiled nc file
             
-            out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
+#            out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
             
             logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
             

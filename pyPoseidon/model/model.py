@@ -344,9 +344,9 @@ class d3d(model):
         
         z.update({'mpaths':mpaths})
 
-        flag = get_value(self,kwargs,'update',None)
+        flag = get_value(self,kwargs,'update',[])
         # check if files exist
-        if flag is not None:     
+        if flag :     
             check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
             if (np.any(check)==False) :              
                 self.meteo = pmeteo.meteo(**z)
@@ -379,9 +379,9 @@ class d3d(model):
                                      'ilat': ('ilat', z['grid_y'][:,0])})         
             
         
-        flag = get_value(self,kwargs,'update',None)
+        flag = get_value(self,kwargs,'update',[])
         # check if files exist
-        if flag is not None:
+        if flag :
             check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
             if (np.any(check)==False) :
                 self.dem = pdem.dem(**z)  
@@ -658,7 +658,7 @@ class d3d(model):
         
         path = get_value(self,kwargs,'rpath','./') 
         slevel = get_value(self,kwargs,'slevel',0.) 
-        flag = get_value(self,kwargs,'update',None)
+        flag = get_value(self,kwargs,'update',[])
         
         
         if not os.path.exists(path):
@@ -667,7 +667,7 @@ class d3d(model):
         #save mdf 
         self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
         
-        if flag is not None:
+        if flag:
             # check if files exist
             check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
             if (np.any(check)==False) or ('grid' in flag ) :
@@ -706,7 +706,7 @@ class d3d(model):
             sys.stdout.write('No dem file ..')
             
         # Write bathymetry file    
-        if flag is not None:
+        if flag :
             # check if files exist
             check=[os.path.exists(self.rpath+'{}.dep'.format(self.tag))]   
             if (np.any(check)==False) or ('dem' in flag) :
@@ -795,7 +795,7 @@ class d3d(model):
             sort = sorted(obs.Name.values,key=len) # sort the names to get the biggest word
             wsize = len(sort[-1])# size of bigget word in order to align below
         
-            if flag is not None:
+            if flag :
         
                 check=[os.path.exists(self.rpath+'{}.obs'.format(self.tag))]   
                 if (np.any(check)==False) or ('model' in flag) :
@@ -814,7 +814,7 @@ class d3d(model):
               
         
         #save enc file
-        if flag is not None:
+        if flag :
         
             check=[os.path.exists(self.rpath+'{}.enc'.format(self.tag))]   
             if (np.any(check)==False) or ('model' in flag) :
@@ -1065,9 +1065,9 @@ class schism(model):
         
         z.update({'mpaths':mpaths})
         
-        flag = get_value(self,kwargs,'update',None)
+        flag = get_value(self,kwargs,'update',[])
         # check if files exist
-        if flag is not None:     
+        if flag :     
             check=[os.path.exists(z['rpath']+'sflux/sflux_air_1.001.nc')] # for f in ['u.amu','v.amv','p.amp']]   
             if (np.any(check)==False) :              
                 self.meteo = pmeteo.meteo(**z)
@@ -1089,9 +1089,9 @@ class schism(model):
         
         z.update({'dpath':dpath})
                 
-        flag = get_value(self,kwargs,'update',None)
+        flag = get_value(self,kwargs,'update',[])
         # check if files exist
-        if flag is not None:
+        if flag :
             if 'dem' in flag :
                 self.dem = pdem.dem(**z)
             else:
@@ -1105,7 +1105,7 @@ class schism(model):
     def output(self,**kwargs):      
         
         path = get_value(self,kwargs,'rpath','./') 
-        flag = get_value(self,kwargs,'update',None)
+        flag = get_value(self,kwargs,'update',[])
         
         
         if not os.path.exists(path):
