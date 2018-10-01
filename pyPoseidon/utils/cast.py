@@ -160,7 +160,7 @@ class dcast(cast):
          
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-#            m.run()
+            m.run()
 
             m.save()
             
@@ -169,7 +169,7 @@ class dcast(cast):
             
             # save compiled nc file
             
-#            out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
+            out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
             
             logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
             
