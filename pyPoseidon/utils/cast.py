@@ -106,7 +106,7 @@ class dcast(cast):
             for filename in files_sym:
                 ipath = glob.glob(self.path+self.folders[0]+'/'+filename)[0]
                 try:
-                    os.symlink(ipath,rpath+filename)
+                    os.symlink(os.path.realpath(ipath),rpath+filename)
                 except OSError, e:
                   if e.errno == errno.EEXIST:
                       sys.stdout.write('Restart link present\n')
