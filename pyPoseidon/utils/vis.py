@@ -11,13 +11,12 @@ Visualization module
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import animation,rc
-from cartopy import crs
+import matplotlib
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 
-rc('animation',html='html5')
+matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['animation.embed_limit'] = '200.'
          
@@ -56,7 +55,7 @@ def contour(grid_x,grid_y,z,t,**kwargs):
     cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
 #plt.colorbar()
 
-    v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
+    v = matplotlib.animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
   
     plt.close()
   
@@ -117,7 +116,7 @@ def quiver(X,Y,U,V,t,**kwargs):
     plt.close()
     # you need to set blit=False, or the first set of arrows never gets
     # cleared on subsequent frames
-    v = animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
+    v = matplotlib.animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
                                 blit=False, repeat=False)#, interval=1)    
     
     return v
@@ -147,7 +146,12 @@ class splot(object):
         t = kwargs.get('t',self._obj.time.values)
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        tri3 = tri3-1 # adjust for python    
+        tri3 = tri3-1 # adjust for python   
+         
+        if np.abs(x.min()-x.max()) > 359.:
+            # Use Matplotlib for triangulation
+            triang = matplotlib.tri.Triangulation(x, y)
+            tri3 = triang.triangles
     
         it = kwargs.get('it', None)
         z = self._obj[var].values[it,:].flatten()
@@ -164,6 +168,12 @@ class splot(object):
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
         ax = plt.axes(projection=ccrs.PlateCarree())
+        
+        #optional mask for the data
+        mask = kwargs.get('mask',None)
+        if 'mask' in kwargs:
+            z = np.ma.masked_array(z,mask)
+            z = z.filled(fill_value=-99999)
         
         plt.gca().set_aspect('equal')
         
@@ -190,6 +200,11 @@ class splot(object):
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
     
+        if np.abs(x.min()-x.max()) > 359.:
+            # Use Matplotlib for triangulation
+            triang = matplotlib.tri.Triangulation(x, y)
+            tri3 = triang.triangles
+    
         it = kwargs.get('it', None)
         
         z = self._obj[var].values[it,:].flatten()
@@ -206,6 +221,13 @@ class splot(object):
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
         ax = plt.axes(projection=ccrs.PlateCarree())
+        
+        #optional mask for the data
+        mask = kwargs.get('mask',None)
+        if 'mask' in kwargs:
+            z = np.ma.masked_array(z,mask)
+            z = z.filled(fill_value=-99999)
+        
         
         plt.gca().set_aspect('equal')
         
@@ -231,7 +253,12 @@ class splot(object):
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
-    
+        
+        if np.abs(x.min()-x.max()) > 359.:
+            # Use Matplotlib for triangulation
+            triang = matplotlib.tri.Triangulation(x, y)
+            tri3 = triang.triangles
+        
         it = kwargs.get('it', None)
         
         u = self._obj[var].values[it,:,0].flatten()
@@ -245,6 +272,15 @@ class splot(object):
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
         ax = plt.axes(projection=ccrs.PlateCarree())
+        
+        #optional mask for the data
+        mask = kwargs.get('mask',None)
+        if 'mask' in kwargs:
+            u = np.ma.masked_array(u,mask)
+            v = np.ma.masked_array(v,mask)
+            v = v.filled(fill_value=-99999)    
+            u = u.filled(fill_value=-99999)
+        
         
         plt.gca().set_aspect('equal')
         
@@ -269,7 +305,11 @@ class splot(object):
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
-         
+
+        if np.abs(x.min()-x.max()) > 359.:
+            # Use Matplotlib for triangulation
+            triang = matplotlib.tri.Triangulation(x, y)
+            tri3 = triang.triangles 
          
         fig, ax = plt.subplots(figsize=(12,8))
         
@@ -335,7 +375,7 @@ class splot(object):
         plt.close()
         # you need to set blit=False, or the first set of arrows never gets
         # cleared on subsequent frames
-        v = animation.FuncAnimation(fig, update_qframes, fargs=(Q, u, v), blit=False, repeat=False,
+        v = matplotlib.animation.FuncAnimation(fig, update_qframes, fargs=(Q, u, v), blit=False, repeat=False,
                                frames = range(0,np.size(t)))   
         
         return v
@@ -348,6 +388,11 @@ class splot(object):
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         tri3 = tri3-1 # adjust for python    
+
+        if np.abs(x.min()-x.max()) > 359.:
+            # Use Matplotlib for triangulation
+            triang = matplotlib.tri.Triangulation(x, y)
+            tri3 = triang.triangles
     
         z = self._obj[var].values
         
@@ -360,6 +405,14 @@ class splot(object):
         title = kwargs.get('title', None)
         
         vrange=np.linspace(vmin,vmax,nv,endpoint=True)
+        
+        #optional mask for the data
+        mask = kwargs.get('mask',None)
+        if 'mask' in kwargs:
+            z = np.ma.masked_array(z,mask)
+            z = z.filled(fill_value=-99999)
+        
+        
     ## CHOOSE YOUR PROJECTION
  #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
     #ax = plt.axes(projection=ccrs.PlateCarree())
@@ -385,7 +438,7 @@ class splot(object):
         cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
 #plt.colorbar()
 
-        v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
+        v = matplotlib.animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
      
         plt.close()
     
