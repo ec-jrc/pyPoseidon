@@ -1,9 +1,11 @@
 """
-Main model module
+Main model module of pyPoseidon. It controls the creation, output & execution of a complete simulation based on different hydrological models
 
+Currently supported : DELFT3D , SCHISM
+               
 """
 # Copyright 2018 European Union
-# This file is part of [software name], a software written by [author's name] ([JRC unit])
+# This file is part of pyPoseidon, a software written by George Breyiannis (JRC E.1)
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
@@ -42,6 +44,22 @@ le=['A','B']
 nm = ['Z', 'A']
 
 class model:
+    """
+Construct and manage a hydrodynamic model based on different solvers.
+    
+    :param solver: Type of model, e.g. 'd3d' or 'schism'
+    :param kwargs: additional arguments to pass along
+    :type solver: String
+    :type kwargs: Various
+    :return: A model
+    :rtype: composite object
+    
+    
+    Example:
+    
+    model = pyPoseidon.model.model(solver='d3d)
+    
+    """
     impl = None
     def __init__(self, solver=None, **kwargs):
         if solver == 'd3d':
@@ -153,7 +171,7 @@ class model:
         
         
 class d3d(model):
-    
+        
     def __init__(self,**kwargs):
                 
         self.minlon = kwargs.get('minlon', None)
@@ -927,7 +945,7 @@ class d3d(model):
         return idx,jdx
         
 class schism(model):
-    
+     
     def __init__(self,**kwargs):
                 
         self.minlon = kwargs.get('minlon', None)
@@ -1165,10 +1183,15 @@ class schism(model):
             
             
         # save grid files 
-        
-        copyfile(self.hgrid, path+'hgrid.gr3') #copy original grid file
-        
-        copyfile(path+'hgrid.gr3', path+'hgrid.ll')    
+        if self.hgrid != path+'hgrid.gr3' :
+            copyfile(self.hgrid, path+'hgrid.gr3') #copy original grid file
+            copyfile(path+'hgrid.gr3', path+'hgrid.ll')    
+        else:
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('Keeping grid files ..\n')
+            sys.stdout.flush()
+            
                  
                  
         # manning file
