@@ -28,6 +28,7 @@ dependencies:
   - bokeh
   - bokeh::datashader
   - pyviz::hvplot
+  - ipympl
   - pip
   - pip:
     - https://www.parallelpython.com/downloads/pp/pp-1.6.6.tar.gz  
