@@ -790,6 +790,8 @@ class d3d(model):
             obs_points = obs_points[(obs_points.lon.between(self.grid.impl.Dataset.lons.values.min(),self.grid.impl.Dataset.lons.values.max())) 
                                     & (obs_points.lat.between(self.grid.impl.Dataset.lats.values.min(),self.grid.impl.Dataset.lats.values.max()))]
         
+            obs_points.reset_index(inplace=True,drop=True)
+            
             b=np.ma.masked_array(bat,np.isnan(bat)) # mask land
         
             i_indx, j_indx = self.vpoints(self.grid.impl.Dataset,obs_points,b,**kwargs)
