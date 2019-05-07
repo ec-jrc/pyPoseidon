@@ -47,6 +47,9 @@ examples/test
 # all temp folders
 tmp/
 
+# all temp folders
+dask-worker-space/
+
 # Setuptools distribution folder.
 /dist/
 
