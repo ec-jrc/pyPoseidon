@@ -18,7 +18,7 @@ setup(name='pyPoseidon',
       url='https://github.com/brey/pyPoseidon',
       author='George Breyiannis',
       author_email='gbreyiannis@gmail.com',
-      license='GPLv3+',
+      license='EUPL 1.2',
       packages=['pyPoseidon', 'pyPoseidon.model','pyPoseidon.meteo','pyPoseidon.dem','pyPoseidon.utils','pyPoseidon.tide','pyPoseidon.grid'],
       classifiers=[
           'Programming Language :: Python',
