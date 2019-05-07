@@ -125,6 +125,38 @@ class meteo:
         else:
             self.impl = gfs_erdap(**kwargs)
                 
+
+class grib(meteo):
+    
+    def __init__(self,**kwargs):
+    
+    filenames = kwargs.get('mpaths', {})
+    ft1 = kwargs.get('ft1', 0)
+    ft2 = kwargs.get('ft2', 11)
+    dft = kwargs.get('dft', 1)
+    
+    start_date = kwargs.get('start_date', None)
+    self.start_date = pd.to_datetime(start_date)
+    
+    if 'time_frame' in kwargs:
+          time_frame = kwargs.get('time_frame', None)
+          self.end_date = self.start_date + pd.to_timedelta(time_frame)
+    else:
+          end_date = kwargs.get('end_date', None)
+          self.end_date = pd.to_datetime(end_date)
+          self.time_frame = self.end_date - self.start_date
+        
+                          
+    minlon = kwargs.get('minlon', None)
+    maxlon = kwargs.get('maxlon', None)
+    minlat = kwargs.get('minlat', None)   
+    maxlat = kwargs.get('maxlat', None) 
+        
+    
+    ds = xr.open_mfdataset(filenames, engine='pynio')
+    
+    
+
     
 class ecmwf_oper(meteo):   
         
