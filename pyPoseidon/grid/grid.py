@@ -189,7 +189,7 @@ class tri2d(grid):
             label = ' '.join(pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:])
             bt=[btype]
             lp = pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnlb,names=[label])
-            for i in range(1, nlb):
+            for i in range(1, nlb.values[0]):
                 ns = ns + 1 + nnlb
                 nnlb, btype  = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].str.split()[0]
                 nnlb = int(nnlb)
