@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*- 
 """
 Meteo module
 
@@ -109,53 +110,705 @@ class meteo:
     def __init__(self,**kwargs):
         msource = kwargs.get('meteo', None)
         if msource == 'ecmwf_oper' :
-            self.impl = ecmwf_oper(**kwargs)
+            self.impl = grib_cfgrib(**kwargs)
         elif msource == 'hnms_oper' :
-            self.impl = hnms_oper(**kwargs)
+            self.impl = grib_pynio_HNMS(**kwargs)
         elif msource == 'am_oper' :
-            self.impl = am_oper(**kwargs)
+            self.impl = grib_pynio_AM(**kwargs)
         elif msource == 'generic' :
             self.impl = generic(**kwargs)
         elif msource == 'gfs_oper' :
             self.impl = gfs_oper(**kwargs)
-        elif msource == 'erai' :
-            self.impl = erai(**kwargs)
+        elif msource in ['erai','era5'] :
+            self.impl = grib_cfgrib(**kwargs)
             
         
         else:
             self.impl = gfs_erdap(**kwargs)
-                
 
-class grib(meteo):
+
+class combine_meteo(meteo):
+    
+    def __init__(self,**kwargs):
+        
+        filenames = kwargs.get('mpaths', {})
+                
+        dats = []
+        for filename in filenames[:-1]:
+            
+            kwargs['mpaths'] = filename
+            ds = grib_cfgrib(**kwargs)
+            dats.append(ds.uvp)
+        
+        kwargs['ft2'] += 1
+        kwargs['mpaths'] = filenames[-1]
+        ds = grib_cfgrib(**kwargs)
+        dats.append(ds.uvp)
+        
+        self.uvp = xr.concat(dats,dim='time')
+        
+        
+    def output(self,solver=None,**kwargs):
+    
+        path = get_value(self,kwargs,'rpath','./') 
+           
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+           
+        s = getattr(model,solver) # get solver class
+           
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+   
+                      
+
+class grib_cfgrib(meteo):
     
     def __init__(self,**kwargs):
     
-    filenames = kwargs.get('mpaths', {})
-    ft1 = kwargs.get('ft1', 0)
-    ft2 = kwargs.get('ft2', 11)
-    dft = kwargs.get('dft', 1)
     
-    start_date = kwargs.get('start_date', None)
-    self.start_date = pd.to_datetime(start_date)
+        filenames = kwargs.get('mpaths', {})
+        ft1 = kwargs.get('ft1', None)
+        ft2 = kwargs.get('ft2', None)
+        dft = kwargs.get('dft', None)
+        engine = kwargs.get('engine', 'cfgrib')
+        backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     
-    if 'time_frame' in kwargs:
+        start_date = kwargs.get('start_date', None)
+        try:
+            start_date = pd.to_datetime(start_date)
+        except:
+            pass
+    
+        if 'time_frame' in kwargs:
           time_frame = kwargs.get('time_frame', None)
-          self.end_date = self.start_date + pd.to_timedelta(time_frame)
-    else:
+          end_date = start_date + pd.to_timedelta(time_frame)
+        else:
           end_date = kwargs.get('end_date', None)
-          self.end_date = pd.to_datetime(end_date)
-          self.time_frame = self.end_date - self.start_date
+          try:
+              end_date = pd.to_datetime(end_date)
+              time_frame = end_date - start_date
+          except:
+              pass
+        
+        ts = pd.to_datetime(start_date)
+        te = pd.to_datetime(end_date)     
         
                           
-    minlon = kwargs.get('minlon', None)
-    maxlon = kwargs.get('maxlon', None)
-    minlat = kwargs.get('minlat', None)   
-    maxlat = kwargs.get('maxlat', None) 
+        minlon = kwargs.get('minlon', None)
+        maxlon = kwargs.get('maxlon', None)
+        minlat = kwargs.get('minlat', None)   
+        maxlat = kwargs.get('maxlat', None) 
+      
+      #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('extracting meteo')
+        sys.stdout.flush()
+      #---------------------------------------------------------------------      
+        
+        data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs)    
+        
+        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
+        
+        time_coord = data.msl.dims[0]
+        
+        if time_coord != 'time':
+            if 'time' in data.coords.keys():
+                data = data.rename({'time':'rtime'})
+                data = data.rename({time_coord:'time'})
+                data = data.assign_coords(time=data.valid_time)
+                
+        if not minlon : minlon = data.longitude.data.min()
+        if not maxlon : maxlon = data.longitude.data.max()
+        if not minlat : minlat = data.latitude.data.min()
+        if not maxlat : maxlat = data.latitude.data.max()
+        
+        
+        if minlon < data.longitude.data.min() : minlon = minlon + 360.
+      
+        if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
+      
+        if minlon > data.longitude.data.max() : minlon = minlon - 360.
+      
+        if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
+                
+        
+        try:
+            data = data.assign_coords(time=data.valid_time)
+        except:
+            sys.exit(1)
+            
+            
+        if not ts : ts = data.time.data.min()
+        if not te : te = data.time.data.max()
+        
+        if ft1 :
+            ts = data.time.data[ft1]
+        
+        if ft2 :
+            te = data.time.data[ft2]
+        
+        
+        if ts < data.time.min() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+          
+        if te > data.time.max() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+        
+        
+        tslice=slice(ts, te)
+        
+        i0=np.abs(data.longitude.data-minlon).argmin() 
+        i1=np.abs(data.longitude.data-maxlon).argmin() 
+      
+        j0=np.abs(data.latitude.data-minlat).argmin() 
+        j1=np.abs(data.latitude.data-maxlat).argmin() 
+        
+        
+        # expand the window a little bit        
+        lon_0 = max(0, i0 - 2)
+        lon_1 = min(data.longitude.size, i1 + 2)
+        
+        lat_0 = max(0, j0 - 2)
+        lat_1 = min(data.latitude.size, j1 + 2)
+                        
+        if i0 > i1 :
+
+            sh = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+            sh.longitude.values = sh.longitude.values -360.
+
+            sh1 = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(0,lon_1),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+              
+            tot = xr.concat([sh,sh1],dim='longitude')
+          
+        else:            
+
+            tot = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(lon_0,lon_1),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+              
+#        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
+#            c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+#            tot.longitude = tot.longitude + c*360.
+      
+            
+        self.uvp = tot
+      
+      
+       #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
+        #--------------------------------------------------------------------- 
+        
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+        
+        
         
     
-    ds = xr.open_mfdataset(filenames, engine='pynio')
+class grib_pynio(meteo):
+    
+    def __init__(self,**kwargs):
     
     
+        filenames = kwargs.get('mpaths', {})
+        ft1 = kwargs.get('ft1', None)
+        ft2 = kwargs.get('ft2', None)
+        dft = kwargs.get('dft', None)
+        engine = kwargs.get('engine', 'pynio')
+        backend_kwargs = kwargs.get('backend_kwargs', {})
+        
+        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['engine','backend_kwargs','mpaths','ft1','ft2','dft']}
+        
+        start_date = kwargs.get('start_date', None)
+        try:
+            start_date = pd.to_datetime(start_date)
+        except:
+            pass
+    
+        if 'time_frame' in kwargs:
+          time_frame = kwargs.get('time_frame', None)
+          end_date = start_date + pd.to_timedelta(time_frame)
+        else:
+          end_date = kwargs.get('end_date', None)
+          try:
+              end_date = pd.to_datetime(end_date)
+              time_frame = end_date - start_date
+          except:
+              pass
+        
+        ts = pd.to_datetime(start_date)
+        te = pd.to_datetime(end_date)     
+        
+                          
+        minlon = kwargs.get('minlon', None)
+        maxlon = kwargs.get('maxlon', None)
+        minlat = kwargs.get('minlat', None)   
+        maxlat = kwargs.get('maxlat', None) 
+      
+      #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('extracting meteo')
+        sys.stdout.flush()
+      #---------------------------------------------------------------------      
+        
+        data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs, **kargs)    
+        
+        time_coord = data[data.data_vars.keys()[0]].dims[0]
+        lon_coord = [x for (x,y) in data.dims.iteritems() if 'lon' in x][0]
+        lat_coord = [x for (x,y) in data.dims.iteritems() if 'lat' in x][0]
+                        
+        u10 = [x for (x,y) in data.data_vars.iteritems() if ('10' in x) & ('u' in x.lower())][0]
+        v10 = [x for (x,y) in data.data_vars.iteritems() if ('10' in x) & ('v' in x.lower())][0]
+        msl = [x for (x,y) in data.data_vars.iteritems() if 'msl' in x.lower()][0]
+        
+        data = xr.open_mfdataset(filenames, engine=engine, concat_dim=time_coord, backend_kwargs=backend_kwargs, **kargs)
+        
+        data = data.rename({msl:'msl',u10:'u10',v10:'v10',lon_coord:'longitude',lat_coord:'latitude',time_coord:'time'})
+        
+        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
+        
+                
+        if not minlon : minlon = data.longitude.data.min()
+        if not maxlon : maxlon = data.longitude.data.max()
+        if not minlat : minlat = data.latitude.data.min()
+        if not maxlat : maxlat = data.latitude.data.max()
+        
+        
+        if minlon < data.longitude.data.min() : minlon = minlon + 360.
+      
+        if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
+      
+        if minlon > data.longitude.data.max() : minlon = minlon - 360.
+      
+        if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
+        
+           
+        if 'forecast' in time_coord:
+            tts = pd.to_datetime(data.msl.attrs['initial_time'], format='%m/%d/%Y (%H:%M)') + pd.to_timedelta(data.time)
+            data = data.assign_coords(time=tts)
+            
+        if not ts : ts = data.time.data.min()
+        if not te : te = data.time.data.max()
+        
+        
+        
+        if ts < data.time.min() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+          
+        if te > data.time.max() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+        
+        
+        tslice=slice(ts, te)
+        
+        i0=np.abs(data.longitude.data-minlon).argmin() 
+        i1=np.abs(data.longitude.data-maxlon).argmin() 
+      
+        j0=np.abs(data.latitude.data-minlat).argmin()
+        j1=np.abs(data.latitude.data-maxlat).argmin() 
+        
+        # expand the window a little bit        
+        lon_0 = max(0, i0 - 2)
+        lon_1 = min(data.longitude.size, i1 + 2)
+        
+        lat_0 = max(0, j0 - 2)
+        lat_1 = min(data.latitude.size, j1 + 2)
+                
+        if i0 > i1 :
+
+            sh = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+            sh.longitude.values = sh.longitude.values -360.
+
+            sh1 = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(0,lon_1),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+              
+            tot = xr.concat([sh,sh1],dim='longitude')
+          
+        else:            
+
+            tot = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(lon_0,lon_1),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+              
+#        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
+#            c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+#            tot.longitude = tot.longitude + c*360.
+      
+            
+        self.uvp = tot
+      
+      
+       #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
+        #--------------------------------------------------------------------- 
+        
+        
+        
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+        
+
+def fix_my_data(ds):
+    if 'A_PCP_GDS0_SFC_dif3h' not in ds.data_vars:
+        mn = np.zeros(ds['PRMSL_GDS0_MSL'].shape)*np.nan
+        ds['A_PCP_GDS0_SFC_dif3h'] = xr.DataArray(mn,coords=ds['PRMSL_GDS0_MSL'].coords, dims=ds['PRMSL_GDS0_MSL'].dims)
+    return ds
+
+
+
+class grib_pynio_AM(meteo):
+    
+    
+    def __init__(self,**kwargs):
+    
+    
+        filenames = kwargs.get('mpaths', {})
+        ft1 = kwargs.get('ft1', None)
+        ft2 = kwargs.get('ft2', None)
+        dft = kwargs.get('dft', None)
+        engine = kwargs.get('engine', 'pynio')
+        backend_kwargs = kwargs.get('backend_kwargs', {})
+        
+        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['engine','backend_kwargs','mpaths','ft1','ft2','dft']}
+        
+        start_date = kwargs.get('start_date', None)
+        try:
+            start_date = pd.to_datetime(start_date)
+        except:
+            pass
+    
+        if 'time_frame' in kwargs:
+          time_frame = kwargs.get('time_frame', None)
+          end_date = start_date + pd.to_timedelta(time_frame)
+        else:
+          end_date = kwargs.get('end_date', None)
+          try:
+              end_date = pd.to_datetime(end_date)
+              time_frame = end_date - start_date
+          except:
+              pass
+        
+        ts = pd.to_datetime(start_date)
+        te = pd.to_datetime(end_date)     
+        
+                          
+        minlon = kwargs.get('minlon', None)
+        maxlon = kwargs.get('maxlon', None)
+        minlat = kwargs.get('minlat', None)   
+        maxlat = kwargs.get('maxlat', None) 
+      
+      #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('extracting meteo')
+        sys.stdout.flush()
+      #---------------------------------------------------------------------      
+        
+        data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, preprocess=fix_my_data,  **kargs)
+        
+        data = data.rename({'PRMSL_GDS0_MSL':'msl','U_GRD_GDS0_HTGL':'u10','V_GRD_GDS0_HTGL':'v10','g0_lon_1':'longitude','g0_lat_0':'latitude'})
+        
+        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
+        
+                
+        if not minlon : minlon = data.longitude.data.min()
+        if not maxlon : maxlon = data.longitude.data.max()
+        if not minlat : minlat = data.latitude.data.min()
+        if not maxlat : maxlat = data.latitude.data.max()
+        
+        
+        if minlon < data.longitude.data.min() : minlon = minlon + 360.
+      
+        if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
+      
+        if minlon > data.longitude.data.max() : minlon = minlon - 360.
+      
+        if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
+        
+        
+        tt = [int(x.split('_')[-1]) for x in filenames]   
+        tts = pd.to_datetime(data.msl.attrs['initial_time'], format='%m/%d/%Y (%H:%M)') + pd.to_timedelta(tt,unit='H')
+        data = data.assign_coords(time=tts)
+            
+        if not ts : ts = data.time.data.min()
+        if not te : te = data.time.data.max()
+        
+        
+        
+        if ts < data.time.min() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+          
+        if te > data.time.max() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+        
+        
+        tslice=slice(ts, te)
+        
+        i0=np.abs(data.longitude.data-minlon).argmin() 
+        i1=np.abs(data.longitude.data-maxlon).argmin() 
+      
+        j0=np.abs(data.latitude.data-minlat).argmin()
+        j1=np.abs(data.latitude.data-maxlat).argmin() 
+        
+        # expand the window a little bit        
+        lon_0 = max(0, i0 - 2)
+        lon_1 = min(data.longitude.size, i1 + 2)
+        
+        lat_0 = max(0, j0 - 2)
+        lat_1 = min(data.latitude.size, j1 + 2)
+                
+        if i0 > i1 :
+
+            sh = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+            sh.longitude.values = sh.longitude.values -360.
+
+            sh1 = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(0,lon_1),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+              
+            tot = xr.concat([sh,sh1],dim='longitude')
+          
+        else:            
+
+            tot = (
+                data[['msl','u10', 'v10']]
+                .isel(longitude=slice(lon_0,lon_1),latitude=slice(lat_0,lat_1))
+                .sel(time=tslice)
+                )
+              
+#        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
+#            c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+#            tot.longitude = tot.longitude + c*360.
+      
+            
+        self.uvp = tot
+      
+      
+       #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
+        #--------------------------------------------------------------------- 
+        
+        
+        
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+        
+
+
+class grib_pynio_HNMS(meteo):
+    
+    
+    def __init__(self,**kwargs):
+    
+    
+        filenames = kwargs.get('mpaths', {})
+        ft1 = kwargs.get('ft1', None)
+        ft2 = kwargs.get('ft2', None)
+        dft = kwargs.get('dft', None)
+        engine = kwargs.get('engine', 'pynio')
+        backend_kwargs = kwargs.get('backend_kwargs', {})
+        
+        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['engine','backend_kwargs','mpaths','ft1','ft2','dft']}
+        
+        start_date = kwargs.get('start_date', None)
+        try:
+            start_date = pd.to_datetime(start_date)
+        except:
+            pass
+    
+        if 'time_frame' in kwargs:
+          time_frame = kwargs.get('time_frame', None)
+          end_date = start_date + pd.to_timedelta(time_frame)
+        else:
+          end_date = kwargs.get('end_date', None)
+          try:
+              end_date = pd.to_datetime(end_date)
+              time_frame = end_date - start_date
+          except:
+              pass
+        
+        ts = pd.to_datetime(start_date)
+        te = pd.to_datetime(end_date)     
+        
+                          
+        minlon = kwargs.get('minlon', None)
+        maxlon = kwargs.get('maxlon', None)
+        minlat = kwargs.get('minlat', None)   
+        maxlat = kwargs.get('maxlat', None) 
+      
+      #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('extracting meteo')
+        sys.stdout.flush()
+      #---------------------------------------------------------------------      
+        
+        data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, **kargs)
+        
+        data = data.rename({'PS_MSL_GDS10_MSL':'msl','U_GDS10_HTGL':'u10','V_GDS10_HTGL':'v10','g10_lon_1':'longitude','g10_lat_0':'latitude'})
+            
+                
+        if not minlon : minlon = data.longitude.data.min()
+        if not maxlon : maxlon = data.longitude.data.max()
+        if not minlat : minlat = data.latitude.data.min()
+        if not maxlat : maxlat = data.latitude.data.max()
+        
+        
+        if minlon < data.longitude.data.min() : minlon = minlon + 360.
+      
+        if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
+      
+        if minlon > data.longitude.data.max() : minlon = minlon - 360.
+      
+        if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
+        
+        
+        days = [int(x.split('lf')[1][:2]) for x in filenames]  
+        hours = [int(x.split('lf')[1][2:4]) for x in filenames]
+           
+        tts = pd.to_datetime(data.msl.attrs['initial_time'], format='%m/%d/%Y (%H:%M)') + pd.to_timedelta(days,unit='D') + pd.to_timedelta(hours,unit='H')
+        data = data.assign_coords(time=tts)
+            
+        if not ts : ts = data.time.data.min()
+        if not te : te = data.time.data.max()
+        
+        
+        
+        if ts < data.time.min() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+          
+        if te > data.time.max() :
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('time frame not available\n')
+            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
+            sys.stdout.flush()
+            sys.exit(1)
+        
+        
+        tslice=slice(ts, te)
+        
+        d1 = data.where(data.longitude>minlon,drop=True)
+        d2 = d1.where(d1.longitude<maxlon,drop=True)
+        d3 = d2.where(d2.latitude>minlat,drop=True)
+        tot = d3.where(d3.latitude<maxlat,drop=True)
+
+#        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
+#            c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+#            tot.longitude = tot.longitude + c*360.
+      
+            
+        self.uvp = tot[['msl','u10','v10','longitude','latitude']]      
+      
+       #--------------------------------------------------------------------- 
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.stdout.write('meteo done\n')
+        sys.stdout.flush()
+        #--------------------------------------------------------------------- 
+        
+        
+        
+    def output(self,solver=None,**kwargs):
+         
+        path = get_value(self,kwargs,'rpath','./') 
+                
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+                
+        s = getattr(model,solver) # get solver class
+                
+        s.to_force(self.uvp,vars=['msl','u10','v10'],rpath=path)
+        
 
     
 class ecmwf_oper(meteo):   
@@ -163,22 +816,28 @@ class ecmwf_oper(meteo):
     def __init__(self,**kwargs):
     
       filenames = kwargs.get('mpaths', {})
-      ft1 = kwargs.get('ft1', 0)
-      ft2 = kwargs.get('ft2', 11)
-      dft = kwargs.get('dft', 1)
-                  
+      ft1 = kwargs.get('ft1', None)
+      ft2 = kwargs.get('ft2', None)
+      dft = kwargs.get('dft', None)
+
       start_date = kwargs.get('start_date', None)
-      self.start_date = pd.to_datetime(start_date)
-      
+      try:
+        start_date = pd.to_datetime(start_date)
+      except:
+        pass
+    
       if 'time_frame' in kwargs:
-            time_frame = kwargs.get('time_frame', None)
-            self.end_date = self.start_date + pd.to_timedelta(time_frame)
+          time_frame = kwargs.get('time_frame', None)
+          end_date = start_date + pd.to_timedelta(time_frame)
       else:
-            end_date = kwargs.get('end_date', None)
-            self.end_date = pd.to_datetime(end_date)
-            self.time_frame = self.end_date - self.start_date
-          
-                            
+          end_date = kwargs.get('end_date', None)
+          try:
+              end_date = pd.to_datetime(end_date)
+              time_frame = end_date - start_date
+          except:
+              pass
+
+                                              
       minlon = kwargs.get('minlon', None)
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)   
@@ -199,16 +858,16 @@ class ecmwf_oper(meteo):
       for filename in filenames:
         
         #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('extracting meteo from {}\n'.format(filename))
-        sys.stdout.flush()
+#        sys.stdout.flush()
+#        sys.stdout.write('\n')
+#        sys.stdout.write('extracting meteo from {}\n'.format(filename))
+#        sys.stdout.flush()
         #---------------------------------------------------------------------        
 
      	try: 
        		f = open(filename)
       	except:
-        	print 'no file {}'.format(filename)
+        	print('no file {}'.format(filename))
          	sys.exit(1)
         while True:
           try:
@@ -225,24 +884,32 @@ class ecmwf_oper(meteo):
             sR=int(stepRange) #update for future comparison
             timestamp = pd.to_datetime(str(date)) + pd.to_timedelta('{}H'.format(dataTime/100.))
             tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
-            if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date): #+ pd.to_timedelta('{}H'.format(dsR))):
+            try:
+                if (ft1 <= int(stepRange) <= ft2) & (tstamp <= self.end_date): #+ pd.to_timedelta('{}H'.format(dsR))):
                 
-                name,varin,ilon,ilat=getd(gid)    
+                    name,varin,ilon,ilat=getd(gid)    
             
-            else:
-                grib_release(gid)
-                if tstamp > self.end_date : break #+ pd.to_timedelta('{}H'.format(dsR)): break
-                continue
+                else:
+                    grib_release(gid)
+                    if tstamp > self.end_date : break #+ pd.to_timedelta('{}H'.format(dsR)): break
+                    continue
+            except:
+                name,varin,ilon,ilat=getd(gid)
                 
             lon=ilon[0,:]
             lat=ilat[:,0]
            
+            if not minlon : minlon = lon.min()
+            if not maxlon : maxlon = lon.max()
+            if not minlat : minlat = lat.min()
+            if not maxlat : maxlat = lat.max()
+            
         # verbose 
         #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('retrieving {} at {}\n'.format(name, tstamp))
-            sys.stdout.flush()
+#            sys.stdout.flush()
+#            sys.stdout.write('\n')
+#            sys.stdout.write('retrieving {} at {}\n'.format(name, tstamp))
+#            sys.stdout.flush()
         #---------------------------------------------------------------------        
         
         
@@ -281,8 +948,8 @@ class ecmwf_oper(meteo):
     # END OF FOR
 
           except Exception as e:
-            print e
-            print 'ERROR in meteo file {}'.format(date)
+            print(e)
+            print('ERROR in meteo file {}'.format(date))
 
         f.close()
 
@@ -308,10 +975,10 @@ class ecmwf_oper(meteo):
       
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('meteo done\n')
-      sys.stdout.flush()
+#      sys.stdout.flush()
+#      sys.stdout.write('\n')
+#      sys.stdout.write('meteo done\n')
+#      sys.stdout.flush()
       #--------------------------------------------------------------------- 
       
       
@@ -505,10 +1172,13 @@ class hnms_oper(meteo):
         minlat = kwargs.get('minlat', None)
         maxlat = kwargs.get('maxlat', None) 
         
-        minlon = minlon - .1
-        maxlon = maxlon + .1
-        minlat = minlat - .1
-        maxlat = maxlat + .1
+        try:
+            minlon = minlon - .1
+            maxlon = maxlon + .1
+            minlat = minlat - .1
+            maxlat = maxlat + .1
+        except:
+            pass
   
         # read the first file to get variables
         f = open(filenames[0])
@@ -527,6 +1197,12 @@ class hnms_oper(meteo):
         orig = geometry.SwathDefinition(lons=elon,lats=elat) # original grid
         
         gridType = grib_get(gid,'gridType')
+        
+        if not minlon : minlon = elon.min()
+        if not maxlon : maxlon = elon.max()
+        if not minlat : minlat = elat.min()
+        if not maxlat : maxlat = elat.max()
+        
         
         
         #Set lat/lon window for interpolation
@@ -560,17 +1236,17 @@ class hnms_oper(meteo):
         for filename in filenames:
 
           #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('extracting meteo from {}\n'.format(filename))
-            sys.stdout.flush()
+          #  sys.stdout.flush()
+          #  sys.stdout.write('\n')
+          #  sys.stdout.write('extracting meteo from {}\n'.format(filename))
+          #  sys.stdout.flush()
           #---------------------------------------------------------------------      
 
 
             try: 
                 f = open(filename)
             except:
-                print 'no file {}'.format(filename)
+                print('no file {}'.format(filename))
                 sys.exit(1)
 
 
@@ -616,8 +1292,8 @@ class hnms_oper(meteo):
             # END OF FOR
 
             except Exception as e:
-                print e
-                print 'ERROR in meteo file {}'.format(date)
+                print(e)
+                print('ERROR in meteo file {}'.format(date))
 
             f.close()
 
@@ -643,10 +1319,10 @@ class hnms_oper(meteo):
       
       
       #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
+      #  sys.stdout.flush()
+      #  sys.stdout.write('\n')
+      #  sys.stdout.write('meteo done\n')
+      #  sys.stdout.flush()
       #--------------------------------------------------------------------- 
       
       
@@ -706,7 +1382,7 @@ class am_oper(meteo):
 
   
         if (minlon < elon.min()) or (maxlon > elon.max()) or (minlat < elat.min()) or (maxlat > elat.max()): 
-            print minlon,maxlon,minlat,maxlat
+            print(minlon,maxlon,minlat,maxlat)
             sys.stdout.flush()
             sys.stdout.write('\n')
             sys.stdout.write('Meteo Problem!\n')
@@ -735,16 +1411,16 @@ class am_oper(meteo):
         for filename in filenames:
 
         #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('extracting meteo from {}\n'.format(filename))
-            sys.stdout.flush()
+        #    sys.stdout.flush()
+        #    sys.stdout.write('\n')
+        #    sys.stdout.write('extracting meteo from {}\n'.format(filename))
+        #    sys.stdout.flush()
         #---------------------------------------------------------------------      
 
             try: 
                 f = open(filename)
             except:
-                print 'no file {}'.format(filename)
+                print('no file {}'.format(filename))
                 sys.exit(1)
 
 
@@ -787,8 +1463,8 @@ class am_oper(meteo):
             # END OF FOR
 
             except Exception as e:
-                print e
-                print 'ERROR in meteo file {}'.format(date)
+                print(e)
+                print('ERROR in meteo file {}'.format(date))
 
             f.close()
 
@@ -810,10 +1486,10 @@ class am_oper(meteo):
       
       
       #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
+      #  sys.stdout.flush()
+      #  sys.stdout.write('\n')
+      #  sys.stdout.write('meteo done\n')
+      #  sys.stdout.flush()
       #--------------------------------------------------------------------- 
       
       
@@ -953,28 +1629,36 @@ class erai(meteo):
     def __init__(self,**kwargs):
         
       filenames = kwargs.get('mpaths', {})
-      ft1 = kwargs.get('ft1', 0)
-      ft2 = kwargs.get('ft2', 11)
-      dft = kwargs.get('dft', 1)
+      ft1 = kwargs.get('ft1', None)
+      ft2 = kwargs.get('ft2', None)
+      dft = kwargs.get('dft', None)
                   
       start_date = kwargs.get('start_date', None)
-      self.start_date = pd.to_datetime(start_date)
-      
+      if not start_date : start_date = '1970-01-01'
+      try:
+            start_date = pd.to_datetime(start_date)
+      except:
+            pass
+    
       if 'time_frame' in kwargs:
-            time_frame = kwargs.get('time_frame', None)
-            self.end_date = self.start_date + pd.to_timedelta(time_frame)
+          time_frame = kwargs.get('time_frame', None)
+          end_date = start_date + pd.to_timedelta(time_frame)
       else:
-            end_date = kwargs.get('end_date', None)
-            self.end_date = pd.to_datetime(end_date)
-            self.time_frame = self.end_date - self.start_date
+          end_date = kwargs.get('end_date', None)
+          if not end_date : end_date = '2070-01-01'
+          try:
+              end_date = pd.to_datetime(end_date)
+              time_frame = end_date - start_date
+          except:
+              pass
+      
       
                                       
       minlon = kwargs.get('minlon', None)
       maxlon = kwargs.get('maxlon', None)
       minlat = kwargs.get('minlat', None)   
       maxlat = kwargs.get('maxlat', None) 
-       
-       
+              
        # read grib file and append to xarray
 
       pt=[]
@@ -986,16 +1670,16 @@ class erai(meteo):
       for filename in filenames:
         
           #--------------------------------------------------------------------- 
-          sys.stdout.flush()
-          sys.stdout.write('\n')
-          sys.stdout.write('extracting meteo from {}\n'.format(filename))
-          sys.stdout.flush()
+#          sys.stdout.flush()
+#          sys.stdout.write('\n')
+#          sys.stdout.write('extracting meteo from {}\n'.format(filename))
+#          sys.stdout.flush()
           #---------------------------------------------------------------------        
 
           try: 
               f = open(filename)
           except:
-              print 'no file {}'.format(filename)
+              print('no file {}'.format(filename))
               sys.exit(1)
           while True:
               try:
@@ -1009,13 +1693,13 @@ class erai(meteo):
                   stepRange=grib_get(gid, 'stepRange')
                   timestamp = pd.to_datetime(str(date)) + pd.to_timedelta('{}H'.format(dataTime/100.))
                   tstamp = timestamp+pd.to_timedelta('{}H'.format(stepRange))
-                  if (tstamp >= pd.to_datetime(self.start_date)) & (tstamp <= pd.to_datetime(self.end_date)):
+                  if (tstamp >= pd.to_datetime(start_date)) & (tstamp <= pd.to_datetime(end_date)):
                 
                       name,varin,ilon,ilat=getd(gid)    
 
                   else:
                       grib_release(gid)
-                      if tstamp > pd.to_datetime(self.end_date) : break
+                      if tstamp > pd.to_datetime(end_date) : break
                       continue
                 
                   lon=ilon[0,:]
@@ -1023,13 +1707,17 @@ class erai(meteo):
            
               # verbose 
               #--------------------------------------------------------------------- 
-                  sys.stdout.flush()
-                  sys.stdout.write('\n')
-                  sys.stdout.write('retrieving {} at {}\n'.format(name, tstamp))
-                  sys.stdout.flush()
-              #---------------------------------------------------------------------        
-        
-        
+#                  sys.stdout.flush()
+#                  sys.stdout.write('\n')
+#                  sys.stdout.write('retrieving {} at {}\n'.format(name, tstamp))
+#                  sys.stdout.flush()
+              #--------------------------------------------------------------------- 
+                     
+                  if not minlon : minlon = lon[0]
+                  if not maxlon : maxlon = lon[-1]
+                  if not minlat : minlat = lat[0]
+                  if not maxlat : maxlat = lat[-1]
+                     
               # shift grid according to minlon
                   if minlon < 0. :
                       lon=lon-180.
@@ -1065,8 +1753,8 @@ class erai(meteo):
           # END OF FOR
 
               except Exception as e:
-                  print e
-                  print 'ERROR in meteo file {}'.format(date)
+                  print(e)
+                  print('ERROR in meteo file {}'.format(date))
 
           f.close()
 
@@ -1090,10 +1778,10 @@ class erai(meteo):
       
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('meteo done\n')
-      sys.stdout.flush()
+#      sys.stdout.flush()
+#      sys.stdout.write('\n')
+#      sys.stdout.write('meteo done\n')
+#      sys.stdout.flush()
       #--------------------------------------------------------------------- 
       
       

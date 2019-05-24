@@ -24,11 +24,13 @@ dependencies:
   - geopandas
   - xarray
   - holoviews
-  - ioam::geoviews
+  - geoviews
   - bokeh
-  - bokeh::datashader
-  - pyviz::hvplot
+  - datashader
+  - hvplot
   - ipympl
+  - pynio
   - pip
   - pip:
     - https://www.parallelpython.com/downloads/pp/pp-1.6.6.tar.gz  
+    - cfgrib
