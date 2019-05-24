@@ -50,7 +50,7 @@ def fix(dem,shpfile,**kwargs):
     for i in range(shp.shape[0]):
         il = shp.loc[i,'geometry']
         try:
-            #print len(il)
+            #print(len(il))
             for k in range(len(list(il.geoms))): # for MultiLineStrings
                ls.append(list(il.geoms)[k])
         except:

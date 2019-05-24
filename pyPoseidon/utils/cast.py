@@ -107,7 +107,7 @@ class dcast(cast):
                 ipath = glob.glob(self.path+self.folders[0]+'/'+filename)[0]
                 try:
                     os.symlink(os.path.realpath(ipath),rpath+filename)
-                except OSError, e:
+                except OSError as e:
                   if e.errno == errno.EEXIST:
                       sys.stdout.write('Restart link present\n')
                       sys.stdout.write('overwriting\n')
@@ -125,7 +125,7 @@ class dcast(cast):
           #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
             try:
               os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
-            except OSError, e:
+            except OSError as e:
               if e.errno == errno.EEXIST:
                   sys.stdout.write('Restart link present\n')
                   sys.stdout.write('overwriting\n')

@@ -547,7 +547,7 @@ class schism(data):
             
             edic={}
             for var in out[0].variables.keys():
-             #   print out[0][var].name, out[0][var].dims, len(out[0][var].dims)
+             #   print(out[0][var].name, out[0][var].dims, len(out[0][var].dims))
                 if ('nSCHISM_hgrid_face' in out[0][var].dims) & (len(out[0][var].dims) == 2):
                     wd = dat.copy()
                     for time in times: #all times
@@ -595,7 +595,7 @@ class schism(data):
             
             vdic={}
             for var in out[0].variables.keys():
-                #print out[0][var].name, out[0][var].dims, len(out[0][var].dims)
+                #print(out[0][var].name, out[0][var].dims, len(out[0][var].dims))
                 if ('nSCHISM_hgrid_node' in out[0][var].dims) & (len(out[0][var].dims) == 2):
                     ars = [v[out[0][var].name] for v in out]
        

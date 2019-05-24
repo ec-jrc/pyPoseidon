@@ -51,8 +51,8 @@ class emodnet(dem):
       lon=data.longitude.data
       lat=data.latitude.data     
       
-      if (minlon < lon.min()) or (maxlon > lon.max()): print 'Lon must be within {} and {}'.format(lon.min(),lon.max())
-      if (minlat < lat.min()) or (maxlat > lat.max()): print 'Lat must be within {} and {}'.format(lat.min(),lat.max())
+      if (minlon < lon.min()) or (maxlon > lon.max()): print('Lon must be within {} and {}'.format(lon.min(),lon.max()))
+      if (minlat < lat.min()) or (maxlat > lat.max()): print('Lat must be within {} and {}'.format(lat.min(),lat.max()))
 
       i1=np.abs(lon-minlon).argmin()
       if i1 > 0: i1=i1-1

@@ -461,7 +461,7 @@ class d3d(model):
                        
                 blons = np.array(blons)#.ravel().reshape(-1,2)[:,0]
                 blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1] 
-            #                  print bound,blons,blats
+            #                  print(bound,blons,blats)
                              
                 tval = tide(tmodel=self.tmodel, tpath=self.tpath, blons=blons,blats=blats)
                     
@@ -740,7 +740,7 @@ class d3d(model):
            try:
               self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
            except AttributeError as e:
-             # print e 
+             # print(e) 
               pass
 
              
@@ -1243,7 +1243,7 @@ class schism(model):
            try:
               self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
            except AttributeError as e:
-              print e 
+              print(e) 
               pass
 
              
@@ -1348,8 +1348,10 @@ class schism(model):
         #check if folder sflux exists
         if not os.path.exists(path+'sflux'):
             os.makedirs(path+'sflux')
+        
+        filename = kwargs.get('filename','sflux/sflux_air_1.001.nc') 
                
-        sout.to_netcdf(path+'sflux/sflux_air_1.001.nc')
+        sout.to_netcdf(path+filename)
                                          
                 
     def run(self,**kwargs):
