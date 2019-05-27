@@ -27,7 +27,7 @@ from shutil import copyfile
 import xarray as xr
 
 #local modules
-from bnd import *
+from pyPoseidon.model.bnd import *
 import pyPoseidon
 import pyPoseidon.grid as pgrid
 import pyPoseidon.meteo as pmeteo
@@ -480,12 +480,12 @@ class d3d(model):
         
         
         
-        dlat=ar.lats[1,0]-ar.lats[0,0]
-        dlon=ar.lons[0,1]-ar.lons[0,0]
+        dlat=ar.latitude[1]-ar.latitude[0]
+        dlon=ar.longitude[1]-ar.longitude[0]
         dlat=dlat.data.tolist() 
         dlon=dlon.data.tolist()
-        lat0=ar.lats[0,0].data.tolist()
-        lon0=ar.lons[0,0].data.tolist()  
+        lat0=ar.latitude[0].data.tolist()
+        lon0=ar.longitude[0].data.tolist()  
         
         nodata=-9999.000
         

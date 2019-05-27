@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup, Extension
+from setuptools import setup
 #from distutils.core import setup
 #from distutils.extension import Extension
 import numpy as np
@@ -12,7 +12,7 @@ def readme():
 
 
 setup(name='pyPoseidon',
-      version='0.3.0',
+      version='0.4.0',
       description='Storm Surge analysis tool',
       long_description=readme(),
       url='https://github.com/brey/pyPoseidon',
@@ -29,10 +29,6 @@ setup(name='pyPoseidon',
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering :: Atmospheric Science',
-      ],
-      ext_modules=[
-          Extension("redtoreg", ["pyPoseidon/meteo/redtoreg.pyx"],
-                    include_dirs=[np.get_include()]),
       ],
       package_data={'': ['misc/*']},
       zip_safe=False)

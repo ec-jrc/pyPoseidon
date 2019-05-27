@@ -4,33 +4,31 @@ channels:
   - conda-forge
 
 dependencies:
-  - python=2.7
-  - pygrib
-  - netCDF4
-  - basemap
-  - basemap-data-hires
-  - python-eccodes
+  - dask
   - scipy
   - numpy
   - pyresample
-  - cython
   - pandas
+  - netCDF4
   - seaborn
   - urllib3
-  - ffmpeg
-  - cartopy
   - pydap
-  - ecmwf-api-client
   - geopandas
   - xarray
-  - holoviews
-  - geoviews
+  - ipykernel
   - bokeh
+  - ffmpeg
   - datashader
   - hvplot
+  - holoviews
+  - geoviews
+  - rasterio
   - ipympl
+  - tqdm
   - pynio
+  - eccodes
+  - mayavi
   - pip
   - pip:
-    - https://www.parallelpython.com/downloads/pp/pp-1.6.6.tar.gz  
     - cfgrib
+#   - xesmf
