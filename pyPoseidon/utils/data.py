@@ -85,7 +85,7 @@ class d3d(data):
         sys.stdout.flush()
         #--------------------------------------------------------------------- 
                        
-        with open(ifile, 'r') as f:
+        with open(ifile, 'rb') as f:
                           self.info=pickle.load(f)  
                                                   
                         
@@ -109,129 +109,16 @@ class d3d(data):
             
             
         # READ DATA
-        savenc = kwargs.get('savenc',False)
+                                                        
+        nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in self.folders]
         
-            
-        dfiles = []      
-        for folder in self.folders:
-            dfiles = dfiles +  glob.glob(folder +'/d3d_' + self.info['tag'] + '.nc')
-        
-        if dfiles: # previously saved datasets
-
-            self.Dataset = xr.open_mfdataset(dfiles, autoclose=True)
-            #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('reading precompiled data ...\n')
-            sys.stdout.flush()
-            #--------------------------------------------------------------------- 
-            
-            
-        else:  # on demand construction
-                                                  
-            #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('Compiling data ...\n')
-            sys.stdout.flush()
-            #--------------------------------------------------------------------- 
-                                                                                            
-                                                            
-            nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in self.folders]
-        
-            ds = xr.open_mfdataset(nfiles, autoclose=True)
+        ds = xr.open_mfdataset(nfiles)
                 
-            #grid points
-            xg = ds.XCOR.values.T
-            yg = ds.YCOR.values.T   
-        
-            dx = xg[0,1]-xg[0,0]
-            dy = yg[1,0]-yg[0,0]        
-        
-            #pressure points       
-            xz = xg - dx/2.
-            yz = yg - dy/2.
-        
-            xz = xz[1:-1,1:-1]  
-            yz = yz[1:-1,1:-1]  
-        
-        
-            #velocity points
-            xv = xz + dx/2.
-            yu = yz + dy/2.
-                
-            times=ds.time.values
-        
-            ovars = kwargs.get('vars', ['S1','U1','V1','WINDU','WINDV','PATM'])
-        
-            keys = [d for d in ds.variables.keys() if d in ovars]
-        
-            zkeys = [d for d in keys if d not in ['U1','V1']]
-        
-            dic = {}  
-                
-            for key in zkeys:
-                h =  ds[key][:,1:-1,1:-1]
-                ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-                ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-                dic.update({key :(['time','YZ','XZ'], np.ma.masked_where(ww==True,ha))}) #mask land
-        
-            if 'U1' in keys:        
-            # Get water velocities - U1
-                h =  ds['U1'][:,0,1:-1,1:-1] 
-                ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-                ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-                wu = np.ma.masked_where(ww==True,ha) #mask land
-                dic.update({'U1' :(['time','YU','XU'], wu)}) 
-        
-            #interpolate on XZ, YZ
-                orig = pyresample.geometry.SwathDefinition(lons=xz,lats=yu) # original points
-                targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
-                uz = []
-                for k in range(wu.shape[0]):
-                    uz.append(pyresample.kd_tree.resample_nearest(orig,wu[k,:,:],targ,radius_of_influence=50000))
-         
-                dic.update({'U1Z' :(['time','YZ','XZ'], uz)})
-        
-            if 'V1' in keys:        
-                # Get water velocities - V1
-                h =  ds['V1'][:,0,1:-1,1:-1] 
-                ha = h.transpose(h.dims[0],h.dims[2],h.dims[1]) #transpose lat/lon
-                ww = np.broadcast_to(self.w == True, ha.shape) # expand the mask in time dimension
-                wv = np.ma.masked_where(ww==True,ha) #mask land
-                dic.update({'V1' :(['time','YV','XV'], wv)}) 
-        
-                #interpolate on XZ, YZ
-                orig = pyresample.geometry.SwathDefinition(lons=xv,lats=yz) # original points
-                targ = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # target grid
-                vz = []
-                for k in range(wv.shape[0]):
-                    vz.append(pyresample.kd_tree.resample_nearest(orig,wv[k,:,:],targ,radius_of_influence=50000))
-      
-                dic.update({'V1Z' : (['time','YZ','XZ'], vz)})
-                       
-                 
-            self.Dataset=xr.Dataset(dic,                                              
-                     coords={'XZ':(xz[0,:]),'YZ':(yz[:,0]),
-                             'XU':(xz[0,:]),'YU':(yu[:,0]),
-                             'XV':(xv[0,:]),'YV':(yz[:,0]),                   
-                     'time':times})
+        self.Dataset=ds
             
-        
-                     
-                     
         #clean duplicates
         self.Dataset = self.Dataset.sel(time=~self.Dataset.indexes['time'].duplicated())
-        
-        if savenc :
-            self.Dataset.to_netcdf(rpath+'d3d_'+self.info['tag']+'.nc')
-            for filename in nfiles:
-                try:
-                    os.remove(filename)
-                except OSError:
-                    pass
-                                           
-                     
+                             
         dic = self.info.copy()   # start with x's keys and values
         dic.update(kwargs)    # modifies z with y's keys and values & returns None
         
@@ -242,10 +129,8 @@ class d3d(data):
             dic.update({'se_date':self.Dataset.time.values[-1]})
                
         self.obs = obs(**dic)
-        
-        
-        
-                
+               
+                        
     def hview(self,var,**kwargs):
         
         return hv.Dataset(self.Dataset[var])
@@ -300,9 +185,9 @@ class schism(data):
             cfiles.sort()
             if cfiles :
                 #read grid data
-                gr = xr.open_mfdataset(folder + 'outputs/schout_0.nc', autoclose=True, drop_variables=['time'])
+                gr = xr.open_mfdataset(folder + 'outputs/schout_0.nc', drop_variables=['time'])
                 #read the rest..
-                var = xr.open_mfdataset(cfiles[1:], autoclose=True, drop_variables=gr.variables.keys())
+                var = xr.open_mfdataset(cfiles[1:], drop_variables=gr.variables.keys())
   
                 datai.append(xr.merge([gr,var])) #merge all
                 continue
@@ -310,7 +195,7 @@ class schism(data):
             #already saved complete netcdf
             cfile = glob.glob(folder+'outputs/schout.nc')
             if cfile :
-                datai.append(xr.open_mfdataset(cfile, autoclose=True))
+                datai.append(xr.open_mfdataset(cfile))
                 continue
             
             #COMBINE ON THE FLY   
@@ -385,9 +270,9 @@ class schism(data):
             h1 = pd.read_csv(gfiles[0],skiprows=nels[0] + nq[0] + nw[0] + 7, header=None, nrows = 1, delim_whitespace=True, 
                             names = ['nrec','dtout','nspool','nvrt','kz','h0','h_s','h_c','theta_b','theta_f','ics'])
             
-            ztots = ['ztot_'+str(i) for i in range(1,h1.loc[:,'kz']-1)]
+            ztots = ['ztot_'+str(i) for i in range(1,h1.loc[:,'kz'].values[0]-1)]
             
-            sigmas = ['sigma_'+str(i) for i in range(h1.loc[:,'nvrt'] - h1.loc[:,'kz'] + 1) ]
+            sigmas = ['sigma_'+str(i) for i in range(h1.loc[:,'nvrt'].values[0] - h1.loc[:,'kz'].values[0] + 1) ]
             
             h2 = pd.read_csv(gfiles[0],skiprows=nels[0] + nq[0] + nw[0] + 8, header=None, nrows = 1, delim_whitespace=True, names=ztots + sigmas)
             
@@ -417,7 +302,7 @@ class schism(data):
             out=[]
             for i in range(len(keys)):
                 ifiles = [f for f in files if '{:04d}_'.format(i) in f]
-                out.append(xr.open_mfdataset(ifiles, autoclose=True))
+                out.append(xr.open_mfdataset(ifiles))
                 
             #convert times to Timestamp
             date = header2.loc[:,['start_year','start_month','start_day','start_hour','utc_start']]
@@ -642,7 +527,7 @@ class schism(data):
             
             #element based
             xrdic={}
-            for key in edic.iterkeys():
+            for key in edic.keys():
                 xrdic.update({key:([x for x in out[0][key].dims],edic[key])})
             
             xe = xr.Dataset(xrdic,coords={u'time':times, u'sigma': sigms })
@@ -650,7 +535,7 @@ class schism(data):
                 
             #node based
             xrdic={}
-            for key in vdic.iterkeys():
+            for key in vdic.keys():
                 xrdic.update({key:([x for x in out[0][key].dims],vdic[key])})
                 
             xn = xr.Dataset(xrdic,coords={u'time':times, u'sigma': sigms })

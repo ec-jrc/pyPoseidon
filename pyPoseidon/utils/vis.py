@@ -12,6 +12,7 @@ Visualization module
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib import animation
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
@@ -55,7 +56,7 @@ def contour(grid_x,grid_y,z,t,**kwargs):
     cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
 #plt.colorbar()
 
-    v = matplotlib.animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
+    v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
   
     plt.close()
   
@@ -116,7 +117,7 @@ def quiver(X,Y,U,V,t,**kwargs):
     plt.close()
     # you need to set blit=False, or the first set of arrows never gets
     # cleared on subsequent frames
-    v = matplotlib.animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
+    v = animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
                                 blit=False, repeat=False)#, interval=1)    
     
     return v
@@ -126,8 +127,10 @@ def video(fname, mimetype):
      """Load the video in the file `fname`, with given mimetype, and display as HTML5 video.
      """
      from IPython.display import HTML
-     video_encoded = open(fname, "rb").read().encode("base64")
-     video_tag = '<video controls alt="test" src="data:video/{0};base64,{1}">'.format(mimetype, video_encoded)
+     import base64
+     video = open(fname, "rb").read()
+     video_encoded = base64.b64encode(video)
+     video_tag = '<video controls alt="test" src="data:video/{0};base64,{1}">'.format(mimetype, video_encoded.decode('ascii'))
      return HTML(data=video_tag)
 
 
@@ -375,7 +378,7 @@ class splot(object):
         plt.close()
         # you need to set blit=False, or the first set of arrows never gets
         # cleared on subsequent frames
-        v = matplotlib.animation.FuncAnimation(fig, update_qframes, fargs=(Q, u, v), blit=False, repeat=False,
+        v = animation.FuncAnimation(fig, update_qframes, fargs=(Q, u, v), blit=False, repeat=False,
                                frames = range(0,np.size(t)))   
         
         return v
@@ -438,7 +441,7 @@ class splot(object):
         cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
 #plt.colorbar()
 
-        v = matplotlib.animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
+        v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
      
         plt.close()
     

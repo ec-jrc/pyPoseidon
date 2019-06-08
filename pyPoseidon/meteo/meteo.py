@@ -20,28 +20,35 @@ import pandas as pd
 import importlib
 from pyPoseidon.utils.get_value import get_value
 from dateutil import parser
+from pyresample import bilinear, geometry, kd_tree, get_area_def
+import pyproj
+
 
 
 class meteo:
     impl=None
     def __init__(self,**kwargs):
         msource = kwargs.get('meteo', None)
-        if msource == 'ecmwf_oper' :
-            self.impl = grib_cfgrib(**kwargs)
-        elif msource == 'hnms_oper' :
-            self.impl = grib_pynio_HNMS(**kwargs)
-        elif msource == 'am_oper' :
-            self.impl = grib_pynio_AM(**kwargs)
-        elif msource == 'generic' :
-            self.impl = generic(**kwargs)
-        elif msource == 'gfs_oper' :
-            self.impl = gfs_oper(**kwargs)
-        elif msource in ['erai','era5'] :
-            self.impl = grib_cfgrib(**kwargs)
+        combine = kwargs.get('combine', False)
+        if combine :
+            self.impl = combine_meteo(**kwargs)
+        else:
+            if msource == 'ecmwf_oper' :
+                self.impl = grib_cfgrib(**kwargs)
+            elif msource == 'hnms_oper' :
+                self.impl = grib_pynio_HNMS(**kwargs)
+            elif msource == 'am_oper' :
+                self.impl = grib_pynio_AM(**kwargs)
+            elif msource == 'generic' :
+                self.impl = generic(**kwargs)
+            elif msource == 'gfs_oper' :
+                self.impl = gfs_oper(**kwargs)
+            elif msource in ['erai','era5'] :
+                self.impl = grib_cfgrib(**kwargs)
             
         
-        else:
-            self.impl = gfs_erdap(**kwargs)
+            else:
+                self.impl = gfs_erdap(**kwargs)
 
 
 class combine_meteo(meteo):
@@ -49,40 +56,81 @@ class combine_meteo(meteo):
     def __init__(self,**kwargs):
         
         filenames = kwargs.get('mpaths', {})    
-        engine = kwargs.get('engine', None)    
-        
+        engine = kwargs.get('engine', None) 
+        service = kwargs.get('service', None)   
+
         if engine == 'cfgrib' :  
                          
             dats = []
             for filename in filenames[:-1]:
             
                 kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
-                kargs['mpaths'] = filename
+                kargs['mpaths'] = [filename]
                 
                 ds = grib_cfgrib(**kargs)
                 dats.append(ds.uvp)
         
             kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
             kargs['ft2'] += 1
-            kargs['mpaths'] = filenames[-1]
+            kargs['mpaths'] = [filenames[-1]]
             ds = grib_cfgrib(**kargs)
             dats.append(ds.uvp)
                 
                 
         elif engine == 'pynio' :
+                   
+            
+          if service == 'HNMS' :
             
             dats = []
             for filename in filenames[:-1]:
             
                 kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
-                kargs['mpaths'] = filename
+                kargs['mpaths'] = [filename]
+                
+                ds = grib_pynio_HNMS(**kargs)
+                dats.append(ds.uvp)
+        
+            kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
+            kargs['ft2'] += 1
+            kargs['mpaths'] = [filenames[-1]]
+            
+            ds = grib_pynio_HNMS(**kargs)
+            dats.append(ds.uvp)    
+        
+        
+          elif service == 'AM' :
+
+            dats = []
+            for filename in filenames[:-1]:
+            
+                kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
+                kargs['mpaths'] = [filename]
+                
+                ds = grib_pynio_AM(**kargs)
+                dats.append(ds.uvp)
+        
+            kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
+            kargs['ft2'] += 1
+            kargs['mpaths'] = [filenames[-1]]
+            
+            ds = grib_pynio_AM(**kargs)
+            dats.append(ds.uvp)
+            
+          else:    
+            
+            dats = []
+            for filename in filenames[:-1]:
+            
+                kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
+                kargs['mpaths'] = [filename]
                 
                 ds = grib_pynio(**kargs)
                 dats.append(ds.uvp)
         
             kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
             kargs['ft2'] += 1
-            kargs['mpaths'] = filenames[-1]
+            kargs['mpaths'] = [filenames[-1]]
             
             ds = grib_pynio(**kargs)
             dats.append(ds.uvp)
@@ -118,6 +166,7 @@ class grib_cfgrib(meteo):
         maxlon = kwargs.get('maxlon', None)
         minlat = kwargs.get('minlat', None)   
         maxlat = kwargs.get('maxlat', None) 
+        xr_kwargs = kwargs.get('xr_kwargs', {})
         
     
         start_date = kwargs.get('start_date', None)
@@ -138,7 +187,6 @@ class grib_cfgrib(meteo):
               pass
         
         
-        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['engine','backend_kwargs','mpaths','ft1','ft2','dft','minlon','maxlon','minlat','maxlat','time_frame','start_date','end_date']}
         
         
         ts = pd.to_datetime(start_date)
@@ -152,9 +200,9 @@ class grib_cfgrib(meteo):
         sys.stdout.flush()
       #---------------------------------------------------------------------      
         
-        data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs, **kargs)    
+        data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs, **xr_kwargs)    
         
-        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
+#        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing> not efficient for output      
         
         time_coord = data.msl.dims[0]
         
@@ -220,14 +268,22 @@ class grib_cfgrib(meteo):
         j0=np.abs(data.latitude.data-minlat).argmin() 
         j1=np.abs(data.latitude.data-maxlat).argmin() 
         
-        
+            
         # expand the window a little bit        
         lon_0 = max(0, i0 - 2)
         lon_1 = min(data.longitude.size, i1 + 2)
         
         lat_0 = max(0, j0 - 2)
         lat_1 = min(data.latitude.size, j1 + 2)
-                        
+                   
+        # descenting lats
+        if j0 > j1 : 
+           j0, j1 = j1, j0
+           lat_0 = max(0, j0 - 1)
+           lat_1 = min(data.latitude.size, j1 + 3)
+           
+         
+        
         if i0 > i1 :
 
             sh = (
@@ -296,6 +352,7 @@ class grib_pynio(meteo):
         maxlon = kwargs.get('maxlon', None)
         minlat = kwargs.get('minlat', None)   
         maxlat = kwargs.get('maxlat', None) 
+        xr_kwargs = kwargs.get('xr_kwargs', {})
         
         
         
@@ -317,9 +374,6 @@ class grib_pynio(meteo):
               pass
         
         
-        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['engine','backend_kwargs','mpaths','ft1','ft2','dft','minlon','maxlon','minlat','maxlat','time_frame','start_date','end_date']}
-        
-        
         ts = pd.to_datetime(start_date)
         te = pd.to_datetime(end_date)     
         
@@ -332,21 +386,22 @@ class grib_pynio(meteo):
         sys.stdout.flush()
       #---------------------------------------------------------------------      
         
-        data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs, **kargs)    
+        data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs, **xr_kwargs)    
         
-        time_coord = data[data.data_vars.keys()[0]].dims[0]
-        lon_coord = [x for (x,y) in data.dims.iteritems() if 'lon' in x][0]
-        lat_coord = [x for (x,y) in data.dims.iteritems() if 'lat' in x][0]
+        key = [key for key in data.data_vars.keys()][0]
+        time_coord = data[key].dims[0]
+        lon_coord = [x for (x,y) in data.dims.items() if 'lon' in x][0]
+        lat_coord = [x for (x,y) in data.dims.items() if 'lat' in x][0]
                         
-        u10 = [x for (x,y) in data.data_vars.iteritems() if ('10' in x) & ('u' in x.lower())][0]
-        v10 = [x for (x,y) in data.data_vars.iteritems() if ('10' in x) & ('v' in x.lower())][0]
-        msl = [x for (x,y) in data.data_vars.iteritems() if 'msl' in x.lower()][0]
+        u10 = [x for (x,y) in data.data_vars.items() if ('10' in x) & ('u' in x.lower())][0]
+        v10 = [x for (x,y) in data.data_vars.items() if ('10' in x) & ('v' in x.lower())][0]
+        msl = [x for (x,y) in data.data_vars.items() if 'msl' in x.lower()][0]
         
         data = xr.open_mfdataset(filenames, engine=engine, concat_dim=time_coord, backend_kwargs=backend_kwargs, **kargs)
         
         data = data.rename({msl:'msl',u10:'u10',v10:'v10',lon_coord:'longitude',lat_coord:'latitude',time_coord:'time'})
         
-        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
+#        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
         
                 
         if not minlon : minlon = data.longitude.data.min()
@@ -409,6 +464,14 @@ class grib_pynio(meteo):
         
         lat_0 = max(0, j0 - 2)
         lat_1 = min(data.latitude.size, j1 + 2)
+        
+        # descenting lats
+        if j0 > j1 : 
+           j0, j1 = j1, j0
+           lat_0 = max(0, j0 - 1)
+           lat_1 = min(data.latitude.size, j1 + 3)
+           
+        
                 
         if i0 > i1 :
 
@@ -484,8 +547,12 @@ class grib_pynio_AM(meteo):
         engine = kwargs.get('engine', 'pynio')
         backend_kwargs = kwargs.get('backend_kwargs', {})
         
-        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['engine','backend_kwargs','mpaths','ft1','ft2','dft']}
-        
+        minlon = kwargs.get('minlon', None)
+        maxlon = kwargs.get('maxlon', None)
+        minlat = kwargs.get('minlat', None)   
+        maxlat = kwargs.get('maxlat', None) 
+        xr_kwargs = kwargs.get('xr_kwargs', {})
+              
         start_date = kwargs.get('start_date', None)
         try:
             start_date = pd.to_datetime(start_date)
@@ -507,11 +574,6 @@ class grib_pynio_AM(meteo):
         te = pd.to_datetime(end_date)     
         
                           
-        minlon = kwargs.get('minlon', None)
-        maxlon = kwargs.get('maxlon', None)
-        minlat = kwargs.get('minlat', None)   
-        maxlat = kwargs.get('maxlat', None) 
-      
       #--------------------------------------------------------------------- 
         sys.stdout.flush()
         sys.stdout.write('\n')
@@ -519,11 +581,11 @@ class grib_pynio_AM(meteo):
         sys.stdout.flush()
       #---------------------------------------------------------------------      
         
-        data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, preprocess=fix_my_data,  **kargs)
+        data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, preprocess=fix_my_data,  **xr_kwargs)
         
         data = data.rename({'PRMSL_GDS0_MSL':'msl','U_GRD_GDS0_HTGL':'u10','V_GRD_GDS0_HTGL':'v10','g0_lon_1':'longitude','g0_lat_0':'latitude'})
         
-        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
+#        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
         
                 
         if not minlon : minlon = data.longitude.data.min()
@@ -532,15 +594,15 @@ class grib_pynio_AM(meteo):
         if not maxlat : maxlat = data.latitude.data.max()
         
         
-        if minlon < data.longitude.data.min() : minlon = minlon + 360.
-      
-        if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
-      
-        if minlon > data.longitude.data.max() : minlon = minlon - 360.
-      
-        if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
+#        if minlon < data.longitude.data.min() : minlon = minlon + 360.
+#      
+#        if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
+#      
+#        if minlon > data.longitude.data.max() : minlon = minlon - 360.
+#      
+#        if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
         
-        
+        print(data.msl.attrs)
         tt = [int(x.split('_')[-1]) for x in filenames]   
         tts = pd.to_datetime(data.msl.attrs['initial_time'], format='%m/%d/%Y (%H:%M)') + pd.to_timedelta(tt,unit='H')
         data = data.assign_coords(time=tts)
@@ -550,7 +612,7 @@ class grib_pynio_AM(meteo):
         
         
         
-        if ts < data.time.min() :
+        if ts < data.time.data.min() :
             sys.stdout.flush()
             sys.stdout.write('\n')
             sys.stdout.write('time frame not available\n')
@@ -558,7 +620,7 @@ class grib_pynio_AM(meteo):
             sys.stdout.flush()
             sys.exit(1)
           
-        if te > data.time.max() :
+        if te > data.time.data.max() :
             sys.stdout.flush()
             sys.stdout.write('\n')
             sys.stdout.write('time frame not available\n')
@@ -569,11 +631,13 @@ class grib_pynio_AM(meteo):
         
         tslice=slice(ts, te)
         
+        
         i0=np.abs(data.longitude.data-minlon).argmin() 
         i1=np.abs(data.longitude.data-maxlon).argmin() 
       
         j0=np.abs(data.latitude.data-minlat).argmin()
         j1=np.abs(data.latitude.data-maxlat).argmin() 
+        
         
         # expand the window a little bit        
         lon_0 = max(0, i0 - 2)
@@ -581,7 +645,13 @@ class grib_pynio_AM(meteo):
         
         lat_0 = max(0, j0 - 2)
         lat_1 = min(data.latitude.size, j1 + 2)
-                
+        
+        # descenting lats
+        if j0 > j1 : 
+           j0, j1 = j1, j0
+           lat_0 = max(0, j0 - 1)
+           lat_1 = min(data.latitude.size, j1 + 3)
+                           
         if i0 > i1 :
 
             sh = (
@@ -649,8 +719,12 @@ class grib_pynio_HNMS(meteo):
         engine = kwargs.get('engine', 'pynio')
         backend_kwargs = kwargs.get('backend_kwargs', {})
         
-        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['engine','backend_kwargs','mpaths','ft1','ft2','dft']}
-        
+        minlon = kwargs.get('minlon', None)
+        maxlon = kwargs.get('maxlon', None)
+        minlat = kwargs.get('minlat', None)   
+        maxlat = kwargs.get('maxlat', None) 
+        xr_kwargs = kwargs.get('xr_kwargs', {})
+                
         start_date = kwargs.get('start_date', None)
         try:
             start_date = pd.to_datetime(start_date)
@@ -671,12 +745,7 @@ class grib_pynio_HNMS(meteo):
         ts = pd.to_datetime(start_date)
         te = pd.to_datetime(end_date)     
         
-                          
-        minlon = kwargs.get('minlon', None)
-        maxlon = kwargs.get('maxlon', None)
-        minlat = kwargs.get('minlat', None)   
-        maxlat = kwargs.get('maxlat', None) 
-      
+                               
       #--------------------------------------------------------------------- 
         sys.stdout.flush()
         sys.stdout.write('\n')
@@ -684,7 +753,7 @@ class grib_pynio_HNMS(meteo):
         sys.stdout.flush()
       #---------------------------------------------------------------------      
         
-        data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, **kargs)
+        data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, **xr_kwargs)
         
         data = data.rename({'PS_MSL_GDS10_MSL':'msl','U_GDS10_HTGL':'u10','V_GDS10_HTGL':'v10','g10_lon_1':'longitude','g10_lat_0':'latitude'})
             
@@ -715,7 +784,7 @@ class grib_pynio_HNMS(meteo):
         
         
         
-        if ts < data.time.min() :
+        if ts < data.time.data.min() :
             sys.stdout.flush()
             sys.stdout.write('\n')
             sys.stdout.write('time frame not available\n')
@@ -723,7 +792,7 @@ class grib_pynio_HNMS(meteo):
             sys.stdout.flush()
             sys.exit(1)
           
-        if te > data.time.max() :
+        if te > data.time.data.max() :
             sys.stdout.flush()
             sys.stdout.write('\n')
             sys.stdout.write('time frame not available\n')
@@ -732,19 +801,61 @@ class grib_pynio_HNMS(meteo):
             sys.exit(1)
         
         
-        tslice=slice(ts, te)
-        
         d1 = data.where(data.longitude>minlon,drop=True)
         d2 = d1.where(d1.longitude<maxlon,drop=True)
         d3 = d2.where(d2.latitude>minlat,drop=True)
-        tot = d3.where(d3.latitude<maxlat,drop=True)
+        tot = d3.where(d3.latitude<maxlat,drop=True)        
 
 #        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
 #            c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
 #            tot.longitude = tot.longitude + c*360.
       
+        elon = tot.longitude.values
+        elat = tot.latitude.values
+        
+        Ni, Nj = tot.longitude.shape
+        
+        orig = geometry.SwathDefinition(lons=elon,lats=elat) # original grid
+          
+       #Set lat/lon window for interpolation
+        prj = pyproj.Proj('+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs')
+        [[a0,a1],[a2,a3]] = prj([minlon, minlat], [maxlon, maxlat])
+
+        orig = geometry.SwathDefinition(lons=elon,lats=elat) # original points
+
+
+        area_id = 'HNMS'
+        description = 'HNMS COSMO'
+        proj_id = 'eqc'
+        projection = '+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m'
+        x_size = Ni
+        y_size = Nj
+        area_extent = (a0, a1, a2, a3)
+        target_def = get_area_def(area_id, description, proj_id, projection,
+                                   x_size, y_size, area_extent)
+
+        lons,lats = geometry.AreaDefinition.get_lonlats(target_def)
+
+        t_params, s_params, input_idxs, idx_ref = \
+                              bilinear.get_bil_info(orig, target_def, radius=50e3, nprocs=1)
+
+        varn = ['msl','u10','v10']
+  
+        for var in varn:
             
-        self.uvp = tot[['msl','u10','v10','longitude','latitude']]      
+                    q = tot[var].values
+    
+                    newdata = bilinear.get_sample_from_bil_info(q.ravel(), t_params, s_params,
+                                                 input_idxs, idx_ref,
+                                                 output_shape=target_def.shape)
+
+                    me = xr.DataArray(newdata, coords={'latitude': lats[:,0], 'longitude': lons[0,:]},
+                     dims=['latitude', 'longitude'])
+            
+                    tot[var] = me   
+            
+        
+        self.uvp = tot.drop('g10_rot_2')      
       
        #--------------------------------------------------------------------- 
         sys.stdout.flush()
@@ -782,7 +893,7 @@ class gfs_erdap(meteo):
       ts = pd.to_datetime(ts)
       te = pd.to_datetime(te)     
          
-      url = kwargs.get('meteo_url', 'https://bluehub.jrc.ec.europa.eu/erddap/griddap/NCEP_Global_Best')
+      url = kwargs.get('meteo_url', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best')
       
       #--------------------------------------------------------------------- 
       sys.stdout.flush()
@@ -855,16 +966,11 @@ class gfs_erdap(meteo):
           c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
           tot['longitude'] = tot['longitude'] + c*360.
       
-      xx,yy=np.meshgrid(tot.longitude,tot.latitude)
-      
-      other = xr.Dataset({'lons': (['x', 'y'], xx), 
-                          'lats': (['x', 'y'], yy) })
-      
-      self.uvp = xr.merge([tot, other])
+      self.uvp = tot
       
       self.uvp.attrs =  tot.attrs
       
-      self.uvp.rename({'prmslmsl':'msl','ugrd10m':'u10','vgrd10m':'v10'}, inplace=True)
+      self.uvp = self.uvp.rename({'prmslmsl':'msl','ugrd10m':'u10','vgrd10m':'v10'})
             
       
       
@@ -938,7 +1044,7 @@ class gfs_oper(meteo):
       te = pd.to_datetime(te)     
       
       
-      url0='http://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs{}/gfs_0p25_1hr_{}z'.format(ts.strftime('%Y%m%d'),ts.strftime('%H'))
+      url0='https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs{}/gfs_0p25_1hr_{}z'.format(ts.strftime('%Y%m%d'),ts.strftime('%H'))
       
       url = kwargs.get('meteo_url', url0)
 
@@ -1006,15 +1112,10 @@ class gfs_oper(meteo):
       if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
           c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
           tot['lon'] = tot['lon'] + c*360.
+            
+      self.uvp = tot
       
-      xx,yy=np.meshgrid(tot.lon,tot.lat)
-      
-      other = xr.Dataset({'lons': (['x', 'y'], xx), 
-                          'lats': (['x', 'y'], yy) })
-      
-      self.uvp = xr.merge([tot, other])
-      
-      self.uvp.rename({'prmslmsl':'msl','ugrd10m':'u10','vgrd10m':'v10'}, inplace=True)
+      self.uvp = self.uvp.rename({'prmslmsl':'msl','ugrd10m':'u10','vgrd10m':'v10','lon':'longitude','lat':'latitude'})
       
       
       #--------------------------------------------------------------------- 

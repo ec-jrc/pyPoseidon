@@ -279,7 +279,7 @@ def bmatch(dem,wmask,**kwargs):
     
 def internal(cg, xp, yp):
     
-    points=zip(xp.flatten(),yp.flatten())
+    points=list(zip(xp.flatten(),yp.flatten()))
     
     #collect the internal points
     xi=[]
@@ -289,7 +289,7 @@ def internal(cg, xp, yp):
     
         for i in range(len(cg)):
             z = shapely.geometry.Polygon(cg[i])
-            path = mpltPath.Path(zip(z.boundary.xy[0],z.boundary.xy[1]))
+            path = mpltPath.Path(list(zip(z.boundary.xy[0],z.boundary.xy[1])))
 
             inside = path.contains_points(points)
 
@@ -302,7 +302,7 @@ def internal(cg, xp, yp):
     else: #Single LineString
     
         z = shapely.geometry.Polygon(cg)
-        path = mpltPath.Path(zip(z.boundary.xy[0],z.boundary.xy[1]))
+        path = mpltPath.Path(list(zip(z.boundary.xy[0],z.boundary.xy[1])))
 
         inside = path.contains_points(points)
 
@@ -347,7 +347,7 @@ def rmt(imask,xp,nc):
     fmask=np.zeros(xp.shape, dtype=bool) # initiate
 
 #merge masks
-    for key, val in mask.iteritems():
+    for key, val in mask.items():
         fmask = np.logical_xor(val.mask,fmask)
 
     if ne % 2 == 0:    

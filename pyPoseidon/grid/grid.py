@@ -138,80 +138,121 @@ class tri2d(grid):
         sys.stdout.write('reading grid from {}\n'.format(hgrid))
         sys.stdout.flush()
         
+        #read file
+        df = pd.read_csv(hgrid, header=0, names=['data'], index_col=None, low_memory=False)
+        
         #extract number of elements, number of nodes
-        ne,nn = pd.read_csv(hgrid,header=0,skiprows=1,nrows=0,delim_whitespace=True)
-    
-        ne=int(ne)
-        nn=int(nn)        
+        ni,nj = df.iloc[0].str.split()[0]
+        ni=int(ni)
+        nj=int(nj) 
+               
         #read lon,lat,depth for all nodes
-        q=pd.read_csv(hgrid,skiprows=2,header=None,delim_whitespace=True,engine='python',nrows=nn,names=['id','x','y','z'])        
-        q=q.set_index(['id'])
+        q = df.loc[1:nj,'data'].str.split('\t', 3, expand=True)
+        q = q.drop(q.columns[0], axis=1)
+        q = q.apply(pd.to_numeric)
+      #  q.reset_index(inplace=True, drop=True)
+        q.columns = ['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']
+        q.index.name = 'nSCHISM_hgrid_node'
     
+        #create xarray of grid
+        grid = q.loc[:,['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y']].to_xarray()
+        grid = grid.drop('nSCHISM_hgrid_node')
+        
+        #create xarray of depth
+        depth = q.loc[:,'depth'].to_xarray()
+        depth = depth.drop('nSCHISM_hgrid_node')
+            
         #read connectivity
-        e = pd.read_csv(hgrid,skiprows=nn+2,header=None,delim_whitespace=True,engine='python',nrows=ne,names=['id','nv','a','b','c'])
-        e=e.set_index(['id'])
-    
-        #Number of open boundaries
-        nob = pd.read_csv(hgrid,header=None,skiprows=ne+nn+2,nrows=1,delimiter='=')[0]
-
-        if nob.values > 0:
-            #Total number of open boundary nodes
-            ton = pd.read_csv(hgrid,header=None,skiprows=ne+nn+3,nrows=1,delimiter='=')[0]
-
-            ns = ne + nn + 2 + 2
-            nnob = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].values[0]
-            label = ' '.join(pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:])
-            op = pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnob,names=[label])
-            for i in range(1, nob):
-                ns = ns + 1 + nnob
-                nnob = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].values[0]
-                label = ' '.join( pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:] )
-                op = pd.concat([op,pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnob,names=[label])], axis=1)
-
-            op.index.name = 'id' # set index name to match q,e
-            op.index = op.index + 1 #  ''
+        e = df.loc[nj+1:nj+ni,'data'].str.split('\t', 5, expand=True)
+        e = e.drop(e.columns[0], axis=1)
+        e = e.apply(pd.to_numeric)
+     #   e.reset_index(inplace=True, drop=True)
+        e.columns = ['nv','a','b','c']
+        if e.nv.max() < 4:
+            e['d']=np.nan
         
-        else:
-            ns = ne + nn + 3
-            nnob = 0
-            op = pd.DataFrame({})
+        #create xarray of tessellation
+        els = xr.DataArray(
+              e.loc[:,['a','b','c','d']].values,
+              dims=['nSCHISM_hgrid_face', 'nMaxSCHISM_hgrid_face_nodes'], name='SCHISM_hgrid_face_nodes'
+              )
+                  
+        #Open boundaries
+        n0 = df[df.data.str.contains('open boundaries')].index
+        n0 = n0.values[0]
+        nob = df.loc[n0,'data'].split('=')[0].strip()
+        nob = int(nob)
+        nobn = df.loc[n0 + 1,'data'].split('=')[0].strip()
+        nobn = int(nobn)
         
-        #Number of land boundaries
-        nlb = pd.read_csv(hgrid,header=None,skiprows=ns + 1 + nnob,nrows=1,delimiter='=')[0]
-
-        if nlb.values > 0:
-            #Total number of land boundary nodes
-            tln = pd.read_csv(hgrid,header=None,skiprows=ns + 1 + nnob + 1,nrows=1,delimiter='=')[0]
-
-            ns = ns + 1 + nnob + 2
-            nnlb, btype = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].str.split()[0]
-            nnlb = int(nnlb)
-            label = ' '.join(pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:])
-            bt=[btype]
-            lp = pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnlb,names=[label])
-            for i in range(1, nlb.values[0]):
-                ns = ns + 1 + nnlb
-                nnlb, btype  = pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[0].str.split()[0]
-                nnlb = int(nnlb)
-
-                bt.append(btype)
-                label = ' '.join( pd.read_csv(hgrid,header=None,skiprows=ns,nrows=1,delimiter='=')[1].str.split()[0][-3:] )
-                lp = pd.concat([lp,pd.read_csv(hgrid,header=None,skiprows=ns+1,nrows=nnlb,names=[label])], axis=1)
-
-            lp.index.name = 'id' # set index name to match q,e
-            lp.index = lp.index + 1 #  ''
+        onodes=[]
+        ottr = []
+        idx=n0 + 2
+        for nl in range(nob):
+            nn = df.loc[idx,'data'].split('=')[0].strip()
+            nn = int(nn)
+            label = df.loc[idx,'data'].split('=')[1]
+            label = label[label.index('open'):]
+            ottr.append([nn, label])
+            nodes = df.loc[idx+1:idx+nn,'data']
+            onodes.append(nodes.astype(int).values)
+            idx = idx + nn + 1
         
-            #DataFrame with the type of land boundary
-            bbt = pd.DataFrame({'type':bt})
-            bbt.index.name = 'id'
-            bbt.index = bbt.index + 1
+        oinfo = pd.DataFrame(ottr)
+        try:
+            oinfo.columns = ['nps','label']
+            oinfo.label = oinfo.label.str.replace(' ', '_')
+            oinfo.set_index('label', inplace=True, drop=True)
+            oinfo = oinfo.apply(pd.to_numeric)
+        except:
+            pass
+
+        ops = pd.DataFrame(onodes).T
+        try:
+            ops.columns = oinfo.index
+        except:
+            pass
         
-        else:
-            lp=pd.DataFrame({})
-            bbt = pd.DataFrame({})
-    
+        #Land boundaries
+        n1 = df[df.data.str.contains('land boundaries')].index
+        n1 = n1.values[0]
+        
+        nlb = df.loc[n1,'data'].split('=')[0].strip()
+        nlb = int(nlb)
+        
+        nlbn = df.loc[n1 + 1,'data'].split('=')[0].strip()
+        nlbn = int(nlbn)
+        
+
+        lnodes=[]
+        attr = []
+        idx=n1 + 2
+        for nl in range(nlb):
+            nn, etype = df.loc[idx,'data'].split('=')[0].strip().split(' ')
+            nn = int(nn)
+            etype = int(etype)
+            label = df.loc[idx,'data'].split('=')[1]
+            label = label[label.index('land'):]
+            attr.append([nn, etype, label])
+            nodes = df.loc[idx+1:idx+nn,'data']
+            lnodes.append(nodes.astype(int).values)
+            idx = idx + nn + 1
+            
+        linfo = pd.DataFrame(attr)
+        try:
+            linfo.columns = ['nps','type','label']
+            linfo.label = linfo.label.str.replace(' ', '_')
+            linfo.set_index('label', inplace=True, drop=True)
+            linfo = linfo.apply(pd.to_numeric)
+        except:
+            pass
+            
+        lps = pd.DataFrame(lnodes).T
+        lps.columns = linfo.index
+            
+            
         # merge to one xarray DataSet
-        g = xr.merge([q.to_xarray(), e.to_xarray(), op.to_xarray(), lp.to_xarray(), bbt.to_xarray()])
+        g = one = xr.merge([grid,depth,els,ops,lps,oinfo,linfo])
                     
         g.attrs = {}
     
@@ -219,27 +260,29 @@ class tri2d(grid):
     
     def to_file(self, filename, **kwargs):
         
-        nn = self.Dataset.x[np.isfinite(self.Dataset.x.values)].size
-        n3e = self.Dataset.a.size        
+        nn = self.Dataset.SCHISM_hgrid_node_x.size
+        n3e = self.Dataset.nSCHISM_hgrid_face.size        
                 
         with open(filename,'w') as f:
             f.write('\t uniform.gr3\n')
             f.write('\t {} {}\n'.format(n3e,nn))
         
-        q = self.Dataset.to_dataframe().loc[:,['x','y','z']].dropna()
+        q = self.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
         
-        q.to_csv(filename,index=True, sep='\t', header=None,mode='a', float_format='%.10f', columns=['x','y','z'])   
+        q.to_csv(filename,index=True, sep='\t', header=None,mode='a', float_format='%.10f', columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth'])   
         
-        e = self.Dataset.to_dataframe().loc[:,['nv','a','b', 'c']] 
+        e = pd.DataFrame(self.Dataset.SCHISM_hgrid_face_nodes.values,columns=['a','b','c','d'])
+        
+        e['nv'] = e.apply(lambda row: row.dropna().size, axis=1)
             
         e.to_csv(filename,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c'])           
         
         # open boundaries
-        keys = [k for k in self.Dataset.variables.keys() if 'open' in k]
+        keys = [k for k in self.Dataset.keys() if 'open' in k]
 
         if keys :
         
-            obound = self.Dataset.to_dataframe().loc[:,keys] # get the dataframe
+            obound = self.Dataset[keys].to_dataframe() # get the dataframe
 
             nob = obound.shape[1] # number of boundaries
 
@@ -256,11 +299,11 @@ class tri2d(grid):
 
         # land boundaries                      
 
-        keys = [k for k in self.Dataset.variables.keys() if 'land' in k]
+        keys = [k for k in self.Dataset.keys() if 'land' in k]
 
         if keys :
 
-            lbound = self.Dataset.to_dataframe().loc[:,keys] # get the dataframe
+            lbound = self.Dataset[keys].to_dataframe() # get the dataframe
 
             nlb = lbound.shape[1] # number of boundaries
 

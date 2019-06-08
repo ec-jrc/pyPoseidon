@@ -283,8 +283,9 @@ class gebco(dem):
       j0=np.abs(data.lat.data-minlat).argmin()
       j1=np.abs(data.lat.data-maxlat).argmin()
       
+      key = [key for key in data.data_vars.keys()][0]
       dem = (
-          data[data.data_vars.keys()[0]]
+          data[key]
           .isel(lon=slice(i0,i1),lat=slice(j0,j1))
           )
       

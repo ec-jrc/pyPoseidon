@@ -168,6 +168,11 @@ Construct and manage a hydrodynamic model based on different solvers.
             #--------------------------------------------------------------------- 
         
         return b   
+
+
+def myconverter(o):
+    if isinstance(o, datetime.datetime):
+        return o.__str__()
         
         
 class d3d(model):
@@ -225,12 +230,15 @@ class d3d(model):
         if self.rstep == 'end': # save a restart file at the end
             self.rstep = int(self.time_frame.total_seconds()/60)                          
                                              
-        for attr, value in kwargs.iteritems():
+        for attr, value in kwargs.items():
                 if not hasattr(self, attr): setattr(self, attr, value)
+                
+        self.kwargs = kwargs
         
                           
     def set(self,**kwargs):
 
+        if not kwargs : kwargs = self.kwargs
         # Grid 
           
         self.grid=pgrid.grid(type='r2d',**kwargs)
@@ -339,7 +347,7 @@ class d3d(model):
         other = kwargs.get('config', None) 
         if other:
         # Check for any other mdf variable in input
-            for key,val in other.iteritems():
+            for key,val in other.items():
                 if key in mdfidx: 
                     self.mdf.loc[self.mdf.index.str.contains(key)] = val
                 else:
@@ -446,7 +454,7 @@ class d3d(model):
     def tidebc(self,**kwargs):
     
         self.tide = tide()
-        for key,val in self.bound.__dict__.iteritems():
+        for key,val in self.bound.__dict__.items():
         
         # compute tide constituents
             tval = []
@@ -480,18 +488,17 @@ class d3d(model):
         
         
         
-        dlat=ar.latitude[1]-ar.latitude[0]
-        dlon=ar.longitude[1]-ar.longitude[0]
-        dlat=dlat.data.tolist() 
-        dlon=dlon.data.tolist()
-        lat0=ar.latitude[0].data.tolist()
-        lon0=ar.longitude[0].data.tolist()  
+        
+        dlat=np.abs(np.diff(ar.latitude.values)[0])
+        dlon=np.diff(ar.longitude.values)[0]
+        lat0=ar.latitude.data.min()
+        lon0=ar.longitude.data.min() 
         
         nodata=-9999.000
         
-        pp = ar[p].fillna(nodata)
-        uu = ar[u].fillna(nodata)
-        vv = ar[v].fillna(nodata)
+        pp = ar[p].fillna(nodata).values
+        uu = ar[u].fillna(nodata).values
+        vv = ar[v].fillna(nodata).values
         
 
         if not os.path.exists(path):
@@ -552,7 +559,7 @@ class d3d(model):
           np.savetxt(pfid,np.flipud(pp[it,:,:]),fmt='%.3f')
           np.savetxt(ufid,np.flipud(uu[it,:,:]),fmt='%.3f')
           np.savetxt(vfid,np.flipud(vv[it,:,:]),fmt='%.3f')
-
+          
          # close files
         for f in fi:
            f.close()
@@ -582,19 +589,19 @@ class d3d(model):
         with open(calc_dir+self.tag+'_run.log', 'w') as f: #save output
             
             for line in iter(ex.stdout.readline,b''): 
-                f.write(line)   
-                sys.stdout.write(line)
+                f.write(line.decode(sys.stdout.encoding))   
+                sys.stdout.write(line.decode(sys.stdout.encoding))
                 sys.stdout.flush()  
             
             for line in iter(ex.stderr.readline,b''):
-                sys.stdout.write(line)
+                sys.stdout.write(line.decode(sys.stdout.encoding))
                 sys.stdout.flush()  
                 tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
                 try:
                     biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
                     with open(biggest, "r") as f1:
                         for line in f1:
-                            f.write(line)   
+                            f.write(line.decode(sys.stdout.encoding))   
                 except:
                     pass
                             
@@ -624,7 +631,7 @@ class d3d(model):
         
          path = get_value(self,kwargs,'rpath','./')  
         
-         with open(path+self.tag+'.pkl', 'w') as f:
+         with open(path+self.tag+'.pkl', 'wb') as f:
                pickle.dump(self.__dict__,f)
         
     def save(self,**kwargs):
@@ -653,21 +660,21 @@ class d3d(model):
              dic.update({'meteo':meteo.impl.__class__.__name__})
 
          dic['version']=pyPoseidon.__version__
-         
-         with open(path+self.tag+'_info.pkl', 'w') as f:
+                  
+         with open(path+self.tag+'_info.pkl', 'wb') as f:
                pickle.dump(dic,f)
                         
-         for attr, value in dic.iteritems():
+         for attr, value in dic.items():
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
              if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
              if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
-         json.dump(dic,open(path+self.tag+'_model.json','w'))      
+         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)      
     
     @staticmethod
     def read(filename,**kwargs):
         
         filename = kwargs.get('filename', './')               
-        with open(filename, 'r') as f:
+        with open(filename, 'rb') as f:
               info=pickle.load(f)
         m = model(**info)
         return m
@@ -736,12 +743,20 @@ class d3d(model):
                  
         
         #save meteo
+        
         if self.atm:
-           try:
-              self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
-           except AttributeError as e:
-             # print(e) 
-              pass
+        #--------------------------------------------------------------------- 
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('saving meteo\n')
+            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+            
+            try:
+                self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
+            except AttributeError as e:
+                print(e) 
+                pass
 
              
         if self.tide :  
@@ -751,8 +766,8 @@ class d3d(model):
                 
                 dd = OrderedDict([('North',self.bound.North),('South',self.bound.South),('West',self.bound.West),('East',self.bound.East)])
             
-            #    for key,val in self.bound.__dict__.iteritems():
-                for i, (key, val) in enumerate(dd.iteritems()): # to match deltares 
+            #    for key,val in self.bound.__dict__.items():
+                for i, (key, val) in enumerate(dd.items()): # to match deltares 
                     
                     idx=1
                     for k1,k2 in val:           
@@ -765,8 +780,8 @@ class d3d(model):
             
                  dd = OrderedDict([('North',self.tide.North),('South',self.tide.South),('West',self.tide.West),('East',self.tide.East)])
             
-            #     for key,val in self.tide.__dict__.iteritems():
-                 for i, (key, val) in enumerate(dd.iteritems()): # to match deltares 
+            #     for key,val in self.tide.__dict__.items():
+                 for i, (key, val) in enumerate(dd.items()): # to match deltares 
                      
                      idx=1
                      if val: 
@@ -997,12 +1012,14 @@ class schism(model):
         self.solver = self.__class__.__name__    
         
                                                    
-        for attr, value in kwargs.iteritems():
+        for attr, value in kwargs.items():
             if not hasattr(self, attr): setattr(self, attr, value)  
          
+        self.kwargs = kwargs 
                           
     def set(self,**kwargs):
 
+        if not kwargs : kwargs = self.kwargs
 
         self.hgrid = kwargs.get('grid_file',None)
                                          
@@ -1011,10 +1028,10 @@ class schism(model):
                  
         # set lat/lon from file
         if self.hgrid:
-            self.minlon = self.grid.impl.Dataset.x.dropna('id').values.min()
-            self.maxlon = self.grid.impl.Dataset.x.dropna('id').values.max()
-            self.minlat = self.grid.impl.Dataset.y.dropna('id').values.min()
-            self.maxlat = self.grid.impl.Dataset.y.dropna('id').values.max()
+            self.minlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.min()
+            self.maxlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.max()
+            self.minlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.min()
+            self.maxlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.max()
                                      
         # get bathymetry
         self.bath(**kwargs)
@@ -1052,11 +1069,11 @@ class schism(model):
                 
             params = params.set_index('attrs')
         else:
-            with open(DATA_PATH + 'dparams.pkl', 'r') as f:
+            with open(DATA_PATH + 'dparams.pkl', 'rb') as f:
                               params=pickle.load(f)
         
         if dic :
-            for key,val in dic.iteritems():
+            for key,val in dic.items():
                 params.loc[key] = val
             
         #update 
@@ -1102,8 +1119,8 @@ class schism(model):
     def bath(self,**kwargs):
         z = self.__dict__.copy()        
         
-        z['grid_x'] = self.grid.impl.Dataset.x.dropna('id').values
-        z['grid_y'] = self.grid.impl.Dataset.y.dropna('id').values
+        z['grid_x'] = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values
+        z['grid_y'] = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values
         
         dpath =  get_value(self,kwargs,'dpath',None)        
         
@@ -1140,7 +1157,7 @@ class schism(model):
             f.write('/ \n\n')
             
         # save bctides.in
-        nobs = [key for key in self.grid.impl.Dataset.variables.keys() if 'open' in key]
+        nobs = [key for key in self.grid.impl.Dataset.keys() if 'open' in key]
         
         with open(path + 'bctides.in', 'w') as f:
             f.write('Header\n')
@@ -1148,7 +1165,7 @@ class schism(model):
             f.write('{}\n'.format(0)) #nbfr
             f.write('{}\n'.format(len(nobs))) #number of open boundaries
             for i in range(len(nobs)):
-                nnodes = self.grid.impl.Dataset.to_dataframe().loc[:,[nobs[i]]].dropna().size
+                nnodes = self.grid.impl.Dataset[nobs[i]].values.size
                 f.write('{} {} {} {} {}\n'.format(nnodes,2,0,0,0)) # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
                 f.write('{}\n'.format(0)) # ethconst !constant elevation value for this segment    
        
@@ -1173,7 +1190,7 @@ class schism(model):
             
             bat = -self.dem.impl.Dataset.ival.values.astype(float) #minus for the hydro run
                                     
-            self.grid.impl.Dataset.z.loc[:bat.size] = bat
+            self.grid.impl.Dataset.depth.loc[:bat.size] = bat
                                     
             self.grid.impl.to_file(filename= path+'hgrid.gr3')
             
@@ -1199,47 +1216,70 @@ class schism(model):
         # manning file
         manfile=path+'manning.gr3'
         
-        nn = self.grid.impl.Dataset.x[np.isfinite(self.grid.impl.Dataset.x.values)].size
-        n3e = self.grid.impl.Dataset.a.size
         
-        with open(manfile,'w') as f:
-            f.write('\t 0 \n')
-            f.write('\t {} {}\n'.format(n3e,nn))
+        if hasattr(self, 'manfile') :
+            copyfile(self.manfile, manfile) #copy original grid file
+            if self.manfile == manfile:
+                sys.stdout.flush()
+                sys.stdout.write('\n')
+                sys.stdout.write('Keeping manning file ..\n')
+                sys.stdout.flush()        
         
-        mn = xr.Dataset({'man': ('id', np.ones(nn)*.12), 'id': np.arange(1,nn+1)})
-                    
-        self.grid.impl.Dataset=xr.merge([self.grid.impl.Dataset, mn])
         
-        man = self.grid.impl.Dataset.get(['x','y','man']).to_dataframe().dropna()
+        if hasattr(self, 'manning') :
+            nn = self.grid.impl.Dataset.nSCHISM_hgrid_node.size
+            n3e = self.grid.impl.Dataset.nSCHISM_hgrid_face.size
         
-        man.to_csv(manfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['x','y','man'] )
-        
-        e = self.grid.impl.Dataset.get(['nv','a','b', 'c']).to_dataframe()
-        
-        e.to_csv(manfile,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c']) 
-        
+            with open(manfile,'w') as f:
+                f.write('\t 0 \n')
+                f.write('\t {} {}\n'.format(n3e,nn))
+                
+            df = self.grid.impl.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
+                
+            df['man'] = self.manning
+            
+            df.index = np.arange(1, len(df) + 1)
+                
+            df.to_csv(manfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','man'] )
+            
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('Manning file created..\n')
+            sys.stdout.flush()        
+                
         
         # windrot_geo2proj
         
         windfile=path+'windrot_geo2proj.gr3'
-        
-        with open(windfile,'w') as f:
-            f.write('\t 0 \n')
-            f.write('\t {} {}\n'.format(n3e,nn))
-            
-        wdr = xr.Dataset({'windrot': ('id', np.ones(nn)*0.000001), 'id': np.arange(1,nn+1)})
-        
-        self.grid.impl.Dataset=xr.merge([self.grid.impl.Dataset, wdr])
+
+        if hasattr(self, 'windproj') :
+            copyfile(self.windproj, windfile) #copy original grid file
+            if self.windproj != windproj :
+                sys.stdout.flush()
+                sys.stdout.write('\n')
+                sys.stdout.write('Keeping windproj file ..\n')
+                sys.stdout.flush()        
+
+        if hasattr(self, 'windrot') :
+            with open(windfile,'w') as f:
+                f.write('\t 0 \n')
+                f.write('\t {} {}\n'.format(n3e,nn))
+                    
+            df = self.grid.impl.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
                
-        wd = self.grid.impl.Dataset.get(['x','y','windrot']).to_dataframe().dropna()
+            df['windrot'] = self.windrot
+            
+            df.index = np.arange(1, len(df) + 1)
         
-        wd.to_csv(windfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['x','y','windrot'] )
-        
-        e.to_csv(windfile,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c'])
-        
-        
+            df.to_csv(windfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','windrot'] )
+                
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('Windrot_geo2proj file created..\n')
+            sys.stdout.flush()        
+            
         #save meteo
-        if self.atm:
+        if hasattr(self, 'atm') :
            try:
               self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
            except AttributeError as e:
@@ -1281,11 +1321,13 @@ class schism(model):
         os.chmod(execf, mode)
 
     @staticmethod 
-    def to_force(ar,**kwargs):
+    def to_force(ar0,**kwargs):
                 
         path = kwargs.get('rpath','./') 
         
         [p,u,v] = kwargs.get('vars','[None,None,None]')                
+        
+        ar = ar0.sortby('latitude', ascending=True)
             
         xx, yy = np.meshgrid(ar.longitude.data, ar.latitude.data) 
         
@@ -1369,15 +1411,15 @@ class schism(model):
             
         with open(calc_dir+'err.log', 'w') as f: 
           for line in iter(ex.stderr.readline,b''): 
-            f.write(line)   
-            sys.stdout.write(line)
+            f.write(line.decode(sys.stdout.encoding))   
+            sys.stdout.write(line.decode(sys.stdout.encoding))
             sys.stdout.flush()  
         ex.stderr.close()            
 
         with open(calc_dir+'run.log', 'w') as f: 
           for line in iter(ex.stdout.readline,b''): 
-            f.write(line)   
-            sys.stdout.write(line)
+            f.write(line.decode(sys.stdout.encoding))   
+            sys.stdout.write(line.decode(sys.stdout.encoding))
             sys.stdout.flush()  
         ex.stdout.close()         
         
@@ -1409,11 +1451,11 @@ class schism(model):
 
          dic['version']=pyPoseidon.__version__
 
-         with open(path+self.tag+'_info.pkl', 'w') as f:
+         with open(path+self.tag+'_info.pkl', 'wb') as f:
                pickle.dump(dic,f)
                
-         for attr, value in dic.iteritems():
+         for attr, value in dic.items():
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
              if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
              if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
-         json.dump(dic,open(path+self.tag+'_model.json','w'))      
+         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)      

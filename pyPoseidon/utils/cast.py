@@ -38,7 +38,7 @@ class dcast(cast):
     
     def __init__(self,**kwargs):
                
-        for attr, value in kwargs.iteritems():
+        for attr, value in kwargs.items():
                 setattr(self, attr, value)
                 
         logging.basicConfig(filename=self.path+self.case+'.log',level=logging.INFO)            
@@ -56,7 +56,7 @@ class dcast(cast):
         cf = [glob.glob(self.path+prev+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
                     
-        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frames[1:]):
+        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frame[1:]):
             
             ppath = self.path+'/{}/'.format(prev)
             if not os.path.exists(ppath):
@@ -74,7 +74,7 @@ class dcast(cast):
             copy2(ppath+self.tag+'_info.pkl',rpath) #copy the info file
 
             # load model
-            with open(rpath+self.tag+'_info.pkl', 'r') as f:
+            with open(rpath+self.tag+'_info.pkl', 'rb') as f:
                           info=pickle.load(f)
             
             args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
@@ -90,7 +90,7 @@ class dcast(cast):
             if self.rstep:
                 info['rstep'] = self.rstep
             
-#            for attr, value in self.iteritems():
+#            for attr, value in self.items():
 #                setattr(info, attr, value)
             m=pm.model(**info)
                                                          
@@ -160,16 +160,16 @@ class dcast(cast):
          
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-            m.run()
-
             m.save()
+            
+            m.run()
             
             #cleanup
             os.remove(rpath+'tri-rst.'+outresfile)
             
             # save compiled nc file
             
-            out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
+            #out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
             
             logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
             
