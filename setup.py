@@ -30,7 +30,7 @@ setup(name='pyPoseidon',
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering :: Atmospheric Science',
       ],
-      package_data={'': ['misc/*']},
+      package_data={'pyPoseidon': ['misc/*','tests/data/*']},
       zip_safe=False)
 
    
