@@ -25,6 +25,7 @@ import pandas as pd
 import glob
 from shutil import copyfile
 import xarray as xr
+import logging
 
 #local modules
 from pyPoseidon.model.bnd import *
@@ -33,6 +34,23 @@ import pyPoseidon.grid as pgrid
 import pyPoseidon.meteo as pmeteo
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.get_value import get_value
+
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('run.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
@@ -159,11 +177,8 @@ Construct and manage a hydrodynamic model based on different solvers.
                                      'ilat': ('ilat', zy[:,0])})         
                                                             
         else:
-            #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('No mdf nor param files present. Abort\n')
-            sys.stdout.flush()
+            #---------------------------------------------------------------------
+            logger.exception('No mdf nor param files present. Abort\n') 
             sys.exit(1)
             #--------------------------------------------------------------------- 
         
@@ -200,10 +215,7 @@ class d3d(model):
         
         if self.end_date == None : 
             #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('model not set properly, No end_date\n')
-            sys.stdout.flush()
+            logger.warning('model not set properly, No end_date\n')
             #--------------------------------------------------------------------- 
             
         
@@ -379,7 +391,7 @@ class d3d(model):
             elif 'meteo' in flag : 
                 self.meteo = pmeteo.meteo(**z)        
             else:
-                sys.stdout.write('skipping meteo files ..\n')
+                logger.info('skipping meteo files ..\n')
         else:
             self.meteo = pmeteo.meteo(**z)
         
@@ -414,7 +426,7 @@ class d3d(model):
             elif 'dem' in flag :
                 self.dem = pdem.dem(**z)
             else:
-                sys.stdout.write('reading local dem file ..\n')
+                logger.info('reading local dem file ..\n')
                 dem_file = z['rpath']+self.tag+'.dep'
                 rdem = np.loadtxt(dem_file)
                 zx=self.grid.impl.Dataset.lons.values
@@ -448,7 +460,7 @@ class d3d(model):
             self.bound = box(**z)
         
         except:
-            sys.stdout.write('boundary files not set..\n')
+            logger.info('boundary files not set..\n')
             
 
     def tidebc(self,**kwargs):
@@ -485,10 +497,7 @@ class d3d(model):
         [p,u,v] = kwargs.get('vars','[None,None,None]')                
         
         curvi = kwargs.get('curvi', False)
-        
-        
-        
-        
+       
         dlat=np.abs(np.diff(ar.latitude.values)[0])
         dlon=np.diff(ar.longitude.values)[0]
         lat0=ar.latitude.data.min()
@@ -590,12 +599,10 @@ class d3d(model):
             
             for line in iter(ex.stdout.readline,b''): 
                 f.write(line.decode(sys.stdout.encoding))   
-                sys.stdout.write(line.decode(sys.stdout.encoding))
-                sys.stdout.flush()  
+                logger.info(line.decode(sys.stdout.encoding))
             
             for line in iter(ex.stderr.readline,b''):
-                sys.stdout.write(line.decode(sys.stdout.encoding))
-                sys.stdout.flush()  
+                logger.info(line.decode(sys.stdout.encoding))
                 tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
                 try:
                     biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
@@ -699,7 +706,7 @@ class d3d(model):
             #save grid
                 self.grid.impl.to_file(filename = path+self.tag+'.grd')
             else:
-                sys.stdout.write('skipping grid file ..\n')
+                logger.info('skipping grid file ..\n')
         else:
             self.grid.impl.to_file(filename = path+self.tag+'.grd')
                 
@@ -728,7 +735,7 @@ class d3d(model):
             bat2[np.isnan(bat2)] = -999.
                         
         except AttributeError:
-            sys.stdout.write('No dem file ..')
+            logger.warning('No dem file ..')
             
         # Write bathymetry file    
         if flag :
@@ -737,7 +744,7 @@ class d3d(model):
             if (np.any(check)==False) or ('dem' in flag) :
                  np.savetxt(path+self.tag+'.dep',bat2)
             else:
-                sys.stdout.write('skipping dem file ..\n')
+                logger.info('skipping dem file ..\n')
         else:
             np.savetxt(path+self.tag+'.dep',bat2)
                  
@@ -745,11 +752,8 @@ class d3d(model):
         #save meteo
         
         if self.atm:
-        #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('saving meteo\n')
-            sys.stdout.flush()
+            #--------------------------------------------------------------------- 
+            logger.info('saving meteo\n')
             #--------------------------------------------------------------------- 
             
             try:
@@ -880,10 +884,7 @@ class d3d(model):
         
         if bin_path is None:
             #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('D3D executable path (epath) not given\n')
-            sys.stdout.flush()
+            logger.warning('D3D executable path (epath) not given\n')
             #--------------------------------------------------------------------- 
               
             
@@ -985,10 +986,7 @@ class schism(model):
         
         if self.end_date == None : 
             #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('model not set properly, No end_date\n')
-            sys.stdout.flush()
+            logger.warning('model not set properly, No end_date\n')
             #--------------------------------------------------------------------- 
             
         
@@ -1111,7 +1109,7 @@ class schism(model):
             elif 'meteo' in flag : 
                 self.meteo = pmeteo.meteo(**z)        
             else:
-                sys.stdout.write('skipping meteo ..\n')
+                logger.info('skipping meteo ..\n')
         else:
             self.meteo = pmeteo.meteo(**z)
         
@@ -1132,12 +1130,12 @@ class schism(model):
             if 'dem' in flag :
                 self.dem = pdem.dem(**z)
             else:
-                sys.stdout.write('dem from grid file\n')
+                logger.info('dem from grid file\n')
         else:
             if dpath:
                 self.dem = pdem.dem(**z)
             else:
-                sys.stdout.write('dem from grid file\n')
+                logger.info('dem from grid file\n')
 
     def output(self,**kwargs):      
         
@@ -1195,10 +1193,7 @@ class schism(model):
             self.grid.impl.to_file(filename= path+'hgrid.gr3')
             
         except AttributeError as e:
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('Keeping bathymetry from hgrid.gr3 ..\n')
-            sys.stdout.flush()
+            logger.info('Keeping bathymetry from hgrid.gr3 ..\n')
             
             
         # save grid files 
@@ -1206,10 +1201,7 @@ class schism(model):
             copyfile(self.hgrid, path+'hgrid.gr3') #copy original grid file
             copyfile(path+'hgrid.gr3', path+'hgrid.ll')    
         else:
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('Keeping grid files ..\n')
-            sys.stdout.flush()
+            logger.info('Keeping grid files ..\n')
             
                  
                  
@@ -1220,10 +1212,7 @@ class schism(model):
         if hasattr(self, 'manfile') :
             copyfile(self.manfile, manfile) #copy original grid file
             if self.manfile == manfile:
-                sys.stdout.flush()
-                sys.stdout.write('\n')
-                sys.stdout.write('Keeping manning file ..\n')
-                sys.stdout.flush()        
+                logger.info('Keeping manning file ..\n')
         
         
         if hasattr(self, 'manning') :
@@ -1242,10 +1231,7 @@ class schism(model):
                 
             df.to_csv(manfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','man'] )
             
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('Manning file created..\n')
-            sys.stdout.flush()        
+            logger.info('Manning file created..\n')
                 
         
         # windrot_geo2proj
@@ -1255,10 +1241,7 @@ class schism(model):
         if hasattr(self, 'windproj') :
             copyfile(self.windproj, windfile) #copy original grid file
             if self.windproj != windproj :
-                sys.stdout.flush()
-                sys.stdout.write('\n')
-                sys.stdout.write('Keeping windproj file ..\n')
-                sys.stdout.flush()        
+                logger.info('Keeping windproj file ..\n')
 
         if hasattr(self, 'windrot') :
             with open(windfile,'w') as f:
@@ -1273,10 +1256,7 @@ class schism(model):
         
             df.to_csv(windfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','windrot'] )
                 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('Windrot_geo2proj file created..\n')
-            sys.stdout.flush()        
+            logger.info('Windrot_geo2proj file created..\n')
             
         #save meteo
         if hasattr(self, 'atm') :
@@ -1295,10 +1275,7 @@ class schism(model):
         
         if bin_path is None:
             #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('Schism executable path (epath) not given\n')
-            sys.stdout.flush()
+            logger.warning('Schism executable path (epath) not given\n')
             #--------------------------------------------------------------------- 
               
             
@@ -1412,15 +1389,13 @@ class schism(model):
         with open(calc_dir+'err.log', 'w') as f: 
           for line in iter(ex.stderr.readline,b''): 
             f.write(line.decode(sys.stdout.encoding))   
-            sys.stdout.write(line.decode(sys.stdout.encoding))
-            sys.stdout.flush()  
+            logger.info(line.decode(sys.stdout.encoding))
         ex.stderr.close()            
 
         with open(calc_dir+'run.log', 'w') as f: 
           for line in iter(ex.stdout.readline,b''): 
             f.write(line.decode(sys.stdout.encoding))   
-            sys.stdout.write(line.decode(sys.stdout.encoding))
-            sys.stdout.flush()  
+            logger.info(line.decode(sys.stdout.encoding))
         ex.stdout.close()         
         
                                   

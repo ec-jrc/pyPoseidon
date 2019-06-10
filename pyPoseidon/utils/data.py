@@ -27,6 +27,24 @@ import glob
 import sys
 import subprocess
 import scipy.interpolate 
+import logging
+
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('data.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
    
 class data:   
@@ -40,10 +58,7 @@ class data:
        elif solver == 'schism':
            self.impl = schism(**kwargs)  
        else:
-           sys.stdout.flush()
-           sys.stdout.write('\n')
-           sys.stdout.write('solver is not defined, exiting \n')
-           sys.stdout.flush()
+           logger.error('solver is not defined, exiting \n')
            sys.exit(1)             
        
 
@@ -65,10 +80,7 @@ class d3d(data):
                 
         if len(ifiles) > 1:
             #--------------------------------------------------------------------- 
-              sys.stdout.flush()
-              sys.stdout.write('\n')
-              sys.stdout.write('more than one configuration, specify tag argument \n')
-              sys.stdout.flush()
+              logger.warning('more than one configuration, specify tag argument \n')
             #--------------------------------------------------------------------- 
                     
         tag = kwargs.get('tag', None)
@@ -79,10 +91,7 @@ class d3d(data):
             ifile = ifiles[0]
         
         #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('reading data based on {} \n'.format(ifile))
-        sys.stdout.flush()
+        logger.info('reading data based on {} \n'.format(ifile))
         #--------------------------------------------------------------------- 
                        
         with open(ifile, 'rb') as f:
@@ -170,8 +179,7 @@ class schism(data):
     
         ncores = get_value(self,kwargs,'ncores',1)
     
-        sys.stdout.write('Combining output\n')
-        sys.stdout.flush()  
+        logger.info('Combining output\n')
         
         
         inu = len(glob.glob(self.folders[0] + 'outputs/schout_000*_1.nc'))

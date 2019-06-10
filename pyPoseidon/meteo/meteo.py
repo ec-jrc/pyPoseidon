@@ -22,7 +22,24 @@ from pyPoseidon.utils.get_value import get_value
 from dateutil import parser
 from pyresample import bilinear, geometry, kd_tree, get_area_def
 import pyproj
+import logging
 
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('meteo.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 
 class meteo:
@@ -186,18 +203,12 @@ class grib_cfgrib(meteo):
           except:
               pass
         
-        
-        
-        
         ts = pd.to_datetime(start_date)
         te = pd.to_datetime(end_date)     
                                 
       
       #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('extracting meteo')
-        sys.stdout.flush()
+        logger.info('extracting meteo')
       #---------------------------------------------------------------------      
         
         data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs, **xr_kwargs)    
@@ -244,19 +255,13 @@ class grib_cfgrib(meteo):
         
         
         if ts < data.time.data.min() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
-            sys.stdout.flush()
+            logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
+            logger.error('time frame not available')
             sys.exit(1)
           
         if te > data.time.data.max() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
-            sys.stdout.flush()
+            logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
+            logger.error('time frame not available\n')
             sys.exit(1)
         
         
@@ -318,10 +323,7 @@ class grib_cfgrib(meteo):
       
       
        #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
+        logger.info('meteo done\n')
         #--------------------------------------------------------------------- 
         
     def output(self,solver=None,**kwargs):
@@ -376,14 +378,9 @@ class grib_pynio(meteo):
         
         ts = pd.to_datetime(start_date)
         te = pd.to_datetime(end_date)     
-        
-                          
       
       #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('extracting meteo')
-        sys.stdout.flush()
+        logger.info('extracting meteo')
       #---------------------------------------------------------------------      
         
         data = xr.open_mfdataset(filenames, engine=engine, backend_kwargs=backend_kwargs, **xr_kwargs)    
@@ -434,19 +431,13 @@ class grib_pynio(meteo):
         
         
         if ts < data.time.data.min() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.time.data.min(),data.time.data.max()))
-            sys.stdout.flush()
+            logger.warning('coverage between {} and {} \n'.format(data.time.data.min(),data.time.data.max()))
+            logger.error('time frame not available\n')
             sys.exit(1)
           
         if te > data.time.data.max() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.time.data.min(),data.time.data.max()))
-            sys.stdout.flush()
+            logger.error('time frame not available\n')
+            logger.warning('coverage between {} and {} \n'.format(data.time.data.min(),data.time.data.max()))
             sys.exit(1)
         
         
@@ -507,10 +498,7 @@ class grib_pynio(meteo):
       
       
        #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
+        logger.info('meteo done\n')
         #--------------------------------------------------------------------- 
         
         
@@ -575,10 +563,7 @@ class grib_pynio_AM(meteo):
         
                           
       #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('extracting meteo')
-        sys.stdout.flush()
+        logger.info('extracting meteo')
       #---------------------------------------------------------------------      
         
         data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, preprocess=fix_my_data,  **xr_kwargs)
@@ -613,19 +598,13 @@ class grib_pynio_AM(meteo):
         
         
         if ts < data.time.data.min() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
-            sys.stdout.flush()
+            logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
+            logger.error('time frame not available\n')
             sys.exit(1)
           
         if te > data.time.data.max() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
-            sys.stdout.flush()
+            logger.error('time frame not available\n')
+            logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
             sys.exit(1)
         
         
@@ -686,10 +665,7 @@ class grib_pynio_AM(meteo):
       
       
        #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
+        logger.info('meteo done\n')
         #--------------------------------------------------------------------- 
         
         
@@ -747,10 +723,7 @@ class grib_pynio_HNMS(meteo):
         
                                
       #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('extracting meteo')
-        sys.stdout.flush()
+        logger.info('extracting meteo')
       #---------------------------------------------------------------------      
         
         data = xr.open_mfdataset(filenames, engine=engine, concat_dim='time', backend_kwargs=backend_kwargs, **xr_kwargs)
@@ -785,19 +758,13 @@ class grib_pynio_HNMS(meteo):
         
         
         if ts < data.time.data.min() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
-            sys.stdout.flush()
+            logger.error('time frame not available\n')
+            logger.warning('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
             sys.exit(1)
           
         if te > data.time.data.max() :
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('time frame not available\n')
-            sys.stdout.write('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
-            sys.stdout.flush()
+            logger.error('time frame not available\n')
+            logger.warning('coverage between {} and {} \n'.format(data.valid_time.min(),data.time.max()))
             sys.exit(1)
         
         
@@ -858,10 +825,7 @@ class grib_pynio_HNMS(meteo):
         self.uvp = tot.drop('g10_rot_2')      
       
        #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
+        logger.info('meteo done\n')
         #--------------------------------------------------------------------- 
         
         
@@ -896,10 +860,7 @@ class gfs_erdap(meteo):
       url = kwargs.get('meteo_url', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best')
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('extracting meteo from {}.html\n'.format(url))
-      sys.stdout.flush()
+      logger.info('extracting meteo from {}.html\n'.format(url))
       #---------------------------------------------------------------------      
 
       data = xr.open_dataset(url)    
@@ -913,19 +874,13 @@ class gfs_erdap(meteo):
       if maxlon > data.geospatial_lon_max : maxlon = maxlon - 360.
             
       if ts < parser.parse(data.attrs['time_coverage_start']).replace(tzinfo=None) :
-          sys.stdout.flush()
-          sys.stdout.write('\n')
-          sys.stdout.write('time frame not available\n')
-          sys.stdout.write('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
-          sys.stdout.flush()
+          logger.error('time frame not available\n')
+          logger.warning('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
           sys.exit(1)
           
       if te > parser.parse(data.attrs['time_coverage_end']).replace(tzinfo=None) :
-          sys.stdout.flush()
-          sys.stdout.write('\n')
-          sys.stdout.write('time frame not available\n')
-          sys.stdout.write('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
-          sys.stdout.flush()
+          logger.error('time frame not available\n')
+          logger.warning('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
           sys.exit(1)
       
       tslice=slice(ts, te)
@@ -975,10 +930,7 @@ class gfs_erdap(meteo):
       
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('meteo done\n')
-      sys.stdout.flush()
+      logger.info('meteo done\n')
       #--------------------------------------------------------------------- 
       
       
@@ -1000,20 +952,14 @@ class generic(meteo):
         filename = kwargs.get('mpaths', None)
         
         #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('extracting meteo from {}\n'.format(filename))
-        sys.stdout.flush()
+        logger.info('extracting meteo from {}\n'.format(filename))
         #---------------------------------------------------------------------      
         
         
         self.uvp = xr.open_dataset(filename)
          
       #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('meteo done\n')
-        sys.stdout.flush()
+        logger.info('meteo done\n')
       #--------------------------------------------------------------------- 
 
     
@@ -1049,20 +995,14 @@ class gfs_oper(meteo):
       url = kwargs.get('meteo_url', url0)
 
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('extracting meteo from {}\n'.format(url))
-      sys.stdout.flush()
+      logger.info('extracting meteo from {}\n'.format(url))
       #---------------------------------------------------------------------      
 
       try:
          data = xr.open_dataset(url)    
       except:
          #--------------------------------------------------------------------- 
-         sys.stdout.flush()
-         sys.stdout.write('\n')
-         sys.stdout.write('Please provide date data within the last 10 days\n')
-         sys.stdout.flush()
+         logger.error('Please provide date data within the last 10 days\n')
          #---------------------------------------------------------------------      
          sys.exit(1)
           
@@ -1119,10 +1059,7 @@ class gfs_oper(meteo):
       
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('meteo done\n')
-      sys.stdout.flush()
+      logger.info('meteo done\n')
       #--------------------------------------------------------------------- 
       
       

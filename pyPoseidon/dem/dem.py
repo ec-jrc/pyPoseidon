@@ -13,6 +13,26 @@ import pyresample
 import xarray as xr
 import sys
 from pyPoseidon.utils.fix import *
+import logging
+
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('dem.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
 
 class dem:
     impl=None
@@ -42,10 +62,7 @@ class emodnet(dem):
       data = xr.open_mfdataset(url)    
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('extracting dem from {}\n'.format(url))
-      sys.stdout.flush()
+      logger.info('extracting dem from {}\n'.format(url))
       #---------------------------------------------------------------------      
       
       lon=data.longitude.data
@@ -76,10 +93,7 @@ class emodnet(dem):
          
       if 'grid_x' in kwargs.keys():
           #--------------------------------------------------------------------- 
-          sys.stdout.flush()
-          sys.stdout.write('\n')
-          sys.stdout.write('.. interpolating on grid ..\n')
-          sys.stdout.flush()
+          logger.info('.. interpolating on grid ..\n')
           #---------------------------------------------------------------------      
           
           
@@ -116,10 +130,7 @@ class emodnet(dem):
           self.Dataset = xr.merge([self.Dataset,dem])
        
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('dem done\n')
-      sys.stdout.flush()
+      logger.info('dem done\n')
       #--------------------------------------------------------------------- 
        
     def adjust(self,shpfile,**kwargs):
@@ -150,10 +161,7 @@ class erdap(dem):
       url = kwargs.get('dem_url', 'http://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus')
             
     #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('extracting dem from {}\n'.format(url))
-      sys.stdout.flush()
+      logger.info('extracting dem from {}\n'.format(url))
     #---------------------------------------------------------------------      
           
             
@@ -194,10 +202,7 @@ class erdap(dem):
       
       if 'grid_x' in kwargs.keys():
          #--------------------------------------------------------------------- 
-         sys.stdout.flush()
-         sys.stdout.write('\n')
-         sys.stdout.write('.. interpolating on grid ..\n')
-         sys.stdout.flush()
+         logger.info('.. interpolating on grid ..\n')
          #---------------------------------------------------------------------      
           
           
@@ -236,10 +241,7 @@ class erdap(dem):
          self.Dataset = xr.merge([self.Dataset,idem])
                
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('dem done\n')
-      sys.stdout.flush()
+      logger.info('dem done\n')
       #--------------------------------------------------------------------- 
       
       
@@ -267,10 +269,7 @@ class gebco(dem):
       url = kwargs.get('dpath', None)
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('extracting dem from {}\n'.format(url))
-      sys.stdout.flush()
+      logger.info('extracting dem from {}\n'.format(url))
       #---------------------------------------------------------------------      
       
             
@@ -302,10 +301,7 @@ class gebco(dem):
       if 'grid_x' in kwargs.keys():
           
          #--------------------------------------------------------------------- 
-         sys.stdout.flush()
-         sys.stdout.write('\n')
-         sys.stdout.write('.. interpolating on grid ..\n')
-         sys.stdout.flush()
+         logger.info('.. interpolating on grid ..\n')
          #---------------------------------------------------------------------      
           
          grid_x = kwargs.get('grid_x', None)
@@ -342,10 +338,7 @@ class gebco(dem):
          
       
       #--------------------------------------------------------------------- 
-      sys.stdout.flush()
-      sys.stdout.write('\n')
-      sys.stdout.write('dem done\n')
-      sys.stdout.flush()
+      logger.info('dem done\n')
       #--------------------------------------------------------------------- 
       
      

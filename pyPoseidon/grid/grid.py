@@ -3,7 +3,7 @@ Grid module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon, a software written by George Breyiannis (JRC E.1)
+# This file is part of pyPoseidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
@@ -13,6 +13,26 @@ import datetime
 import xarray as xr
 import pandas as pd
 import sys
+import logging
+
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('grid.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
 
 class grid:
     
@@ -67,7 +87,9 @@ class r2d(grid):
 
     @staticmethod
     def read_file(filename, **kwargs):
-
+        
+        logger.info('read grid file {}'.format(filename))
+        
         header=pd.read_csv(filename,nrows=3,header=None,comment='*')
         cs = header.loc[0,0].split('=')[1].strip()
         ni,nj = header.loc[1,0].split(' ')
@@ -97,6 +119,9 @@ class r2d(grid):
             
                     
     def to_file(self, filename, **kwargs):
+        
+        logger.info('writing grid to file {}'.format(filename))
+        
         with open(filename,'w') as f:
             f.write('Coordinate System= {}\n'.format(self.Dataset.attrs['Coordinate System']))
             f.write('{} {}\n'.format(self.Dataset.lons.shape[1],self.Dataset.lons.shape[0]))
@@ -133,11 +158,8 @@ class tri2d(grid):
     @staticmethod
     def read_file(hgrid,**kwargs):
                 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('reading grid from {}\n'.format(hgrid))
-        sys.stdout.flush()
-        
+        logger.info('read grid file {}'.format(hgrid))
+                
         #read file
         df = pd.read_csv(hgrid, header=0, names=['data'], index_col=None, low_memory=False)
         
@@ -259,6 +281,9 @@ class tri2d(grid):
         return g
     
     def to_file(self, filename, **kwargs):
+        
+        logger.info('writing grid to file {}'.format(filename))
+        
         
         nn = self.Dataset.SCHISM_hgrid_node_x.size
         n3e = self.Dataset.nSCHISM_hgrid_face.size        

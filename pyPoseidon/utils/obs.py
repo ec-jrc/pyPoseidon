@@ -18,6 +18,26 @@ import pkg_resources
 import pyPoseidon
 import os
 import sys
+import logging
+
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('obs.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
 
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
 DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
@@ -174,10 +194,7 @@ class obs:
         except Exception as e:
             print(e)
             #--------------------------------------------------------------------- 
-            sys.stdout.flush()
-            sys.stdout.write('\n')
-            sys.stdout.write('problem with time series acquisition\n')
-            sys.stdout.flush()
+            logger.exception('problem with time series acquisition\n')
             #--------------------------------------------------------------------- 
             return None
 
