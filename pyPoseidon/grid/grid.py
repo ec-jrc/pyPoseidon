@@ -269,11 +269,17 @@ class tri2d(grid):
         
         q = self.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
         
+        q.index = np.arange(1, len(q) + 1)
+        
         q.to_csv(filename,index=True, sep='\t', header=None,mode='a', float_format='%.10f', columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth'])   
         
         e = pd.DataFrame(self.Dataset.SCHISM_hgrid_face_nodes.values,columns=['a','b','c','d'])
         
         e['nv'] = e.apply(lambda row: row.dropna().size, axis=1)
+        
+        e.index = np.arange(1, len(e) + 1)
+        
+        e = e.dropna(axis=1).astype(int)
             
         e.to_csv(filename,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c'])           
         
@@ -292,9 +298,9 @@ class tri2d(grid):
                 f.write('{} = Number of open boundaries\n'.format(nob))
                 f.write('{} = Total number of open boundary nodes\n'.format(ops.sum()))
                 for i in range(nob):
-                    dat = obound['open boundary {}'.format(i + 1)].dropna().astype(int)
+                    dat = obound['open_boundary_{}'.format(i + 1)].dropna().astype(int)
                     f.write('{} = Number of nodes for open boundary {}\n'.format(dat.size,i+1))
-                    dat.to_csv(f,index=None)
+                    dat.to_csv(f,index=None,header=False)
                                 
 
         # land boundaries                      
@@ -313,9 +319,9 @@ class tri2d(grid):
                 f.write('{} = Number of land boundaries\n'.format(nlb))
                 f.write('{} = Total number of land boundary nodes\n'.format(lps.sum()))
                 for i in range(nlb):
-                    dat = lbound['land boundary {}'.format(i + 1)].dropna().astype(int)
-                    f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.values[i],i + 1))
-                    dat.to_csv(f,index=None)
+                    dat = lbound['land_boundary_{}'.format(i + 1)].dropna().astype(int)
+                    f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.values[i].astype(int),i + 1))
+                    dat.to_csv(f,index=None, header=False)
 
         
 
