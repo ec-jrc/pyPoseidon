@@ -3,13 +3,13 @@ import pytest
 import os
 
 
-def func(name):
+def func(tmpdir,name):
 
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', name)
     #read grid file
     grid = pgrid.grid(type='tri2d',grid_file=filename)
 
-    filename_ = filename.split('.')[0]+'_.gr3'
+    filename_ = str(tmpdir.join('hgrid_.gr3'))
     #output to grid file
     grid.impl.to_file(filename_)
 
@@ -23,5 +23,5 @@ def func(name):
     return grid.impl.Dataset.equals(grid_.impl.Dataset)
 
 
-def test_answer():
-    assert func('hgrid.gr3') == True
+def test_answer(tmpdir):
+    assert func(tmpdir,'hgrid.gr3') == True
