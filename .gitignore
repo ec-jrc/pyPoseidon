@@ -65,3 +65,4 @@ docs/_build
 *.egg
 __pycache__
 *.egg-info
+github.token
