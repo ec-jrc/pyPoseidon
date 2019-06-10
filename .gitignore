@@ -1,5 +1,5 @@
 # .pyc files
-*.pyc
+*.py[cod]
 
 # mac files
 *.DS_Store
@@ -42,7 +42,7 @@ examples/test
 *.dat
 
 #ignore .jupyter chekpoints folder
-.ipynb_checkpoints/
+.ipynb_checkpoints
 
 # all temp folders
 tmp/
@@ -55,6 +55,13 @@ dask-worker-space/
 
 # Build folder.
 build/
+doc/_build
 
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
+
+.pytest_cache
+.cache
+*.egg
+__pycache__
+*.egg-info
