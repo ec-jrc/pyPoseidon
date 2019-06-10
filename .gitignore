@@ -55,7 +55,7 @@ dask-worker-space/
 
 # Build folder.
 build/
-doc/_build
+docs/_build
 
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
