@@ -4,6 +4,7 @@ channels:
   - conda-forge
 
 dependencies:
+  - python=3.6
   - dask
   - scipy
   - numpy
@@ -11,7 +12,7 @@ dependencies:
   - pandas
   - netCDF4
   - seaborn
-  - urllib3
+  - requests
   - pydap
   - geopandas
   - xarray
@@ -28,6 +29,10 @@ dependencies:
   - pynio
   - eccodes
   - mayavi
+  - sphinx
+  - sphinx-gallery
+  - sphinx_rtd_theme
+  - pytest
   - pip
   - pip:
     - cfgrib
