@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import find_packages, setup
 #from distutils.core import setup
 #from distutils.extension import Extension
-import numpy as np
+#import numpy as np
 
 def readme():
     with open('README.md') as f:
@@ -19,7 +19,7 @@ setup(name='pyPoseidon',
       author='George Breyiannis',
       author_email='gbreyiannis@gmail.com',
       license='EUPL 1.2',
-      packages=['pyPoseidon', 'pyPoseidon.model','pyPoseidon.meteo','pyPoseidon.dem','pyPoseidon.utils','pyPoseidon.tide','pyPoseidon.grid'],
+      packages=find_packages(),
       classifiers=[
           'Programming Language :: Python',
           'License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)',
