@@ -20,8 +20,7 @@ import pandas as pd
 import importlib
 from pyPoseidon.utils.get_value import get_value
 from dateutil import parser
-from pyresample import bilinear, geometry, kd_tree, get_area_def
-import pyproj
+import xesmf as xe
 import logging
 
 #logging setup
@@ -49,56 +48,46 @@ def fix_my_data(ds):
 
 
 
-def rotated_ll(ds):
+def regrid(ds):
     
-    elon = ds.longitude.values
-    elat = ds.latitude.values
-          
-    Ni, Nj = ds.longitude.shape
-     
-    orig = geometry.SwathDefinition(lons=elon,lats=elat) # original grid
-       
-    #Set lat/lon window for interpolation
-    prj = pyproj.Proj('+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs')
-    [[a0,a1],[a2,a3]] = prj([elon.min(), elat.min()], [elon.max(), elat.max()])
 
-    area_id = 'HNMS'
-    description = 'HNMS COSMO'
-    proj_id = 'eqc'
-    projection = '+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m'
-    x_size = Ni
-    y_size = Nj
-    area_extent = (a0, a1, a2, a3)
-    target_def = get_area_def(area_id, description, proj_id, projection,
-                                x_size, y_size, area_extent)
+    de = ds.rename({'longitude': 'lon', 'latitude': 'lat'})
 
-    lons,lats = geometry.AreaDefinition.get_lonlats(target_def)
+    minlon = de.lon.values.min() # get lat/lon window
+    maxlon = de.lon.values.max()
+    minlat = de.lat.values.min()
+    maxlat = de.lat.values.max()
 
-    t_params, s_params, input_idxs, idx_ref = \
-                           bilinear.get_bil_info(orig, target_def, radius=50e3, nprocs=1)
-
+    Nj, Ni = de.lon.shape # get shape of original grid
+    
+    y = np.linspace(minlat, maxlat, Nj) # create a similar grid as the original
+    x = np.linspace(minlon, maxlon, Ni)
+    
+    dlon = np.diff(x)[0] #resolution
+    dlat = np.diff(y)[0]
+    
+    ds_out = xe.util.grid_2d(minlon,maxlon,dlon,minlat,maxlat,dlat) # establish out grid 
+    
+    regridder = xe.Regridder(de, ds_out, 'bilinear') 
+    
     varn = ['msl','u10','v10']
 
-
     dats = []
-    for it in range(ds.time.shape[0]):
-        
-        dc = ds.isel(time=it)
-        for var in varn:
+    for var in varn:
          
-            q = dc[var].values
- 
-            newdata = bilinear.get_sample_from_bil_info(q.ravel(), t_params, s_params,
-                                              input_idxs, idx_ref,
-                                              output_shape=target_def.shape)
-
-            me = xr.DataArray(newdata, coords={'latitude': lats[:,0], 'longitude': lons[0,:]},
-                  dims=['latitude', 'longitude'])
-         
-            dc[var] = me  
-        dats.append(dc) 
+            q = regridder(de[var])
+          
+            dats.append(q.where(q.values != 0))
     
-    return xr.concat(dats, dim='time')
+    data = xr.merge(dats)
+    
+    data = data.assign_coords(x=data.lon.values[0,:],y=data.lat.values[:,0])# assign 1-D coords
+    
+    data = data.rename({'x':'longitude','y':'latitude'}).drop(['lon','lat']) # rename and drop 2-D coords
+    
+    return data
+
+
 
 class meteo:
     impl=None
@@ -322,7 +311,7 @@ class grib_cfgrib(meteo):
             d3 = d2.where(d2.latitude>minlat,drop=True)
             d4 = d3.where(d3.latitude<maxlat,drop=True)        
             
-            data = rotated_ll(d4)
+            data = regrid(d4)
                     
         
         tslice=slice(ts, te)
