@@ -786,7 +786,7 @@ class point:
         
         svals = []
         for k in range(self.data[var].time.size):
-            svals.append( scipy.interpolate.griddata(points.values, values[k,:], (plat, plon), method=method) )   
+            svals.append( scipy.interpolate.griddata(points.values, values[k,:], (plon, plat), method=method) )   
         
         pdata = pd.DataFrame({'time':self.data[var].time, self.data[var].name : svals})
         setattr(self, self.data[var].name, pdata.set_index(['time']))
