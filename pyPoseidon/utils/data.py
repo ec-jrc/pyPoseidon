@@ -304,12 +304,20 @@ class schism(data):
 
             # read output netcdf files
             files = glob.glob(folder+'outputs/schout_0*_*.nc')
-            files.sort()
+            
+            cores = [int(x.split('_')[-2]) for x in files]
+            
+            idx = np.argsort(cores)
+            
+            step = int(len(idx) / len(keys))
 
             #store them in a list
             out=[]
             for i in range(len(keys)):
-                ifiles = [f for f in files if '{:04d}_'.format(i) in f]
+                pool = [files[l] for l in idx[i*step:i*step+step]]
+                chunk = [int(x.split('_')[-1].split('.')[0]) for x in pool]
+                sort = np.argsort(chunk)
+                ifiles = [pool[k] for k in sort]
                 out.append(xr.open_mfdataset(ifiles))
                 
             #convert times to Timestamp
