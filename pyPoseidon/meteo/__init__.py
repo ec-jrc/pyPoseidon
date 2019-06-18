@@ -7,14 +7,12 @@ __version__ = '0.4.0'
 
 
 __all__ = [
-    "grib_cfgrib",
-    "grib_pynio_HNMS",
-    "grib_pynio_AM",
-    "generic",
-    "gfs_oper",
+    "cfgrib",
+    "pynio",
+    "netcdf",
+    "from_url",
     "combine_meteo",
-    "grib_pynio",
-    "gfs_erdap"
+    "to_output"
            ]
            
 from .meteo import *
