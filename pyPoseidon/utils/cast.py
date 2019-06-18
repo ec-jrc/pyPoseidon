@@ -20,6 +20,26 @@ import pyPoseidon.model as pm
 from pyPoseidon.utils.get_value import get_value
 import pandas as pd
 from pyPoseidon.utils import data
+import subprocess
+
+
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('cast.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
 
 class cast:
     impl=None
@@ -40,9 +60,7 @@ class dcast(cast):
                
         for attr, value in kwargs.items():
                 setattr(self, attr, value)
-                
-        logging.basicConfig(filename=self.path+self.case+'.log',level=logging.INFO)            
-                   
+                                   
     def run(self,**kwargs):
         
                       
@@ -109,8 +127,8 @@ class dcast(cast):
                     os.symlink(os.path.realpath(ipath),rpath+filename)
                 except OSError as e:
                   if e.errno == errno.EEXIST:
-                      sys.stdout.write('Restart link present\n')
-                      sys.stdout.write('overwriting\n')
+                      logger.warning('symlink for file {} present\n'.format(filename))
+                      logger.info('overwriting\n')
                       os.remove(rpath+filename)
                       os.symlink(ipath,rpath+filename)
             
@@ -127,8 +145,8 @@ class dcast(cast):
               os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
             except OSError as e:
               if e.errno == errno.EEXIST:
-                  sys.stdout.write('Restart link present\n')
-                  sys.stdout.write('overwriting\n')
+                  logger.warning('Restart symlink present\n')
+                  logger.warning('overwriting\n')
                   os.remove(rpath+'tri-rst.'+outresfile)
                   os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
               else:
@@ -136,8 +154,7 @@ class dcast(cast):
 
             #get new meteo 
 
-            sys.stdout.write('process meteo\n')
-            sys.stdout.flush()
+            logger.info('process meteo\n')
 
             flag = get_value(self,kwargs,'update',[])
             
@@ -149,14 +166,13 @@ class dcast(cast):
                 m.impl.to_force(m.impl.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
         
             else:
-                sys.stdout.write('meteo files present\n')
+                logger.info('meteo files present\n')
             
             # modify mdf file
             m.config(config_file = ppath+m.impl.tag+'.mdf', config={'Restid':outresfile}, output=True)
                                               
             # run case
-            sys.stdout.write('executing\n')
-            sys.stdout.flush()
+            logger.info('executing\n')
          
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
@@ -171,5 +187,151 @@ class dcast(cast):
             
             #out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
             
-            logging.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
+            logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
+
+
+class ecast(cast):
+    
+    def __init__(self,**kwargs):
+               
+        for attr, value in kwargs.items():
+                setattr(self, attr, value)
+
+                   
+    def run(self,**kwargs):
+        
+                      
+        files = [ 'bctides.in', 'launchSchism.sh','sflux/sflux_inputs.txt']
+        files_sym = ['hgrid.gr3', 'hgrid.ll', 'manning.gr3', 'vgrid.in', 'drag.gr3', 'rough.gr3', 'windrot_geo2proj.gr3']
+
+                
+        prev=self.folders[0]
+        fpath = self.path+'/{}/'.format(prev)
+        
+        cf = [glob.glob(self.path+prev+'/'+e) for e in files]
+        cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
+                    
+        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frame[1:]):
+            
+            ppath = self.path+'/{}/'.format(prev)
+            if not os.path.exists(ppath):
+                sys.stdout.write('Initial folder not present {}\n'.format(ppath)) 
+                sys.exit(1)
+            
+            prev = folder    
+            # create the folder/run path
+
+            rpath=self.path+'/{}/'.format(folder)   
+
+            if not os.path.exists(rpath):
+                os.makedirs(rpath)
+
+            copy2(ppath+self.tag+'_info.pkl',rpath) #copy the info file
+
+            # load model
+            with open(rpath+self.tag+'_info.pkl', 'rb') as f:
+                          info=pickle.load(f)
+            
+            args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
+            for attr in list(args):
+                info[attr] = kwargs[attr]
+            
+            #update the properties   
+            info['date'] = date
+            info['start_date'] = date
+            info['time_frame'] = time_frame
+            info['mpaths'] = meteo
+            info['rpath'] = rpath
+            if self.rstep:
+                info['rstep'] = self.rstep
+            
+#            for attr, value in self.items():
+#                setattr(info, attr, value)
+            m=pm.model(**info)
+                                                         
+            # copy/link necessary files
+
+            for filename in cfiles:
+                 copy2(ppath+filename,rpath+filename)
+        #     if os.path.exists(rpath+filename)==False: 
+        #        os.symlink(fpath+filename,rpath+filename)
+        
+        
+            #symlink the big files
+            for filename in files_sym:
+                ipath = glob.glob(self.path+self.folders[0]+'/'+filename)[0]
+                try:
+                    os.symlink(os.path.realpath(ipath),rpath+filename)
+                except OSError as e:
+                  if e.errno == errno.EEXIST:
+                      logger.warning('symlink for file {} present\n'.format(filename))
+                      logger.warning('overwriting\n')
+                      os.remove(rpath+filename)
+                      os.symlink(ipath,rpath+filename)
+            
+            copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
+            
+            # create restart file
+            
+            print(info['param']['ihfskip'])
+            
+            ex=subprocess.Popen(args=['~/SCHISM/v5.6.1/src/Utility/Combining_Scripts/combine_hotstart7 -i {}'.format()], \
+                                                        cwd=ppath + 'outputs/', shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            
+                
+            # link restart file
+
+            inresfile='outputs/hotstart_it={}.nc'.format()
+
+            outresfile='hotstart.nc'
+
+          #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+            try:
+              os.symlink(ppath+inresfile,rpath+outresfile)
+            except OSError as e:
+              if e.errno == errno.EEXIST:
+                  logger.warning('Restart file symlink present\n')
+                  logger.info('overwriting\n')
+                  os.remove(rpath+'tri-rst.'+outresfile)
+                  os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+              else:
+                  raise e            
+
+            #get new meteo 
+
+            logger.info('process meteo\n')
+
+            flag = get_value(self,kwargs,'update',[])
+            
+            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_inputs.txt', 'sflux_air_1.001.nc']]
+
+            if (np.any(check)==False) or ('meteo' in flag):
+               
+                m.force()
+                m.impl.to_force(m.impl.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
+        
+            else:
+                logger.warning('meteo files present\n')
+            
+            # modify param file
+            m.config(config_file = ppath+'param.in', config={'start_hour':date.hour , 'start_day': date.day, 'start_month': date.month,'start_year':date.year}, output=True)
+                                              
+            # run case
+            logger.info('executing\n')
+         
+            os.chdir(rpath)
+            #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
+            m.save()
+            
+            m.run()
+            
+            #cleanup
+#            os.remove(rpath+'hotstart.nc')
+            
+            # save compiled nc file
+            
+            #out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
+            
+            logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
+
             
