@@ -41,7 +41,7 @@ logger.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 
-file_handler = logging.FileHandler('run.log')
+file_handler = logging.FileHandler('model.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
@@ -284,7 +284,8 @@ class d3d(model):
         #mdf
     def config(self,**kwargs):  
         
-        mdf_file = kwargs.get('config_file', None)  
+        mdf_file = kwargs.get('config_file', None)
+        dic = get_value(self,kwargs,'parameters',None)  
 
         if mdf_file :
             self.mdf = pd.read_csv(mdf_file,sep='=')
@@ -1005,7 +1006,6 @@ class schism(model):
         
         self.step = get_value(self,kwargs,'step',0)
         self.rstep = get_value(self,kwargs,'rstep',0)
-        self.dt = get_value(self,kwargs,'dt',400)
         
         self.solver = self.__class__.__name__    
         
@@ -1049,7 +1049,7 @@ class schism(model):
         #param
     def config(self,**kwargs): 
         
-        dic = get_value(self,kwargs,'configx    ',None)
+        dic = get_value(self,kwargs,'parameters',None)
         param_file = get_value(self,kwargs,'config_file',None)
            
         if param_file :
@@ -1070,19 +1070,11 @@ class schism(model):
             with open(DATA_PATH + 'dparams.pkl', 'rb') as f:
                               params=pickle.load(f)
         
+        #update 
         if dic :
             for key,val in dic.items():
                 params.loc[key] = val
-            
-        #update 
-        params.loc['start_hour'] = self.start_date.hour
-        params.loc['start_day'] = self.start_date.day
-        params.loc['start_month'] = self.start_date.month
-        params.loc['start_year'] = self.start_date.year
-        params.loc['rnday'] = (self.Tstop-self.Tstart)/(60*24.)
-        params.loc['dt'] = self.dt
-            
-        
+                    
         self.params = params
         
         output = kwargs.get('output', False)
@@ -1163,7 +1155,7 @@ class schism(model):
             f.write('{}\n'.format(0)) #nbfr
             f.write('{}\n'.format(len(nobs))) #number of open boundaries
             for i in range(len(nobs)):
-                nnodes = self.grid.impl.Dataset[nobs[i]].values.size
+                nnodes = self.grid.impl.Dataset[nobs[i]].dropna(dim='dim_0').size
                 f.write('{} {} {} {} {}\n'.format(nnodes,2,0,0,0)) # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
                 f.write('{}\n'.format(0)) # ethconst !constant elevation value for this segment    
        
