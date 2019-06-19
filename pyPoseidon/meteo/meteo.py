@@ -151,73 +151,23 @@ class source:
              
         mfiles = kwargs.get('meteo', None)      
         engine = kwargs.get('engine', None)
-        combine = kwargs.get('combine', False)
         
         if not any([mfiles,engine]):
             logger.error("Define one of 'engine' or 'meteo' in attrs")
             sys.exit(0)
                     
-        if combine :
-            self.impl = combine_meteo(mfiles, **kwargs)
-        else:
-            if engine == 'cfgrib' :
-                self.impl = grib_cfgrib(mfiles, **kwargs)
-            elif engine == 'pynio' :
-                self.impl = grib_pynio(mfiles, **kwargs)
-            elif engine == 'netcdf' :
-                self.impl = netcdf(mfiles, **kwargs)
-            elif engine == 'url' :
-                self.impl = from_url(mfiles, **kwargs)
-
-
-def combine_meteo(**kwargs):
-            
-    filenames = kwargs.get('mpaths', {})    
-    engine = kwargs.get('engine', None) 
-
-    if engine == 'cfgrib' :  
-                 
-        dats = []
-        for filename in filenames[:-1]:
-    
-            kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
-            kargs['mpaths'] = [filename]
-        
-            ds = grib_cfgrib(**kargs)
-            dats.append(ds.uvp)
-
-        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
-        kargs['ft2'] += 1
-        kargs['mpaths'] = [filenames[-1]]
-        ds = grib_cfgrib(**kargs)
-        dats.append(ds.uvp)
-        
-        
-    elif engine == 'pynio' :
-           
-    
-        dats = []
-        for filename in filenames[:-1]:
-    
-            kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
-            kargs['mpaths'] = [filename]
-        
-            ds = grib_pynio(**kargs)
-            dats.append(ds.uvp)
-
-        kargs = { key: kwargs[key] for key in kwargs.keys() if key not in ['start_date','end_date']}
-        kargs['ft2'] += 1
-        kargs['mpaths'] = [filenames[-1]]
-    
-        ds = grib_pynio(**kargs)
-        dats.append(ds.uvp)
-    
-
-    return xr.concat(dats,dim='time')
+        if engine == 'cfgrib' :
+            self.impl = cfgrib(mfiles, **kwargs)
+        elif engine == 'pynio' :
+            self.impl = pynio(mfiles, **kwargs)
+        elif engine == 'netcdf' :
+            self.impl = netcdf(mfiles, **kwargs)
+        elif engine == 'url' :
+            self.impl = from_url(mfiles, **kwargs)
 
         
 
-def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, range=None, ft1=0, ft2=-1, dft=1, **kwargs):
+def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, range=None, ft1=0, ft2=-1, dft=1, combine=False, **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -249,8 +199,8 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, r
     data = xr.open_mfdataset(filenames, engine='cfgrib', backend_kwargs=backend_kwargs, **xr_kwargs)    
 
     data = data.squeeze(drop=True)
-    #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing> not efficient for output      
-
+    #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing> not efficient for output  
+    
     time_coord = data.msl.dims[0]
 
     if time_coord != 'time':
@@ -258,6 +208,14 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, r
             data = data.rename({'time':'rtime'})
             data = data.rename({time_coord:'time'})
             data = data.assign_coords(time=data.valid_time)
+        
+    if combine :
+        mask = data.time.to_pandas().duplicated('last').values 
+        msl = data.msl[~mask]
+        u10 = data.u10[~mask]
+        v10 = data.v10[~mask]
+        data = xr.merge([msl,u10,v10])
+           
         
     if not minlon : minlon = data.longitude.data.min()
     if not maxlon : maxlon = data.longitude.data.max()
@@ -372,7 +330,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, r
 
 
     
-def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, range=None, ft1=0, ft2=-1, dft=1, **kwargs):
+def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, range=None, ft1=0, ft2=-1, dft=1, combine=False, **kwargs):
     
     backend_kwargs = kwargs.get('backend_kwargs', {})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -428,6 +386,13 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, ra
         tts = pd.to_datetime(data.msl.attrs['initial_time'], format='%m/%d/%Y (%H:%M)') + pd.to_timedelta(data.coords['step'].values, unit='H')
         data = data.rename({'step':'time'})
         data = data.assign_coords(time=tts)
+    
+#    if combine : TODO
+#        mask = data.time.to_pandas().duplicated('last').values 
+#        msl = data.msl[~mask]
+#        u10 = data.u10[~mask]
+#        v10 = data.v10[~mask]
+#        data = xr.merge([msl,u10,v10])
     
 
     #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
@@ -643,4 +608,69 @@ def to_output(dataset=None,solver=None, **kwargs):
                 
     s.to_force(dataset,vars=['msl','u10','v10'], **kwargs)
         
+    
+def read_d3d_meteo(filename=None, name=None):
+    
+    df = pd.read_csv(filename,header=0, names=['data'], index_col=None, low_memory=False)
+    
+    tlines = df[df.data.str.contains('TIME')].index # rows which start with TIME
+    
+    # get attrs
+    d1 = df.loc[0:tlines[0]-1,'data'].str.split('=', 2, expand=True)
+    d1.columns=['key','value'] # assign column names
+    d1.key = d1.key.str.strip() # cleanup spaces
+    d1.value = d1.value.str.strip()
+    attrs = dict(zip(d1.key, d1.value)) # create dict
+    for key in ['n_cols','n_rows','n_quantity']: # str -> int
+        attrs[key] = int(attrs[key])
+        
+    for key in ['x_llcenter','dx','y_llcenter','dy','NODATA_value']:
+        attrs[key] = float(attrs[key])
+    
+    # get time reference
+    d2 = df.loc[tlines, 'data'].str.split('=', 2, expand=True)
+    d2 = d2.drop(d2.columns[0], axis=1)
+    d2.columns=['data']
+    d2 = d2.loc[:,'data'].str.split(' ', 4, expand=True)
+    d2 = d2.drop(d2.columns[[0,2,3]], axis=1)
+    d2.columns = ['hours','time0']
+    d2.hours = d2.hours.apply(pd.to_numeric)
+    d2.time0 = pd.to_datetime(d2.time0.values)
+    d2 = d2.reset_index(drop=True)
+    #create timestamps
+    time=[]
+    for i in range(d2.shape[0]):
+        time.append(d2.time0[0] + pd.DateOffset(hours=int(d2.loc[i,'hours'])))
+    d2['time']=time
+    
+    #get the float numbers
+    d3 = df.drop(np.arange(0,tlines[0]))
+    d3 = d3.drop(tlines)
+    
+#    data = []
+#    for i in range(d3.values.shape[0]):
+#        row = d3.values[i][0].split(' ')
+#        row = [np.float(x) for x in row]
+#        data.append(row)
+#    data = np.array(data) # make array
+    
+    data = d3[d3.columns[0]].str.split(' ', attrs['n_cols'], expand=True).to_numpy().astype(float)
+    
+    data = data.reshape(d2.shape[0],attrs['n_rows'], attrs['n_cols']) # reshape
+    
+    #define lat/lon
+    lon = [attrs['x_llcenter'] + attrs['dx'] * i for i in np.arange(attrs['n_cols'])]
+    lat = [attrs['y_llcenter'] + attrs['dy'] * i for i in np.arange(attrs['n_rows'])]
+    
+    #create an xarray
+    da = xr.DataArray(data, dims=['time','latitude','longitude'],
+                         coords={'time': d2.time, 'latitude':lat, 'longitude':lon}, name=name)
+    
+    da.attrs = attrs
+                    
+    return da
+    
+    
+
+    
     
