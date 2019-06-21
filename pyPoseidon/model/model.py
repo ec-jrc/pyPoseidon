@@ -662,10 +662,10 @@ class d3d(model):
              dic.update({'dem':dem.impl.__class__.__name__})
 
          meteo=self.__dict__.get('meteo', None)
-         if isinstance(meteo,np.str):
-             dic.update({'meteo':meteo})
-         elif isinstance(meteo,pmeteo.meteo):
-             dic.update({'meteo':meteo.impl.__class__.__name__})
+#         if isinstance(meteo,np.str):
+#             dic.update({'meteo':meteo})
+#         elif isinstance(meteo,pmeteo.meteo):
+#             dic.update({'meteo':meteo.impl.__class__.__name__})
 
          dic['version']=pyPoseidon.__version__
                   
@@ -758,7 +758,7 @@ class d3d(model):
             #--------------------------------------------------------------------- 
             
             try:
-                self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
+                self.to_force(self.meteo.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
             except AttributeError as e:
                 print(e) 
                 pass
@@ -1253,7 +1253,7 @@ class schism(model):
         #save meteo
         if hasattr(self, 'atm') :
            try:
-              self.to_force(self.meteo.impl.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
+              self.to_force(self.meteo.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
            except AttributeError as e:
               print(e) 
               pass
@@ -1411,10 +1411,10 @@ class schism(model):
              dic.update({'dem':dem.impl.__class__.__name__})
 
          meteo=self.__dict__.get('meteo', None)
-         if isinstance(meteo,np.str):
-             dic.update({'meteo':meteo})
-         elif isinstance(meteo,pmeteo.meteo):
-             dic.update({'meteo':meteo.impl.__class__.__name__})
+#         if isinstance(meteo,np.str):
+#             dic.update({'meteo':meteo})
+#         elif isinstance(meteo,pmeteo.meteo):
+#             dic.update({'meteo':meteo.impl.__class__.__name__})
 
          dic['version']=pyPoseidon.__version__
 

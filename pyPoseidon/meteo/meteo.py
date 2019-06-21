@@ -46,6 +46,9 @@ def reduced_gg(dc):
     
     logger.info('regriding meteo')
     
+    dc = dc.sortby('latitude', ascending=True)
+    
+    
     minlon = dc.longitude.values.min()
     maxlon = dc.longitude.values.max()
     minlat = dc.latitude.values.min()
@@ -56,7 +59,9 @@ def reduced_gg(dc):
     
     dlon = 360./glons
     
-    x = np.arange(minlon,maxlon,dlon)
+    npoints = (maxlon - minlon)/dlon + 1
+    
+    x = np.linspace(minlon,maxlon,npoints)
     
     values, index = np.unique(dc.latitude,return_index=True)
     
@@ -68,13 +73,8 @@ def reduced_gg(dc):
         new_data.append(da)
     #concat
     res = xr.concat(new_data, dim='latitude').transpose('time', 'latitude', 'longitude')
-    
-    if index[-1] == 0:
-        vals = values[::-1]
-    else:
-        vals = values
-    
-    res = res.assign_coords(latitude = vals)
+        
+    res = res.assign_coords(latitude = values)
             
     logger.info('regriding done')
     
@@ -127,21 +127,20 @@ def regrid(ds):
 
 
 
-class source:
+class meteo:
    
-    impl=None
-    def __init__(self,**kwargs):
+    def __init__(self, mfiles=None, engine=None, url=None, **kwargs):
         
         """Read meteo data from variable sources.
  
         Parameters
         ----------
-        meteo : str
-            list of files or url
+        mfiles : str
+            list of files
         engine : str
             Name of xarray backend to be used
-        combine : boolean
-            If True, combine sources based on time keeping first
+        url : str
+            url for an online server (erdapp, etc.)
         
         Returns
         -------
@@ -149,22 +148,18 @@ class source:
 
         """
              
-        mfiles = kwargs.get('meteo', None)      
-        engine = kwargs.get('engine', None)
+        if not url : url = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best'
         
-        if not any([mfiles,engine]):
-            logger.error("Define one of 'engine' or 'meteo' in attrs")
-            sys.exit(0)
-                    
-        if engine == 'cfgrib' :
-            self.impl = cfgrib(mfiles, **kwargs)
-        elif engine == 'pynio' :
-            self.impl = pynio(mfiles, **kwargs)
-        elif engine == 'netcdf' :
-            self.impl = netcdf(mfiles, **kwargs)
-        elif engine == 'url' :
-            self.impl = from_url(mfiles, **kwargs)
-
+        if mfiles:                    
+            if engine == 'cfgrib' :
+                self.uvp = cfgrib(mfiles, **kwargs)
+            elif engine == 'pynio' :
+                self.uvp = pynio(mfiles, **kwargs)
+            elif engine == 'netcdf' :
+                self.uvp = netcdf(mfiles, **kwargs)         
+        else:        
+            self.uvp = from_url(url=url, **kwargs)
+                        
         
 
 def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, range=None, ft1=0, ft2=-1, dft=1, combine=False, **kwargs):
@@ -318,7 +313,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, r
             )
       
     #        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
-    #            c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+    #            c = np.sign(np.mean(minlon, maxlon))    
     #            tot.longitude = tot.longitude + c*360.
 
 
@@ -499,12 +494,8 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, ra
 
 
 
-def from_url(url = None, **kwargs):
+def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, **kwargs):
                             
-    minlon = kwargs.get('minlon', None)
-    maxlon = kwargs.get('maxlon', None)
-    minlat = kwargs.get('minlat', None)
-    maxlat = kwargs.get('maxlat', None) 
     ts = kwargs.get('start_date', None)
     te = kwargs.get('end_date', None)
 
@@ -514,16 +505,14 @@ def from_url(url = None, **kwargs):
     #--------------------------------------------------------------------- 
     logger.info('extracting meteo from {}.html\n'.format(url))
     #---------------------------------------------------------------------      
-
+    
     data = xr.open_dataset(url)    
+ 
+    lon0 = minlon + 360. if minlon < data.geospatial_lon_min else minlon
+    lon1 = maxlon + 360. if maxlon < data.geospatial_lon_min else maxlon
 
-    if minlon < data.geospatial_lon_min : minlon = minlon + 360.
-
-    if maxlon < data.geospatial_lon_min : maxlon = maxlon + 360.
-
-    if minlon > data.geospatial_lon_max : minlon = minlon - 360.
-
-    if maxlon > data.geospatial_lon_max : maxlon = maxlon - 360.
+    lon0 = lon0 - 360. if lon0 > data.geospatial_lon_max else lon0
+    lon1 = lon1 - 360. if lon1 > data.geospatial_lon_max else lon1
     
     if ts < parser.parse(data.attrs['time_coverage_start']).replace(tzinfo=None) :
       logger.error('time frame not available\n')
@@ -537,8 +526,8 @@ def from_url(url = None, **kwargs):
 
     tslice=slice(ts, te)
 
-    i0=np.abs(data.longitude.data-minlon).argmin()
-    i1=np.abs(data.longitude.data-maxlon).argmin()
+    i0=np.abs(data.longitude.data-lon0).argmin()
+    i1=np.abs(data.longitude.data-lon1).argmin()
 
 
     j0=np.abs(data.latitude.data-minlat).argmin()
@@ -569,8 +558,8 @@ def from_url(url = None, **kwargs):
           .sel(time=tslice)
           )
       
-    if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
-      c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+    if np.abs(np.mean([lon0,lon1]) - np.mean([minlon, maxlon])) > 300. :
+      c = np.sign(np.mean([minlon, maxlon]))    
       tot['longitude'] = tot['longitude'] + c*360.
 
 
