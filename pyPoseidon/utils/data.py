@@ -152,14 +152,28 @@ class d3d(data):
                                    
     def frames(self,var,**kwargs):
 
-        X, Y = np.meshgrid(self.Dataset.XZ.values,self.Dataset.YZ.values)
-        xh = np.ma.masked_array(X, self.w) #mask land
-        yh = np.ma.masked_array(Y, self.w)
+
+        X, Y = self.Dataset.XZ.values[1:-1,1:-1],self.Dataset.YZ.values[1:-1,1:-1]
+        xh = np.ma.masked_array(X.T, self.w) #mask land
+        yh = np.ma.masked_array(Y.T, self.w)        
         
         if len(var) == 1 :  
-            return contour(xh,yh,self.Dataset[var[0]],self.Dataset.time.values,**kwargs)
+            var =  self.Dataset[var[0]].transpose(self.Dataset[var[0]].dims[0],self.Dataset[var[0]].dims[2],self.Dataset[var[0]].dims[1])[:,1:-1,1:-1]
+            ww = np.broadcast_to(self.w == True, var.shape)
+            v =  np.ma.masked_array(var, ww)
+            
+            return contour(xh,yh,v,self.Dataset.time.values,**kwargs)
+            
         elif len(var) == 2:
-            return quiver(xh,yh,self.Dataset[var[0]],self.Dataset[var[1]],self.Dataset.time.values,**kwargs)
+            a0 = self.Dataset[var[0]].squeeze()
+            var0 =  a0.transpose(a0.dims[0],a0.dims[2],a0.dims[1])[:,1:-1,1:-1]
+            a1 = self.Dataset[var[1]].squeeze()
+            var1 =  a1.transpose(a1.dims[0],a1.dims[2],a1.dims[1])[:,1:-1,1:-1]
+            ww = np.broadcast_to(self.w == True, var0.shape)
+            
+            v0 =  np.ma.masked_array(var0, ww)
+            v1 =  np.ma.masked_array(var1, ww)
+            return quiver(xh,yh,v0,v1,self.Dataset.time.values,**kwargs)
 
 
 class schism(data):
@@ -749,10 +763,11 @@ class point:
         
         plat=float(self.lat)
         plon=float(self.lon)
-         
-        X, Y = np.meshgrid(self.data.Dataset.XZ.values,self.data.Dataset.YZ.values)
+                 
+        X, Y = self.data.Dataset.XZ.values[1:-1,1:-1].T,self.data.Dataset.YZ.values[1:-1,1:-1].T
         xh = np.ma.masked_array(X, self.data.w) #mask land
-        yh = np.ma.masked_array(Y, self.data.w)
+        yh = np.ma.masked_array(Y, self.data.w)        
+        
                   
         i=np.abs(X[0,:]-plon).argmin()
         j=np.abs(Y[:,0]-plat).argmin()
