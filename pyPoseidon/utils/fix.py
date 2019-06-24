@@ -18,19 +18,31 @@ import pandas as pd
 import xarray as xr
 import sys
 import os
+import logging
 
-try:
-    import pp
-except:
-    pass
+
+#logging setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('dem.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+sformatter = logging.Formatter('%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(sformatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
 
 def fix(dem,shpfile,**kwargs):
     
     #--------------------------------------------------------------------- 
-    sys.stdout.flush()
-    sys.stdout.write('\n')
-    sys.stdout.write('optimize grid\n')
-    sys.stdout.flush()
+    logger.info('optimize grid\n')
     #--------------------------------------------------------------------- 
     
     nc = kwargs.get('nc', 10)
@@ -41,8 +53,8 @@ def fix(dem,shpfile,**kwargs):
     shp = gp.GeoDataFrame.from_file(shpfile)
 
            
-    xp = dem.Dataset.ilons.values
-    yp = dem.Dataset.ilats.values
+    xp = dem.ilons.values
+    yp = dem.ilats.values
     
     
     #put them all in a list
@@ -78,93 +90,27 @@ def fix(dem,shpfile,**kwargs):
         wmask = np.zeros(xp.shape, dtype=bool)
         return wmask, cg
     
-    
-    try:
-        #------------------------------------------------------------------------------
-        #check if the grid polygons intersect the shoreline USING PP
-        try:
-            PYTHONPATH =  os.environ['PYTHONPATH'] #SAVE PYTHONPATH in order to reset it afterwards
-        except:
-            pass
-    
-        job_server = pp.Server() 
-       
-        if ncores > job_server.get_ncpus(): ncores = job_server.get_ncpus() # make sure we don't overclock
-    
-        job_server.set_ncpus(ncores)
-    
-        #split the array
-    
-        n = xp.shape[0]
-        l=range(n)
-        k = ncores
-    
-        b = [l[i * (n // k) + min(i, n % k):(i+1) * (n // k) + min(i+1, n % k)] for i in range(k)]
-    
-        jobs=[]
-        for l in range(ncores):
-            extra=b[l][-1]+1 # add one to consider the jump between parts
-            part = b[l]+[extra]
-            if part[-1] >= xp.shape[0] : part = part[:-1] #control the last element
-            xl=xp[part,:]
-            yl=yp[part,:]   
-
-            jobs.append(job_server.submit(loop,(xl,yl,cg,),modules=('shapely',)))
-
-        ps=jobs[0]()
-        for l in range(1,ncores):    
-            ps = np.vstack([ps, [[i+b[l][0],j] for [i,j] in jobs[l]()]]) # fix global index by adding the first index of part    
-    
-        #Add extra points from boundary    
-        bgps=[]
-        for [i,j] in ps:
-            if i == 1 : 
-                bgps.append([i-1,j-1])
-                bgps.append([i-1,j])
-            if j == 1 : 
-                bgps.append([i-1,j-1])
-                bgps.append([i,j-1])
             
-        ps = np.vstack([ps, bgps]) # final stack
-    
-        job_server.destroy()
-    
-        try:
-            if PYTHONPATH :
-                os.environ['PYTHONPATH'] = PYTHONPATH  #reset PYTHONPATH 
-            else:    
-                try :
-                    del os.environ['PYTHONPATH']
-                except:
-                    pass 
-        except:
-            pass
-            
-    except :
-        
-        #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('..serial..\n')
-        sys.stdout.flush()
-        #--------------------------------------------------------------------- 
-        
-        gps = []
-        igps = []
-        for i in range(0,xp.shape[0]-1):
-            for j in range(0,xp.shape[1]-1):
-                p = shapely.geometry.Polygon([(xp[i,j],yp[i,j]),(xp[i+1,j],yp[i+1,j]),(xp[i+1,j+1],yp[i+1,j+1]),(xp[i,j+1],yp[i,j+1])])
-                if not p.intersects(cg): 
-                    gps.append(p)
-                    igps.append([i+1,j+1])
-                    if i == 0 : 
-                        igps.append([i,j])
-                        igps.append([i,j+1])
-                    if j == 0 : 
-                        igps.append([i,j])
-                        igps.append([i+1,j])
-        
-        ps = igps                
+    #--------------------------------------------------------------------- 
+    logger.info('..serial..\n')
+    #--------------------------------------------------------------------- 
+
+    gps = []
+    igps = []
+    for i in range(0,xp.shape[0]-1):
+        for j in range(0,xp.shape[1]-1):
+            p = shapely.geometry.Polygon([(xp[i,j],yp[i,j]),(xp[i+1,j],yp[i+1,j]),(xp[i+1,j+1],yp[i+1,j+1]),(xp[i,j+1],yp[i,j+1])])
+            if not p.intersects(cg): 
+                gps.append(p)
+                igps.append([i+1,j+1])
+                if i == 0 : 
+                    igps.append([i,j])
+                    igps.append([i,j+1])
+                if j == 0 : 
+                    igps.append([i,j])
+                    igps.append([i+1,j])
+
+    ps = igps                
     #------------------------------------------------------------------------------
         
     #create a mask of all cells not intersecting the shoreline
@@ -184,10 +130,7 @@ def fix(dem,shpfile,**kwargs):
         return imask, cg
         
     #--------------------------------------------------------------------- 
-    sys.stdout.flush()
-    sys.stdout.write('\n')
-    sys.stdout.write('eliminate isolated wet regions\n')
-    sys.stdout.flush()
+    logger.info('eliminate isolated wet regions\n')
     #--------------------------------------------------------------------- 
                 
     #find islands    
@@ -199,10 +142,7 @@ def fix(dem,shpfile,**kwargs):
         p1 = rmt(p,xp,nc)
         k+=1
         #--------------------------------------------------------------------- 
-        sys.stdout.flush()
-        sys.stdout.write('\n')
-        sys.stdout.write('... adjusting ...\n')
-        sys.stdout.flush()
+        logger.info('... adjusting ...\n')
         #---------------------------------------------------------------------  
         if np.array_equal(p1,p) : break
         p = p1
@@ -210,10 +150,7 @@ def fix(dem,shpfile,**kwargs):
     wmask = p1   
     
     #--------------------------------------------------------------------- 
-    sys.stdout.flush()
-    sys.stdout.write('\n')
-    sys.stdout.write('done \n')
-    sys.stdout.flush()
+    logger.info('done \n')
     #--------------------------------------------------------------------- 
     
     return wmask, cg
@@ -222,29 +159,27 @@ def fix(dem,shpfile,**kwargs):
 def bmatch(dem,wmask,**kwargs):
        
     #--------------------------------------------------------------------- 
-    sys.stdout.flush()
-    sys.stdout.write('\n')
-    sys.stdout.write('resample bathymetry\n')
-    sys.stdout.flush()
+    logger.info('resample bathymetry\n')
     #--------------------------------------------------------------------- 
     
     ncores = kwargs.get('ncores', 1)
        
-    xp = dem.Dataset.ilons.values
-    yp = dem.Dataset.ilats.values
+    xp = dem.ilons.values
+    yp = dem.ilats.values
           
     ##resample bathymetry
     xw=np.ma.masked_array(xp,wmask) #wet points 
     yw=np.ma.masked_array(yp,wmask) 
     
     # fill the nan, if present, we values in order to compute values there if needed.
-    dem.Dataset.val.data[np.isnan(dem.Dataset.val)]=9999. 
+    dem.elevation.data[np.isnan(dem.elevation)]=9999. 
     
     #mask positive bathymetry 
-    wet = np.ma.masked_array(dem.Dataset.val,dem.Dataset.val>0)
+    wet = np.ma.masked_array(dem.elevation,dem.elevation>0)
+    x, y = np.meshgrid(dem.longitude,dem.latitude)
    # wet.fill_value = 0.
-    mx = np.ma.masked_array(dem.Dataset.dlons,dem.Dataset.val.values>0) 
-    my = np.ma.masked_array(dem.Dataset.dlats,dem.Dataset.val.values>0)
+    mx = np.ma.masked_array(x,dem.elevation.values>0) 
+    my = np.ma.masked_array(y,dem.elevation.values>0)
     
     orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
     targ = pyresample.geometry.SwathDefinition(lons=xw,lats=yw) # wet points
@@ -260,22 +195,19 @@ def bmatch(dem,wmask,**kwargs):
     bw = np.ma.masked_array(result,wmask)
         
     if np.isnan(bw).all() == True: # use the ivals if all is Nan, e.g. only land
-        bw = dem.Dataset.ival.values
+        bw = dem.ival.values
         
     fval = xr.Dataset({'fval': (['ilat', 'ilon'],  bw)},   
                                   coords={'ilon': ('ilon', xp[0,:]),   
                                           'ilat': ('ilat', yp[:,0])})
     
-    dem.Dataset = xr.merge([dem.Dataset,fval])
+    dem = xr.merge([dem,fval])
     
     #--------------------------------------------------------------------- 
-    sys.stdout.flush()
-    sys.stdout.write('\n')
-    sys.stdout.write('done \n')
-    sys.stdout.flush()
+    logger.info('done \n')
     #--------------------------------------------------------------------- 
     
-    
+    return dem
     
 def internal(cg, xp, yp):
     
