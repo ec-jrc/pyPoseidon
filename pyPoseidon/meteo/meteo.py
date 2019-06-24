@@ -20,7 +20,6 @@ import xarray as xr
 import pandas as pd
 import importlib
 from pyPoseidon.utils.get_value import get_value
-from dateutil import parser
 import xesmf as xe
 import logging
 
@@ -312,6 +311,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, r
             .sel(time=tslice)
             )
       
+    # TODO
     #        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
     #            c = np.sign(np.mean(minlon, maxlon))    
     #            tot.longitude = tot.longitude + c*360.
@@ -481,10 +481,11 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, ra
             .isel(longitude=slice(lon_0,lon_1),latitude=slice(lat_0,lat_1))
             .sel(time=tslice)
             )
-      
-    #        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
-    #            c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
-    #            tot.longitude = tot.longitude + c*360.
+
+# TODO    
+#    if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
+#        c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+#        tot.longitude = tot.longitude + c*360.
 
     #--------------------------------------------------------------------- 
     logger.info('meteo done\n')
@@ -506,25 +507,31 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, **k
     logger.info('extracting meteo from {}.html\n'.format(url))
     #---------------------------------------------------------------------      
     
-    data = xr.open_dataset(url)    
- 
-    lon0 = minlon + 360. if minlon < data.geospatial_lon_min else minlon
-    lon1 = maxlon + 360. if maxlon < data.geospatial_lon_min else maxlon
-
-    lon0 = lon0 - 360. if lon0 > data.geospatial_lon_max else lon0
-    lon1 = lon1 - 360. if lon1 > data.geospatial_lon_max else lon1
+    data = xr.open_dataset(url)  
     
-    if ts < parser.parse(data.attrs['time_coverage_start']).replace(tzinfo=None) :
+    try:
+        data = data.rename({'lon':'longitude','lat':'latitude'})
+    except:
+        pass  
+ 
+    lon0 = minlon + 360. if minlon < data.longitude.min() else minlon
+    lon1 = maxlon + 360. if maxlon < data.longitude.min() else maxlon
+
+    lon0 = lon0 - 360. if lon0 > data.longitude.max() else lon0
+    lon1 = lon1 - 360. if lon1 > data.longitude.max() else lon1
+    
+    if ts < data.time.min().values :
       logger.error('time frame not available\n')
-      logger.warning('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
+      logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
       sys.exit(1)
   
-    if te > parser.parse(data.attrs['time_coverage_end']).replace(tzinfo=None) :
+    if te > data.time.max().values :
       logger.error('time frame not available\n')
-      logger.warning('coverage between {} and {} \n'.format(data.attrs['time_coverage_start'],data.attrs['time_coverage_end']))
+      logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
       sys.exit(1)
 
     tslice=slice(ts, te)
+    
 
     i0=np.abs(data.longitude.data-lon0).argmin()
     i1=np.abs(data.longitude.data-lon1).argmin()
@@ -558,7 +565,7 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, **k
           .sel(time=tslice)
           )
       
-    if np.abs(np.mean([lon0,lon1]) - np.mean([minlon, maxlon])) > 300. :
+    if np.abs(np.mean(tot.longitude) - np.mean([minlon, maxlon])) > 300. :
       c = np.sign(np.mean([minlon, maxlon]))    
       tot['longitude'] = tot['longitude'] + c*360.
 
