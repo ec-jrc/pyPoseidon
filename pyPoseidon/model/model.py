@@ -451,7 +451,7 @@ class d3d(model):
         z['lats'] = self.grid.impl.Dataset.lats[:,0]
         
         try:
-            ba = -self.dem.impl.Dataset.ival.astype(np.float)
+            ba = -self.dem.altimetry.ival.astype(np.float)
       # ba[ba<0]=np.nan
             z['dem']=ba
             z['cn']=10
@@ -656,10 +656,10 @@ class d3d(model):
              dic.update({'grid':grid.impl.__class__.__name__})
          
          dem=self.__dict__.get('dem', None)
-         if isinstance(dem,np.str):
-             dic.update({'dem':dem})
-         elif isinstance(dem,pdem.dem):
-             dic.update({'dem':dem.impl.__class__.__name__})
+#         if isinstance(dem,np.str):
+#             dic.update({'dem':dem})
+#         elif isinstance(dem,pdem.dem):
+#             dic.update({'dem':dem.impl.__class__.__name__})
 
          meteo=self.__dict__.get('meteo', None)
 #         if isinstance(meteo,np.str):
@@ -715,10 +715,10 @@ class d3d(model):
         #save dem
         try:
             try :
-                bat = -self.dem.impl.Dataset.fval.values.astype(float) #reverse for the hydro run
+                bat = -self.dem.altimetry.fval.values.astype(float) #reverse for the hydro run
        #     mask = bat==999999
             except AttributeError:    
-                bat = -self.dem.impl.Dataset.ival.values.astype(float) #reverse for the hydro run
+                bat = -self.dem.altimetry.ival.values.astype(float) #reverse for the hydro run
         
             mask = ~np.isnan(bat) # mask out potential nan points
             mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
@@ -833,8 +833,11 @@ class d3d(model):
           
             obs.Name = obs.Name.str.strip().apply(lambda name:name.replace(' ', '')) #Remove spaces to write to file
             sort = sorted(obs.Name.values,key=len) # sort the names to get the biggest word
-            wsize = len(sort[-1])# size of bigget word in order to align below
-        
+            try:
+                wsize = len(sort[-1])# size of bigget word in order to align below
+            except:
+                pass
+            
             if flag :
         
                 check=[os.path.exists(self.rpath+'{}.obs'.format(self.tag))]   
@@ -1178,7 +1181,7 @@ class schism(model):
         #save hgrid.gr3
         try:
             
-            bat = -self.dem.impl.Dataset.ival.values.astype(float) #minus for the hydro run
+            bat = -self.dem.altimetry.ival.values.astype(float) #minus for the hydro run
                                     
             self.grid.impl.Dataset.depth.loc[:bat.size] = bat
                                     
@@ -1405,10 +1408,10 @@ class schism(model):
              dic.update({'grid':grid.impl.__class__.__name__})
          
          dem=self.__dict__.get('dem', None)
-         if isinstance(dem,np.str):
-             dic.update({'dem':dem})
-         elif isinstance(dem,pdem.dem):
-             dic.update({'dem':dem.impl.__class__.__name__})
+#         if isinstance(dem,np.str):
+#             dic.update({'dem':dem})
+#         elif isinstance(dem,pdem.dem):
+#             dic.update({'dem':dem.impl.__class__.__name__})
 
          meteo=self.__dict__.get('meteo', None)
 #         if isinstance(meteo,np.str):
