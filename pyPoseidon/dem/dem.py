@@ -89,11 +89,27 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
     j0=np.abs(data.latitude.data-minlat).argmin()
     j1=np.abs(data.latitude.data-maxlat).argmin()
 
+
+    # expand the window a little bit        
+    lon_0 = max(0, i0 - 2)
+    lon_1 = min(data.longitude.size, i1 + 2)
+
+    lat_0 = max(0, j0 - 2)
+    lat_1 = min(data.latitude.size, j1 + 2)
+           
+    # descenting lats
+    if j0 > j1 : 
+       j0, j1 = j1, j0
+       lat_0 = max(0, j0 - 1)
+       lat_1 = min(data.latitude.size, j1 + 3)
+   
+
+
     if i0 > i1 :
 
         p1 = (
           data.elevation
-          .isel(longitude=slice(i0,data.longitude.size),latitude=slice(j0,j1))
+          .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
           )
 
         p1.longitude.values = p1.longitude.values -360.
@@ -101,7 +117,7 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
 
         p2 = (
           data.elevation
-          .isel(longitude=slice(0,i1),latitude=slice(j0,j1))
+          .isel(longitude=slice(0,lon_1),latitude=slice(lat_0,lat_1))
           )
 
         dem = xr.concat([p1,p2],dim='longitude')
@@ -110,7 +126,7 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
 
         dem = (
             data.elevation
-            .isel(longitude=slice(i0,i1),latitude=slice(j0,j1))
+            .isel(longitude=slice(lon_0,lon_1),latitude=slice(lat_0,lat_1))
             )
     
     
