@@ -12,6 +12,7 @@ import numpy as np
 import pyresample
 import xarray as xr
 import sys
+import importlib
 from pyPoseidon.utils.fix import *
 import logging
 
@@ -43,6 +44,7 @@ class dem:
          
          wmask, cg = fix(self.altimetry,shpfile,**kwargs)
          self.altimetry = bmatch(self.altimetry,wmask,**kwargs)
+  
     
       
 def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
@@ -185,5 +187,13 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
         return dem
  
 
-         
+ 
+def to_output(dataset=None,solver=None, **kwargs):
+                
+    model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+
+    s = getattr(model,solver) # get solver class
+    
+    s.to_dep(dataset, **kwargs)
+       
     

@@ -248,40 +248,9 @@ class d3d(model):
         self.kwargs = kwargs
         
                           
-    def set(self,**kwargs):
-
-        if not kwargs : kwargs = self.kwargs
-        # Grid 
-          
-        self.grid=pgrid.grid(type='r2d',**kwargs)
-        #update class variables
-        self.minlon = self.grid.impl.Dataset.x.values.min()
-        self.maxlon = self.grid.impl.Dataset.x.values.max()
-        self.minlat = self.grid.impl.Dataset.y.values.min()
-        self.maxlat = self.grid.impl.Dataset.y.values.max()
-        self.nj, self.ni  = self.grid.impl.Dataset.lons.shape
-        
-        kwargs['minlon']=self.minlon
-        kwargs['maxlon']=self.maxlon
-        kwargs['minlat']=self.minlat
-        kwargs['maxlat']=self.maxlat
-        
-        
-        # get bathymetry
-        self.bath(**kwargs)
-
-        # get boundaries
-        self.bc()
-                
-        #get meteo
-        if self.atm :  self.force(**kwargs)
-        
-        #get tide
-        if self.tide : self.tidebc()
-        
-        self.config(**kwargs)
-        
-        #mdf
+#============================================================================================        
+# CONFIG
+#============================================================================================
     def config(self,**kwargs):  
         
         mdf_file = kwargs.get('config_file', None)
@@ -375,7 +344,10 @@ class d3d(model):
             self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
             
 
-        #meteo
+#============================================================================================        
+# METEO
+#============================================================================================
+
     def force(self,**kwargs):
         z = self.__dict__.copy()
                 
@@ -395,101 +367,8 @@ class d3d(model):
                 logger.info('skipping meteo files ..\n')
         else:
             self.meteo = pmeteo.meteo(**z)
-        
-        #dem
-    def bath(self,**kwargs):
-        z = self.__dict__.copy()        
-        
-        z['grid_x'] = self.grid.impl.Dataset.lons.values
-        z['grid_y'] = self.grid.impl.Dataset.lats.values
-        
-        dpath =  get_value(self,kwargs,'dpath',None)        
-        
-        z.update({'dpath':dpath})
-        
-        if 'dem_file' in kwargs.keys():
-            
-            rdem = np.loadtxt(kwargs['dem_file'])
-            
-            self.dem = xr.Dataset({'ival': (['ilat', 'ilon'],  rdem[:-1,:-1]), 
-                             'ilons': (['k', 'l'], z['grid_x']),   
-                             'ilats': (['k', 'l'], z['grid_y'])}, 
-                             coords={'ilon': ('ilon', z['grid_x'][0,:]),   
-                                     'ilat': ('ilat', z['grid_y'][:,0])})         
-            
-        
-        flag = get_value(self,kwargs,'update',[])
-        # check if files exist
-        if flag :
-            check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
-            if (np.any(check)==False) :
-                self.dem = pdem.dem(**z)  
-            elif 'dem' in flag :
-                self.dem = pdem.dem(**z)
-            else:
-                logger.info('reading local dem file ..\n')
-                dem_file = z['rpath']+self.tag+'.dep'
-                rdem = np.loadtxt(dem_file)
-                zx=self.grid.impl.Dataset.lons.values
-                zy=self.grid.impl.Dataset.lats.values
-            
-                self.dem = xr.Dataset({'ival': (['ilat', 'ilon'],  rdem[:-1,:-1]), 
-                                 'ilons': (['k', 'l'], zx),   
-                                 'ilats': (['k', 'l'], zy)}, 
-                                 coords={'ilon': ('ilon', zx[0,:]),   
-                                         'ilat': ('ilat', zy[:,0])})         
-                
-        else:
-            self.dem = pdem.dem(**z)
-                
-        
-    def bc(self,**kwargs):
-        #define boundaries
-        z = self.__dict__.copy()        
-        
-        z['lons'] = self.grid.impl.Dataset.lons[0,:]
-        z['lats'] = self.grid.impl.Dataset.lats[:,0]
-        
-        try:
-            ba = -self.dem.altimetry.ival.astype(np.float)
-      # ba[ba<0]=np.nan
-            z['dem']=ba
-            z['cn']=10
-        
-            z.update(kwargs) 
-                
-            self.bound = box(**z)
-        
-        except:
-            logger.info('boundary files not set..\n')
-            
 
-    def tidebc(self,**kwargs):
-    
-        self.tide = tide()
-        for key,val in self.bound.__dict__.items():
-        
-        # compute tide constituents
-            tval = []
-            if len(val) > 0. :                   
-                blons=[]
-                blats=[]
-                for l1,l2 in val:
-                    blons.append(self.grid.impl.Dataset.lons[l1[1]-1,l1[0]-1])   
-                    blats.append(self.grid.impl.Dataset.lats[l1[1]-1,l1[0]-1])
-                    blons.append(self.grid.impl.Dataset.lons[l2[1]-1,l2[0]-1])   
-                    blats.append(self.grid.impl.Dataset.lats[l2[1]-1,l2[0]-1])
-                       
-                blons = np.array(blons)#.ravel().reshape(-1,2)[:,0]
-                blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1] 
-            #                  print(bound,blons,blats)
-                             
-                tval = tide(tmodel=self.tmodel, tpath=self.tpath, blons=blons,blats=blats)
-                    
-            setattr(self.tide, key, tval)        
-                                               
-    
-     
+
     @staticmethod 
     def to_force(ar,**kwargs):
                 
@@ -498,8 +377,10 @@ class d3d(model):
         [p,u,v] = kwargs.get('vars','[None,None,None]')                
         
         curvi = kwargs.get('curvi', False)
+        
+        flip = np.diff(ar.latitude.values)[0]
        
-        dlat=np.abs(np.diff(ar.latitude.values)[0])
+        dlat=np.abs(flip)
         dlon=np.diff(ar.longitude.values)[0]
         lat0=ar.latitude.data.min()
         lon0=ar.longitude.data.min() 
@@ -565,15 +446,307 @@ class d3d(model):
         for it in range(indx.size): # nt + 0 hour    
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(indx[it].astype(int)))
-
-          np.savetxt(pfid,np.flipud(pp[it,:,:]),fmt='%.3f')
-          np.savetxt(ufid,np.flipud(uu[it,:,:]),fmt='%.3f')
-          np.savetxt(vfid,np.flipud(vv[it,:,:]),fmt='%.3f')
+            
+          if flip < 0 :
+              np.savetxt(pfid,np.flipud(pp[it,:,:]),fmt='%.3f')
+              np.savetxt(ufid,np.flipud(uu[it,:,:]),fmt='%.3f')
+              np.savetxt(vfid,np.flipud(vv[it,:,:]),fmt='%.3f')
+          else:
+              np.savetxt(pfid,pp[it,:,:],fmt='%.3f')
+              np.savetxt(ufid,uu[it,:,:],fmt='%.3f')
+              np.savetxt(vfid,vv[it,:,:],fmt='%.3f')
+                           
           
          # close files
         for f in fi:
            f.close()
     
+
+
+#============================================================================================        
+# DEM
+#============================================================================================       
+    @staticmethod 
+    def from_dep(filename,**kwargs):
+        
+        rdem = np.loadtxt(filename)
+        
+        dr = xr.DataArray(rdem[:-1,:-1], name='ival', dims=['k','l'])
+        
+        return dr
+                 
+        
+    def bath(self,**kwargs):
+        z = self.__dict__.copy()        
+        
+        z['grid_x'] = self.grid.impl.Dataset.lons.values
+        z['grid_y'] = self.grid.impl.Dataset.lats.values
+        
+        dpath =  get_value(self,kwargs,'dem',None)        
+        
+        z.update({'dem':dpath})
+        
+       
+        flag = get_value(self,kwargs,'update',[])
+        # check if files exist
+        if flag :
+            check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
+            if (np.any(check)==False) :
+                self.dem = pdem.dem(**z)  
+            elif 'dem' in flag :
+                self.dem = pdem.dem(**z)
+            else:
+                logger.info('reading local dem file ..\n')
+                dem_file = z['rpath']+self.tag+'.dep'
+                rdem = np.loadtxt(dem_file)
+                zx=self.grid.impl.Dataset.lons.values
+                zy=self.grid.impl.Dataset.lats.values
+            
+                self.dem = xr.Dataset({'ival': (['ilat', 'ilon'],  rdem[:-1,:-1]), 
+                                 'ilons': (['k', 'l'], zx),   
+                                 'ilats': (['k', 'l'], zy)}, 
+                                 coords={'ilon': ('ilon', zx[0,:]),   
+                                         'ilat': ('ilat', zy[:,0])})         
+                
+        else:
+            self.dem = pdem.dem(**z)
+
+    @staticmethod 
+    def to_dep(dr, dry_mask=True, **kwargs):
+        #save dem
+        logger.info('writing dem file ..\n')
+        path = kwargs.get('rpath','./') 
+             
+        flag = kwargs.get('update',None)
+        tag = kwargs.get('tag','d3d')
+        
+        
+        try:
+            try :
+                bat = -dr.fval.values.astype(float) #reverse for the hydro run/use the adjusted values
+       #     mask = bat==999999
+            except AttributeError:    
+                bat = -dr.ival.values.astype(float) #reverse for the hydro run/revert to interpolated values
+                     
+            nj,ni = bat.shape
+            
+            if dry_mask:
+            
+                mask = ~np.isnan(bat) # mask out potential nan points
+                mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
+
+                bat[mask]=np.nan #mask dry points
+            
+        # append the line/column of nodata 
+            nodata=np.empty(ni)
+            nodata.fill(np.nan)
+            bat1=np.vstack((bat,nodata))
+            nodata=np.empty((nj+1,1))
+            nodata.fill(np.nan)
+            bat2=np.hstack((bat1,nodata))
+
+            bat2[np.isnan(bat2)] = -999.
+                        
+        except AttributeError:
+            logger.warning('problem with dem Dataset ..')
+            
+        # Write bathymetry file    
+        if flag :
+            # check if files exist
+            check=[os.path.exists(path+'{}.dep'.format(tag))]   
+            if (np.any(check)==False) or ('dem' in flag) :
+                 np.savetxt(path+tag+'.dep',bat2)
+            else:
+                logger.info('keeping dem file ..\n')
+        else:
+            np.savetxt(path+tag+'.dep',bat2)
+                 
+
+#============================================================================================        
+# BOUNDARY CONDITIONS TODO
+#============================================================================================
+                
+        
+    def bc(self,**kwargs):
+        #define boundaries
+        z = self.__dict__.copy()        
+        
+        z['lons'] = self.grid.impl.Dataset.lons[0,:]
+        z['lats'] = self.grid.impl.Dataset.lats[:,0]
+        
+        try:
+            ba = -self.dem.altimetry.ival.astype(np.float)
+      # ba[ba<0]=np.nan
+            z['dem']=ba
+            z['cn']=10
+        
+            z.update(kwargs) 
+                
+            self.bound = box(**z)
+        
+        except:
+            logger.info('boundary files not set..\n')
+            
+
+
+    def to_bnd(self):
+        #save bnd
+            with open(path+self.tag+'.bnd', 'w') as f:
+        
+                dd = OrderedDict([('North',self.bound.North),('South',self.bound.South),('West',self.bound.West),('East',self.bound.East)])
+    
+            #    for key,val in self.bound.__dict__.items():
+                for i, (key, val) in enumerate(dd.items()): # to match deltares 
+            
+                    idx=1
+                    for k1,k2 in val:           
+                        bname=key+str(idx)
+                        f.write('{0:<10s}{1:>12s}{2:>2s}{3:>6d}{4:>6d}{5:>6d}{6:>6d}   0.0000000e+00 {7:<s}{8:<g}A {9:<s}{10:<g}B\n'.format(bname,nm[0],nm[1],k1[0]+1,k1[1]+1,k2[0]+1,k2[1]+1,key,idx,key,idx)) # fortran index ??
+                        idx+=1
+
+
+    def to_bca(self):
+        #save bca
+            with open(path+self.tag+'.bca', 'w') as f:
+            
+                 dd = OrderedDict([('North',self.tide.North),('South',self.tide.South),('West',self.tide.West),('East',self.tide.East)])
+            
+            #     for key,val in self.tide.__dict__.items():
+                 for i, (key, val) in enumerate(dd.items()): # to match deltares 
+                     
+                     idx=1
+                     if val: 
+                        l = np.arange(val.impl.ampl.shape[0])+idx
+                        nl = [x for pair in zip(l,l) for x in pair]
+                        sl = val.impl.ampl.shape[0]*le
+                        for t1,t2,amp,phase in zip(np.transpose(nl),np.transpose(sl),val.impl.ampl,val.impl.phase):
+                             f.write('{}{}{}\n'.format(key,t1,t2))
+                             for a,b,c in zip(val.impl.constituents,amp.flatten(),phase.flatten()):
+                                 f.write('{0:<3s}        {1:<.7e}   {2:<.7e}\n'.format(a,b,c))
+                        
+
+    def tidebc(self,**kwargs):
+    
+        self.tide = tide()
+        for key,val in self.bound.__dict__.items():
+        
+        # compute tide constituents
+            tval = []
+            if len(val) > 0. :                   
+                blons=[]
+                blats=[]
+                for l1,l2 in val:
+                    blons.append(self.grid.impl.Dataset.lons[l1[1]-1,l1[0]-1])   
+                    blats.append(self.grid.impl.Dataset.lats[l1[1]-1,l1[0]-1])
+                    blons.append(self.grid.impl.Dataset.lons[l2[1]-1,l2[0]-1])   
+                    blats.append(self.grid.impl.Dataset.lats[l2[1]-1,l2[0]-1])
+                       
+                blons = np.array(blons)#.ravel().reshape(-1,2)[:,0]
+                blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1] 
+            #                  print(bound,blons,blats)
+                             
+                tval = tide(tmodel=self.tmodel, tpath=self.tpath, blons=blons,blats=blats)
+                    
+            setattr(self.tide, key, tval)        
+                                               
+    
+    @staticmethod 
+    def to_obs(self,**kwargs):
+        #save obs
+        
+        ofilename = get_value(self,kwargs,'ofilename',None) 
+
+        if ofilename:
+        
+            obs_points = pd.read_csv(ofilename,delimiter='\t',header=None,names=['index','Name','lat','lon'])
+            obs_points = obs_points.set_index('index',drop=True).reset_index(drop=True) #reset index if any
+            
+            obs_points = obs_points[(obs_points.lon.between(self.grid.impl.Dataset.lons.values.min(),self.grid.impl.Dataset.lons.values.max())) 
+                                    & (obs_points.lat.between(self.grid.impl.Dataset.lats.values.min(),self.grid.impl.Dataset.lats.values.max()))]
+        
+            obs_points.reset_index(inplace=True,drop=True)
+            
+            b=np.ma.masked_array(bat,np.isnan(bat)) # mask land
+        
+            i_indx, j_indx = self.vpoints(self.grid.impl.Dataset,obs_points,b,**kwargs)
+                    
+            obs_points['i']=i_indx
+            obs_points['j']=j_indx
+        
+            #drop NaN points
+            obs = obs_points.dropna().copy()
+        
+            obs = obs.reset_index(drop=True) #reset index
+        
+            obs['i']=obs['i'].values.astype(int)
+            obs['j']=obs['j'].values.astype(int)
+            obs['new_lat']=self.grid.impl.Dataset.y[obs.i.values].values #Valid point
+            obs['new_lon']=self.grid.impl.Dataset.x[obs.j.values].values 
+        
+            self.obs = obs #store it
+          
+            obs.Name = obs.Name.str.strip().apply(lambda name:name.replace(' ', '')) #Remove spaces to write to file
+            sort = sorted(obs.Name.values,key=len) # sort the names to get the biggest word
+            try:
+                wsize = len(sort[-1])# size of bigget word in order to align below
+            except:
+                pass
+            
+            if flag :
+        
+                check=[os.path.exists(self.rpath+'{}.obs'.format(self.tag))]   
+                if (np.any(check)==False) or ('model' in flag) :
+        
+                    # Add one in the indices due to python/fortran convention
+                    with open(self.rpath+'{}.obs'.format(self.tag),'w') as f: 
+                        for l in range(obs.shape[0]): 
+                            f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
+
+         
+            else:
+                # Add one in the indices due to python/fortran convention
+                with open(self.rpath+'{}.obs'.format(self.tag),'w') as f:
+                    for l in range(obs.shape[0]): 
+                        f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
+              
+
+    
+#============================================================================================        
+# EXECUTION
+#============================================================================================
+    def set(self,**kwargs):
+
+        if not kwargs : kwargs = self.kwargs
+        # Grid 
+          
+        self.grid=pgrid.grid(type='r2d',**kwargs)
+        #update class variables
+        self.minlon = self.grid.impl.Dataset.x.values.min()
+        self.maxlon = self.grid.impl.Dataset.x.values.max()
+        self.minlat = self.grid.impl.Dataset.y.values.min()
+        self.maxlat = self.grid.impl.Dataset.y.values.max()
+        self.nj, self.ni  = self.grid.impl.Dataset.lons.shape
+        
+        kwargs['minlon']=self.minlon
+        kwargs['maxlon']=self.maxlon
+        kwargs['minlat']=self.minlat
+        kwargs['maxlat']=self.maxlat
+        
+        
+        # get bathymetry
+        self.bath(**kwargs)
+
+        # get boundaries
+        self.bc()
+                
+        #get meteo
+        if self.atm :  self.force(**kwargs)
+        
+        #get tide
+        if self.tide : self.tidebc()
+        
+        self.config(**kwargs)
+     
             
     def run(self,**kwargs):
         
@@ -700,6 +873,7 @@ class d3d(model):
         #save mdf 
         self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
         
+        # save grid file
         if flag:
             # check if files exist
             check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
@@ -712,46 +886,10 @@ class d3d(model):
             self.grid.impl.to_file(filename = path+self.tag+'.grd')
                 
         
-        #save dem
-        try:
-            try :
-                bat = -self.dem.altimetry.fval.values.astype(float) #reverse for the hydro run
-       #     mask = bat==999999
-            except AttributeError:    
-                bat = -self.dem.altimetry.ival.values.astype(float) #reverse for the hydro run
+        # save bathymetry file
+        self.to_dep(self,**kwargs) 
         
-            mask = ~np.isnan(bat) # mask out potential nan points
-            mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
-
-            bat[mask]=np.nan #mask dry points
-            
-        # append the line/column of nodata 
-            nodata=np.empty(self.ni)
-            nodata.fill(np.nan)
-            bat1=np.vstack((bat,nodata))
-            nodata=np.empty((self.nj+1,1))
-            nodata.fill(np.nan)
-            bat2=np.hstack((bat1,nodata))
-
-            bat2[np.isnan(bat2)] = -999.
-                        
-        except AttributeError:
-            logger.warning('No dem file ..')
-            
-        # Write bathymetry file    
-        if flag :
-            # check if files exist
-            check=[os.path.exists(self.rpath+'{}.dep'.format(self.tag))]   
-            if (np.any(check)==False) or ('dem' in flag) :
-                 np.savetxt(path+self.tag+'.dep',bat2)
-            else:
-                logger.info('skipping dem file ..\n')
-        else:
-            np.savetxt(path+self.tag+'.dep',bat2)
-                 
-        
-        #save meteo
-        
+        #save meteo        
         if self.atm:
             #--------------------------------------------------------------------- 
             logger.info('saving meteo\n')
@@ -763,98 +901,9 @@ class d3d(model):
                 print(e) 
                 pass
 
-             
-        if self.tide :  
-            
-        #save bnd
-            with open(path+self.tag+'.bnd', 'w') as f:
-                
-                dd = OrderedDict([('North',self.bound.North),('South',self.bound.South),('West',self.bound.West),('East',self.bound.East)])
-            
-            #    for key,val in self.bound.__dict__.items():
-                for i, (key, val) in enumerate(dd.items()): # to match deltares 
-                    
-                    idx=1
-                    for k1,k2 in val:           
-                        bname=key+str(idx)
-                        f.write('{0:<10s}{1:>12s}{2:>2s}{3:>6d}{4:>6d}{5:>6d}{6:>6d}   0.0000000e+00 {7:<s}{8:<g}A {9:<s}{10:<g}B\n'.format(bname,nm[0],nm[1],k1[0]+1,k1[1]+1,k2[0]+1,k2[1]+1,key,idx,key,idx)) # fortran index ??
-                        idx+=1
         
-        #save bca
-            with open(path+self.tag+'.bca', 'w') as f:
-            
-                 dd = OrderedDict([('North',self.tide.North),('South',self.tide.South),('West',self.tide.West),('East',self.tide.East)])
-            
-            #     for key,val in self.tide.__dict__.items():
-                 for i, (key, val) in enumerate(dd.items()): # to match deltares 
-                     
-                     idx=1
-                     if val: 
-                        l = np.arange(val.impl.ampl.shape[0])+idx
-                        nl = [x for pair in zip(l,l) for x in pair]
-                        sl = val.impl.ampl.shape[0]*le
-                        for t1,t2,amp,phase in zip(np.transpose(nl),np.transpose(sl),val.impl.ampl,val.impl.phase):
-                             f.write('{}{}{}\n'.format(key,t1,t2))
-                             for a,b,c in zip(val.impl.constituents,amp.flatten(),phase.flatten()):
-                                 f.write('{0:<3s}        {1:<.7e}   {2:<.7e}\n'.format(a,b,c))
-                        
-        #save obs
-        
-        ofilename = get_value(self,kwargs,'ofilename',None) 
-
-        if ofilename:
-        
-            obs_points = pd.read_csv(ofilename,delimiter='\t',header=None,names=['index','Name','lat','lon'])
-            obs_points = obs_points.set_index('index',drop=True).reset_index(drop=True) #reset index if any
-            
-            obs_points = obs_points[(obs_points.lon.between(self.grid.impl.Dataset.lons.values.min(),self.grid.impl.Dataset.lons.values.max())) 
-                                    & (obs_points.lat.between(self.grid.impl.Dataset.lats.values.min(),self.grid.impl.Dataset.lats.values.max()))]
-        
-            obs_points.reset_index(inplace=True,drop=True)
-            
-            b=np.ma.masked_array(bat,np.isnan(bat)) # mask land
-        
-            i_indx, j_indx = self.vpoints(self.grid.impl.Dataset,obs_points,b,**kwargs)
-                    
-            obs_points['i']=i_indx
-            obs_points['j']=j_indx
-        
-            #drop NaN points
-            obs = obs_points.dropna().copy()
-        
-            obs = obs.reset_index(drop=True) #reset index
-        
-            obs['i']=obs['i'].values.astype(int)
-            obs['j']=obs['j'].values.astype(int)
-            obs['new_lat']=self.grid.impl.Dataset.y[obs.i.values].values #Valid point
-            obs['new_lon']=self.grid.impl.Dataset.x[obs.j.values].values 
-        
-            self.obs = obs #store it
-          
-            obs.Name = obs.Name.str.strip().apply(lambda name:name.replace(' ', '')) #Remove spaces to write to file
-            sort = sorted(obs.Name.values,key=len) # sort the names to get the biggest word
-            try:
-                wsize = len(sort[-1])# size of bigget word in order to align below
-            except:
-                pass
-            
-            if flag :
-        
-                check=[os.path.exists(self.rpath+'{}.obs'.format(self.tag))]   
-                if (np.any(check)==False) or ('model' in flag) :
-        
-                    # Add one in the indices due to python/fortran convention
-                    with open(self.rpath+'{}.obs'.format(self.tag),'w') as f: 
-                        for l in range(obs.shape[0]): 
-                            f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
-
-         
-            else:
-                # Add one in the indices due to python/fortran convention
-                with open(self.rpath+'{}.obs'.format(self.tag),'w') as f:
-                    for l in range(obs.shape[0]): 
-                        f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
-              
+        #save obs file     
+        self.to_obs(self,**kwargs)
         
         #save enc file
         if flag :
@@ -965,7 +1014,16 @@ class d3d(model):
                     jdx.append(np.nan)
 
         return idx,jdx
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#########################=======#############################========########################        
+#                                         SCHISM                                            #
+#########################=======#############################========########################        
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
+
 class schism(model):
      
     def __init__(self,**kwargs):
@@ -1018,38 +1076,12 @@ class schism(model):
          
         self.kwargs = kwargs 
                           
-    def set(self,**kwargs):
 
-        if not kwargs : kwargs = self.kwargs
 
-        self.hgrid = kwargs.get('grid_file',None)
-                                         
-        # Grid         
-        self.grid=pgrid.grid(type='tri2d',**kwargs)
-                 
-        # set lat/lon from file
-        if self.hgrid:
-            self.minlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.min()
-            self.maxlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.max()
-            self.minlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.min()
-            self.maxlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.max()
-                                     
-        # get bathymetry
-        self.bath(**kwargs)
+#============================================================================================        
+# CONFIG
+#============================================================================================
 
-        # get boundaries
-        # self.bc()
-                
-        #get meteo
-        if self.atm :  self.force(**kwargs)
-        
-        #get tide
-        if self.tide : self.tidebc()
-        
-        
-        self.config(**kwargs)
-    
-        #param
     def config(self,**kwargs): 
         
         dic = get_value(self,kwargs,'parameters',None)
@@ -1087,7 +1119,9 @@ class schism(model):
             path = get_value(self,kwargs,'rpath','./') 
             self.params.to_csv(path + 'param.in', header=None, sep='=')  #save to file
 
-        #meteo
+#============================================================================================        
+# METEO
+#============================================================================================       
     def force(self,**kwargs):
         z = self.__dict__.copy()
         
@@ -1107,17 +1141,96 @@ class schism(model):
                 logger.info('skipping meteo ..\n')
         else:
             self.meteo = pmeteo.meteo(**z)
+
+
+    @staticmethod 
+    def to_force(ar0,**kwargs):
+                
+        path = kwargs.get('rpath','./') 
         
-        #dem
+        [p,u,v] = kwargs.get('vars','[None,None,None]')                
+        
+        ar = ar0.sortby('latitude', ascending=True)
+            
+        xx, yy = np.meshgrid(ar.longitude.data, ar.latitude.data) 
+        
+        zero = np.zeros(ar[p].data.shape)
+                       
+        udate = pd.to_datetime(ar.time[0].data).strftime('%Y-%m-%d')
+        
+        bdate = pd.to_datetime(ar.time[0].data).strftime('%Y %m %d %H').split(' ')
+        
+        tlist = (ar.time.data - pd.to_datetime([udate]).values).astype('timedelta64[s]')/3600.
+        
+        tlist = tlist.astype(float)/24.
+        
+        
+        bdate = [int(q) for q in bdate]
+        
+        sout= xr.Dataset({'prmsl':(['time', 'nx_grid', 'ny_grid'], ar[p].data),
+                          'uwind':(['time','nx_grid','ny_grid'], ar[u].data),
+                          'vwind':(['time','nx_grid','ny_grid'], ar[v].data),
+                          'spfh':(['time','nx_grid','ny_grid'], zero),
+                          'stmp':(['time','nx_grid','ny_grid'], zero),
+                          'lon':(['nx_grid','ny_grid'], xx),
+                          'lat':(['nx_grid','ny_grid'], yy)},
+                     coords={'time':tlist})
+                     
+        sout.attrs={'description' : 'Schism forsing',
+            'history' :'JRC Ispra European Commission',
+            'source' : 'netCDF4 python module'}
+            
+        sout.time.attrs={   'long_name':      'Time',
+                            'standard_name':  'time',
+                            'base_date':      bdate,
+                            'units':          udate }
+                            
+        sout.lat.attrs={'units': 'degrees_north',
+                       'long_name': 'Latitude',
+                       'standard_name':'latitude'}
+                       
+        sout.prmsl.attrs={'units': 'Pa',
+                       'long_name': 'Pressure reduced to MSL',
+                       'standard_name':'air_pressure_at_sea_level'}
+                       
+        sout.uwind.attrs={'units': 'm/s',
+                       'long_name': 'Surface Eastward Air Velocity',
+                       'standard_name':'eastward_wind'}
+                       
+        sout.vwind.attrs={'units': 'm/s',
+                       'long_name': 'Surface Northward Air Velocity',
+                       'standard_name':'northward_wind'}
+                       
+        sout.spfh.attrs={'units': '1',
+                       'long_name': 'Surface Specific Humidity (2m AGL)',
+                       'standard_name':'specific_humidity'}               
+                       
+        sout.stmp.attrs={'units': 'degrees',
+                       'long_name': 'Surface Temperature',
+                       'standard_name':'surface temperature'}
+               
+        
+        #check if folder sflux exists
+        if not os.path.exists(path+'sflux'):
+            os.makedirs(path+'sflux')
+        
+        filename = kwargs.get('filename','sflux/sflux_air_1.001.nc') 
+               
+        sout.to_netcdf(path+filename)
+                
+#============================================================================================        
+# DEM
+#============================================================================================       
+
     def bath(self,**kwargs):
         z = self.__dict__.copy()        
         
         z['grid_x'] = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values
         z['grid_y'] = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values
         
-        dpath =  get_value(self,kwargs,'dpath',None)        
+        dpath =  get_value(self,kwargs,'dem',None)        
         
-        z.update({'dpath':dpath})
+        z.update({'dem':dpath})
                 
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
@@ -1131,6 +1244,41 @@ class schism(model):
                 self.dem = pdem.dem(**z)
             else:
                 logger.info('dem from grid file\n')
+
+#============================================================================================        
+# EXECUTION
+#============================================================================================
+    def set(self,**kwargs):
+
+        if not kwargs : kwargs = self.kwargs
+
+        self.hgrid = kwargs.get('grid_file',None)
+                                         
+        # Grid         
+        self.grid=pgrid.grid(type='tri2d',**kwargs)
+                 
+        # set lat/lon from file
+        if self.hgrid:
+            self.minlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.min()
+            self.maxlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.max()
+            self.minlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.min()
+            self.maxlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.max()
+                                     
+        # get bathymetry
+        self.bath(**kwargs)
+
+        # get boundaries
+        # self.bc()
+                
+        #get meteo
+        if self.atm :  self.force(**kwargs)
+        
+        #get tide
+        if self.tide : self.tidebc()
+        
+        
+        self.config(**kwargs)
+
 
     def output(self,**kwargs):      
         
@@ -1292,80 +1440,7 @@ class schism(model):
         mode |= (mode & 0o444) >> 2    # copy R bits to X
         os.chmod(execf, mode)
 
-    @staticmethod 
-    def to_force(ar0,**kwargs):
-                
-        path = kwargs.get('rpath','./') 
-        
-        [p,u,v] = kwargs.get('vars','[None,None,None]')                
-        
-        ar = ar0.sortby('latitude', ascending=True)
-            
-        xx, yy = np.meshgrid(ar.longitude.data, ar.latitude.data) 
-        
-        zero = np.zeros(ar[p].data.shape)
-                       
-        udate = pd.to_datetime(ar.time[0].data).strftime('%Y-%m-%d')
-        
-        bdate = pd.to_datetime(ar.time[0].data).strftime('%Y %m %d %H').split(' ')
-        
-        tlist = (ar.time.data - pd.to_datetime([udate]).values).astype('timedelta64[s]')/3600.
-        
-        tlist = tlist.astype(float)/24.
-        
-        
-        bdate = [int(q) for q in bdate]
-        
-        sout= xr.Dataset({'prmsl':(['time', 'nx_grid', 'ny_grid'], ar[p].data),
-                          'uwind':(['time','nx_grid','ny_grid'], ar[u].data),
-                          'vwind':(['time','nx_grid','ny_grid'], ar[v].data),
-                          'spfh':(['time','nx_grid','ny_grid'], zero),
-                          'stmp':(['time','nx_grid','ny_grid'], zero),
-                          'lon':(['nx_grid','ny_grid'], xx),
-                          'lat':(['nx_grid','ny_grid'], yy)},
-                     coords={'time':tlist})
-                     
-        sout.attrs={'description' : 'Schism forsing',
-            'history' :'JRC Ispra European Commission',
-            'source' : 'netCDF4 python module'}
-            
-        sout.time.attrs={   'long_name':      'Time',
-                            'standard_name':  'time',
-                            'base_date':      bdate,
-                            'units':          udate }
-                            
-        sout.lat.attrs={'units': 'degrees_north',
-                       'long_name': 'Latitude',
-                       'standard_name':'latitude'}
-                       
-        sout.prmsl.attrs={'units': 'Pa',
-                       'long_name': 'Pressure reduced to MSL',
-                       'standard_name':'air_pressure_at_sea_level'}
-                       
-        sout.uwind.attrs={'units': 'm/s',
-                       'long_name': 'Surface Eastward Air Velocity',
-                       'standard_name':'eastward_wind'}
-                       
-        sout.vwind.attrs={'units': 'm/s',
-                       'long_name': 'Surface Northward Air Velocity',
-                       'standard_name':'northward_wind'}
-                       
-        sout.spfh.attrs={'units': '1',
-                       'long_name': 'Surface Specific Humidity (2m AGL)',
-                       'standard_name':'specific_humidity'}               
-                       
-        sout.stmp.attrs={'units': 'degrees',
-                       'long_name': 'Surface Temperature',
-                       'standard_name':'surface temperature'}
-               
-        
-        #check if folder sflux exists
-        if not os.path.exists(path+'sflux'):
-            os.makedirs(path+'sflux')
-        
-        filename = kwargs.get('filename','sflux/sflux_air_1.001.nc') 
-               
-        sout.to_netcdf(path+filename)
+
                                          
                 
     def run(self,**kwargs):
