@@ -79,14 +79,15 @@ Construct and manage a hydrodynamic model based on different solvers.
     
     """
     impl = None
-    def __init__(self, solver=None, **kwargs):
+    def __init__(self, solver=None, atm=True, tide=False, **kwargs):
+        kwargs.update({'atm':atm,'tide':tide})
         if solver == 'd3d':
             self.impl = d3d(**kwargs)
         elif solver == 'schism':
             self.impl = schism(**kwargs)            
         
-    def set(self,**kwargs):
-        self.impl.set(**kwargs)
+    def create(self,**kwargs):
+        self.impl.create(**kwargs)
         
     def uvp(self,**kwargs):
         self.impl.uvp(**kwargs)
@@ -114,7 +115,10 @@ Construct and manage a hydrodynamic model based on different solvers.
         
     def output(self,**kwargs):
         self.impl.output(**kwargs)
-        
+    
+    def execute(self,**kwargs):
+        self.impl.execute(**kwargs)
+           
     def bc(self,**kwargs):
         self.impl.bc(**kwargs)
                                    
@@ -221,9 +225,7 @@ class d3d(model):
         
         self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
-        self.ft1 = kwargs.get('ft1', 0)
-        self.ft2 = kwargs.get('ft2', 11)
-        self.dft = kwargs.get('dft', 1)       
+        self.irange = kwargs.get('irange', None)
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
         self.ofilename = kwargs.get('ofilename', None)
@@ -245,9 +247,6 @@ class d3d(model):
         for attr, value in kwargs.items():
                 if not hasattr(self, attr): setattr(self, attr, value)
                 
-        self.kwargs = kwargs
-        
-                          
 #============================================================================================        
 # CONFIG
 #============================================================================================
@@ -349,28 +348,29 @@ class d3d(model):
 #============================================================================================
 
     def force(self,**kwargs):
-        z = self.__dict__.copy()
                 
-        mpaths =  get_value(self,kwargs,'mpaths',None)        
+        meteo_files =  get_value(self,kwargs,'meteo_files',None)        
         
-        z.update({'mpaths':mpaths})
+        kwargs.update({'meteo_files':meteo_files})
 
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
         if flag :     
             check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
             if (np.any(check)==False) :              
-                self.meteo = pmeteo.meteo(**z)
+                self.meteo = pmeteo.meteo(**kwargs)
             elif 'meteo' in flag : 
-                self.meteo = pmeteo.meteo(**z)        
+                self.meteo = pmeteo.meteo(**kwargs)        
             else:
                 logger.info('skipping meteo files ..\n')
         else:
-            self.meteo = pmeteo.meteo(**z)
+            self.meteo = pmeteo.meteo(**kwargs)
 
 
     @staticmethod 
     def to_force(ar,**kwargs):
+         
+        logger.info('writing meteo files ..\n')
                 
         path = kwargs.get('rpath','./') 
         
@@ -477,39 +477,27 @@ class d3d(model):
                  
         
     def bath(self,**kwargs):
-        z = self.__dict__.copy()        
         
-        z['grid_x'] = self.grid.impl.Dataset.lons.values
-        z['grid_y'] = self.grid.impl.Dataset.lats.values
+        kwargs['grid_x'] = self.grid.impl.Dataset.lons.values
+        kwargs['grid_y'] = self.grid.impl.Dataset.lats.values
         
         dpath =  get_value(self,kwargs,'dem',None)        
         
-        z.update({'dem':dpath})
+        kwargs.update({'dem':dpath})
         
        
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
         if flag :
-            check=[os.path.exists(z['rpath']+f) for f in ['{}.dep'.format(z['tag'])]]   
-            if (np.any(check)==False) :
-                self.dem = pdem.dem(**z)  
-            elif 'dem' in flag :
-                self.dem = pdem.dem(**z)
+            if ('dem' in flag) | ('all' in flag):
+                self.dem = pdem.dem(**kwargs)
             else:
                 logger.info('reading local dem file ..\n')
                 dem_file = z['rpath']+self.tag+'.dep'
-                rdem = np.loadtxt(dem_file)
-                zx=self.grid.impl.Dataset.lons.values
-                zy=self.grid.impl.Dataset.lats.values
-            
-                self.dem = xr.Dataset({'ival': (['ilat', 'ilon'],  rdem[:-1,:-1]), 
-                                 'ilons': (['k', 'l'], zx),   
-                                 'ilats': (['k', 'l'], zy)}, 
-                                 coords={'ilon': ('ilon', zx[0,:]),   
-                                         'ilat': ('ilat', zy[:,0])})         
-                
+                rdem = from_dep(dem_file)
+                                
         else:
-            self.dem = pdem.dem(**z)
+            self.dem = pdem.dem(**kwargs)
 
     @staticmethod 
     def to_dep(dr, dry_mask=True, **kwargs):
@@ -552,9 +540,7 @@ class d3d(model):
             
         # Write bathymetry file    
         if flag :
-            # check if files exist
-            check=[os.path.exists(path+'{}.dep'.format(tag))]   
-            if (np.any(check)==False) or ('dem' in flag) :
+            if ('all' in flag) or ('dem' in flag) :
                  np.savetxt(path+tag+'.dep',bat2)
             else:
                 logger.info('keeping dem file ..\n')
@@ -714,24 +700,23 @@ class d3d(model):
 #============================================================================================        
 # EXECUTION
 #============================================================================================
-    def set(self,**kwargs):
+    def create(self,**kwargs):
 
-        if not kwargs : kwargs = self.kwargs
-        # Grid 
-          
+        if not kwargs : kwargs = self.__dict__.copy()
+                                         
+        # Grid         
         self.grid=pgrid.grid(type='r2d',**kwargs)
-        #update class variables
-        self.minlon = self.grid.impl.Dataset.x.values.min()
-        self.maxlon = self.grid.impl.Dataset.x.values.max()
-        self.minlat = self.grid.impl.Dataset.y.values.min()
-        self.maxlat = self.grid.impl.Dataset.y.values.max()
-        self.nj, self.ni  = self.grid.impl.Dataset.lons.shape
-        
-        kwargs['minlon']=self.minlon
-        kwargs['maxlon']=self.maxlon
-        kwargs['minlat']=self.minlat
-        kwargs['maxlat']=self.maxlat
-        
+                 
+        # set lat/lon from file
+        if hasattr(self, 'grid_file'):
+            kwargs.update({'minlon' : self.grid.impl.Dataset.x.values.min()})
+            kwargs.update({'maxlon' : self.grid.impl.Dataset.x.values.max()})
+            kwargs.update({'minlat' : self.grid.impl.Dataset.y.values.min()})
+            kwargs.update({'maxlat' : self.grid.impl.Dataset.y.values.max()})
+            
+            nj, ni  = self.grid.impl.Dataset.lons.shape
+            
+            kwargs.update({'ni':ni, 'nj':nj})                         
         
         # get bathymetry
         self.bath(**kwargs)
@@ -761,6 +746,11 @@ class d3d(model):
         conda_bin = get_value(self,kwargs,'conda_bin', None)
         
         argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
+        
+        #--------------------------------------------------------------------- 
+        logger.info('executing model\n')
+        #--------------------------------------------------------------------- 
+        
                         
         if conda_env is None:        
             # note that cwd is the folder where the executable is
@@ -887,18 +877,14 @@ class d3d(model):
                 
         
         # save bathymetry file
-        self.to_dep(self,**kwargs) 
+        self.to_dep(self.dem.altimetry,rpath=path, tag=self.tag, update=flag) 
         
         #save meteo        
         if self.atm:
-            #--------------------------------------------------------------------- 
-            logger.info('saving meteo\n')
-            #--------------------------------------------------------------------- 
-            
             try:
                 self.to_force(self.meteo.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
             except AttributeError as e:
-                print(e) 
+                logger.warning('no meteo data available.. no update..\n')                
                 pass
 
         
@@ -967,7 +953,14 @@ class d3d(model):
           mode = os.stat(execf).st_mode
           mode |= (mode & 0o444) >> 2    # copy R bits to X
           os.chmod(execf, mode)
-                
+        
+        
+        
+        #--------------------------------------------------------------------- 
+        logger.info('output done\n')
+        #--------------------------------------------------------------------- 
+    
+            
     @staticmethod
     def vpoints(grid,obs_points,bat,**kwargs):
         
@@ -1053,41 +1046,31 @@ class schism(model):
             
         
         self.tag = kwargs.get('tag', 'schism')
-        self.resolution = kwargs.get('resolution', None)
-        self.ft1 = kwargs.get('ft1', 0)
-        self.ft2 = kwargs.get('ft2', 11)
-        self.dft = kwargs.get('dft', 1)       
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
     
         self.epath = kwargs.get('epath', None)
     
-        self.Tstart = self.start_date.hour*60     
-        self.Tstop = self.Tstart + int((self.end_date - self.start_date).total_seconds()/60)
-        
-        self.step = get_value(self,kwargs,'step',0)
-        self.rstep = get_value(self,kwargs,'rstep',0)
-        
         self.solver = self.__class__.__name__    
         
                                                    
         for attr, value in kwargs.items():
             if not hasattr(self, attr): setattr(self, attr, value)  
-         
-        self.kwargs = kwargs 
-                          
-
-
+                                   
 #============================================================================================        
 # CONFIG
 #============================================================================================
 
-    def config(self,**kwargs): 
+    def config(self, config_file=None, output=False, **kwargs): 
         
         dic = get_value(self,kwargs,'parameters',None)
-        param_file = get_value(self,kwargs,'config_file',None)
+#        param_file = get_value(self,kwargs,'config_file',None)
            
-        if param_file :
+        if config_file :
+            #--------------------------------------------------------------------- 
+            logger.info('reading parameter file {}\n'.format(config_file))
+            #---------------------------------------------------------------------             
+            
             params = pd.read_csv(param_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
 
             fix_list = [k for k in params.attrs if '=' in k ]
@@ -1102,20 +1085,41 @@ class schism(model):
                 
             params = params.set_index('attrs')
         else:
+            #--------------------------------------------------------------------- 
+            logger.info('using default parameter file ...\n')
+            #---------------------------------------------------------------------             
+            
             with open(DATA_PATH + 'dparams.pkl', 'rb') as f:
                               params=pickle.load(f)
         
+        #update key values
+        
+        params.loc['start_year'] = self.start_date.year
+        params.loc['start_month'] = self.start_date.month
+        params.loc['start_day'] = self.start_date.day
+        params.loc['start_hour'] = self.start_date.hour
+                
         #update 
         if dic :
             for key,val in dic.items():
                 params.loc[key] = val
-                    
+        
+        #test rnday
+        if np.float(params.loc['rnday'].values[0]) * 24 * 3600 > (self.end_date - self.start_date).total_seconds():
+            #--------------------------------------------------------------------- 
+            logger.warning('rnday larger than simulation range\n')
+            #---------------------------------------------------------------------             
+            
+        
         self.params = params
         
-        output = kwargs.get('output', False)
-                
+                        
         if output: 
             #save params 
+            #--------------------------------------------------------------------- 
+            logger.info('output param.in file ...\n')
+            #---------------------------------------------------------------------             
+            
             path = get_value(self,kwargs,'rpath','./') 
             self.params.to_csv(path + 'param.in', header=None, sep='=')  #save to file
 
@@ -1123,28 +1127,26 @@ class schism(model):
 # METEO
 #============================================================================================       
     def force(self,**kwargs):
-        z = self.__dict__.copy()
         
-        mpaths =  get_value(self,kwargs,'mpaths',None)        
+        meteo_files =  get_value(self,kwargs,'meteo_files',None)        
         
-        z.update({'mpaths':mpaths})
+        kwargs.update({'meteo_files':meteo_files})
         
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
         if flag :     
-            check=[os.path.exists(z['rpath']+'sflux/sflux_air_1.001.nc')] # for f in ['u.amu','v.amv','p.amp']]   
-            if (np.any(check)==False) :              
-                self.meteo = pmeteo.meteo(**z)
-            elif 'meteo' in flag : 
-                self.meteo = pmeteo.meteo(**z)        
+            if ('meteo' in flag) | ('all' in flag) : 
+                self.meteo = pmeteo.meteo(**kwargs)        
             else:
                 logger.info('skipping meteo ..\n')
         else:
-            self.meteo = pmeteo.meteo(**z)
+            self.meteo = pmeteo.meteo(**kwargs)
 
 
     @staticmethod 
     def to_force(ar0,**kwargs):
+        
+        logger.info('writing meteo files ..\n')
                 
         path = kwargs.get('rpath','./') 
         
@@ -1223,46 +1225,38 @@ class schism(model):
 #============================================================================================       
 
     def bath(self,**kwargs):
-        z = self.__dict__.copy()        
+ #       z = self.__dict__.copy()        
         
-        z['grid_x'] = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values
-        z['grid_y'] = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values
+        kwargs['grid_x'] = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values
+        kwargs['grid_y'] = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values
         
-        dpath =  get_value(self,kwargs,'dem',None)        
+        dpath =  get_value(self,kwargs,'dem_file',None)        
         
-        z.update({'dem':dpath})
+        kwargs.update({'dem_file':dpath})
                 
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
         if flag :
-            if 'dem' in flag :
-                self.dem = pdem.dem(**z)
+            if ('dem' in flag) | ('all' in flag) :
+                self.dem = pdem.dem(**kwargs)
             else:
                 logger.info('dem from grid file\n')
-        else:
-            if dpath:
-                self.dem = pdem.dem(**z)
-            else:
-                logger.info('dem from grid file\n')
-
 #============================================================================================        
 # EXECUTION
 #============================================================================================
-    def set(self,**kwargs):
+    def create(self,**kwargs):
 
-        if not kwargs : kwargs = self.kwargs
-
-        self.hgrid = kwargs.get('grid_file',None)
+        if not kwargs : kwargs = self.__dict__.copy()
                                          
         # Grid         
         self.grid=pgrid.grid(type='tri2d',**kwargs)
                  
         # set lat/lon from file
-        if self.hgrid:
-            self.minlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.min()
-            self.maxlon = self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.max()
-            self.minlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.min()
-            self.maxlat = self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.max()
+        if hasattr(self, 'grid_file'):
+            kwargs.update({'minlon' : self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.min()})
+            kwargs.update({'maxlon' : self.grid.impl.Dataset.SCHISM_hgrid_node_x.values.max()})
+            kwargs.update({'minlat' : self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.min()})
+            kwargs.update({'maxlat' : self.grid.impl.Dataset.SCHISM_hgrid_node_y.values.max()})
                                      
         # get bathymetry
         self.bath(**kwargs)
@@ -1340,8 +1334,8 @@ class schism(model):
             
             
         # save grid files 
-        if self.hgrid != path+'hgrid.gr3' :
-            copyfile(self.hgrid, path+'hgrid.gr3') #copy original grid file
+        if self.grid_file != path+'hgrid.gr3' :
+            copyfile(self.grid_file, path+'hgrid.gr3') #copy original grid file
             copyfile(path+'hgrid.gr3', path+'hgrid.ll')    
         else:
             logger.info('Keeping grid files ..\n')
@@ -1406,11 +1400,9 @@ class schism(model):
            try:
               self.to_force(self.meteo.uvp,vars=['msl','u10','v10'],rpath=path,**kwargs)
            except AttributeError as e:
-              print(e) 
+              logger.warning('no meteo data available.. no update..\n')
               pass
-
-             
-                                
+                              
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
                         
@@ -1440,6 +1432,9 @@ class schism(model):
         mode |= (mode & 0o444) >> 2    # copy R bits to X
         os.chmod(execf, mode)
 
+        #--------------------------------------------------------------------- 
+        logger.info('output done\n')
+        #--------------------------------------------------------------------- 
 
                                          
                 
@@ -1452,6 +1447,10 @@ class schism(model):
         ncores = get_value(self,kwargs,'ncores',1)
         
         conda_env = get_value(self,kwargs,'conda_env', None)
+
+        #--------------------------------------------------------------------- 
+        logger.info('executing model\n')
+        #--------------------------------------------------------------------- 
                 
             # note that cwd is the folder where the executable is
         ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
@@ -1483,16 +1482,16 @@ class schism(model):
              dic.update({'grid':grid.impl.__class__.__name__})
          
          dem=self.__dict__.get('dem', None)
-#         if isinstance(dem,np.str):
-#             dic.update({'dem':dem})
-#         elif isinstance(dem,pdem.dem):
-#             dic.update({'dem':dem.impl.__class__.__name__})
+         if isinstance(dem,np.str):
+             dic.update({'dem':dem})
+         elif isinstance(dem,pdem.dem):
+             dic.update({'dem': dem.altimetry.elevation.attrs})
 
          meteo=self.__dict__.get('meteo', None)
-#         if isinstance(meteo,np.str):
-#             dic.update({'meteo':meteo})
-#         elif isinstance(meteo,pmeteo.meteo):
-#             dic.update({'meteo':meteo.impl.__class__.__name__})
+         if isinstance(meteo,np.str):
+             dic.update({'meteo':meteo})
+         elif isinstance(meteo,pmeteo.meteo):
+             dic.update({'meteo':meteo.uvp.attrs})
 
          dic['version']=pyPoseidon.__version__
 
@@ -1503,4 +1502,12 @@ class schism(model):
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
              if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
              if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
-         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)      
+         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)     
+         
+         
+    def execute(self,**kwargs):
+        
+        self.create(**kwargs)
+        self.output(**kwargs) 
+        self.save(**kwargs)
+        self.run(**kwargs)

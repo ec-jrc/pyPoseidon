@@ -36,9 +36,9 @@ logger.addHandler(stream_handler)
 
 
 class dem:
-    def __init__(self, dem=None, **kwargs):
-        if not dem : dem = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus'
-        self.altimetry = dem_(source = dem, **kwargs)     
+    def __init__(self, dem_file=None, **kwargs):
+        if not dem_file : dem_file = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus'
+        self.altimetry = dem_(source = dem_file, **kwargs)     
      
     def adjust(self,shpfile,**kwargs):
          

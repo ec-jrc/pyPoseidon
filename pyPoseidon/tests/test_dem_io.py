@@ -33,11 +33,7 @@ def schism(tmpdir,kwargs):
     #get dem 
     df = pdem.dem(**kwargs)
 
-    new = df.altimetry.ival # get the interpolated values
-    new = new.rename({'k':'nSCHISM_hgrid_node'}) # rename coord
-    new.name = 'depth' # set correct name
-    
-    grid.impl.Dataset['depth'] = new # assign
+    grid.impl.Dataset['depth'].loc[:] = -df.altimetry.ival.values
 
     filename_ = str(tmpdir.join('hgrid_.gr3'))
     #output to grid file

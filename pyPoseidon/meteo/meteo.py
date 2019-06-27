@@ -128,7 +128,7 @@ def regrid(ds):
 
 class meteo:
    
-    def __init__(self, mfiles=None, engine=None, url=None, **kwargs):
+    def __init__(self, meteo_files=None, engine=None, url=None, **kwargs):
         
         """Read meteo data from variable sources.
  
@@ -149,43 +149,50 @@ class meteo:
              
         if not url : url = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best'
         
-        if mfiles:                    
+        if meteo_files:                    
             if engine == 'cfgrib' :
-                self.uvp = cfgrib(mfiles, **kwargs)
+                self.uvp = cfgrib(meteo_files, **kwargs)
             elif engine == 'pynio' :
-                self.uvp = pynio(mfiles, **kwargs)
+                self.uvp = pynio(meteo_files, **kwargs)
             elif engine == 'netcdf' :
-                self.uvp = netcdf(mfiles, **kwargs)         
+                self.uvp = netcdf(meteo_files, **kwargs)
+            else:
+                if 'grib' in meteo_files[0].split('.')[-1]:
+                    self.uvp = cfgrib(meteo_files, **kwargs)
+                elif 'nc' in mfiles[0].split('.')[-1]:  
+                    self.uvp = netcdf(meteo_files, **kwargs)
+                           
         else:        
             self.uvp = from_url(url=url, **kwargs)
                         
         
 
-def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, range=None, ft1=0, ft2=-1, dft=1, combine=False, **kwargs):
+def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
 
-    start_date = kwargs.get('start_date', None)
     try:
         start_date = pd.to_datetime(start_date)
     except:
         pass
 
-    if 'time_frame' in kwargs:
-      time_frame = kwargs.get('time_frame', None)
-      end_date = start_date + pd.to_timedelta(time_frame)
+    if time_frame:
+        try:
+            end_date = start_date + pd.to_timedelta(time_frame)
+        except:
+            pass            
     else:
-      end_date = kwargs.get('end_date', None)
-      try:
-          end_date = pd.to_datetime(end_date)
-          time_frame = end_date - start_date
-      except:
-          pass
+        try:
+            end_date = pd.to_datetime(end_date)
+        except:
+            pass
 
+    ft1, ft2, dft = irange
+        
     ts = pd.to_datetime(start_date)
     te = pd.to_datetime(end_date)     
-
+    
     #--------------------------------------------------------------------- 
     logger.info('extracting meteo')
     #---------------------------------------------------------------------      
@@ -226,22 +233,18 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, r
     if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
                     
     
-    if not ts : ts = data.time.data.min()
-    if not te : te = data.time.data.max()
-
-    ts = data.time.data[ft1]
-
-    te = data.time.data[ft2]
-
+    if not ts : ts = data.time.data[ft1]
+    if not te : te = data.time.data[ft2]
+        
 
     if ts < data.time.data.min() :
         logger.warning('coverage between {} and {} \n'.format(pd.to_datetime(data.valid_time.min().values).strftime('%Y.%m.%d %H:%M:%S'),pd.to_datetime(data.valid_time.max().values).strftime('%Y.%m.%d %H:%M:%S')))
-        logger.error('time frame not available')
+        logger.error('time frame does not match source range\n')
         sys.exit(1)
   
     if te > data.time.data.max() :
         logger.warning('coverage between {} and {} \n'.format(pd.to_datetime(data.valid_time.min().values).strftime('%Y.%m.%d %H:%M:%S'),pd.to_datetime(data.valid_time.max().values).strftime('%Y.%m.%d %H:%M:%S')))
-        logger.error('time frame not available\n')
+        logger.error('time frame does not match source range\n')
         sys.exit(1)
 
 
@@ -325,30 +328,30 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, r
 
 
     
-def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, range=None, ft1=0, ft2=-1, dft=1, combine=False, **kwargs):
+def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, **kwargs):
     
     backend_kwargs = kwargs.get('backend_kwargs', {})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
     if 'preprocess' in xr_kwargs.keys():
         xr_kwargs['preprocess'] = fix_my_data        
 
-
-    start_date = kwargs.get('start_date', None)
     try:
         start_date = pd.to_datetime(start_date)
     except:
         pass
 
-    if 'time_frame' in kwargs:
-      time_frame = kwargs.get('time_frame', None)
-      end_date = start_date + pd.to_timedelta(time_frame)
+    if time_frame:
+        try:
+            end_date = start_date + pd.to_timedelta(time_frame)
+        except:
+            pass            
     else:
-      end_date = kwargs.get('end_date', None)
-      try:
-          end_date = pd.to_datetime(end_date)
-          time_frame = end_date - start_date
-      except:
-          pass
+        try:
+            end_date = pd.to_datetime(end_date)
+        except:
+            pass
+
+    ft1, ft2, dft = irange
 
 
     ts = pd.to_datetime(start_date)
@@ -408,12 +411,8 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, ra
 
    
     
-    if not ts : ts = data.time.data.min()
-    if not te : te = data.time.data.max()
-
-    ts = data.time.data[ft1]
-
-    te = data.time.data[ft2]
+    if not ts : ts = data.time.data[ft1]
+    if not te : te = data.time.data[ft2]
 
 
     if ts < data.time.data.min() :
@@ -495,13 +494,26 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, ra
 
 
 
-def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, **kwargs):
-                            
-    ts = kwargs.get('start_date', None)
-    te = kwargs.get('end_date', None)
+def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, **kwargs):
+    
+    try:
+        start_date = pd.to_datetime(start_date)
+    except:
+        pass
 
-    ts = pd.to_datetime(ts)
-    te = pd.to_datetime(te)     
+    if time_frame:
+        try:
+            end_date = start_date + pd.to_timedelta(time_frame)
+        except:
+            pass            
+    else:
+        try:
+            end_date = pd.to_datetime(end_date)
+        except:
+            pass
+     
+    ts = pd.to_datetime(start_date)
+    te = pd.to_datetime(end_date)     
 
     #--------------------------------------------------------------------- 
     logger.info('extracting meteo from {}.html\n'.format(url))
