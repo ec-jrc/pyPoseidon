@@ -128,7 +128,9 @@ Construct and manage a hydrodynamic model based on different solvers.
         end = filename.split('.')[-1]
 
         if end in ['txt','json'] :
-            info = pd.read_json(filename,lines=True).T.to_dict()[0]
+            info = pd.read_json(filename,lines=True).T
+            info[info.isnull().values] = None
+            info = info.to_dict()[0]
         elif end in ['pkl']:
             info = pd.read_pickle(filename)
         
@@ -641,7 +643,7 @@ class d3d(model):
         flag = get_value(self,kwargs,'update',[]) 
 
         if ofilename:
-        
+
             obs_points = pd.read_csv(ofilename,delimiter='\t',header=None,names=['index','Name','lat','lon'])
             obs_points = obs_points.set_index('index',drop=True).reset_index(drop=True) #reset index if any
             
@@ -996,6 +998,13 @@ class d3d(model):
 
         return idx,jdx
 
+
+    def execute(self,**kwargs):
+        
+        self.create(**kwargs)
+        self.output(**kwargs) 
+        self.save(**kwargs)
+        self.run(**kwargs)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
