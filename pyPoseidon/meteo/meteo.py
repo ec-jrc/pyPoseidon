@@ -41,6 +41,17 @@ logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
 
+
+def erddap():
+    
+    links = [
+            'http://oos.soest.hawaii.edu/erddap/griddap/NCEP_Global_Best',
+            'https://cidportal.jrc.ec.europa.eu/services/erddap/griddap/NCEP_Global_Best',
+            'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best',
+             ]
+    return links
+
+
 def reduced_gg(dc):
     
     logger.info('regriding meteo')
@@ -146,9 +157,7 @@ class meteo:
         retrieved : xarray DataSet
 
         """
-             
-        if not url : url = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best'
-        
+                     
         if meteo_files:                    
             if engine == 'cfgrib' :
                 self.uvp = cfgrib(meteo_files, **kwargs)
@@ -163,7 +172,7 @@ class meteo:
                     self.uvp = netcdf(meteo_files, **kwargs)
                            
         else:        
-            self.uvp = from_url(url=url, **kwargs)
+            self.uvp = from_url(**kwargs)
                         
         
 
@@ -496,6 +505,7 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
 
 def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, **kwargs):
     
+    
     try:
         start_date = pd.to_datetime(start_date)
     except:
@@ -515,10 +525,20 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
     ts = pd.to_datetime(start_date)
     te = pd.to_datetime(end_date)     
 
+    
+    if not url:
+        for link in erddap():
+            try:
+                data = xr.open_dataset(link)
+                url = link
+                break
+            except:
+                continue
+                 
     #--------------------------------------------------------------------- 
     logger.info('extracting meteo from {}.html\n'.format(url))
     #---------------------------------------------------------------------      
-    
+        
     data = xr.open_dataset(url)  
     
     try:

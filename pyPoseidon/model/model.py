@@ -91,10 +91,7 @@ Construct and manage a hydrodynamic model based on different solvers.
         
     def uvp(self,**kwargs):
         self.impl.uvp(**kwargs)
-                  
-    def pickle(self,**kwargs):
-        self.impl.pickle(**kwargs)
-            
+                              
     def run(self,**kwargs):
         self.impl.run(**kwargs)
         
@@ -234,15 +231,7 @@ class d3d(model):
         
         self.epath = kwargs.get('epath', None)
         
-        self.Tstart = self.start_date.hour*60     
-        self.Tstop = self.Tstart + int(pd.to_timedelta(self.time_frame).total_seconds()/60)
 
-        self.step = get_value(self,kwargs,'step',0)
-        self.rstep = get_value(self,kwargs,'rstep',0)
-        self.ostep = get_value(self,kwargs,'ostep',1)
-                                               
-        if self.rstep == 'end': # save a restart file at the end
-            self.rstep = int(self.time_frame.total_seconds()/60)                          
                                              
         for attr, value in kwargs.items():
                 if not hasattr(self, attr): setattr(self, attr, value)
@@ -281,7 +270,8 @@ class d3d(model):
             self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##'
    
         # adjust ni,nj
-        self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(self.ni+1,self.nj+1,1)  # add one like ddb
+        nj, ni = self.grid.impl.Dataset.lons.shape
+        self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(ni+1,nj+1,1)  # add one like ddb
   
         # adjust iteration date
         self.mdf.loc[self.mdf.index.str.contains('Itdate')]='#{}#'.format(self.date.strftime(format='%Y-%m-%d'))
@@ -290,16 +280,26 @@ class d3d(model):
         self.mdf.loc[self.mdf.index.str.contains('Tunit')]='#M#'
 
         #adjust iteration start
-        self.mdf.loc[self.mdf.index.str.contains('Tstart')]=self.Tstart
+        Tstart = self.start_date.hour*60            
+        self.mdf.loc[self.mdf.index.str.contains('Tstart')]=Tstart
   
         #adjust iteration stop
-        self.mdf.loc[self.mdf.index.str.contains('Tstop')]=self.Tstop
+        Tstop = Tstart + int(pd.to_timedelta(self.time_frame).total_seconds()/60)
+        self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
     
         #adjust time for output
-        self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{:d} {:d} {:d}'.format(self.Tstart,self.step,self.Tstop)
-        self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{:d} {:d} {:d}'.format(self.Tstart,self.ostep,self.Tstop)
-        self.mdf.loc[self.mdf.index.str.contains('Flpp')]='0 0 0'
-        self.mdf.loc[self.mdf.index.str.contains('Flrst')]=self.rstep
+        mstep = kwargs.get('map_step',0)
+        hstep = kwargs.get('his_step',0)
+        pstep = kwargs.get('pp_step',0)
+        rstep = kwargs.get('restart_step',0)
+                                               
+        if rstep == -1: # save a restart file at the end
+            rstep = Tstop                          
+        
+        self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{:d} {:d} {:d}'.format(Tstart,mstep,Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{:d} {:d} {:d}'.format(Tstart,hstep,Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flpp')]='{:d} {:d} {:d}'.format(Tstart,pstep,Tstop)
+        self.mdf.loc[self.mdf.index.str.contains('Flrst')]=rstep
   
         #time interval to smooth the hydrodynamic boundary conditions
         self.mdf.loc[self.mdf.index.str.contains('Tlfsmo')]=0.
@@ -356,10 +356,7 @@ class d3d(model):
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
         if flag :     
-            check=[os.path.exists(z['rpath']+f) for f in ['u.amu','v.amv','p.amp']]   
-            if (np.any(check)==False) :              
-                self.meteo = pmeteo.meteo(**kwargs)
-            elif 'meteo' in flag : 
+            if ('meteo' in flag) | ('all' in flag): 
                 self.meteo = pmeteo.meteo(**kwargs)        
             else:
                 logger.info('skipping meteo files ..\n')
@@ -640,7 +637,8 @@ class d3d(model):
     def to_obs(self,**kwargs):
         #save obs
         
-        ofilename = get_value(self,kwargs,'ofilename',None) 
+        ofilename = get_value(self,kwargs,'ofilename',None)
+        flag = get_value(self,kwargs,'update',[]) 
 
         if ofilename:
         
@@ -680,8 +678,7 @@ class d3d(model):
             
             if flag :
         
-                check=[os.path.exists(self.rpath+'{}.obs'.format(self.tag))]   
-                if (np.any(check)==False) or ('model' in flag) :
+                if ('all' in flag) | ('model' in flag) :
         
                     # Add one in the indices due to python/fortran convention
                     with open(self.rpath+'{}.obs'.format(self.tag),'w') as f: 
@@ -797,14 +794,7 @@ class d3d(model):
         ex.stdout.close()  
         ex.stderr.close() 
 
-    
-    def pickle(self,**kwargs):
-        
-         path = get_value(self,kwargs,'rpath','./')  
-        
-         with open(path+self.tag+'.pkl', 'wb') as f:
-               pickle.dump(self.__dict__,f)
-        
+            
     def save(self,**kwargs):
                
          path = get_value(self,kwargs,'rpath','./')
@@ -819,16 +809,16 @@ class d3d(model):
              dic.update({'grid':grid.impl.__class__.__name__})
          
          dem=self.__dict__.get('dem', None)
-#         if isinstance(dem,np.str):
-#             dic.update({'dem':dem})
-#         elif isinstance(dem,pdem.dem):
-#             dic.update({'dem':dem.impl.__class__.__name__})
+         if isinstance(dem,np.str):
+             dic.update({'dem':dem})
+         elif isinstance(dem,pdem.dem):
+             dic.update({'dem': dem.altimetry.elevation.attrs})
 
          meteo=self.__dict__.get('meteo', None)
-#         if isinstance(meteo,np.str):
-#             dic.update({'meteo':meteo})
-#         elif isinstance(meteo,pmeteo.meteo):
-#             dic.update({'meteo':meteo.impl.__class__.__name__})
+         if isinstance(meteo,np.str):
+             dic.update({'meteo':meteo})
+         elif isinstance(meteo,pmeteo.meteo):
+             dic.update({'meteo':meteo.uvp.attrs})
 
          dic['version']=pyPoseidon.__version__
                   
@@ -856,6 +846,7 @@ class d3d(model):
         slevel = get_value(self,kwargs,'slevel',0.) 
         flag = get_value(self,kwargs,'update',[])
         
+        nj, ni = self.grid.impl.Dataset.lons.shape
         
         if not os.path.exists(path):
             os.makedirs(path)
@@ -865,9 +856,7 @@ class d3d(model):
         
         # save grid file
         if flag:
-            # check if files exist
-            check=[os.path.exists(self.rpath+'{}.grd'.format(self.tag))]   
-            if (np.any(check)==False) or ('grid' in flag ) :
+            if ('all' in flag) | ('grid' in flag ) :
             #save grid
                 self.grid.impl.to_file(filename = path+self.tag+'.grd')
             else:
@@ -894,26 +883,25 @@ class d3d(model):
         #save enc file
         if flag :
         
-            check=[os.path.exists(self.rpath+'{}.enc'.format(self.tag))]   
-            if (np.any(check)==False) or ('model' in flag) :
+            if ('all' in flag) | ('model' in flag) :
             #save enc
             #write enc out
                 with open(path+self.tag+'.enc','w') as f:
-                    f.write('{:>5}{:>5}\n'.format(self.ni+1,1))  # add one like ddb
-                    f.write('{:>5}{:>5}\n'.format(self.ni+1,self.nj+1))
-                    f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
+                    f.write('{:>5}{:>5}\n'.format(ni+1,1))  # add one like ddb
+                    f.write('{:>5}{:>5}\n'.format(ni+1,nj+1))
+                    f.write('{:>5}{:>5}\n'.format(1,nj+1))
                     f.write('{:>5}{:>5}\n'.format(1,1))
-                    f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
+                    f.write('{:>5}{:>5}\n'.format(ni+1,1))
                 
         else:
             
             #write enc out
             with open(path+self.tag+'.enc','w') as f:
-                f.write('{:>5}{:>5}\n'.format(self.ni+1,1))  # add one like ddb
-                f.write('{:>5}{:>5}\n'.format(self.ni+1,self.nj+1))
-                f.write('{:>5}{:>5}\n'.format(1,self.nj+1))
+                f.write('{:>5}{:>5}\n'.format(ni+1,1))  # add one like ddb
+                f.write('{:>5}{:>5}\n'.format(ni+1,nj+1))
+                f.write('{:>5}{:>5}\n'.format(1,nj+1))
                 f.write('{:>5}{:>5}\n'.format(1,1))
-                f.write('{:>5}{:>5}\n'.format(self.ni+1,1))
+                f.write('{:>5}{:>5}\n'.format(ni+1,1))
             
         
         
