@@ -7,6 +7,9 @@
 # the local test folder 
 examples/test
 
+# the local Notebook folder
+Notebooks
+
 # dotx files
 *.dotx
 
