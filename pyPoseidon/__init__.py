@@ -14,3 +14,9 @@ __all__ = [
     'utils',
     'tide'
 ]
+
+
+from .model import model
+from .grid import grid
+from .meteo import meteo
+from .dem import dem

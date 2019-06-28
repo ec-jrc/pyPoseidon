@@ -9,28 +9,71 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
+# copy structure from xarray/xarray-extras setup
 
 
-setup(name='pyPoseidon',
-      version='0.4.0',
-      description='Storm Surge analysis tool',
-      long_description=readme(),
-      url='https://github.com/brey/pyPoseidon',
-      author='George Breyiannis',
-      author_email='gbreyiannis@gmail.com',
-      license='EUPL 1.2',
-      packages=find_packages(),
-      classifiers=[
-          'Programming Language :: Python',
-          'License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)',
-          'Operating System :: OS Independent',
-          'Development Status :: 4 - Beta',
-          'Environment :: Other Environment',
-          'Intended Audience :: Developers',
-          'Intended Audience :: Science/Research',
-          'Topic :: Scientific/Engineering :: Atmospheric Science',
-      ],
-      package_data={'pyPoseidon': ['misc/*','tests/data/*']},
-      zip_safe=False)
 
+DISTNAME = 'pyPoseidon'
+
+MAJOR = 0
+MINOR = 4
+MICRO = 0
+ISRELEASED = False
+VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+QUALIFIER = ''
+
+
+
+LICENSE = 'EUPL 1.2'
+
+AUTHOR = 'George Breyiannis'
+
+AUTHOR_EMAIL = 'pyPoseidon@gmail.com'
+
+
+CLASSIFIERS = [
+    'License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)',
+    'Operating System :: OS Independent',
+    'Development Status :: 4 - Beta',
+    'Environment :: Other Environment',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'Topic :: Scientific/Engineering :: Atmospheric Science',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7'
+        ]
+
+DESCRIPTION = ''          
+    
+LONG_DESCRIPTION = ''
+
+PYTHON_REQUIRES = ''
+
+INSTALL_REQUIRES = ''
+
+SETUP_REQUIRES = ''
+
+
+TESTS_REQUIRE = ['pytest >= 3.6']
+
+URL = ''  
+ 
    
+setup(name=DISTNAME,
+      version=VERSION,
+      license=LICENSE,
+      author=AUTHOR,
+      author_email=AUTHOR_EMAIL,
+      classifiers=CLASSIFIERS,
+      description=DESCRIPTION,
+      long_description=LONG_DESCRIPTION,
+      python_requires=PYTHON_REQUIRES,
+      install_requires=INSTALL_REQUIRES,
+      setup_requires=SETUP_REQUIRES,
+      tests_require=TESTS_REQUIRE,
+      url=URL,
+      packages=find_packages(),
+      package_data={'pyPoseidon': ['misc/*','tests/data/*']})
