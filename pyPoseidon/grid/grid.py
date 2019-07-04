@@ -19,13 +19,13 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
 
 file_handler = logging.FileHandler('grid.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-sformatter = logging.Formatter('%(message)s')
+sformatter = logging.Formatter('%(levelname)-8s %(message)s')
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(sformatter)
 

@@ -3,7 +3,7 @@ Data analysis module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon, a software written by George Breyiannis (JRC E.1)
+# This file is part of pyPoseidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
@@ -33,13 +33,13 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
 
 file_handler = logging.FileHandler('data.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-sformatter = logging.Formatter('%(message)s')
+sformatter = logging.Formatter('%(levelname)-8s %(message)s')
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(sformatter)
 
@@ -196,18 +196,18 @@ class schism(data):
         logger.info('Combining output\n')
         
         
-        inu = len(glob.glob(self.folders[0] + 'outputs/schout_000*_1.nc'))
+        inu = len(glob.glob(self.folders[0] + '/outputs/schout_000*_1.nc'))
         
         datai=[]
         
         for folder in self.folders:
                         
             #netcdf files combined by autocombine_MPI_elfe.pl
-            cfiles = glob.glob(folder+'outputs/schout_0.nc') + glob.glob(folder+'outputs/schout_[!00]*.nc')
+            cfiles = glob.glob(folder+'/outputs/schout_0.nc') + glob.glob(folder+'/outputs/schout_[!00]*.nc')
             cfiles.sort()
             if cfiles :
                 #read grid data
-                gr = xr.open_mfdataset(folder + 'outputs/schout_0.nc', drop_variables=['time'])
+                gr = xr.open_mfdataset(folder + '/outputs/schout_0.nc', drop_variables=['time'])
                 #read the rest..
                 var = xr.open_mfdataset(cfiles[1:], drop_variables=gr.variables.keys())
   
@@ -215,13 +215,13 @@ class schism(data):
                 continue
             
             #already saved complete netcdf
-            cfile = glob.glob(folder+'outputs/schout.nc')
+            cfile = glob.glob(folder+'/outputs/schout.nc')
             if cfile :
                 datai.append(xr.open_mfdataset(cfile))
                 continue
             
             #COMBINE ON THE FLY   
-            gtol = glob.glob(folder+'outputs/global*') #get the global_to_local file
+            gtol = glob.glob(folder+'/outputs/global*') #get the global_to_local file
 
             gindx = pd.read_csv(gtol[0],header=None,delim_whitespace=True) # read the file
             
@@ -230,7 +230,7 @@ class schism(data):
             gindx.columns=['dist'] # rename the column to dist[ribution]
             
             
-            gfiles = glob.glob(folder+'outputs/local*') # Read the global node index distribution to the cores
+            gfiles = glob.glob(folder+'/outputs/local*') # Read the global node index distribution to the cores
             gfiles.sort() # sort them
             
             #create a dict from filenames to identify parts in the dataframes below
@@ -317,7 +317,7 @@ class schism(data):
             tri = pd.concat(eframes,keys=keys)
 
             # read output netcdf files
-            files = glob.glob(folder+'outputs/schout_0*_*.nc')
+            files = glob.glob(folder+'/outputs/schout_0*_*.nc')
             
             cores = [int(x.split('_')[-2]) for x in files]
             
@@ -681,7 +681,7 @@ class schism(data):
             savenc = kwargs.get('savenc',False)
             
             if savenc :
-                dat.to_netcdf(folder+'outputs/schout.nc')                             
+                dat.to_netcdf(folder+'/outputs/schout.nc')                             
     
 
         self.Dataset = xr.merge(datai) #save final xarray

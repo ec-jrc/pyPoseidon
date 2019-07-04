@@ -5,7 +5,7 @@ Currently supported : DELFT3D , SCHISM
                
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon, a software written by George Breyiannis (JRC E.1)
+# This file is part of pyPoseidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
@@ -39,13 +39,13 @@ from pyPoseidon.utils.get_value import get_value
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
 
 file_handler = logging.FileHandler('model.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-sformatter = logging.Formatter('%(message)s')
+sformatter = logging.Formatter('%(levelname)-8s %(message)s')
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(sformatter)
 
@@ -141,6 +141,8 @@ Construct and manage a hydrodynamic model based on different solvers.
                 
         s = glob.glob(rfolder + '/param*')
         d = glob.glob(rfolder + '/*.mdf')
+        mfiles = glob.glob(rfolder + '/sflux/*.nc')
+        
                 
         if s : 
             hfile = rfolder + '/hgrid.gr3' # Grid
@@ -159,25 +161,32 @@ Construct and manage a hydrodynamic model based on different solvers.
                 
             b.params = params.set_index('attrs')
             b.grid = pgrid.grid(type='tri2d',grid_file=hfile)
+            
+            b.meteo = xr.open_mfdataset(mfiles) # Meteo
+            
                                 
         elif d :
             gfile = glob.glob(rfolder + '/*.grd') # Grid
             dfile = glob.glob(rfolder + '/*.dep') # bathymetry
+            u = glob.glob(rfolder + '/*.amu') # meteo
+            v = glob.glob(rfolder + '/*.amv') 
+            p = glob.glob(rfolder + '/*.amp') 
+            
             
             b = d3d()
+            #config
             b.mdf = pd.read_csv(d[0],sep='=')
             b.mdf = b.mdf.set_index(b.mdf.columns[0]) # set index
+            #grid
             b.grid = pgrid.grid('r2d',grid_file=gfile[0])
             #bath
-            rdem = np.loadtxt(dfile[0])
-            zx=b.grid.impl.Dataset.lons.values
-            zy=b.grid.impl.Dataset.lats.values
-            
-            b.dem = xr.Dataset({'ival': (['ilat', 'ilon'],  rdem[:-1,:-1]), 
-                             'ilons': (['k', 'l'], zx),   
-                             'ilats': (['k', 'l'], zy)}, 
-                             coords={'ilon': ('ilon', zx[0,:]),   
-                                     'ilat': ('ilat', zy[:,0])})         
+            b.dem = d3d.from_dep(dfile[0])                     
+            #meteo
+            mf=[]
+            mf.append(d3d.from_force(u[0],'u10')) 
+            mf.append(d3d.from_force(v[0],'v10')) 
+            mf.append(d3d.from_force(p[0],'msl'))            
+            b.meteo = xr.merge(mf)           
                                                             
         else:
             #---------------------------------------------------------------------
@@ -209,14 +218,14 @@ class d3d(model):
             time_frame = kwargs.get('time_frame', None)
             self.end_date = self.start_date + pd.to_timedelta(time_frame)
             self.time_frame = time_frame
-        else:
+        elif 'end_date' in kwargs:
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
             self.time_frame = self.end_date - self.start_date            
         
         if not hasattr(self, 'date'): self.date = self.start_date
         
-        if self.end_date == None : 
+        if not hasattr(self, 'end_date'): 
             #--------------------------------------------------------------------- 
             logger.warning('model not set properly, No end_date\n')
             #--------------------------------------------------------------------- 
@@ -224,7 +233,7 @@ class d3d(model):
         
         self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
-        self.irange = kwargs.get('irange', None)
+        self.irange = kwargs.get('irange', [0,-1,1])
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
         self.ofilename = kwargs.get('ofilename', None)
@@ -272,7 +281,7 @@ class d3d(model):
             self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##'
    
         # adjust ni,nj
-        nj, ni = self.grid.impl.Dataset.lons.shape
+        nj, ni = self.nj, self.ni
         self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(ni+1,nj+1,1)  # add one like ddb
   
         # adjust iteration date
@@ -290,10 +299,10 @@ class d3d(model):
         self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
     
         #adjust time for output
-        mstep = kwargs.get('map_step',0)
-        hstep = kwargs.get('his_step',0)
-        pstep = kwargs.get('pp_step',0)
-        rstep = kwargs.get('restart_step',0)
+        mstep = get_value(self,kwargs,'map_step',0)
+        hstep = get_value(self,kwargs,'his_step',0)
+        pstep = get_value(self,kwargs,'pp_step',0)
+        rstep = get_value(self,kwargs,'restart_step',0)
                                                
         if rstep == -1: # save a restart file at the end
             rstep = Tstop                          
@@ -364,6 +373,71 @@ class d3d(model):
                 logger.info('skipping meteo files ..\n')
         else:
             self.meteo = pmeteo.meteo(**kwargs)
+
+
+    @staticmethod 
+    def from_force(filename=None, name=None):
+
+        df = pd.read_csv(filename,header=0, names=['data'], index_col=None, low_memory=False)
+
+        tlines = df[df.data.str.contains('TIME')].index # rows which start with TIME
+
+        # get attrs
+        d1 = df.loc[0:tlines[0]-1,'data'].str.split('=', 2, expand=True)
+        d1.columns=['key','value'] # assign column names
+        d1.key = d1.key.str.strip() # cleanup spaces
+        d1.value = d1.value.str.strip()
+        attrs = dict(zip(d1.key, d1.value)) # create dict
+        for key in ['n_cols','n_rows','n_quantity']: # str -> int
+            attrs[key] = int(attrs[key])
+    
+        for key in ['x_llcenter','dx','y_llcenter','dy','NODATA_value']:
+            attrs[key] = float(attrs[key])
+
+        # get time reference
+        d2 = df.loc[tlines, 'data'].str.split('=', 2, expand=True)
+        d2 = d2.drop(d2.columns[0], axis=1)
+        d2.columns=['data']
+        d2 = d2.loc[:,'data'].str.split(' ', 4, expand=True)
+        d2 = d2.drop(d2.columns[[0,2,3]], axis=1)
+        d2.columns = ['hours','time0']
+        d2.hours = d2.hours.apply(pd.to_numeric)
+        d2.time0 = pd.to_datetime(d2.time0.values)
+        d2 = d2.reset_index(drop=True)
+        #create timestamps
+        time=[]
+        for i in range(d2.shape[0]):
+            time.append(d2.time0[0] + pd.DateOffset(hours=int(d2.loc[i,'hours'])))
+        d2['time']=time
+
+        #get the float numbers
+        d3 = df.drop(np.arange(0,tlines[0]))
+        d3 = d3.drop(tlines)
+
+        #    data = []
+        #    for i in range(d3.values.shape[0]):
+        #        row = d3.values[i][0].split(' ')
+        #        row = [np.float(x) for x in row]
+        #        data.append(row)
+        #    data = np.array(data) # make array
+
+        data = d3[d3.columns[0]].str.split(' ', attrs['n_cols'], expand=True).to_numpy().astype(float)
+
+        data = data.reshape(d2.shape[0],attrs['n_rows'], attrs['n_cols']) # reshape
+
+        #define lat/lon
+        lon = [attrs['x_llcenter'] + attrs['dx'] * i for i in np.arange(attrs['n_cols'])]
+        lat = [attrs['y_llcenter'] + attrs['dy'] * i for i in np.arange(attrs['n_rows'])]
+
+        #create an xarray
+        da = xr.DataArray(data, dims=['time','latitude','longitude'],
+                             coords={'time': d2.time, 'latitude':lat, 'longitude':lon}, name=name)
+
+        da.attrs = attrs
+                
+        return da
+
+
 
 
     @staticmethod 
@@ -646,54 +720,64 @@ class d3d(model):
 
             obs_points = pd.read_csv(ofilename,delimiter='\t',header=None,names=['index','Name','lat','lon'])
             obs_points = obs_points.set_index('index',drop=True).reset_index(drop=True) #reset index if any
-            
+
             obs_points = obs_points[(obs_points.lon.between(self.grid.impl.Dataset.lons.values.min(),self.grid.impl.Dataset.lons.values.max())) 
                                     & (obs_points.lat.between(self.grid.impl.Dataset.lats.values.min(),self.grid.impl.Dataset.lats.values.max()))]
-        
+
             obs_points.reset_index(inplace=True,drop=True)
-            
+
+            try :
+                 bat = -self.dem.altimetry.fval.values.astype(float) #reverse for the hydro run/use the adjusted values
+            #     mask = bat==999999
+            except AttributeError:    
+                 bat = -self.dem.altimetry.ival.values.astype(float) #reverse for the hydro run/revert to interpolated values
+
             b=np.ma.masked_array(bat,np.isnan(bat)) # mask land
-        
+
             i_indx, j_indx = self.vpoints(self.grid.impl.Dataset,obs_points,b,**kwargs)
-                    
+    
             obs_points['i']=i_indx
             obs_points['j']=j_indx
-        
+
             #drop NaN points
             obs = obs_points.dropna().copy()
-        
+
             obs = obs.reset_index(drop=True) #reset index
-        
+
             obs['i']=obs['i'].values.astype(int)
             obs['j']=obs['j'].values.astype(int)
             obs['new_lat']=self.grid.impl.Dataset.y[obs.i.values].values #Valid point
             obs['new_lon']=self.grid.impl.Dataset.x[obs.j.values].values 
-        
+
             self.obs = obs #store it
-          
+
             obs.Name = obs.Name.str.strip().apply(lambda name:name.replace(' ', '')) #Remove spaces to write to file
             sort = sorted(obs.Name.values,key=len) # sort the names to get the biggest word
             try:
                 wsize = len(sort[-1])# size of bigget word in order to align below
             except:
                 pass
-            
-            if flag :
-        
-                if ('all' in flag) | ('model' in flag) :
-        
-                    # Add one in the indices due to python/fortran convention
+
+        if flag :
+
+            if ('all' in flag) | ('model' in flag) :
+
+                # Add one in the indices due to python/fortran convention
+                try:
                     with open(self.rpath+'{}.obs'.format(self.tag),'w') as f: 
                         for l in range(obs.shape[0]): 
                             f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
+                except: #TODO
+                    pass
 
-         
-            else:
-                # Add one in the indices due to python/fortran convention
+        else:
+            try:
+            # Add one in the indices due to python/fortran convention
                 with open(self.rpath+'{}.obs'.format(self.tag),'w') as f:
                     for l in range(obs.shape[0]): 
                         f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
-              
+            except:
+                pass
 
     
 #============================================================================================        
@@ -713,9 +797,10 @@ class d3d(model):
             kwargs.update({'minlat' : self.grid.impl.Dataset.y.values.min()})
             kwargs.update({'maxlat' : self.grid.impl.Dataset.y.values.max()})
             
-            nj, ni  = self.grid.impl.Dataset.lons.shape
-            
-            kwargs.update({'ni':ni, 'nj':nj})                         
+        nj, ni  = self.grid.impl.Dataset.lons.shape
+        self.nj, self.ni  = nj, ni
+        
+        kwargs.update({'ni':ni, 'nj':nj})                         
         
         # get bathymetry
         self.bath(**kwargs)
@@ -1036,7 +1121,7 @@ class schism(model):
 
         if not hasattr(self, 'date'): self.date = self.start_date
         
-        if self.end_date == None : 
+        if not hasattr(self, 'end_date'):
             #--------------------------------------------------------------------- 
             logger.warning('model not set properly, No end_date\n')
             #--------------------------------------------------------------------- 
@@ -1068,7 +1153,7 @@ class schism(model):
             logger.info('reading parameter file {}\n'.format(config_file))
             #---------------------------------------------------------------------             
             
-            params = pd.read_csv(param_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
+            params = pd.read_csv(config_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
 
             fix_list = [k for k in params.attrs if '=' in k ]
 
@@ -1406,11 +1491,11 @@ class schism(model):
         bin_path = get_value(self,kwargs,'epath', None) 
         
         if bin_path is None:
-            #--------------------------------------------------------------------- 
-            logger.warning('Schism executable path (epath) not given\n')
-            #--------------------------------------------------------------------- 
+            #------------------------------------------------------------------------------ 
+            logger.warning('Schism executable path (epath) not given -> using default \n')
+            #------------------------------------------------------------------------------
+            bin_path = 'schism'
               
-            
         ncores = get_value(self,kwargs,'ncores',1)
         
         conda_env = get_value(self,kwargs,'conda_env', None)
@@ -1448,7 +1533,7 @@ class schism(model):
         #--------------------------------------------------------------------- 
         logger.info('executing model\n')
         #--------------------------------------------------------------------- 
-                
+
             # note that cwd is the folder where the executable is
         ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
             

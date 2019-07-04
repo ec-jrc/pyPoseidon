@@ -5,7 +5,7 @@ Meteo module. Pre-processing the weather forcing component.
 """
 
 # Copyright 2018 European Union
-# This file is part of pyPoseidon, a software written by George Breyiannis (JRC E.1)
+# This file is part of pyPoseidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
@@ -27,13 +27,13 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
 
 file_handler = logging.FileHandler('meteo.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-sformatter = logging.Formatter('%(message)s')
+sformatter = logging.Formatter('%(levelname)-8s %(message)s')
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(sformatter)
 
@@ -168,7 +168,7 @@ class meteo:
             else:
                 if 'grib' in meteo_files[0].split('.')[-1]:
                     self.uvp = cfgrib(meteo_files, **kwargs)
-                elif 'nc' in mfiles[0].split('.')[-1]:  
+                elif 'nc' in meteo_files[0].split('.')[-1]:  
                     self.uvp = netcdf(meteo_files, **kwargs)
                            
         else:        
@@ -196,6 +196,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
             end_date = pd.to_datetime(end_date)
         except:
             pass
+
 
     ft1, ft2, dft = irange
         
@@ -553,13 +554,15 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
     lon1 = lon1 - 360. if lon1 > data.longitude.max() else lon1
     
     if ts < data.time.min().values :
+      ld = pd.to_datetime(data.time.min().values).strftime(format='%Y-%m-%d %H:%M:%S')
+      hd = pd.to_datetime(data.time.max().values).strftime(format='%Y-%m-%d %H:%M:%S')
       logger.error('time frame not available\n')
-      logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
+      logger.warning('coverage between {} and {} \n'.format(ld,hd))
       sys.exit(1)
   
     if te > data.time.max().values :
       logger.error('time frame not available\n')
-      logger.warning('coverage between {} and {} \n'.format(data.time.min(),data.time.max()))
+      logger.warning('coverage between {} and {} \n'.format(ld,hd))
       sys.exit(1)
 
     tslice=slice(ts, te)
@@ -636,69 +639,7 @@ def to_output(dataset=None,solver=None, **kwargs):
                 
     s.to_force(dataset,vars=['msl','u10','v10'], **kwargs)
         
-    
-def read_d3d_meteo(filename=None, name=None):
-    
-    df = pd.read_csv(filename,header=0, names=['data'], index_col=None, low_memory=False)
-    
-    tlines = df[df.data.str.contains('TIME')].index # rows which start with TIME
-    
-    # get attrs
-    d1 = df.loc[0:tlines[0]-1,'data'].str.split('=', 2, expand=True)
-    d1.columns=['key','value'] # assign column names
-    d1.key = d1.key.str.strip() # cleanup spaces
-    d1.value = d1.value.str.strip()
-    attrs = dict(zip(d1.key, d1.value)) # create dict
-    for key in ['n_cols','n_rows','n_quantity']: # str -> int
-        attrs[key] = int(attrs[key])
-        
-    for key in ['x_llcenter','dx','y_llcenter','dy','NODATA_value']:
-        attrs[key] = float(attrs[key])
-    
-    # get time reference
-    d2 = df.loc[tlines, 'data'].str.split('=', 2, expand=True)
-    d2 = d2.drop(d2.columns[0], axis=1)
-    d2.columns=['data']
-    d2 = d2.loc[:,'data'].str.split(' ', 4, expand=True)
-    d2 = d2.drop(d2.columns[[0,2,3]], axis=1)
-    d2.columns = ['hours','time0']
-    d2.hours = d2.hours.apply(pd.to_numeric)
-    d2.time0 = pd.to_datetime(d2.time0.values)
-    d2 = d2.reset_index(drop=True)
-    #create timestamps
-    time=[]
-    for i in range(d2.shape[0]):
-        time.append(d2.time0[0] + pd.DateOffset(hours=int(d2.loc[i,'hours'])))
-    d2['time']=time
-    
-    #get the float numbers
-    d3 = df.drop(np.arange(0,tlines[0]))
-    d3 = d3.drop(tlines)
-    
-#    data = []
-#    for i in range(d3.values.shape[0]):
-#        row = d3.values[i][0].split(' ')
-#        row = [np.float(x) for x in row]
-#        data.append(row)
-#    data = np.array(data) # make array
-    
-    data = d3[d3.columns[0]].str.split(' ', attrs['n_cols'], expand=True).to_numpy().astype(float)
-    
-    data = data.reshape(d2.shape[0],attrs['n_rows'], attrs['n_cols']) # reshape
-    
-    #define lat/lon
-    lon = [attrs['x_llcenter'] + attrs['dx'] * i for i in np.arange(attrs['n_cols'])]
-    lat = [attrs['y_llcenter'] + attrs['dy'] * i for i in np.arange(attrs['n_rows'])]
-    
-    #create an xarray
-    da = xr.DataArray(data, dims=['time','latitude','longitude'],
-                         coords={'time': d2.time, 'latitude':lat, 'longitude':lon}, name=name)
-    
-    da.attrs = attrs
-                    
-    return da
-    
-    
+       
 
     
     

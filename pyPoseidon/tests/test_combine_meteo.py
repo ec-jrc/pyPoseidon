@@ -13,14 +13,16 @@ def cfgrib():
     filenames.sort()
     
     #read meteo files
-    df = pmeteo.cfgrib(filenames=filenames[1:], combine=True) # use combine
-    df1 = pmeteo.cfgrib(filenames=filenames[1]) # each one seperately
-    df2 = pmeteo.cfgrib(filenames=filenames[2]) # each one seperately
+    df = pmeteo(meteo_files=filenames, combine=True) # use combine
+    df0 = pmeteo(meteo_files=[filenames[0]]) # each one seperately
+    df1 = pmeteo(meteo_files=[filenames[1]]) # each one seperately
+    df2 = pmeteo(meteo_files=[filenames[2]]) # each one seperately
+    df3 = pmeteo(meteo_files=[filenames[3]]) # each one seperately
     
     #merge the single files
-    joined = xr.concat([df1.isel(time=slice(0,12)), df2], dim='time')
+    joined = xr.concat([df0.uvp.isel(time=slice(0,12)), df1.uvp.isel(time=slice(0,12)), df2.uvp.isel(time=slice(0,12)), df3.uvp], dim='time')
     
-    return joined.equals(df) # compare
+    return joined.equals(df.uvp) # compare
         
     
 def test_answer():
