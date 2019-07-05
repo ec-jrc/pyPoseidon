@@ -52,11 +52,10 @@ class data:
     def __init__(self,**kwargs):
     
        solver = kwargs.get('solver',None)
-       impl=None
        if solver == 'd3d':
-           self.impl = d3d(**kwargs)
+           self.results = d3d(**kwargs)
        elif solver == 'schism':
-           self.impl = schism(**kwargs)  
+           self.results = schism(**kwargs)  
        else:
            logger.error('solver is not defined, exiting \n')
            sys.exit(1)             

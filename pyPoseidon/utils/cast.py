@@ -27,13 +27,13 @@ import subprocess
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
 
 file_handler = logging.FileHandler('cast.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-sformatter = logging.Formatter('%(message)s')
+sformatter = logging.Formatter('%(levelname)-8s %(message)s')
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(sformatter)
 
@@ -248,6 +248,8 @@ class scast(cast):
                 for line in iter(ex.stdout.readline,b''): 
                     logger.info(line)
                     
+            # stote date for the param.in below
+            ref_date =  info['date'] 
                                 
             #update the properties   
             info['date'] = date
@@ -291,22 +293,20 @@ class scast(cast):
             # link restart file
             inresfile='/outputs/hotstart_it={}.nc'.format(hotout)
             outresfile='/hotstart.nc'
-            m.impl.config(output=True,config={'ihot': 1, 'nramp_elev' : 1, 'start_hour':date.hour , 'start_day': date.day, 'start_month': date.month,'start_year':date.year })
 
 
             logger.info('set restart\n')
-          #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
-            try:
-              os.symlink(ppath+inresfile,rpath+outresfile)
-            except OSError as e:
-              if e.errno == errno.EEXIST:
-                  logger.warning('Restart file symlink present\n')
-                  logger.info('overwriting\n')
-                  os.remove(rpath+'tri-rst.'+outresfile)
-                  os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
-              else:
-                  raise e            
 
+            try:
+                os.symlink(ppath+inresfile,rpath+outresfile)
+            except OSError as e:
+                if e.errno == os.errno.EEXIST:
+                    sys.stdout.write('Restart link present\n')
+                    sys.stdout.write('overwriting\n')
+                    os.remove(rpath+outresfile)
+                    os.symlink(ppath+inresfile,rpath+outresfile)
+                else:
+                    raise e            
 
             #get new meteo 
 
@@ -325,11 +325,9 @@ class scast(cast):
 #                logger.warning('meteo files present\n')
             
             # modify param file
-            m.config(config_file = ppath+'param.in', config={'start_hour':date.hour , 'start_day': date.day, 'start_month': date.month,'start_year':date.year}, output=True)
+            rnday_new = info['parameters']['rnday'] + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
+            m.impl.config(output=True, parameters={'ihot': 2, 'rnday':rnday_new, 'nramp_elev':1, 'start_hour':ref_date.hour , 'start_day':ref_date.day, 'start_month':ref_date.month, 'start_year':ref_date.year })
                                               
-            # run case
-            logger.info('executing\n')
-         
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
             m.impl.save()

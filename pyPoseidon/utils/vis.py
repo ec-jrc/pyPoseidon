@@ -179,7 +179,7 @@ class splot(object):
             z = z.filled(fill_value=-99999)
         
         plt.gca().set_aspect('equal')
-        
+                
         p = plt.tricontour(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree() )
         cbar = fig.colorbar(p,ticks=vrange,orientation='vertical', extend='both')
         if it:
@@ -211,7 +211,7 @@ class splot(object):
         it = kwargs.get('it', None)
         
         z = self._obj[var].values[it,:].flatten()
-        
+                
         fig, ax = plt.subplots(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
         vmax = kwargs.get('vmax', z.max())

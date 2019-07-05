@@ -359,20 +359,23 @@ class d3d(model):
 #============================================================================================
 
     def force(self,**kwargs):
-                
-        meteo_files =  get_value(self,kwargs,'meteo_files',None)        
+                         
+        meteo_files =  get_value(self,kwargs,'meteo_files',None) 
         
         kwargs.update({'meteo_files':meteo_files})
 
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
+        
+        z = {**self.__dict__, **kwargs} # merge self and possible kwargs
+        
         if flag :     
             if ('meteo' in flag) | ('all' in flag): 
-                self.meteo = pmeteo.meteo(**kwargs)        
+                self.meteo = pmeteo.meteo(**z)        
             else:
                 logger.info('skipping meteo files ..\n')
         else:
-            self.meteo = pmeteo.meteo(**kwargs)
+            self.meteo = pmeteo.meteo(**z)
 
 
     @staticmethod 
@@ -1215,14 +1218,19 @@ class schism(model):
         kwargs.update({'meteo_files':meteo_files})
         
         flag = get_value(self,kwargs,'update',[])
+        
+        z = {**self.__dict__, **kwargs} # merge self and possible kwargs
+        
+        z['time_frame'] = z['time_frame'] + pd.to_timedelta('1H') # add 1 hour for Schism issue with end time
+        
         # check if files exist
         if flag :     
             if ('meteo' in flag) | ('all' in flag) : 
-                self.meteo = pmeteo.meteo(**kwargs)        
+                self.meteo = pmeteo.meteo(**z)        
             else:
                 logger.info('skipping meteo ..\n')
         else:
-            self.meteo = pmeteo.meteo(**kwargs)
+            self.meteo = pmeteo.meteo(**z)
 
 
     @staticmethod 
