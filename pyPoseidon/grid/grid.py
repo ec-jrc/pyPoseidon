@@ -169,7 +169,7 @@ class tri2d(grid):
         nj=int(nj) 
                
         #read lon,lat,depth for all nodes
-        q = df.loc[1:nj,'data'].str.split('\t', 3, expand=True)
+        q = pd.DataFrame(df.loc[1:nj,'data'].str.split().values.tolist())
         q = q.drop(q.columns[0], axis=1)
         q = q.apply(pd.to_numeric)
       #  q.reset_index(inplace=True, drop=True)
@@ -185,7 +185,7 @@ class tri2d(grid):
         depth = depth.drop('nSCHISM_hgrid_node')
             
         #read connectivity
-        e = df.loc[nj+1:nj+ni,'data'].str.split('\t', 5, expand=True)
+        e = pd.DataFrame(df.loc[nj+1:nj+ni,'data'].str.split().values.tolist())
         e = e.drop(e.columns[0], axis=1)
         e = e.apply(pd.to_numeric)
      #   e.reset_index(inplace=True, drop=True)
