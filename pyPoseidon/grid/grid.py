@@ -223,6 +223,7 @@ class tri2d(grid):
         oinfo = pd.DataFrame(ottr)
         try:
             oinfo.columns = ['nps','label']
+            oinfo.label = oinfo.label.str.rstrip()
             oinfo.label = oinfo.label.str.replace(' ', '_')
             oinfo.set_index('label', inplace=True, drop=True)
             oinfo = oinfo.apply(pd.to_numeric)
@@ -263,6 +264,7 @@ class tri2d(grid):
         linfo = pd.DataFrame(attr)
         try:
             linfo.columns = ['nps','type','label']
+            linfo.label = linfo.label.str.rstrip()
             linfo.label = linfo.label.str.replace(' ', '_')
             linfo.set_index('label', inplace=True, drop=True)
             linfo = linfo.apply(pd.to_numeric)
