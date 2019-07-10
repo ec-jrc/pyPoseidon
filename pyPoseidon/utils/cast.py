@@ -63,6 +63,7 @@ class dcast(cast):
                                    
     def run(self,**kwargs):
         
+        pwd = os.getcwd()
                       
         files=[self.tag+'_hydro.xml',self.tag+'.enc',self.tag+'.obs', self.tag+'.bnd', self.tag+'.bca','run_flow2d3d.sh']
         files_sym=[self.tag+'.grd',self.tag+'.dep']
@@ -190,6 +191,9 @@ class dcast(cast):
             logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
 
 
+            os.chdir(pwd)
+            
+            
 class scast(cast):
     
     def __init__(self,**kwargs):
@@ -200,6 +204,8 @@ class scast(cast):
                    
     def run(self,**kwargs):
         
+        
+        pwd = os.getcwd()
                       
         files = [ 'bctides.in', 'launchSchism.sh','sflux/sflux_inputs.txt']
         files_sym = ['hgrid.gr3', 'hgrid.ll', 'manning.gr3', 'vgrid.in', 'drag.gr3', 'rough.gr3', 'windrot_geo2proj.gr3']
@@ -343,4 +349,5 @@ class scast(cast):
             
             logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
 
+            os.chdir(pwd)
             
