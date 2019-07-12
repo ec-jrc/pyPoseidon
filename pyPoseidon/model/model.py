@@ -1412,24 +1412,22 @@ class schism(model):
         
         #save hgrid.gr3
         try:
-            
+        
             bat = -self.dem.altimetry.ival.values.astype(float) #minus for the hydro run
-                                    
+                            
             self.grid.impl.Dataset.depth.loc[:bat.size] = bat
-                                    
+                            
             self.grid.impl.to_file(filename= path+'hgrid.gr3')
-            
+            copyfile(path+'hgrid.gr3', path+'hgrid.ll')
+    
+            logger.info('updating bathymetry ..\n')
+        
         except AttributeError as e:
+            
             logger.info('Keeping bathymetry from hgrid.gr3 ..\n')
-            
-            
-        # save grid files 
-        if self.grid_file != path+'hgrid.gr3' :
+        
             copyfile(self.grid_file, path+'hgrid.gr3') #copy original grid file
-            copyfile(path+'hgrid.gr3', path+'hgrid.ll')    
-        else:
-            logger.info('Keeping grid files ..\n')
-            
+            copyfile(path+'hgrid.gr3', path+'hgrid.ll')                
                  
                  
         # manning file
