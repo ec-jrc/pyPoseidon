@@ -9,7 +9,6 @@ Data analysis module
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
 
 import numpy as np
-import pickle
 import os
 from pyPoseidon.utils.vis import *
 from pyPoseidon.utils.obs import obs
@@ -94,7 +93,10 @@ class d3d(data):
         #--------------------------------------------------------------------- 
                        
         with open(ifile, 'rb') as f:
-                          self.info=pickle.load(f)  
+                          info = pd.read_json(f,lines=True).T
+                          info[info.isnull().values] = None
+                          self.info = info.to_dict()[0]
+                          
                                                   
                         
         grid=r2d.read_file(self.folders[0]+'/'+self.info['tag']+'.grd')
@@ -201,7 +203,7 @@ class schism(data):
         
         for folder in self.folders:
                         
-            #netcdf files combined by autocombine_MPI_elfe.pl
+            #netcdf files combined by autocombine_MPI_elfe.pl TODO
             cfiles = glob.glob(folder+'/outputs/schout_0.nc') + glob.glob(folder+'/outputs/schout_[!00]*.nc')
             cfiles.sort()
             if cfiles :
@@ -694,8 +696,11 @@ class schism(data):
         
         try:
             
-            with open(self.folders[0]+tag +'_info.pkl', 'r') as f:
-                      self.info=pickle.load(f)  
+            with open(self.folders[0]+tag +'_model.json', 'r') as f:
+                      info = pd.read_json(f,lines=True).T
+                      info[info.isnull().values] = None
+                      self.info = info.to_dict()[0]
+                        
     
             dic = self.info.copy()   # start with x's keys and values
             dic.update(kwargs)    # modifies z with y's keys and values & returns None

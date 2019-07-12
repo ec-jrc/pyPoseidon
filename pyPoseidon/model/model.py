@@ -13,7 +13,6 @@ Currently supported : DELFT3D , SCHISM
 import os
 import datetime
 import numpy as np
-import pickle
 import xml.dom.minidom as md
 from shutil import copy2
 import subprocess
@@ -128,11 +127,13 @@ Construct and manage a hydrodynamic model based on different solvers.
         end = filename.split('.')[-1]
 
         if end in ['txt','json'] :
-            info = pd.read_json(filename,lines=True).T
-            info[info.isnull().values] = None
-            info = info.to_dict()[0]
-        elif end in ['pkl']:
-            info = pd.read_pickle(filename)
+            with open(filename, 'rb') as f:
+                info = pd.read_json(f,lines=True).T
+                info[info.isnull().values] = None
+                info = info.to_dict()[0]
+        else:
+            logger.error('Model file should be .txt or .json')
+            sys.exit(0)
         
         return model(**info)
     
@@ -884,6 +885,11 @@ class d3d(model):
         ex.stdout.close()  
         ex.stderr.close() 
 
+         
+        #--------------------------------------------------------------------- 
+        logger.info('FINISHED\n')
+        #--------------------------------------------------------------------- 
+         
             
     def save(self,**kwargs):
                
@@ -911,25 +917,13 @@ class d3d(model):
              dic.update({'meteo':meteo.uvp.attrs})
 
          dic['version']=pyPoseidon.__version__
-                  
-         with open(path+self.tag+'_info.pkl', 'wb') as f:
-               pickle.dump(dic,f)
-                        
+                                          
          for attr, value in dic.items():
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
              if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
              if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
          json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)      
     
-    @staticmethod
-    def read(filename,**kwargs):
-        
-        filename = kwargs.get('filename', './')               
-        with open(filename, 'rb') as f:
-              info=pickle.load(f)
-        m = model(**info)
-        return m
-        
     def output(self,**kwargs):      
         
         path = get_value(self,kwargs,'rpath','./') 
@@ -1155,27 +1149,28 @@ class schism(model):
             #--------------------------------------------------------------------- 
             logger.info('reading parameter file {}\n'.format(config_file))
             #---------------------------------------------------------------------             
-            
-            params = pd.read_csv(config_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
-
-            fix_list = [k for k in params.attrs if '=' in k ]
-
-            for k in fix_list:
-                try:
-                    name, value = params.loc[params.attrs == k,'attrs'].values[0].split('=')
-                    params.loc[params.attrs == k,'attrs'] = name
-                    params.loc[params.attrs == name,'vals'] = value
-                except:
-                    pass
-                
-            params = params.set_index('attrs')
         else:
             #--------------------------------------------------------------------- 
             logger.info('using default parameter file ...\n')
             #---------------------------------------------------------------------             
             
-            with open(DATA_PATH + 'dparams.pkl', 'rb') as f:
-                              params=pickle.load(f)
+            config_file = DATA_PATH + 'param.in.sample'
+        
+        params = pd.read_csv(config_file,engine='python',comment='!', header=None, delimiter=' =', names=['attrs','vals'])
+
+        fix_list = [k for k in params.attrs if '=' in k ]
+
+        for k in fix_list:
+            try:
+                name, value = params.loc[params.attrs == k,'attrs'].values[0].split('=')
+                params.loc[params.attrs == k,'attrs'] = name
+                params.loc[params.attrs == name,'vals'] = value
+            except:
+                pass
+            
+        params = params.set_index('attrs')
+        params.index = params.index.str.strip()
+        params.vals = params.vals.str.strip()
         
         #update key values
         
@@ -1193,6 +1188,7 @@ class schism(model):
         if np.float(params.loc['rnday'].values[0]) * 24 * 3600 > (self.end_date - self.start_date).total_seconds():
             #--------------------------------------------------------------------- 
             logger.warning('rnday larger than simulation range\n')
+            logger.warning('rnday={} while simulation time is {}\n'.format(params.loc['rnday'].values[0],(self.end_date - self.start_date).total_seconds()/(3600*24.)))
             #---------------------------------------------------------------------             
             
         
@@ -1221,8 +1217,6 @@ class schism(model):
         
         z = {**self.__dict__, **kwargs} # merge self and possible kwargs
         
-        z['time_frame'] = z['time_frame'] + pd.to_timedelta('1H') # add 1 hour for Schism issue with end time
-        
         # check if files exist
         if flag :     
             if ('meteo' in flag) | ('all' in flag) : 
@@ -1231,7 +1225,13 @@ class schism(model):
                 logger.info('skipping meteo ..\n')
         else:
             self.meteo = pmeteo.meteo(**z)
-
+        
+        # add 1 hour for Schism issue with end time   
+        ap = self.meteo.uvp.isel(time = -1)
+        ap['time'] = ap.time.values + pd.to_timedelta('1H')
+        
+        self.meteo.uvp = xr.concat([self.meteo.uvp,ap],dim='time')
+        
 
     @staticmethod 
     def to_force(ar0,**kwargs):
@@ -1257,7 +1257,7 @@ class schism(model):
         tlist = tlist.astype(float)/24.
         
         
-        bdate = [int(q) for q in bdate]
+        bdate = [int(q) for q in bdate[:3]] + [0]
         
         sout= xr.Dataset({'prmsl':(['time', 'nx_grid', 'ny_grid'], ar[p].data),
                           'uwind':(['time','nx_grid','ny_grid'], ar[u].data),
@@ -1557,6 +1557,10 @@ class schism(model):
             logger.info(line.decode(sys.stdout.encoding))
         ex.stdout.close()         
         
+        #--------------------------------------------------------------------- 
+        logger.info('FINISHED\n')
+        #--------------------------------------------------------------------- 
+        
                                   
     def save(self,**kwargs):
                
@@ -1584,9 +1588,6 @@ class schism(model):
              dic.update({'meteo':meteo.uvp.attrs})
 
          dic['version']=pyPoseidon.__version__
-
-         with open(path+self.tag+'_info.pkl', 'wb') as f:
-               pickle.dump(dic,f)
                
          for attr, value in dic.items():
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()

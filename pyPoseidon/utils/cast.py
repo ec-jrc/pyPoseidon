@@ -15,7 +15,6 @@ import os, errno
 from shutil import copy2
 import logging
 import glob
-import pickle
 import pyPoseidon.model as pmodel
 from pyPoseidon.utils.get_value import get_value
 import pandas as pd
@@ -90,11 +89,14 @@ class dcast(cast):
             if not os.path.exists(rpath):
                 os.makedirs(rpath)
 
-            copy2(ppath+self.tag+'_info.pkl',rpath) #copy the info file
+            copy2(ppath+self.tag+'_model.json',rpath) #copy the info file
 
             # load model
-            with open(rpath+self.tag+'_info.pkl', 'rb') as f:
-                          info=pickle.load(f)
+            with open(rpath+self.tag+'_model.json', 'rb') as f:
+                          info = pd.read_json(f,lines=True).T
+                          info[info.isnull().values] = None
+                          info = info.to_dict()[0]
+                          
             
             args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
             for attr in list(args):
@@ -213,7 +215,7 @@ class scast(cast):
                 
         prev=self.folders[0]
         fpath = self.path+'/{}/'.format(prev)
-        
+            
 
         for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frame[1:]):
             
@@ -230,11 +232,14 @@ class scast(cast):
             if not os.path.exists(rpath):
                 os.makedirs(rpath)
 
-            copy2(ppath+self.tag+'_info.pkl',rpath) #copy the info file
+            copy2(ppath+self.tag+'_model.json',rpath) #copy the info file
 
             # load model
-            with open(rpath+self.tag+'_info.pkl', 'rb') as f:
-                          info=pickle.load(f)
+            with open(rpath+self.tag+'_model.json', 'rb') as f:
+                          info = pd.read_json(f,lines=True).T
+                          info[info.isnull().values] = None
+                          info = info.to_dict()[0]
+                          
             
             args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
             for attr in list(args):
@@ -245,8 +250,8 @@ class scast(cast):
             
             info['config_file'] = ppath + 'param.in'
             #check for combine hotstart
-            hotout=info['params'].loc['hotout_write'].values[0]
-
+            hotout=int((date - self.date).total_seconds()/info['params']['vals']['dt'])
+            
             resfiles=glob.glob(ppath+'/outputs/*_it*.nc')
             if not resfiles:
                 ex=subprocess.Popen(args=['/Users/brey/SCHISM/v5.6.1/src/Utility/Combining_Scripts/combine_hotstart7 -i {}'.format(hotout)], cwd=ppath+'/outputs/', shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
@@ -254,11 +259,9 @@ class scast(cast):
                 for line in iter(ex.stdout.readline,b''): 
                     logger.info(line)
                     
-            # stote date for the param.in below
-            ref_date =  info['date'] 
                                 
             #update the properties   
-            info['date'] = date
+#            info['date'] = date
             info['start_date'] = date
             info['time_frame'] = time_frame
             info['meteo_files'] = meteo
@@ -331,8 +334,10 @@ class scast(cast):
 #                logger.warning('meteo files present\n')
             
             # modify param file
-            rnday_new = info['parameters']['rnday'] + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
-            m.impl.config(output=True, parameters={'ihot': 2, 'rnday':rnday_new, 'nramp_elev':1, 'start_hour':ref_date.hour , 'start_day':ref_date.day, 'start_month':ref_date.month, 'start_year':ref_date.year })
+            rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
+            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'nramp_elev':1, 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
+            
+            m.impl.config(output=True, **info)
                                               
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
