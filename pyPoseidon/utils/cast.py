@@ -256,7 +256,7 @@ class scast():
                     
                                 
             #update the properties   
-#            info['date'] = date
+            info['date'] = self.date
             info['start_date'] = date
             info['time_frame'] = time_frame
             info['meteo_files'] = meteo
@@ -335,14 +335,14 @@ class scast():
 #            if (np.any(check)==False) or ('meteo' in flag):
                
             m.force(**info)
-            m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
+            m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath, date=self.date)  #write u,v,p files 
         
 #            else:
 #                logger.warning('meteo files present\n')
             
             # modify param file
             rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
-            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'nramp_elev':1, 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
+            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
             
             m.config(output=True, **info)
                                               

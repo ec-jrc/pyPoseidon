@@ -201,7 +201,7 @@ class schism():
         logger.info('writing meteo files ..\n')
                 
         path = kwargs.get('rpath','./') 
-        
+                
         [p,u,v] = kwargs.get('vars','[None,None,None]')                
         
         ar = ar0.sortby('latitude', ascending=True)
@@ -210,9 +210,11 @@ class schism():
         
         zero = np.zeros(ar[p].data.shape)
                        
-        udate = pd.to_datetime(ar.time[0].data).strftime('%Y-%m-%d')
+        date = kwargs.get('date',ar.time[0].data)
         
-        bdate = pd.to_datetime(ar.time[0].data).strftime('%Y %m %d %H').split(' ')
+        udate = pd.to_datetime(date).strftime('%Y-%m-%d')
+                       
+        bdate = pd.to_datetime(date).strftime('%Y %m %d %H').split(' ')
         
         tlist = (ar.time.data - pd.to_datetime([udate]).values).astype('timedelta64[s]')/3600.
         
