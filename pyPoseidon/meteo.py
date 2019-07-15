@@ -160,19 +160,19 @@ class meteo:
                      
         if meteo_files:                    
             if engine == 'cfgrib' :
-                self.uvp = cfgrib(meteo_files, **kwargs)
+                self.Dataset = cfgrib(meteo_files, **kwargs)
             elif engine == 'pynio' :
-                self.uvp = pynio(meteo_files, **kwargs)
+                self.Dataset = pynio(meteo_files, **kwargs)
             elif engine == 'netcdf' :
-                self.uvp = netcdf(meteo_files, **kwargs)
+                self.Dataset = netcdf(meteo_files, **kwargs)
             else:
                 if 'grib' in meteo_files[0].split('.')[-1]:
-                    self.uvp = cfgrib(meteo_files, **kwargs)
+                    self.Dataset = cfgrib(meteo_files, **kwargs)
                 elif 'nc' in meteo_files[0].split('.')[-1]:  
-                    self.uvp = netcdf(meteo_files, **kwargs)
+                    self.Dataset = netcdf(meteo_files, **kwargs)
                            
         else:        
-            self.uvp = from_url(**kwargs)
+            self.Dataset = from_url(**kwargs)
                         
         
 

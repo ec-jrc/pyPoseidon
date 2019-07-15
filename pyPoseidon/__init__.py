@@ -4,8 +4,6 @@ __author__ = 'George Breyiannis (breyiannis@gmail.com)'
 __license__ = 'EUPL-1.2'
 __version__ = '0.4.0'
 
-
-
 __all__ = [
     'model',
     'meteo',
@@ -16,7 +14,6 @@ __all__ = [
 ]
 
 
-from .model import model
-from .grid import grid
-from .meteo import meteo
-from .dem import dem
+from .model import *
+from .d3d import d3d
+from .schism import schism

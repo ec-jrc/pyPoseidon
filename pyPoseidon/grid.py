@@ -34,16 +34,13 @@ logger.addHandler(stream_handler)
 
 
 
-class grid:
-    
-    def __init__(self, type=None, **kwargs):
-        impl=None
-        if type == 'r2d':
-            self.impl = r2d(**kwargs)
-        elif type == 'tri2d':
-            self.impl = tri2d(**kwargs)            
+def grid(type=None, **kwargs):
+    if type == 'r2d':
+        return r2d(**kwargs)
+    elif type == 'tri2d':
+        return tri2d(**kwargs)            
 
-class r2d(grid):
+class r2d():
     """Regular 2d grid for d3d
     """
     def __init__(self, **kwargs):
@@ -137,7 +134,7 @@ class r2d(grid):
 
         
     
-class tri2d(grid):
+class tri2d():
     """Unstructured triangular 2d grid
     """
     def __init__(self, **kwargs):

@@ -453,7 +453,7 @@
 
   elev = 1 !0: off; 1: on - elev. [m]
   pres = 1 !air pressure [Pa]
-  airt = 1 !air temperature [C]
+  airt = 0 !air temperature [C]
   shum = 0 !Specific humidity [-]
   srad = 0 !solar (shortwave) radiation [W/m/m]
   flsu = 0 !sensible flux (positive upward) [W/m/m] 
@@ -468,7 +468,7 @@
   wist = 0 !wind stress vector [m^2/s/s]
   dahv = 1 !depth-averaged vel vector [m/s]
   vert = 0 !vertical velocity [m/s]
-  temp = 1 !water temperature [C]
+  temp = 0 !water temperature [C]
   salt = 0 !water salinity [PSU]
   conc = 0 !water density [kg/m^3]
   tdff = 0 !eddy diffusivity [m^2/s]
@@ -476,7 +476,7 @@
   kine = 0 !turbulent kinetic energy
   mixl = 0 !turbulent mixing length [m]
   zcor = 0 !z-coordinates [m]
-  qnon = 1 !non-hydrostatic pressure
+  qnon = 0 !non-hydrostatic pressure
   hvel = 1 !horizontal vel vector [m/s]
 
 !-----------------------------------------------------------------------

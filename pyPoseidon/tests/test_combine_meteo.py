@@ -9,7 +9,7 @@ import numpy as np
 def cfgrib():
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
-    filenames = glob(path + '/oper/*')
+    filenames = glob(path + '/uvp_*')
     filenames.sort()
     
     #read meteo files

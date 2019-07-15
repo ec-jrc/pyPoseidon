@@ -16,6 +16,7 @@ from shutil import copy2
 import logging
 import glob
 import pyPoseidon.model as pmodel
+import pyPoseidon.grid as pgrid
 from pyPoseidon.utils.get_value import get_value
 import pandas as pd
 from pyPoseidon.utils import data
@@ -40,20 +41,14 @@ logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
 
-class cast:
-    impl=None
-    def __init__(self,**kwargs):
-        model = kwargs.get('solver', None)
-        if model == 'd3d' :
-            self.impl = dcast(**kwargs)
-        elif model == 'schism' :
-            self.impl = scast(**kwargs)
-        
-    def run(self,**kwargs):
-        self.impl.run(**kwargs)
-    
+def cast(solver=None,**kwargs):
+    if solver == 'd3d' :
+        return dcast(**kwargs)
+    elif solver == 'schism' :
+        return scast(**kwargs)
+            
 
-class dcast(cast):
+class dcast():
     
     def __init__(self,**kwargs):
                
@@ -135,11 +130,11 @@ class dcast(cast):
                       os.remove(rpath+filename)
                       os.symlink(ipath,rpath+filename)
             
-            copy2(ppath+m.impl.tag+'.mdf',rpath) #copy the mdf file
+            copy2(ppath+m.tag+'.mdf',rpath) #copy the mdf file
                 
             # copy restart file
 
-            inresfile='tri-rst.'+m.impl.tag+'.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
+            inresfile='tri-rst.'+m.tag+'.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
 
             outresfile='restart.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
 
@@ -166,13 +161,13 @@ class dcast(cast):
 #            if (np.any(check)==False) or ('meteo' in flag):
                
             m.force()
-            m.impl.to_force(m.impl.meteo.uvp,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
+            m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
         
 #            else:
 #                logger.info('meteo files present\n')
             
             # modify mdf file
-            m.config(config_file = ppath+m.impl.tag+'.mdf', config={'Restid':outresfile}, output=True)
+            m.config(config_file = ppath+m.tag+'.mdf', config={'Restid':outresfile}, output=True)
                                               
             # run case
             logger.info('executing\n')
@@ -188,7 +183,7 @@ class dcast(cast):
             
             # save compiled nc file
             
-            #out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
+            #out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
             
             logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
 
@@ -196,7 +191,7 @@ class dcast(cast):
             os.chdir(pwd)
             
             
-class scast(cast):
+class scast():
     
     def __init__(self,**kwargs):
                
@@ -266,10 +261,22 @@ class scast(cast):
             info['time_frame'] = time_frame
             info['meteo_files'] = meteo
             info['rpath'] = rpath
+            info['grid_file'] = ppath + '/hgrid.gr3'
             
 #            for attr, value in self.items():
 #                setattr(info, attr, value)
-            m=pmodel(**info)
+
+            m=pmodel(**info)           
+            
+            # Grid         
+            m.grid=pgrid.grid(type='tri2d',**info)
+                 
+            # set lat/lon from file
+            if hasattr(self, 'grid_file'):
+                info.update({'minlon' : m.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
+                info.update({'maxlon' : m.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
+                info.update({'minlat' : m.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
+                info.update({'maxlat' : m.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
                                                          
             # copy/link necessary files
             for filename in files:
@@ -327,8 +334,8 @@ class scast(cast):
 
 #            if (np.any(check)==False) or ('meteo' in flag):
                
-            m.impl.force()
-            m.impl.to_force(m.impl.meteo.uvp,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
+            m.force(**info)
+            m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
         
 #            else:
 #                logger.warning('meteo files present\n')
@@ -337,20 +344,20 @@ class scast(cast):
             rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
             info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'nramp_elev':1, 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
             
-            m.impl.config(output=True, **info)
+            m.config(output=True, **info)
                                               
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-            m.impl.save()
+            m.save()
             
-            m.impl.run()
+            m.run()
             
             #cleanup
 #            os.remove(rpath+'hotstart.nc')
             
             # save compiled nc file
             
-            #out = data(**{'solver':m.impl.solver,'rpath':rpath,'savenc':True})
+            #out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
             
             logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
 
