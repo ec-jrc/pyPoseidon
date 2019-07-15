@@ -4,6 +4,9 @@
 # mac files
 *.DS_Store
 
+# cfgrib idx
+*.idx
+
 # the local test folder 
 examples/test
 
