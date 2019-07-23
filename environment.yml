@@ -35,6 +35,7 @@ dependencies:
   - sphinx_rtd_theme
   - pytest
   - cfgrib
+  - jigsaw
   - pip
   - pip:    
     - xesmf
