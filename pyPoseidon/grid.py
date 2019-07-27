@@ -14,6 +14,7 @@ import xarray as xr
 import pandas as pd
 import sys
 import logging
+from .jigsaw import *
 
 #logging setup
 logger = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ class tri2d():
         
         else:
     
-            g = None # create grid with JIGSAW
+            g = jigsaw(**kwargs) # create grid with JIGSAW
     
             self.Dataset = g
     
@@ -273,7 +274,7 @@ class tri2d():
             
             
         # merge to one xarray DataSet
-        g = one = xr.merge([grid,depth,els,ops,lps,oinfo,linfo])
+        g = xr.merge([grid,depth,els,ops,lps,oinfo,linfo])
                     
         g.attrs = {}
     
