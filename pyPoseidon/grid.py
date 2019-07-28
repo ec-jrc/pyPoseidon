@@ -274,7 +274,7 @@ class tri2d():
             
             
         # merge to one xarray DataSet
-        g = xr.merge([grid,depth,els,ops,lps,oinfo,linfo])
+        g = xr.merge([grid,depth,els,ops.to_xarray(),lps.to_xarray(),oinfo.to_xarray(),linfo.to_xarray()])
                     
         g.attrs = {}
     
