@@ -354,7 +354,7 @@ class schism():
             f.write('{}\n'.format(0)) #nbfr
             f.write('{}\n'.format(len(nobs))) #number of open boundaries
             for i in range(len(nobs)):
-                nnodes = self.grid.Dataset[nobs[i]].dropna(dim='dim_0').size
+                nnodes = self.grid.Dataset[nobs[i]].dropna(dim='index').size
                 f.write('{} {} {} {} {}\n'.format(nnodes,2,0,0,0)) # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
                 f.write('{}\n'.format(0)) # ethconst !constant elevation value for this segment    
        

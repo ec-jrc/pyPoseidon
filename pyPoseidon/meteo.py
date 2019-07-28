@@ -197,7 +197,6 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
         except:
             pass
 
-
     ft1, ft2, dft = irange
         
     ts = pd.to_datetime(start_date)
@@ -505,8 +504,7 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
 
 
 def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, **kwargs):
-    
-    
+        
     try:
         start_date = pd.to_datetime(start_date)
     except:
@@ -522,7 +520,7 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
             end_date = pd.to_datetime(end_date)
         except:
             pass
-     
+    
     ts = pd.to_datetime(start_date)
     te = pd.to_datetime(end_date)     
 
@@ -565,8 +563,7 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
       logger.warning('coverage between {} and {} \n'.format(ld,hd))
       sys.exit(1)
 
-    tslice=slice(ts, te)
-    
+    tslice=slice(ts, te)    
 
     i0=np.abs(data.longitude.data-lon0).argmin()
     i1=np.abs(data.longitude.data-lon1).argmin()
