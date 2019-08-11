@@ -588,3 +588,132 @@ class schism():
         
         self.meteo = xr.open_mfdataset(mfiles) # Meteo
         
+    
+    @staticmethod 
+    def hotstart(path='./',it=None,**kwargs):
+                
+        g2l = path + 'outputs/global_to_local.prop'
+        gindx = pd.read_csv(g2l,header=None,delim_whitespace=True)
+        gindx = gindx.set_index(gindx.columns[0]) # set the global index as index
+        gindx.columns=['dist'] # rename the column to dist[ribution]
+        
+        #Read the global node index distribution to the cores
+        gfiles = glob.glob(path+'outputs/local_to_global_*')
+        gfiles.sort()
+        
+        #create a dict from filenames to identify parts in the dataframes below
+        keys=[]
+        for name in gfiles:
+            keys.append('core{}'.format(name.split('/')[-1].split('_')[-1]))
+
+        #get the number of elems from all files
+        nels = []
+        for i in range(len(gfiles)):
+            ne = pd.read_csv(gfiles[i],skiprows=2, header=None, nrows = 1)
+            nels.append(ne.values.flatten()[0].astype(int))
+
+        #read and add them to pandas DataFrame 
+        frames=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            frames[i] = pd.read_csv(gfiles[i],skiprows=3,header=None, nrows=nels[i], names=['local','global_n'], delim_whitespace=True)
+
+        elems = pd.concat(frames,keys=keys)
+
+        #get the number of nodes from all files
+        nq = []
+        for i in range(len(gfiles)):
+            nn = pd.read_csv(gfiles[i],skiprows=nels[i] + 3, header=None, nrows = 1)
+            nq.append(nn.values.flatten()[0].astype(int))
+
+        #read and add them to pandas DataFrame
+        nframes=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            nframes[i] = pd.read_csv(gfiles[i],skiprows=nels[i] + 4,header=None, nrows=nq[i], names=['local','global_n'], delim_whitespace=True)
+    
+        nodes = pd.concat(nframes,keys=keys)
+
+        #get the number of edges
+        nw = []
+        for i in range(len(gfiles)):
+            nb = pd.read_csv(gfiles[i],skiprows=nels[i] + nq[i] + 4, header=None, nrows = 1)
+            nw.append(nb.values.flatten()[0].astype(int))
+
+        #read and add them to pandas DataFrame
+        wframes=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            wframes[i] = pd.read_csv(gfiles[i],skiprows=nels[i] + nq[i] + 5,header=None, nrows=nw[i], names=['local','global_n'], delim_whitespace=True)
+    
+        re = pd.concat(wframes,keys=keys)
+
+        hfiles = glob.glob(path+'outputs/hotstart_*_{}.nc'.format(it))
+        hfiles.sort()
+
+        #store them in a list
+        out=[]
+        for i in range(len(hfiles)):
+            out.append(xr.open_dataset(hfiles[i]))
+        
+        #Droping duplicates
+        melems = elems.loc[elems.global_n.drop_duplicates().index] # create the retaining mask
+        msides = re.loc[re.global_n.drop_duplicates().index] # keep only one of the duplicates
+        mnodes = nodes.loc[nodes.global_n.drop_duplicates().index] # keep only one of the duplicates
+        
+        #process variables
+        hh=[]
+        for i in range(len(out)):
+            inodes = mnodes.loc['core000{}'.format(i),'local'].values
+            cnodes = mnodes.loc['core000{}'.format(i),'global_n'].values
+            iside = msides.loc['core000{}'.format(i),'local'].values
+            cside = msides.loc['core000{}'.format(i),'global_n'].values    
+            ielems = melems.loc['core000{}'.format(i),'local'].values
+            celems = melems.loc['core000{}'.format(i),'global_n'].values
+            p=out[i].sel(nResident_node=inodes-1).sel(nResident_side=iside-1).sel(nResident_elem=ielems-1)
+            p= p.assign_coords(nResident_node = cnodes-1).assign_coords(nResident_elem = celems-1).assign_coords(nResident_side = cside-1)
+            hh.append(p)
+        
+        side = [key for key in out[0].variables if 'nResident_side' in out[0][key].dims]
+
+        node = [key for key in out[0].variables if 'nResident_node' in out[0][key].dims]
+
+        el = [key for key in out[0].variables if 'nResident_elem' in out[0][key].dims]
+
+        one = [key for key in out[0].variables if 'one' in out[0][key].dims]
+
+        #elems
+        c = xr.combine_nested(hh, concat_dim=['nResident_elem'])
+
+        vels=[]
+        for v in el:
+            vo = c[v].loc[{'nResident_elem':sorted(c.coords['nResident_elem'].values)}].rename({'nResident_elem':'elem'}).drop('elem')
+            vels.append(vo)
+        
+        #nodes
+        c = xr.combine_nested(hh, concat_dim=['nResident_node'])
+
+        vnodes=[]
+        for v in node:
+            vo = c[v].loc[{'nResident_node':sorted(c.coords['nResident_node'].values)}].rename({'nResident_node':'node'}).drop('node')
+            vnodes.append(vo)
+        
+        #side
+        c = xr.combine_nested(hh, concat_dim=['nResident_side'])
+
+        vside=[]
+        for v in side:
+            vo = c[v].loc[{'nResident_side':sorted(c.coords['nResident_side'].values)}].rename({'nResident_side':'side'}).drop('side')
+            vside.append(vo)
+            
+        #ones
+        vone = out[0][one].rename({'one':'one_new','it':'iths'})
+
+        #merge
+        xdat = xr.merge([xr.merge(vside),xr.merge(vels),xr.merge(vnodes),vone])
+      
+        hfile = 'hotstart_it={}.nc'.format(xdat.iths.values[0])
+        logger.info('saving hotstart file\n')
+
+        xdat.to_netcdf(path + 'outputs/{}'.format(hfile))
+
+        
+
+        

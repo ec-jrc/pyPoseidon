@@ -9,6 +9,7 @@ Simulation management module
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
 
 import numpy as np
+import errno
 import datetime
 import sys
 import os, errno
@@ -240,21 +241,8 @@ class scast():
             for attr in list(args):
                 info[attr] = kwargs[attr]
             
-            
-            # create restart file
-            
             info['config_file'] = ppath + 'param.in'
-            #check for combine hotstart
-            hotout=int((date - self.date).total_seconds()/info['params']['vals']['dt'])
-            
-            resfiles=glob.glob(ppath+'/outputs/*_it*.nc')
-            if not resfiles:
-                ex=subprocess.Popen(args=['/Users/brey/SCHISM/v5.6.1/src/Utility/Combining_Scripts/combine_hotstart7 -i {}'.format(hotout)], cwd=ppath+'/outputs/', shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
-
-                for line in iter(ex.stdout.readline,b''): 
-                    logger.info(line)
-                    
-                                
+                                        
             #update the properties   
             info['date'] = self.date
             info['start_date'] = date
@@ -298,12 +286,20 @@ class scast():
                     try:
                         os.symlink(ipath[0],rpath+filename)
                     except OSError as e:
-                        if e.errno == os.errno.EEXIST:
+                        if e.errno == errno.EEXIST:
                             sys.stdout.write('Restart link present\n')
                             sys.stdout.write('overwriting\n')
                             os.remove(rpath+filename)
                             os.symlink(ipath[0],rpath+filename)
 
+            # create restart file
+            
+            #check for combine hotstart
+            hotout=int((date - self.date).total_seconds()/info['params']['vals']['dt'])
+
+            resfiles=glob.glob(ppath+'/outputs/*_it*.nc')
+            if not resfiles:
+                m.hotstart(ppath,hotout)
 
                 
             # link restart file
@@ -316,7 +312,7 @@ class scast():
             try:
                 os.symlink(ppath+inresfile,rpath+outresfile)
             except OSError as e:
-                if e.errno == os.errno.EEXIST:
+                if e.errno == errno.EEXIST:
                     sys.stdout.write('Restart link present\n')
                     sys.stdout.write('overwriting\n')
                     os.remove(rpath+outresfile)
