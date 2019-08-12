@@ -206,7 +206,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
     logger.info('extracting meteo')
     #---------------------------------------------------------------------      
 
-    data = xr.open_mfdataset(filenames, engine='cfgrib', backend_kwargs=backend_kwargs, **xr_kwargs)    
+    data = xr.open_mfdataset(filenames, combine='nested', engine='cfgrib', backend_kwargs=backend_kwargs, **xr_kwargs)    
 
     data = data.squeeze(drop=True)
     #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing> not efficient for output  
@@ -370,7 +370,7 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
     logger.info('extracting meteo')
     #---------------------------------------------------------------------      
 
-    data = xr.open_mfdataset(filenames, engine='pynio', backend_kwargs=backend_kwargs, **xr_kwargs)    
+    data = xr.open_mfdataset(filenames, combine='nested', engine='pynio', backend_kwargs=backend_kwargs, **xr_kwargs)    
 
     data = data.squeeze(drop=True)
         
@@ -620,7 +620,7 @@ def netcdf(filename=None, **kwargs):
     logger.info('extracting meteo\n')
     #---------------------------------------------------------------------      
         
-    return xr.open_mfdataset(filenames)
+    return xr.open_mfdataset(filenames, combine='nested')
          
     #--------------------------------------------------------------------- 
     logger.info('meteo done\n')
