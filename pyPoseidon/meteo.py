@@ -176,7 +176,7 @@ class meteo:
                         
         
 
-def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, **kwargs):
+def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, combine_by=None, **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -206,7 +206,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
     logger.info('extracting meteo')
     #---------------------------------------------------------------------      
 
-    data = xr.open_mfdataset(filenames, combine='nested', engine='cfgrib', backend_kwargs=backend_kwargs, **xr_kwargs)    
+    data = xr.open_mfdataset(filenames, combine=combine_by, engine='cfgrib', backend_kwargs=backend_kwargs, **xr_kwargs)    
 
     data = data.squeeze(drop=True)
     #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing> not efficient for output  
@@ -337,7 +337,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
 
 
     
-def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, **kwargs):
+def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, combine_by=None, **kwargs):
     
     backend_kwargs = kwargs.get('backend_kwargs', {})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -370,7 +370,7 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
     logger.info('extracting meteo')
     #---------------------------------------------------------------------      
 
-    data = xr.open_mfdataset(filenames, combine='nested', engine='pynio', backend_kwargs=backend_kwargs, **xr_kwargs)    
+    data = xr.open_mfdataset(filenames, combine=combine_by, engine='pynio', backend_kwargs=backend_kwargs, **xr_kwargs)    
 
     data = data.squeeze(drop=True)
         
@@ -620,7 +620,7 @@ def netcdf(filename=None, **kwargs):
     logger.info('extracting meteo\n')
     #---------------------------------------------------------------------      
         
-    return xr.open_mfdataset(filenames, combine='nested')
+    return xr.open_mfdataset(filenames, combine='by_coords')
          
     #--------------------------------------------------------------------- 
     logger.info('meteo done\n')
