@@ -20,7 +20,7 @@ import pyPoseidon.model as pmodel
 import pyPoseidon.grid as pgrid
 from pyPoseidon.utils.get_value import get_value
 import pandas as pd
-from pyPoseidon.utils import data
+#from pyPoseidon.utils import data
 import subprocess
 
 
@@ -198,7 +198,6 @@ class scast():
                
         for attr, value in kwargs.items():
                 setattr(self, attr, value)
-
                    
     def run(self,**kwargs):
         
@@ -211,7 +210,7 @@ class scast():
                 
         prev=self.folders[0]
         fpath = self.path+'/{}/'.format(prev)
-            
+                    
 
         for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frame[1:]):
             
@@ -259,7 +258,7 @@ class scast():
             # Grid         
             m.grid=pgrid.grid(type='tri2d',**info)
                  
-            # set lat/lon from file
+            # get lat/lon from file
             if hasattr(self, 'grid_file'):
                 info.update({'minlon' : m.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
                 info.update({'maxlon' : m.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
@@ -297,9 +296,15 @@ class scast():
             #check for combine hotstart
             hotout=int((date - self.date).total_seconds()/info['params']['vals']['dt'])
 
-            resfiles=glob.glob(ppath+'/outputs/*_it*.nc')
-            if not resfiles:
-                m.hotstart(ppath,hotout)
+            resfile=glob.glob(ppath+'/outputs/hotstart_it={}.nc'.format(hotout))
+            if not resfile:
+                # load model model from ppath
+                with open(ppath+self.tag+'_model.json', 'rb') as f:
+                    ph = pd.read_json(f,lines=True).T
+                    ph[ph.isnull().values] = None
+                    ph = ph.to_dict()[0]
+                p = pmodel(**ph)
+                p.hotstart(it=hotout)  
 
                 
             # link restart file

@@ -588,15 +588,11 @@ class schism():
         
         self.meteo = xr.open_mfdataset(mfiles) # Meteo
         
-    
-    @staticmethod 
-    def hotstart(path='./',it=None,**kwargs):
-                
-        g2l = path + 'outputs/global_to_local.prop'
-        gindx = pd.read_csv(g2l,header=None,delim_whitespace=True)
-        gindx = gindx.set_index(gindx.columns[0]) # set the global index as index
-        gindx.columns=['dist'] # rename the column to dist[ribution]
+
+    def global2local(self,**kwargs):
         
+        path = get_value(self,kwargs,'rpath','./') 
+                    
         #Read the global node index distribution to the cores
         gfiles = glob.glob(path+'outputs/local_to_global_*')
         gfiles.sort()
@@ -606,44 +602,179 @@ class schism():
         for name in gfiles:
             keys.append('core{}'.format(name.split('/')[-1].split('_')[-1]))
 
+        # Parsing the files
+        l2g=[]
+        for i in range(len(gfiles)):
+            l2g.append(pd.read_csv(gfiles[i],header=None,delim_whitespace=True))
+
+        # We read from the first file the header (it is the same for all)
+        header = l2g[0].iloc[0]
+        header.index = ['ns_global','ne_global','np_global','nvrt','nproc','ntracers','T','S','GEN','AGE','SED3D','EcoSim','ICM','CoSINE','Feco','TIMOR','FABM']
+
         #get the number of elems from all files
         nels = []
-        for i in range(len(gfiles)):
-            ne = pd.read_csv(gfiles[i],skiprows=2, header=None, nrows = 1)
-            nels.append(ne.values.flatten()[0].astype(int))
+        for i in range(len(l2g)):
+            nels.append(int(l2g[i].iloc[2].dropna()[0]))
 
-        #read and add them to pandas DataFrame 
-        frames=np.empty(len(gfiles),dtype=object)
-        for i in range(len(gfiles)):
-            frames[i] = pd.read_csv(gfiles[i],skiprows=3,header=None, nrows=nels[i], names=['local','global_n'], delim_whitespace=True)
+        frames = []
+        for i in range(len(l2g)):
+            df = l2g[i].iloc[3:nels[i]+3,l2g[i].columns[:2]].astype(int)
+            df = df.reset_index(drop=True)
+            frames.append(df)
 
         elems = pd.concat(frames,keys=keys)
 
-        #get the number of nodes from all files
-        nq = []
-        for i in range(len(gfiles)):
-            nn = pd.read_csv(gfiles[i],skiprows=nels[i] + 3, header=None, nrows = 1)
-            nq.append(nn.values.flatten()[0].astype(int))
+        elems.columns = ['local','global_n']
 
-        #read and add them to pandas DataFrame
-        nframes=np.empty(len(gfiles),dtype=object)
-        for i in range(len(gfiles)):
-            nframes[i] = pd.read_csv(gfiles[i],skiprows=nels[i] + 4,header=None, nrows=nq[i], names=['local','global_n'], delim_whitespace=True)
-    
+        #get the number of nodes from all files
+        nq= []
+        for i in range(len(l2g)):
+            nq.append(int(l2g[i].iloc[nels[i]+3].dropna()[0]))
+
+        nframes = []
+        for i in range(len(l2g)):
+            df = l2g[i].iloc[nels[i]+4:nels[i]+4+nq[i],l2g[i].columns[:2]].astype(int)
+            df = df.reset_index(drop=True)
+            nframes.append(df)
+
         nodes = pd.concat(nframes,keys=keys)
 
-        #get the number of edges
-        nw = []
-        for i in range(len(gfiles)):
-            nb = pd.read_csv(gfiles[i],skiprows=nels[i] + nq[i] + 4, header=None, nrows = 1)
-            nw.append(nb.values.flatten()[0].astype(int))
+        nodes.columns = ['local','global_n']
 
-        #read and add them to pandas DataFrame
-        wframes=np.empty(len(gfiles),dtype=object)
-        for i in range(len(gfiles)):
-            wframes[i] = pd.read_csv(gfiles[i],skiprows=nels[i] + nq[i] + 5,header=None, nrows=nw[i], names=['local','global_n'], delim_whitespace=True)
-    
+        #get the number of nodes from all files
+        nw= []
+        for i in range(len(l2g)):
+            j = nels[i]+4+nq[i]
+        #    print(j)
+            nw.append(int(l2g[i].iloc[j].dropna()[0]))
+            
+        wframes = []
+        for i in range(len(l2g)):
+            j0 = nels[i]+5+nq[i]
+            j1 = j0+nw[i]
+            df = l2g[i].iloc[j0:j1,l2g[i].columns[:2]].astype(int)
+            df = df.reset_index(drop=True)
+            wframes.append(df)
+
         re = pd.concat(wframes,keys=keys)
+
+        re.columns = ['local','global_n']
+
+        # Read secondary headers
+        h0 = l2g[0].iloc[nels[0] + nq[0] + nw[0] + 6].dropna()
+        h0.index = ['start_year','start_month','start_day','start_hour','utc_start']
+
+        h1 = l2g[0].iloc[nels[0] + nq[0] + nw[0] + 7].dropna()
+        h1.index = ['nrec','dtout','nspool','nvrt','kz','h0','h_s','h_c','theta_b','theta_f','ics']
+        h1 = h1.apply(pd.to_numeric)
+
+        ztots = ['ztot_'+str(i) for i in range(1,h1.kz.astype(int)-1)]
+
+        sigmas = ['sigma_'+str(i) for i in range(h1.nvrt.astype(int) - h1.kz.astype(int) + 1) ]
+
+        h2 = l2g[0].iloc[nels[0] + nq[0] + nw[0] + 8].dropna()
+        h2.index = ztots + sigmas
+
+        #combine headers
+        self.header = pd.concat([h0, h1, h2])
+
+        #Read grid
+        gframes = []
+        for i in range(len(l2g)):
+            j0 = nels[i] + nq[i] + nw[i] + 10
+            j1 = j0+nq[i]
+            df = l2g[i].iloc[j0:j1,l2g[i].columns[:4]].astype(float)
+            df = df.reset_index(drop=True)
+            gframes.append(df)
+
+        grid = pd.concat(gframes,keys=keys)
+
+        grid.columns = ['lon','lat','depth','kbp00']
+
+        #Droping duplicates
+        cnodes = nodes.global_n.drop_duplicates() # drop duplicate global nodes and store the values to an array
+        grid = grid.drop_duplicates() # keep only one of the duplicates (the first by default)
+        grid.index = grid.index.droplevel() # drop multi-index
+        grid = grid.reset_index(drop=True) # reset index
+        grid.index = cnodes.values - 1 # reindex based on the global index, -1 for the python convention
+        grd = grid.sort_index() #sort with the new index (that is the global_n)
+        self.grd = grd.reset_index(drop=True)#reindex for final version
+
+        #Read tessalation
+        eframes = []
+        for i in range(len(l2g)):
+            j0 = nels[i] + nq[i] + nw[i] + 10 + nq[i]
+            j1 = j0+nels[i]
+            df = l2g[i].iloc[j0:j1,l2g[i].columns[:4]].astype(int)
+            df = df.reset_index(drop=True)
+            eframes.append(df)
+
+        tri = pd.concat(eframes,keys=keys)
+
+        tri.columns = ['type','a','b','c']
+
+        # Replace local index with the global one 
+        for key in keys:
+            nod = nodes.loc[key].copy() # make a copy of the the core
+            nod = nod.set_index('local') # reset the index using the local values (in essense set the index to start from 1...)
+            tri.loc[key,'ga'] = nod.reindex(tri.loc[key,'a'].values).values
+            tri.loc[key,'gb'] = nod.reindex(tri.loc[key,'b'].values).values
+            tri.loc[key,'gc'] = nod.reindex(tri.loc[key,'c'].values).values 
+        
+        tri.loc[:,'ga'] = tri.loc[:,'ga'].apply(pd.to_numeric(int)) # make integer
+        tri.loc[:,'gb'] = tri.loc[:,'gb'].apply(pd.to_numeric(int)) # make integer
+        tri.loc[:,'gc'] = tri.loc[:,'gc'].apply(pd.to_numeric(int)) # make integer
+        
+        tri = tri.drop(['a','b','c'],axis=1) #drop local references
+
+        #sort
+        gt3 = tri.loc[:,['ga','gb','gc']].copy() # make a copy
+        gt3.index = gt3.index.droplevel() # drop multi-index
+        gt3 = gt3.reset_index(drop=True)
+        # Now we need to put them in order based on the global index in elems
+        gt3.index = elems.global_n.values # we set the index equal to the global_n column
+        gt3 = gt3.sort_index() #sort them
+        
+        #add nan column in place of the fourth node. NOTE:  This needs to be tested for quadrilaterals
+        gt3['gd']=np.nan
+        
+        gt3 = gt3.reset_index() # reset to add more columns without problems
+        
+        ## Add mean x, y of the elememts. To be used in the output
+        gt3['x1'] = grd.loc[gt3['ga'].values - 1, 'lon'].values #lon of the index, -1 for python convention
+        gt3['y1'] = grd.loc[gt3['ga'].values - 1, 'lat'].values #lat of the index
+        gt3['x2'] = grd.loc[gt3['gb'].values - 1, 'lon'].values
+        gt3['y2'] = grd.loc[gt3['gb'].values - 1, 'lat'].values
+        gt3['x3'] = grd.loc[gt3['gc'].values - 1, 'lon'].values
+        gt3['y3'] = grd.loc[gt3['gc'].values - 1, 'lat'].values
+
+
+        gt3['xc'] =  gt3[['x1', 'x2', 'x3']].mean(axis=1) #mean lon of the element
+        gt3['yc'] =  gt3[['y1', 'y2', 'y3']].mean(axis=1)
+
+        ## min kbe
+        gt3['kbe1'] = grd.loc[gt3['ga'] - 1,'kbp00'].values
+        gt3['kbe2'] = grd.loc[gt3['gb'] - 1,'kbp00'].values
+        gt3['kbe3'] = grd.loc[gt3['gc'] - 1,'kbp00'].values
+        #gt3['kbe4'] = grd.loc[gt3['gd'],'kbp00'].values
+
+        gt3['kbe'] = gt3[['kbe1', 'kbe2', 'kbe3']].min(axis=1)
+        
+        self.gt3 = gt3.set_index('index') # set index back 
+        
+        
+        
+        #Droping duplicates
+        self.melems = elems.loc[elems.global_n.drop_duplicates().index] # create the retaining mask
+        self.msides = re.loc[re.global_n.drop_duplicates().index] # keep only one of the duplicates
+        self.mnodes = nodes.loc[nodes.global_n.drop_duplicates().index] # keep only one of the duplicates
+                
+    
+    def hotstart(self, it=None, **kwargs):
+        
+        path = get_value(self,kwargs,'rpath','./') 
+                          
+        if not hasattr(self, 'melems'): self.global2local(**kwargs)
 
         hfiles = glob.glob(path+'outputs/hotstart_*_{}.nc'.format(it))
         hfiles.sort()
@@ -652,21 +783,16 @@ class schism():
         out=[]
         for i in range(len(hfiles)):
             out.append(xr.open_dataset(hfiles[i]))
-        
-        #Droping duplicates
-        melems = elems.loc[elems.global_n.drop_duplicates().index] # create the retaining mask
-        msides = re.loc[re.global_n.drop_duplicates().index] # keep only one of the duplicates
-        mnodes = nodes.loc[nodes.global_n.drop_duplicates().index] # keep only one of the duplicates
-        
+              
         #process variables
         hh=[]
         for i in range(len(out)):
-            inodes = mnodes.loc['core000{}'.format(i),'local'].values
-            cnodes = mnodes.loc['core000{}'.format(i),'global_n'].values
-            iside = msides.loc['core000{}'.format(i),'local'].values
-            cside = msides.loc['core000{}'.format(i),'global_n'].values    
-            ielems = melems.loc['core000{}'.format(i),'local'].values
-            celems = melems.loc['core000{}'.format(i),'global_n'].values
+            inodes = self.mnodes.loc['core000{}'.format(i),'local'].values
+            cnodes = self.mnodes.loc['core000{}'.format(i),'global_n'].values
+            iside = self.msides.loc['core000{}'.format(i),'local'].values
+            cside = self.msides.loc['core000{}'.format(i),'global_n'].values    
+            ielems = self.melems.loc['core000{}'.format(i),'local'].values
+            celems = self.melems.loc['core000{}'.format(i),'global_n'].values
             p=out[i].sel(nResident_node=inodes-1).sel(nResident_side=iside-1).sel(nResident_elem=ielems-1)
             p= p.assign_coords(nResident_node = cnodes-1).assign_coords(nResident_elem = celems-1).assign_coords(nResident_side = cside-1)
             hh.append(p)
@@ -714,6 +840,248 @@ class schism():
 
         xdat.to_netcdf(path + 'outputs/{}'.format(hfile))
 
+    def xcombine(self, tfs, sdate, ):
+        hh=[]
+        for i in range(len(tfs)):
+            inodes = self.mnodes.loc['core000{}'.format(i),'local'].values
+            cnodes = self.mnodes.loc['core000{}'.format(i),'global_n'].values
+            iside = self.msides.loc['core000{}'.format(i),'local'].values
+            cside = self.msides.loc['core000{}'.format(i),'global_n'].values    
+            ielems = self.melems.loc['core000{}'.format(i),'local'].values
+            celems = self.melems.loc['core000{}'.format(i),'global_n'].values
+            p = xr.open_dataset(tfs[i])
+            p = p.sel(nSCHISM_hgrid_node=inodes-1).sel(nSCHISM_hgrid_face=ielems-1)
+            p = p.assign_coords(nSCHISM_hgrid_node = cnodes-1).assign_coords(nSCHISM_hgrid_face = celems-1)
+            hh.append(p)
+        
+        node = [key for key in hh[0].variables if 'nSCHISM_hgrid_node' in hh[0][key].dims]
+        c = xr.combine_nested(hh, concat_dim=['nSCHISM_hgrid_node'])
+        vnodes=[]
+        for v in node:
+            vo = c[v].loc[{'nSCHISM_hgrid_node':sorted(c.coords['nSCHISM_hgrid_node'].values)}].drop('nSCHISM_hgrid_node')
+            vnodes.append(vo)
+
+        el = [key for key in hh[0].variables if 'nSCHISM_hgrid_face' in hh[0][key].dims]
+        c = xr.combine_nested(hh, concat_dim=['nSCHISM_hgrid_face'])
+        vels=[]
+        for v in el:
+            vo = c[v].loc[{'nSCHISM_hgrid_face':sorted(c.coords['nSCHISM_hgrid_face'].values)}].drop('nSCHISM_hgrid_face')
+            vels.append(vo)
+    
+        xdat = xr.merge([xr.merge(vels[:-1]),xr.merge(vnodes[:-1])])
+    
+        times = pd.to_datetime(xdat.time.values, unit='s',
+                       origin=sdate.tz_convert(None))
+
+        xdat = xdat.assign(time=times)
+
+        return(xdat)
+        
+                    
+    def results(self,**kwargs):
+        
+        path = get_value(self,kwargs,'rpath','./') 
+        
+        if not hasattr(self, 'melems'): self.global2local(**kwargs)
+        
+        # Create grid xarray Dataset
+        grd = self.grd
+        gt3 = self.gt3
+        
+        # node based variables
+        grd.kbp00 = grd.kbp00.astype(int)
+        xnodes = grd.to_xarray().rename({'lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y','kbp00':'node_bottom_index', 'index':'nSCHISM_hgrid_node'})
+
+        xnodes = xnodes.drop('nSCHISM_hgrid_node')
+
+        # element based variables
+        gt34 = gt3.loc[:,['ga','gb','gc','gd']].values # SCHISM_hgrid_face_nodes
+        xelems = xr.Dataset({
+                         u'SCHISM_hgrid_face_nodes' : ([u'nSCHISM_hgrid_face', u'nMaxSCHISM_hgrid_face_nodes'], gt34),
+                         u'SCHISM_hgrid_face_x' : ([u'nSCHISM_hgrid_face'], gt3.loc[:,'xc'].values),
+                         u'SCHISM_hgrid_face_y' : ([u'nSCHISM_hgrid_face'], gt3.loc[:,'yc'].values),                 
+                         u'ele_bottom_index': ([u'nSCHISM_hgrid_face'], gt3.kbe.values )})
+
+        
+        # edge based variables
+        sides=[]
+        for [ga,gb,gc] in gt3.loc[:,['ga','gb','gc']].values:
+            sides.append([gb,gc])
+            sides.append([gc,ga])
+            sides.append([ga,gb])
+
+        #removing duplicates
+        iside = []
+        for i in range(len(sides)):
+            lis = list(sides[:i])   
+            if [sides[i][1], sides[i][0]] not in lis:
+                iside.append(i)
+        
+        sides = np.array(sides)[iside]
+        
+        ed = pd.DataFrame(sides, columns=['node1','node2'])
+
+        #mean x, y 
+        ed['x1'] = grd.loc[ed['node1'].values - 1, 'lon'].values #lon of the index, -1 for python convention
+        ed['y1'] = grd.loc[ed['node1'].values - 1, 'lat'].values #lat of the index
+        ed['x2'] = grd.loc[ed['node2'].values - 1, 'lon'].values
+        ed['y2'] = grd.loc[ed['node2'].values - 1, 'lat'].values
+ 
+        ed['xc'] =  ed[['x1', 'x2']].mean(axis=1) #mean of the edge index
+        ed['yc'] =  ed[['y1', 'y2']].mean(axis=1)
+
+        ## min bottom index
+        ed['kbs1'] = grd.loc[ed['node1'] - 1,'kbp00'].values
+        ed['kbs2'] = grd.loc[ed['node2'] - 1,'kbp00'].values
+
+        ed['kbs'] = ed[['kbs1', 'kbs2']].min(axis=1)
+
+        xsides = xr.Dataset({
+                         u'SCHISM_hgrid_edge_nodes' : ([u'nSCHISM_hgrid_edge', u'two'], sides),
+                         u'SCHISM_hgrid_edge_x' : ([u'nSCHISM_hgrid_edge'], ed['xc'].values),
+                         u'SCHISM_hgrid_edge_y' : ([u'nSCHISM_hgrid_edge'], ed['yc'].values ),
+                         u'edge_bottom_index' : ([u'nSCHISM_hgrid_edge'], ed.kbs.values)})                 
+
+        # General properties
+        
+        header2 = self.header.apply(pd.to_numeric)
+        nlist = ['start_year','start_month','start_day','start_hour','utc_start','dtout','nspool','nvrt','kz','ics']
+        ddf = pd.DataFrame(header2).T
+        ddf[nlist] = ddf[nlist].astype(int)
+        header2 = ddf
+        sigmas = [x for x  in header2.columns if 'sigma' in x]
+        sigms = header2.loc[:,sigmas].values.flatten() # get sigmas
+        iwet_dry = 0  # defined by the user
+        ihgrid_id = -2147483647 # defined by user - 0,dummy_dim,ihgrid_id
+        one = xr.Dataset({'dry_value_flag': (('one'), [iwet_dry]),'SCHISM_hgrid': (('one'),[ihgrid_id]) })
+
+        #compute cs
+        klev = np.arange(header2.kz.values[0],header2.nvrt.values[0]+1)
+        k = klev-header2.kz.values
+
+
+        cs=np.zeros(k)
+
+        cs=(1-header2.theta_b.values)*np.sinh(header2.theta_f.values*sigms[k])/np.sinh(header2.theta_f.values)+ \
+            header2.theta_b.values*(np.tanh(header2.theta_f.values*(sigms[k]+0.5))-np.tanh(header2.theta_f.values*0.5))/2/np.tanh(header2.theta_f.values*0.5)
+
+        Cs = xr.Dataset({'Cs': (('sigma'), cs)}, coords={'sigma':sigms})
+
+        header_list = ['ics','h0','h_c','theta_b','theta_f','h_s']
+        gen = header2[header_list].to_xarray()
+        gen = gen.rename({'index':'one'})
+
+        
+        #merge
+        gen = xr.merge([gen,Cs,one])
+
+        gen = gen.rename({'ics':'coordinate_system_flag','h0':'minimum_depth','h_c':'sigma_h_c','theta_b':'sigma_theta_b','theta_f':'sigma_theta_f','h_s':'sigma_maxdepth'})
+        
+        #set timestamp
+        date = header2.loc[:,['start_year','start_month','start_day','start_hour','utc_start']]
+        date = date.astype(int)
+        date.columns=['year','month','day','hour','utc'] # rename the columns
+        #set the start timestamp
+        sdate = pd.Timestamp(year=date.year.values[0], month=date.month.values[0], day=date.day.values[0], hour=date.hour.values[0], tz=date.utc.values[0])
+
+        
+        # Read Netcdf output files
+        ifiles = glob.glob(path+'outputs/schout_*_*.nc')
+        
+        irange = [int(x.split('_')[-1].split('.')[0]) for x in ifiles]
+        irange = np.unique(irange)
+        
+        total_xdat = []
+        for val in irange:
+            ifiles=glob.glob(path+'outputs/schout_*_{}.nc'.format(val))
+            ifiles.sort()
+            try:
+                total_xdat.append(self.xcombine(ifiles,sdate))
+            except:pass
+        
+        xall = xr.merge(total_xdat)
+        
+        #MERGE ALL
+        xc = xr.merge([xall,gen,xnodes,xelems,xsides])
+
+        #Choose attrs
+        if header2.ics.values == 1:
+            lat_coord_standard_name = 'projection_y_coordinate'
+            lon_coord_standard_name = 'projection_x_coordinate'
+            x_units = 'm'
+            y_units = 'm'
+            lat_str_len = 23
+            lon_str_len = 23
+        else:
+            lat_coord_standard_name = 'latitude'
+            lon_coord_standard_name = 'longitude'
+            x_units = 'degrees_east'
+            y_units = 'degrees_north'
+            lat_str_len = 8
+            lon_str_len = 9
+            
+        #set Attrs
+        xc.SCHISM_hgrid_node_x.attrs = {'long_name' : 'node x-coordinate', 'standard_name' : lon_coord_standard_name , 'units' : x_units, 'mesh' : 'SCHISM_hgrid'}
+
+        xc.SCHISM_hgrid_node_y.attrs = {'long_name' : 'node y-coordinate', 'standard_name' : lat_coord_standard_name , 'units' : y_units, 'mesh' : 'SCHISM_hgrid'}
+
+        xc.depth.attrs = {'long_name' : 'Bathymetry', 'units' : 'meters', 'positive' : 'down', 'mesh' : 'SCHISM_hgrid', 'location' : 'node'}
+
+        xc.sigma_h_c.attrs = {'long_name' : 'ocean_s_coordinate h_c constant', 'units' : 'meters', 'positive' : 'down'}
+
+        xc.sigma_theta_b.attrs = {'long_name' : 'ocean_s_coordinate theta_b constant'}
+
+        xc.sigma_theta_f.attrs = {'long_name' : 'ocean_s_coordinate theta_f constant'}
+
+        xc.sigma_maxdepth.attrs = {'long_name' : 'ocean_s_coordinate maximum depth cutoff (mixed s over z bound...', 'units' : 'meters', 'positive' : 'down'}
+
+        xc.Cs.attrs = {'long_name' : 'Function C(s) at whole levels', 'positive' : 'up' }
+
+        xc.dry_value_flag.attrs = {'values' : '0: use last-wet value; 1: use junk'}
+
+        xc.SCHISM_hgrid_face_nodes.attrs = {'long_name' : 'Horizontal Element Table', 'cf_role' : 'face_node_connectivity' , 'start_index' : 1}
+
+        xc.SCHISM_hgrid_edge_nodes.attrs = {'long_name' : 'Map every edge to the two nodes that it connects', 'cf_role' : 'edge_node_connectivity' , 'start_index' : 1}
+
+        xc.SCHISM_hgrid_edge_x.attrs = {'long_name' : 'x_coordinate of 2D mesh edge' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+        xc.SCHISM_hgrid_edge_y.attrs = {'long_name' : 'y_coordinate of 2D mesh edge' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+        xc.SCHISM_hgrid_face_x.attrs = {'long_name' : 'x_coordinate of 2D mesh face' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+        xc.SCHISM_hgrid_face_y.attrs = {'long_name' : 'y_coordinate of 2D mesh face' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+        xc.SCHISM_hgrid.attrs = {'long_name' : 'Topology data of 2d unstructured mesh',
+                                   'topology_dimension' : 2,
+                                   'cf_role' : 'mesh_topology',
+                                   'node_coordinates' : 'SCHISM_hgrid_node_x SCHISM_hgrid_node_y',
+                                   'face_node_connectivity' : 'SCHISM_hgrid_face_nodes',
+                                   'edge_coordinates' : 'SCHISM_hgrid_edge_x SCHISM_hgrid_edge_y',
+                                   'face_coordinates' : 'SCHISM_hgrid_face_x SCHISM_hgrid_face_y',
+                                   'edge_node_connectivity' : 'SCHISM_hgrid_edge_nodes'
+                                  }
+
+        xc.node_bottom_index.attrs = {'long_name' : 'bottom level index at each node' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'node',
+            'start_index' : 1}
+
+        xc.ele_bottom_index.attrs = {'long_name' : 'bottom level index at each element' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'elem',
+            'start_index' : 1}
+
+        xc.edge_bottom_index.attrs = {'long_name' : 'bottom level index at each edge' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'edge',
+            'start_index' : 1}
+        
+        base_date = ' '.join([str(x) for x in date.T.values.flatten()])
+        xc.time.attrs = {'long_name': 'Time', 'base_date' : base_date , 'standard_name' : 'time' }
+        
+        
+            
+        # Dataset Attrs
+
+        xc.attrs = {'Conventions': 'CF-1.0, UGRID-1.0', 'title': 'SCHISM Model output', 'source': 'SCHISM model output version v10', 'references': 'http://ccrm.vims.edu/schismweb/',
+                     'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
+        
+        
+        return xc
         
 
         
