@@ -605,7 +605,7 @@ class schism():
         # Parsing the files
         l2g=[]
         for i in range(len(gfiles)):
-            l2g.append(pd.read_csv(gfiles[i],header=None,delim_whitespace=True))
+            l2g.append(pd.read_csv(gfiles[i],header=None,delim_whitespace=True,engine='python'))
 
         # We read from the first file the header (it is the same for all)
         header = l2g[0].iloc[0]
