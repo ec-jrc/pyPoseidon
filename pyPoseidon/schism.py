@@ -188,11 +188,12 @@ class schism():
         else:
             self.meteo = pmeteo.meteo(**z)
         
-        # add 1 hour for Schism issue with end time   
-        ap = self.meteo.Dataset.isel(time = -1)
-        ap['time'] = ap.time.values + pd.to_timedelta('1H')
+        if hasattr(self, 'meteo'):
+            # add 1 hour for Schism issue with end time   
+            ap = self.meteo.Dataset.isel(time = -1)
+            ap['time'] = ap.time.values + pd.to_timedelta('1H')
         
-        self.meteo.Dataset = xr.concat([self.meteo.Dataset,ap],dim='time')
+            self.meteo.Dataset = xr.concat([self.meteo.Dataset,ap],dim='time')
         
 
     @staticmethod 
@@ -787,12 +788,12 @@ class schism():
         #process variables
         hh=[]
         for i in range(len(out)):
-            inodes = self.mnodes.loc['core000{}'.format(i),'local'].values
-            cnodes = self.mnodes.loc['core000{}'.format(i),'global_n'].values
-            iside = self.msides.loc['core000{}'.format(i),'local'].values
-            cside = self.msides.loc['core000{}'.format(i),'global_n'].values    
-            ielems = self.melems.loc['core000{}'.format(i),'local'].values
-            celems = self.melems.loc['core000{}'.format(i),'global_n'].values
+            inodes = self.mnodes.loc['core{:04d}'.format(i),'local'].values
+            cnodes = self.mnodes.loc['core{:04d}'.format(i),'global_n'].values
+            iside = self.msides.loc['core{:04d}'.format(i),'local'].values
+            cside = self.msides.loc['core{:04d}'.format(i),'global_n'].values    
+            ielems = self.melems.loc['core{:04d}'.format(i),'local'].values
+            celems = self.melems.loc['core{:04d}'.format(i),'global_n'].values
             p=out[i].sel(nResident_node=inodes-1).sel(nResident_side=iside-1).sel(nResident_elem=ielems-1)
             p= p.assign_coords(nResident_node = cnodes-1).assign_coords(nResident_elem = celems-1).assign_coords(nResident_side = cside-1)
             hh.append(p)
@@ -843,29 +844,43 @@ class schism():
     def xcombine(self, tfs, sdate, ):
         hh=[]
         for i in range(len(tfs)):
-            inodes = self.mnodes.loc['core000{}'.format(i),'local'].values
-            cnodes = self.mnodes.loc['core000{}'.format(i),'global_n'].values
-            iside = self.msides.loc['core000{}'.format(i),'local'].values
-            cside = self.msides.loc['core000{}'.format(i),'global_n'].values    
-            ielems = self.melems.loc['core000{}'.format(i),'local'].values
-            celems = self.melems.loc['core000{}'.format(i),'global_n'].values
+            inodes = self.mnodes.loc['core{:04d}'.format(i),'local'].values
+            cnodes = self.mnodes.loc['core{:04d}'.format(i),'global_n'].values
+            iside = self.msides.loc['core{:04d}'.format(i),'local'].values
+            cside = self.msides.loc['core{:04d}'.format(i),'global_n'].values    
+            ielems = self.melems.loc['core{:04d}'.format(i),'local'].values
+            celems = self.melems.loc['core{:04d}'.format(i),'global_n'].values
             p = xr.open_dataset(tfs[i])
             p = p.sel(nSCHISM_hgrid_node=inodes-1).sel(nSCHISM_hgrid_face=ielems-1)
             p = p.assign_coords(nSCHISM_hgrid_node = cnodes-1).assign_coords(nSCHISM_hgrid_face = celems-1)
             hh.append(p)
         
         node = [key for key in hh[0].variables if 'nSCHISM_hgrid_node' in hh[0][key].dims]
-        c = xr.combine_nested(hh, concat_dim=['nSCHISM_hgrid_node'])
+        hnode = [v[node] for v in hh]
+        c = xr.combine_nested(hnode, concat_dim=['nSCHISM_hgrid_node'])
+        #attrs    
+        dicd = {'mesh' : 'SCHISM_hgrid',
+                'data_horizontal_center' : 'node',
+            'data_vertical_center' : 'full'}
         vnodes=[]
         for v in node:
             vo = c[v].loc[{'nSCHISM_hgrid_node':sorted(c.coords['nSCHISM_hgrid_node'].values)}].drop('nSCHISM_hgrid_node')
+            vo.attrs = {**dicd, **vo.attrs}
             vnodes.append(vo)
 
         el = [key for key in hh[0].variables if 'nSCHISM_hgrid_face' in hh[0][key].dims]
-        c = xr.combine_nested(hh, concat_dim=['nSCHISM_hgrid_face'])
+        hel = [v[el] for v in hh]
+        c = xr.combine_nested(hel, concat_dim=['nSCHISM_hgrid_face'])
+        
+        dicd = {'mesh' : 'SCHISM_hgrid',
+            'data_horizontal_center' : 'elem',
+        'data_vertical_center' : 'full'}
+
+        
         vels=[]
         for v in el:
             vo = c[v].loc[{'nSCHISM_hgrid_face':sorted(c.coords['nSCHISM_hgrid_face'].values)}].drop('nSCHISM_hgrid_face')
+            vo.attrs = {**dicd, **vo.attrs}
             vels.append(vo)
     
         xdat = xr.merge([xr.merge(vels[:-1]),xr.merge(vnodes[:-1])])
@@ -877,13 +892,71 @@ class schism():
 
         return(xdat)
         
-                    
+    
+    #https://stackoverflow.com/questions/41164630/pythonic-way-of-removing-reversed-duplicates-in-list
+    @staticmethod
+    def remove_reversed_duplicates(iterable):
+        # Create a set for already seen elements
+        seen = set()
+        for item in iterable:
+            # Lists are mutable so we need tuples for the set-operations.
+            tup = tuple(item)
+            if tup not in seen:
+                # If the tuple is not in the set append it in REVERSED order.
+                seen.add(tup[::-1])
+                # If you also want to remove normal duplicates uncomment the next line
+                # seen.add(tup)
+                yield item
+    
+    
+    def read_vgrid(self,**kwargs):
+        
+        path = get_value(self,kwargs,'rpath','./')
+        
+        vgrid = pd.read_csv(path + 'vgrid.in', header=None)
+        
+        self.ivcor = vgrid.iloc[0].astype(int).values[0]
+    
+        [Nz, kz, hs] = vgrid.iloc[1].str.split(' ')[0]
+        
+        self.Nz = int(Nz)
+        self.kz = int(kz)
+        self.hs = float(hs)
+        
+        zlevels = vgrid.iloc[3:3+self.kz,0].str.split(' ', n = 2, expand = True)
+        zlevels.columns = ['level_index','z-coordinates']
+        zlevels.set_index('level_index', inplace=True)
+
+        self.zlevels = zlevels
+        
+        constants_index = 3+self.kz+1
+
+        [h_c, theta_b, theta_f] = vgrid.iloc[constants_index].str.split(' ')[0]
+        self.h_c = float(h_c)
+        self.theta_b = float(theta_b)
+        self.theta_f = float(theta_f)
+
+        
+        sl_index0 = constants_index+1
+        sl_index1 = sl_index0 + self.Nz - self.kz + 1
+        
+        slevels = vgrid.iloc[sl_index0:sl_index1,0].str.split(' ', n = 2, expand = True)
+        slevels.columns = ['level_index','s-coordinates']
+        slevels.set_index('level_index', inplace=True)
+
+        self.slevels = slevels
+        
+        
+        
     def results(self,**kwargs):
         
         path = get_value(self,kwargs,'rpath','./') 
         
-        if not hasattr(self, 'melems'): self.global2local(**kwargs)
-        
+        if not hasattr(self, 'melems'): 
+            logger.info('retrieving index references ... \n')
+            self.global2local(**kwargs)
+            logger.info('... done \n')
+            
         # Create grid xarray Dataset
         grd = self.grd
         gt3 = self.gt3
@@ -902,6 +975,7 @@ class schism():
                          u'SCHISM_hgrid_face_y' : ([u'nSCHISM_hgrid_face'], gt3.loc[:,'yc'].values),                 
                          u'ele_bottom_index': ([u'nSCHISM_hgrid_face'], gt3.kbe.values )})
 
+        logger.info('done with node based variables \n')
         
         # edge based variables
         sides=[]
@@ -911,14 +985,8 @@ class schism():
             sides.append([ga,gb])
 
         #removing duplicates
-        iside = []
-        for i in range(len(sides)):
-            lis = list(sides[:i])   
-            if [sides[i][1], sides[i][0]] not in lis:
-                iside.append(i)
-        
-        sides = np.array(sides)[iside]
-        
+        sides = list(self.remove_reversed_duplicates(sides))    
+            
         ed = pd.DataFrame(sides, columns=['node1','node2'])
 
         #mean x, y 
@@ -941,6 +1009,8 @@ class schism():
                          u'SCHISM_hgrid_edge_x' : ([u'nSCHISM_hgrid_edge'], ed['xc'].values),
                          u'SCHISM_hgrid_edge_y' : ([u'nSCHISM_hgrid_edge'], ed['yc'].values ),
                          u'edge_bottom_index' : ([u'nSCHISM_hgrid_edge'], ed.kbs.values)})                 
+
+        logger.info('done with side based variables \n')
 
         # General properties
         
@@ -977,6 +1047,8 @@ class schism():
 
         gen = gen.rename({'ics':'coordinate_system_flag','h0':'minimum_depth','h_c':'sigma_h_c','theta_b':'sigma_theta_b','theta_f':'sigma_theta_f','h_s':'sigma_maxdepth'})
         
+        gen = gen.drop('one')
+        
         #set timestamp
         date = header2.loc[:,['start_year','start_month','start_day','start_hour','utc_start']]
         date = date.astype(int)
@@ -984,6 +1056,7 @@ class schism():
         #set the start timestamp
         sdate = pd.Timestamp(year=date.year.values[0], month=date.month.values[0], day=date.day.values[0], hour=date.hour.values[0], tz=date.utc.values[0])
 
+        logger.info('done with generic variables \n')
         
         # Read Netcdf output files
         ifiles = glob.glob(path+'outputs/schout_*_*.nc')
@@ -1000,6 +1073,8 @@ class schism():
             except:pass
         
         xall = xr.merge(total_xdat)
+        
+        logger.info('done with output netCDF files \n')
         
         #MERGE ALL
         xc = xr.merge([xall,gen,xnodes,xelems,xsides])
@@ -1033,7 +1108,7 @@ class schism():
 
         xc.sigma_theta_f.attrs = {'long_name' : 'ocean_s_coordinate theta_f constant'}
 
-        xc.sigma_maxdepth.attrs = {'long_name' : 'ocean_s_coordinate maximum depth cutoff (mixed s over z bound...', 'units' : 'meters', 'positive' : 'down'}
+        xc.sigma_maxdepth.attrs = {'long_name' : 'ocean_s_coordinate maximum depth cutoff (mixed s over z boundary)', 'units' : 'meters', 'positive' : 'down'}
 
         xc.Cs.attrs = {'long_name' : 'Function C(s) at whole levels', 'positive' : 'up' }
 
@@ -1069,11 +1144,23 @@ class schism():
 
         xc.edge_bottom_index.attrs = {'long_name' : 'bottom level index at each edge' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'edge',
             'start_index' : 1}
+            
         
         base_date = ' '.join([str(x) for x in date.T.values.flatten()])
         xc.time.attrs = {'long_name': 'Time', 'base_date' : base_date , 'standard_name' : 'time' }
         
+        self.read_vgrid()
         
+        xc.sigma.attrs ={'long_name' : 'S coordinates at whole levels',
+                     'units' : '1',
+                     'standard_name' : 'ocean_s_coordinate',
+                     'positive' : 'up',
+                     'h_s' : self.hs,
+                     'h_c' : self.h_c,
+                     'theta_b' : self.theta_b,
+                     'theta_f' : self.theta_f,
+                     'formula_terms':
+                     's: sigma eta: elev depth: depth a: sigma_theta_f b: sigma_theta_b depth_c: sigma_h_c'}
             
         # Dataset Attrs
 
