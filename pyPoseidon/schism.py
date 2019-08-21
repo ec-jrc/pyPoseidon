@@ -312,6 +312,12 @@ class schism():
             kwargs.update({'maxlon' : self.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
             kwargs.update({'minlat' : self.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
             kwargs.update({'maxlat' : self.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
+            
+            self.minlon = self.grid.Dataset.SCHISM_hgrid_node_x.values.min()
+            self.maxlon = self.grid.Dataset.SCHISM_hgrid_node_x.values.max()
+            self.minlat = self.grid.Dataset.SCHISM_hgrid_node_y.values.min()
+            self.maxlat = self.grid.Dataset.SCHISM_hgrid_node_y.values.max()
+            
                                      
         # get bathymetry
         self.bath(**kwargs)
@@ -523,7 +529,7 @@ class schism():
         #--------------------------------------------------------------------- 
         logger.info('FINISHED\n')
         #--------------------------------------------------------------------- 
-        
+    
                                   
     def save(self,**kwargs):
                
@@ -556,7 +562,7 @@ class schism():
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
              if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
              if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
-         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)     
+         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)
          
          
     def execute(self,**kwargs):

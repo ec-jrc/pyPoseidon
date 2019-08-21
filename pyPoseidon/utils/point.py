@@ -30,18 +30,16 @@ import scipy.interpolate
 
 class point:
     
-    def __init__(self,**kwargs):
-                        
-        
-        self.lon = kwargs.get('lon', None) 
-        self.lat = kwargs.get('lat', None) 
-        self.data = kwargs.get('data', None)
+    def __init__(self, solver = None, lon=None, lat = None, dataset = None, **kwargs):
+                                
+        self.lon = lon
+        self.lat = lat
+        self.data = dataset
             
-        solver = kwargs.get('solver',None)
         if solver == 'd3d':
-            return self.tseries(**kwargs)
+            self.time_series = self.tseries(**kwargs)
         elif solver == 'schism':
-            return self.stseries(**kwargs)  
+            self.time_series = self.stseries(**kwargs)  
         else:
             logger.error('solver is not defined, exiting \n')
             sys.exit(1)             
@@ -95,13 +93,13 @@ class point:
         plat=float(self.lat)
         plon=float(self.lon)
         
-        points = pd.concat([self.data.Dataset.SCHISM_hgrid_node_x[:].to_dataframe(), self.data.Dataset.SCHISM_hgrid_node_y[:].to_dataframe()], axis=1)
-        values = self.data.Dataset[var].values
+        points = pd.concat([self.data.SCHISM_hgrid_node_x[:].to_dataframe(), self.data.SCHISM_hgrid_node_y[:].to_dataframe()], axis=1)
+        values = self.data[var].values
         
         svals = []
-        for k in range(self.data.Dataset[var].time.size):
+        for k in range(self.data[var].time.size):
             svals.append( scipy.interpolate.griddata(points.values, values[k,:], (plon, plat), method=method) )   
         
-        pdata = pd.DataFrame({'time':self.data.Dataset[var].time, self.data.Dataset[var].name : svals})
+        pdata = pd.DataFrame({'time':self.data[var].time, self.data[var].name : svals})
         return pdata.set_index(['time'])
         

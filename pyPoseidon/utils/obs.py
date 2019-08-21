@@ -54,7 +54,7 @@ class obs:
         
         self.sdate = pd.to_datetime(sd)
         self.edate = pd.to_datetime(ed)
-        
+
         self.point = kwargs.get('point', None)
     
         minlon = kwargs.get('minlon', None)
