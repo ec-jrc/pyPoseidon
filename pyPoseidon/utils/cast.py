@@ -343,7 +343,8 @@ class scast():
             
             # modify param file
             rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
-            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
+            hotout_write = int(rnday_new * 24 * 3600 / info['params']['vals']['dt'])
+            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'hotout_write' : hotout_write , 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
             
             m.config(output=True, **info)
                                               
