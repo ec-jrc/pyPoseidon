@@ -24,6 +24,7 @@ from shutil import copyfile
 import xarray as xr
 import logging
 
+
 #local modules
 import pyPoseidon
 import pyPoseidon.grid as pgrid
@@ -31,6 +32,8 @@ import pyPoseidon.meteo as pmeteo
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.get_value import get_value
 from pyPoseidon.utils.converter import myconverter
+from pyPoseidon.utils import obs
+from pyPoseidon.utils.cpoint import closest_node
 
 #logging setup
 logger = logging.getLogger(__name__)
@@ -88,6 +91,7 @@ class schism():
         self.tag = kwargs.get('tag', 'schism')
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
+        self.monitor = kwargs.get('monitor', False)
     
         self.epath = kwargs.get('epath', None)
     
@@ -568,7 +572,8 @@ class schism():
     def execute(self,**kwargs):
         
         self.create(**kwargs)
-        self.output(**kwargs) 
+        self.output(**kwargs)
+        if self.monitor : self.set_obs() 
         self.save(**kwargs)
         self.run(**kwargs)
                  
@@ -1177,4 +1182,107 @@ class schism():
         return xc
         
 
+
+    def set_obs(self,**kwargs):
         
+        path = get_value(self,kwargs,'rpath','./') 
+        nspool_sta = get_value(self,kwargs,'nspool_sta',1)
+        tg_database = get_value(self,kwargs,'tide_gauges',None) # TODO
+        coastal_monitoring = get_value(self,kwargs,'coastal_monitoring',False)
+        flags = get_value(self,kwargs,'station_flags',[1]+[0]*8) 
+        
+        station_flag = pd.DataFrame({'elev':flags[0], 'air_pressure':flags[1], 'windx':flags[2], 'windy':flags[3], 'T':flags[4], 'S':flags[5], 'u':flags[6], 'v':flags[7], 'w':flags[8]}, index =[0])
+        
+        
+        z = self.__dict__.copy()
+        ## FOR TIDE GAUGE MONITORING
+        tg = obs.obs(**z)
+        logger.info('get in-situ measurements locations \n')
+        
+        gpoints = np.array(list(zip(self.grid.Dataset.SCHISM_hgrid_node_x.values,self.grid.Dataset.SCHISM_hgrid_node_y.values)))
+        
+        stations = []
+        grid_index = []
+        for l in range(tg.locations.shape[0]):
+            plat,plon = tg.locations.loc[l,['lat','lon']]
+            cp = closest_node([plon,plat],gpoints)
+            grid_index.append(list(zip(self.grid.Dataset.SCHISM_hgrid_node_x.values,self.grid.Dataset.SCHISM_hgrid_node_y.values)).index(tuple(cp)))
+            stations.append(cp)
+            
+        #to df
+        stations = pd.DataFrame(stations,columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y'])
+        stations['z']=0
+        stations.index += 1
+        stations['gindex'] = grid_index
+        
+        if coastal_monitoring :
+        ## FOR COASTAL MONITORING
+            logger.info('set land boundaries as observation points \n')
+        
+            #get land boundaries
+            coasts = [key for key in self.grid.Dataset.variables if 'land_boundary' in key]
+            # get index
+            bnodes=[]
+            for i in range(len(coasts)):
+                bnodes = bnodes + list(self.grid.Dataset[coasts[i]].dropna('index').astype(int).values - 1)
+            bnodes = np.unique(bnodes) # keep unique values
+            # get x,y
+            xx = self.grid.Dataset.SCHISM_hgrid_node_x.to_dataframe().loc[bnodes]
+            yy = self.grid.Dataset.SCHISM_hgrid_node_y.to_dataframe().loc[bnodes]
+            #put them in dataframe
+            coastal_stations = pd.concat([xx, yy], axis=1, sort=False)
+            coastal_stations['z'] = 0
+            coastal_stations.reset_index(inplace=True, drop=True)
+            coastal_stations.index += 1
+            coastal_stations['gindex'] = bnodes
+            coastal_stations.head()
+            #append
+            stations = pd.concat([stations,coastal_stations])
+            stations.reset_index(inplace=True,drop=True)
+            stations.index += 1
+            stations.head()
+            
+
+        
+        #modify config paramater
+        self.params.loc['iout_sta'] = 1
+        self.params.loc['nspool_sta'] = nspool_sta
+        self.params.to_csv(path + 'param.in', header=None, sep='=') 
+                
+        self.stations = stations
+        
+        logger.info('write out stations.in file \n')
+        
+        #output to file
+        with open(path + 'station.in', 'w') as f:
+            station_flag.to_csv(f,header=None,index=False,sep=' ')
+            f.write('{}\n'.format(stations.shape[0]))
+            stations.loc[:,['SCHISM_hgrid_node_x',	'SCHISM_hgrid_node_y',	'z']].to_csv(f, header=None, sep=' ')
+    
+    def get_obs(self,**kwargs):
+        
+        # locate the station files
+        sfiles = glob.glob(self.rpath + 'outputs/staout_*')
+        sfiles.sort()
+
+        # get the station flags
+        flags = pd.read_csv(self.rpath + 'station.in', header=None,nrows=1,delim_whitespace=True).T
+        flags.columns = ['flag']
+        flags['variable'] = ['elev', 'air_pressure', 'windx', 'windy', 'T', 'S', 'u', 'v', 'w']
+        
+        vals = flags[flags.values==1]# get the active ones
+
+        dfs=[]
+        for idx in vals.index:
+            obs = np.loadtxt(sfiles[idx])
+            df = pd.DataFrame(obs)
+            df = df.set_index(0)
+            df.index.name = 'time'
+            df.columns.name = vals.loc[idx,'variable']
+            df.index = pd.to_datetime(self.start_date) + pd.to_timedelta(df.index,unit='S')
+            pindex = pd.MultiIndex.from_product([df.T.columns,df.T.index])
+
+            dfs.append(pd.DataFrame(df.values.flatten(),index = pindex, columns=[vals.loc[idx,'variable']]).to_xarray().rename({'level_0':'time','level_1':'point'}))        
+        
+        
+        self.time_series = xr.combine_by_coords(dfs)
