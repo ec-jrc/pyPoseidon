@@ -192,7 +192,7 @@ class splot(object):
         
         ax.coastlines('50m'); ax.gridlines(draw_labels=True);
         
-        return p   
+        return p, ax   
     
     def contourf(self,var,**kwargs):
         
@@ -246,7 +246,7 @@ class splot(object):
         
         ax.coastlines('50m'); ax.gridlines(draw_labels=True);
         
-        return p   
+        return p, ax   
             
     
     def quiver(self,var,**kwargs):
@@ -300,7 +300,7 @@ class splot(object):
         ax.coastlines('50m'); ax.gridlines(draw_labels=True);
         
         
-        return p   
+        return p, ax  
         
     def grid(self,**kwargs):
                   
@@ -330,7 +330,7 @@ class splot(object):
         ax.coastlines('50m'); ax.gridlines(draw_labels=True);
         
         
-        return g
+        return g, ax
     
     
     
