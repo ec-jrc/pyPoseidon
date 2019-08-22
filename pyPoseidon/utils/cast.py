@@ -205,7 +205,7 @@ class scast():
         pwd = os.getcwd()
                       
         files = [ 'bctides.in', 'launchSchism.sh','sflux/sflux_inputs.txt']
-        files_sym = ['hgrid.gr3', 'hgrid.ll', 'manning.gr3', 'vgrid.in', 'drag.gr3', 'rough.gr3', 'windrot_geo2proj.gr3']
+        files_sym = ['hgrid.gr3', 'hgrid.ll', 'manning.gr3', 'vgrid.in', 'drag.gr3', 'rough.gr3', 'station.in', 'windrot_geo2proj.gr3']
 
                 
         prev=self.folders[0]
