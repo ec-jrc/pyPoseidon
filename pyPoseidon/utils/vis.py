@@ -20,6 +20,7 @@ import xarray as xr
 matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['animation.embed_limit'] = '200.'
+plt.style.use(['dark_background'])
          
 def contour(grid_x,grid_y,z,t,**kwargs):
     fig, ax = plt.subplots(figsize=(12,8)) 
@@ -144,6 +145,8 @@ class splot(object):
  
     def contour(self,var,**kwargs):        
         
+        cr = kwargs.get('cr', 'l')
+        
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
@@ -190,11 +193,15 @@ class splot(object):
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')
         
-        ax.coastlines('50m'); ax.gridlines(draw_labels=True);
+        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        
+        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         return p, ax   
     
     def contourf(self,var,**kwargs):
+        
+        cr = kwargs.get('cr', 'l')
         
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
@@ -244,12 +251,17 @@ class splot(object):
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')
         
-        ax.coastlines('50m'); ax.gridlines(draw_labels=True);
+        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        
+        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         return p, ax   
             
     
     def quiver(self,var,**kwargs):
+        
+        cr = kwargs.get('cr', 'l')
+        
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
@@ -296,13 +308,16 @@ class splot(object):
             text = 'time={}'.format(t[it])
             an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
         
+        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
         
-        ax.coastlines('50m'); ax.gridlines(draw_labels=True);
+        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         
         return p, ax  
         
     def grid(self,**kwargs):
+        
+        cr = kwargs.get('cr', 'l')
                   
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -313,7 +328,7 @@ class splot(object):
             # Use Matplotlib for triangulation
             triang = matplotlib.tri.Triangulation(x, y)
             tri3 = triang.triangles 
-         
+                
         fig, ax = plt.subplots(figsize=(12,8))
         
         ax = plt.axes(projection=ccrs.PlateCarree())
@@ -327,7 +342,9 @@ class splot(object):
         title = kwargs.get('title', 'Grid plot')
         ax.set_title(title, pad=30)
         
-        ax.coastlines('50m'); ax.gridlines(draw_labels=True);
+        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        
+        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         
         return g, ax
@@ -338,6 +355,7 @@ class splot(object):
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        cr = kwargs.get('cr', 'l')
         
         u = kwargs.get('u',self._obj[var].values[:,:,0])
         v = kwargs.get('v',self._obj[var].values[:,:,1])
@@ -351,17 +369,20 @@ class splot(object):
         crs = ccrs.PlateCarree()
         ax.set_aspect('equal')
 
-        land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',
+        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        
+
+        land_50m = cfeature.NaturalEarthFeature('physical', 'land', coastl,
                                             edgecolor='face',
                                             facecolor=cfeature.COLORS['land'],zorder=0)
 
-        sea_50m = cfeature.NaturalEarthFeature('physical', 'ocean', '50m',
+        sea_50m = cfeature.NaturalEarthFeature('physical', 'ocean', coastl,
                                                 edgecolor='face',
                                                 facecolor=cfeature.COLORS['water'], zorder=0)
 
         title = kwargs.get('title', None)
 
-        ax.coastlines('50m')
+        ax.coastlines(coastl)
         ax.add_feature(land_50m)
         ax.add_feature(sea_50m)
 
@@ -386,6 +407,8 @@ class splot(object):
  
     def frames(self,var,**kwargs):
     
+        cr = kwargs.get('cr', 'l')
+        
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
