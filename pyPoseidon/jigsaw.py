@@ -10,7 +10,7 @@ Jigsaw module
 
 import pandas as pd
 import numpy as np
-import matplotlib
+from matplotlib import tri
 from shapely import geometry, ops
 import geopandas as gp
 import xarray as xr
@@ -19,6 +19,10 @@ import os
 import shapely
 import subprocess
 import sys
+import pyproj
+from shapely.ops import transform
+from functools import partial
+import cartopy.feature as cf
 
 import pyPoseidon.dem as pdem
 from .limgrad import *
@@ -40,8 +44,6 @@ stream_handler.setFormatter(sformatter)
 
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
-        
-
 
 def jig(path='.',tag='jigsaw'):    
     
@@ -57,7 +59,8 @@ def jig(path='.',tag='jigsaw'):
         f.write('MESH_DIMS = 2\n')
         f.write('MESH_TOP1 = TRUE\n')
         f.write('MESH_EPS1 = 1.0\n')
-        f.write('MESH_RAD2=1\n')
+        f.write('MESH_RAD2 = 1\n')
+        f.write('GEOM_FEAT = TRUE\n')
         f.write('VERBOSITY = 2')
 
 
@@ -77,7 +80,6 @@ def geo(df, path='.', tag='jigsaw'):
             df.loc[line].to_csv(f, index=False, header=0, columns=['lon','lat','z'],sep=';')
     
     edges = pd.DataFrame([]) # initiate
-
     # create edges
     for line in df.index.levels[0]:
         i0 = edges.shape[0]
@@ -93,7 +95,7 @@ def geo(df, path='.', tag='jigsaw'):
         edges.to_csv(f, index=False, header=0, sep=';')
         
 
-def hfun(dem, path='.', tag='jigsaw', resolution_min=.5, resolution_max=10., dhdx=.15, imax=100, **kwargs):
+def hfun(dem, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
     
     X, Y = np.meshgrid(dem.Dataset.longitude.values,dem.Dataset.latitude.values)
     V = dem.Dataset.values
@@ -115,8 +117,8 @@ def hfun(dem, path='.', tag='jigsaw', resolution_min=.5, resolution_max=10., dhd
     #triangulate
     points = np.column_stack([X.flatten(),Y.flatten()])
     # Use Matplotlib for triangulation
-    triang = matplotlib.tri.Triangulation(points[:,0], points[:,1])
-    tri = triang.triangles
+    triang = tri.Triangulation(points[:,0], points[:,1])
+#    tri3 = triang.triangles
     edges = triang.edges
     #edge lengths
     elen = [shapely.geometry.LineString(points[edge]).length for edge in edges]
@@ -174,9 +176,15 @@ def read_msh(fmsh):
 
 def jigsaw(**kwargs):
     
-    # world polygons TODO user input
-    world = gp.read_file(gp.datasets.get_path('naturalearth_lowres'))
-    world = gp.GeoDataFrame.from_file('/Users/brey/DATA/COASTLINES/naturalearth/ne_10m_land/ne_10m_land.shp')
+    cr = kwargs.get('coast_resolution', 'l')
+    
+    # world polygons - user input
+    coast = cf.NaturalEarthFeature(
+        category='physical',
+        name='land',
+        scale='{}m'.format({'l':110, 'i':50, 'h':10}[cr]))
+    
+    world = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
     world = world.explode()
     
     minlon = kwargs.get('minlon', None)
@@ -195,33 +203,57 @@ def jigsaw(**kwargs):
     
     g = block.unary_union.symmetric_difference(grp) # get the dif from the world
 
-    t = gp.GeoDataFrame({'geometry':g}) # make geoDataFrame    
+    try: # make geoDataFrame 
+        t = gp.GeoDataFrame({'geometry':g})
+    except:
+        t = gp.GeoDataFrame({'geometry':[g]})    
     t['length']=t['geometry'][:].length #get length
     t = t.sort_values(by='length', ascending=0) #sort
     t = t.reset_index(drop=True)
-    b = t.iloc[0].geometry #get the largest 
     
-    #Here we extract all boundaries for the geo file
+    t['in'] = gp.GeoDataFrame(geometry=[grp] * t.shape[0]).contains(t) # find the largest of boundaries
+    idx = np.where(t['in']==True)[0][0] # first(largest) boundary within lat/lon
+    b = t.iloc[idx].geometry #get the largest 
+    
+    #open (water) boundaries
+    water = b.boundary[0] - (b.boundary[0] - grl)    
+    # land boundaries!!
+    land = b.boundary - grl 
+    
+    #We get boundary length in km
+    # Geometry transform function based on pyproj.transform
+    project = partial(
+        pyproj.transform,
+        pyproj.Proj(init='EPSG:4326'),
+        pyproj.Proj(init='EPSG:32718'))
+    #All land 
+    hr=[]
+    try:
+        for line in b.boundary:
+            shore = transform(project, line).length/1000
+            hr.append(int(shore))
+    except:
+        print('error')
+    
     dic={}
     for l in range(len(b.boundary)):
         lon=[]
         lat=[]
-        for f in np.linspace(0.,b.boundary[l].length,1000): 
+        for f in np.linspace(0.,b.boundary[l].length,hr[l]): 
             cp = b.boundary[l].interpolate(f)
             lon.append(cp.x)
             lat.append(cp.y)
 
+
         dic.update({'line{}'.format(l):{'lon':lon,'lat':lat}})
-    
-    dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()} #concat
+
+    dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
     df = pd.concat(dict_of_df, axis=0)
     df['z']=0
+
     df = df.drop_duplicates() # drop the repeat value on closed boundaries
     
-    #open water boundaries
-    water = b.boundary[0] - (b.boundary[0] - grl)
-    land = b.boundary - grl # land boundaries!!
-
+      
     tag = kwargs.get('tag', 'jigsaw')
     rpath = kwargs.get('rpath', '.')
     
@@ -250,7 +282,7 @@ def jigsaw(**kwargs):
     dem = pdem.dem(**dem_dic)
       
     
-    hfun(dem, path=path,tag=tag)
+    hfun(dem, path=path, **kwargs)
     
     calc_dir = rpath+'/jigsaw/'
     
@@ -264,13 +296,13 @@ def jigsaw(**kwargs):
     with open(calc_dir+'err.log', 'w') as f: 
       for line in iter(ex.stderr.readline,b''): 
         f.write(line.decode(sys.stdout.encoding))   
-        logger.info(line.decode(sys.stdout.encoding))
+#        logger.info(line.decode(sys.stdout.encoding))
     ex.stderr.close()            
 
     with open(calc_dir+'run.log', 'w') as f: 
       for line in iter(ex.stdout.readline,b''): 
         f.write(line.decode(sys.stdout.encoding))   
-        logger.info(line.decode(sys.stdout.encoding))
+#        logger.info(line.decode(sys.stdout.encoding))
     ex.stdout.close()         
     
     #--------------------------------- 
@@ -299,7 +331,7 @@ def jigsaw(**kwargs):
     gpt = gp.GeoDataFrame(geometry=polygons) # all polygons
     
     # get the boundary of the union
-    cu = gpt.cascaded_union
+    cu = gpt[gpt.is_valid].cascaded_union
     bdic={}
     for i in range(len(cu.boundary)):
         xb=cu.boundary[i].xy[0]
@@ -318,10 +350,13 @@ def jigsaw(**kwargs):
     nodes['pos']= nodes['lon'].map(str) +',' + nodes['lat'].map(str) #create (lon,lat) for sorting the index
     
     #open boundaries
-    openb={}
-    for i in range(len(water)):
-        openb.update({'open_boundary_{}'.format(i+1):gdf.loc[gdf.intersects(water[i].buffer(.1))]})
-        
+    try:
+        openb={}
+        for i in range(len(water)):
+            openb.update({'open_boundary_{}'.format(i+1):gdf.loc[gdf.intersects(water[i].buffer(.01))]})
+    except:
+            openb = {'open_boundary_1' : gdf.loc[gdf.intersects(water.buffer(.01))]}
+            
     openb = pd.concat(openb,axis=0)
     openb.index = openb.index.droplevel(1)
     openb['pos']= openb['lon'].map(str) +',' + openb['lat'].map(str)
@@ -339,9 +374,12 @@ def jigsaw(**kwargs):
     openb['idx']=openb['idx'].astype(int)
     
     #land boundaries
-    landb={}
-    for i in range(len(land)):
-        landb.update({'land_boundary_{}'.format(i+1):gdf.loc[gdf.intersects(land[i].buffer(.1))]})
+    try:
+        landb={}
+        for i in range(len(land)):
+            landb.update({'land_boundary_{}'.format(i+1):gdf.loc[gdf.intersects(land[i].buffer(.01))]})
+    except:
+        landb = {'land_boundary_1' : gdf.loc[gdf.intersects(land.buffer(.01))]}
     
     landb = pd.concat(landb,axis=0)
     landb.index = landb.index.droplevel(1)
@@ -366,11 +404,12 @@ def jigsaw(**kwargs):
     for line,value in v:
         openb = openb.drop(value, level=1)
     
+        
     #make Dataset
     nod = nodes.loc[:,['lon','lat']].to_xarray().rename({'lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y'}) # nodes
 
     els = xr.DataArray(
-          tria.loc[:,['a','b','c','d']].values + 1 , # for index starting at one
+          tria.loc[:,['a','b','c']].values + 1 , # for index starting at one
           dims=['nSCHISM_hgrid_face', 'nMaxSCHISM_hgrid_face_nodes'], name='SCHISM_hgrid_face_nodes'
           )
 
@@ -385,7 +424,7 @@ def jigsaw(**kwargs):
     o_label=[]
     for i in range(len(openb.index.levels[0])):
         line = 'open_boundary_{}'.format(i+1)
-        op.append(openb.loc[line,'idx'].values)
+        op.append(openb.loc[line,'idx'].values + 1) # for index starting at 1
         nop.append(openb.loc[line,'idx'].size)
         o_label.append(line)
     
@@ -403,7 +442,7 @@ def jigsaw(**kwargs):
     l_label=[]
     for i in range(len(landb.index.levels[0])):
         line = 'land_boundary_{}'.format(i+1)
-        lp.append(landb.loc[line,'idx'].values)
+        lp.append(landb.loc[line,'idx'].values + 1) # for index starting at 1
         nlp.append(landb.loc[line,'idx'].size)
         l_label.append(line)
         
@@ -416,7 +455,11 @@ def jigsaw(**kwargs):
 
     
 
-    gr = xr.merge([nod,dep,els,xob, xlb, lattr, oattr]) # total
+    gr = xr.merge([nod,dep,els,xob.to_xarray(), xlb.to_xarray(), lattr.to_xarray(), oattr.to_xarray()]) # total
+    
+    
+    logger.info('..done creating mesh\n')
+    
     
     return gr
     
