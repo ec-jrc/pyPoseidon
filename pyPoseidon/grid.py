@@ -298,7 +298,7 @@ class tri2d():
         
         q.to_csv(filename,index=True, sep='\t', header=None,mode='a', float_format='%.10f', columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth'])   
         
-        e = pd.DataFrame(self.Dataset.SCHISM_hgrid_face_nodes.values,columns=['a','b','c','d'])
+        e = pd.DataFrame(self.Dataset.SCHISM_hgrid_face_nodes.dropna(dim='nMaxSCHISM_hgrid_face_nodes').values,columns=['a','b','c'])
         
         e['nv'] = e.apply(lambda row: row.dropna().size, axis=1)
         
