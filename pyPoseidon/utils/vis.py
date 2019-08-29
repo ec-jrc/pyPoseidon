@@ -135,9 +135,9 @@ def video(fname, mimetype):
      return HTML(data=video_tag)
 
 
-@xr.register_dataset_accessor('splot')
+@xr.register_dataset_accessor('pplot')
 
-class splot(object):
+class pplot(object):
     
     def __init__(self, xarray_obj):
         self._obj = xarray_obj    
