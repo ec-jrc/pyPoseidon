@@ -22,8 +22,6 @@ import pandas as pd
 import glob
 from shutil import copyfile
 import xarray as xr
-import logging
-
 
 #local modules
 import pyPoseidon
@@ -35,22 +33,8 @@ from pyPoseidon.utils.converter import myconverter
 from pyPoseidon.utils import obs
 from pyPoseidon.utils.cpoint import closest_node
 
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('model.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
+import logging
+logger = logging.getLogger('pyPoseidon')
 
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
@@ -96,8 +80,7 @@ class schism():
         self.epath = kwargs.get('epath', None)
     
         self.solver = self.__class__.__name__    
-        
-                                                   
+                                                       
         for attr, value in kwargs.items():
             if not hasattr(self, attr): setattr(self, attr, value)  
         
@@ -979,9 +962,9 @@ class schism():
         xnodes = xnodes.drop('nSCHISM_hgrid_node')
 
         # element based variables
-        gt34 = gt3.loc[:,['ga','gb','gc','gd']].values # SCHISM_hgrid_face_nodes
+        gt34 = gt3.loc[:,['ga','gb','gc']].values # SCHISM_hgrid_face_nodes
         xelems = xr.Dataset({
-                         u'SCHISM_hgrid_face_nodes' : ([u'nSCHISM_hgrid_face', u'nMaxSCHISM_hgrid_face_nodes'], gt34),
+                         u'SCHISM_hgrid_face_nodes' : ([u'nSCHISM_hgrid_face', u'nMaxSCHISM_hgrid_face_nodes'], gt34 - 1),  #-> start index = 0 
                          u'SCHISM_hgrid_face_x' : ([u'nSCHISM_hgrid_face'], gt3.loc[:,'xc'].values),
                          u'SCHISM_hgrid_face_y' : ([u'nSCHISM_hgrid_face'], gt3.loc[:,'yc'].values),                 
                          u'ele_bottom_index': ([u'nSCHISM_hgrid_face'], gt3.kbe.values )})
@@ -1014,9 +997,11 @@ class schism():
         ed['kbs2'] = grd.loc[ed['node2'] - 1,'kbp00'].values
 
         ed['kbs'] = ed[['kbs1', 'kbs2']].min(axis=1)
+        
+        
 
         xsides = xr.Dataset({
-                         u'SCHISM_hgrid_edge_nodes' : ([u'nSCHISM_hgrid_edge', u'two'], sides),
+                         u'SCHISM_hgrid_edge_nodes' : ([u'nSCHISM_hgrid_edge', u'two'], [[x-1,y-1] for [x,y] in sides]), # index from 0
                          u'SCHISM_hgrid_edge_x' : ([u'nSCHISM_hgrid_edge'], ed['xc'].values),
                          u'SCHISM_hgrid_edge_y' : ([u'nSCHISM_hgrid_edge'], ed['yc'].values ),
                          u'edge_bottom_index' : ([u'nSCHISM_hgrid_edge'], ed.kbs.values)})                 
@@ -1125,9 +1110,9 @@ class schism():
 
         xc.dry_value_flag.attrs = {'values' : '0: use last-wet value; 1: use junk'}
 
-        xc.SCHISM_hgrid_face_nodes.attrs = {'long_name' : 'Horizontal Element Table', 'cf_role' : 'face_node_connectivity' , 'start_index' : 1}
+        xc.SCHISM_hgrid_face_nodes.attrs = {'long_name' : 'Horizontal Element Table', 'cf_role' : 'face_node_connectivity' , 'start_index' : 0}
 
-        xc.SCHISM_hgrid_edge_nodes.attrs = {'long_name' : 'Map every edge to the two nodes that it connects', 'cf_role' : 'edge_node_connectivity' , 'start_index' : 1}
+        xc.SCHISM_hgrid_edge_nodes.attrs = {'long_name' : 'Map every edge to the two nodes that it connects', 'cf_role' : 'edge_node_connectivity' , 'start_index' : 0}
 
         xc.SCHISM_hgrid_edge_x.attrs = {'long_name' : 'x_coordinate of 2D mesh edge' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
 
@@ -1148,13 +1133,13 @@ class schism():
                                   }
 
         xc.node_bottom_index.attrs = {'long_name' : 'bottom level index at each node' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'node',
-            'start_index' : 1}
+            'start_index' : 0}
 
         xc.ele_bottom_index.attrs = {'long_name' : 'bottom level index at each element' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'elem',
-            'start_index' : 1}
+            'start_index' : 0}
 
         xc.edge_bottom_index.attrs = {'long_name' : 'bottom level index at each edge' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'edge',
-            'start_index' : 1}
+            'start_index' : 0}
             
         
         base_date = ' '.join([str(x) for x in date.T.values.flatten()])
@@ -1177,6 +1162,9 @@ class schism():
 
         xc.attrs = {'Conventions': 'CF-1.0, UGRID-1.0', 'title': 'SCHISM Model output', 'source': 'SCHISM model output version v10', 'references': 'http://ccrm.vims.edu/schismweb/',
                      'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
+        
+        
+        
         
         
         return xc

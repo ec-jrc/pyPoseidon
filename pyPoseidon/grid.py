@@ -13,26 +13,10 @@ import datetime
 import xarray as xr
 import pandas as pd
 import sys
-import logging
 from .jigsaw import *
+import logging
 
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('grid.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
-
+logger = logging.getLogger('pyPoseidon')
 
 
 def grid(type=None, **kwargs):
@@ -188,12 +172,14 @@ class tri2d():
         e = e.apply(pd.to_numeric)
      #   e.reset_index(inplace=True, drop=True)
         e.columns = ['nv','a','b','c']
-        if e.nv.max() < 4:
-            e['d']=np.nan
+        e.loc[:,['a','b','c']] = e.loc[:,['a','b','c']] - 1 # convert to python (index starts from 0)
+        
+#        if e.nv.max() < 4:
+#            e['d']=0
         
         #create xarray of tessellation
         els = xr.DataArray(
-              e.loc[:,['a','b','c','d']].values,
+              e.loc[:,['a','b','c']].values,
               dims=['nSCHISM_hgrid_face', 'nMaxSCHISM_hgrid_face_nodes'], name='SCHISM_hgrid_face_nodes'
               )
                   
@@ -233,6 +219,8 @@ class tri2d():
             ops.columns = oinfo.index
         except:
             pass
+            
+        ops = ops - 1 # start_index = 0
         
         #Land boundaries
         n1 = df[df.data.str.contains('land boundaries')].index
@@ -271,13 +259,14 @@ class tri2d():
             
         lps = pd.DataFrame(lnodes).T
         lps.columns = linfo.index
-            
+        
+        lps = lps - 1 # start_index = 0     
             
         # merge to one xarray DataSet
         g = xr.merge([grid,depth,els,ops.to_xarray(),lps.to_xarray(),oinfo.to_xarray(),linfo.to_xarray()])
                     
         g.attrs = {}
-    
+        
         return g
     
     def to_file(self, filename, **kwargs):
@@ -305,7 +294,9 @@ class tri2d():
         e.index = np.arange(1, len(e) + 1)
         
         e = e.dropna(axis=1).astype(int)
-            
+        
+        e.loc[:,['a','b','c']] = e.loc[:,['a','b','c']] + 1 # convert to fortran (index starts from 1)
+        
         e.to_csv(filename,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c'])           
         
         # open boundaries
@@ -319,13 +310,18 @@ class tri2d():
 
             ops = (~obound.isna()).sum() # number of nodes for each boundary
         
-            with open(filename, 'a') as f:
-                f.write('{} = Number of open boundaries\n'.format(nob))
-                f.write('{} = Total number of open boundary nodes\n'.format(ops.sum()))
-                for i in range(nob):
-                    dat = obound['open_boundary_{}'.format(i + 1)].dropna().astype(int)
-                    f.write('{} = Number of nodes for open boundary {}\n'.format(dat.size,i+1))
-                    dat.to_csv(f,index=None,header=False)
+        else:
+            
+            nob = 0
+            ops = np.array(0)
+        
+        with open(filename, 'a') as f:
+            f.write('{} = Number of open boundaries\n'.format(nob))
+            f.write('{} = Total number of open boundary nodes\n'.format(ops.sum()))
+            for i in range(nob):
+                dat = obound['open_boundary_{}'.format(i + 1)].dropna().astype(int) + 1 # convert to fortran (index starts from 1)
+                f.write('{} = Number of nodes for open boundary {}\n'.format(dat.size,i+1))
+                dat.to_csv(f,index=None,header=False)
                                 
 
         # land boundaries                      
@@ -340,13 +336,19 @@ class tri2d():
 
             lps = (~lbound.isna()).sum() # number of nodes for each boundary
         
-            with open(filename, 'a') as f:
-                f.write('{} = Number of land boundaries\n'.format(nlb))
-                f.write('{} = Total number of land boundary nodes\n'.format(lps.sum()))
-                for i in range(nlb):
-                    dat = lbound['land_boundary_{}'.format(i + 1)].dropna().astype(int)
-                    f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.values[i].astype(int),i + 1))
-                    dat.to_csv(f,index=None, header=False)
+        else:
+            
+            nlb = 0
+            lps = np.array(0)
+        
+        with open(filename, 'a') as f:
+            f.write('{} = Number of land boundaries\n'.format(nlb))
+            f.write('{} = Total number of land boundary nodes\n'.format(lps.sum()))
+            for i in range(nlb):
+                name = 'land_boundary_{}'.format(i + 1)
+                dat = lbound[name].dropna().astype(int) + 1 # convert to fortran (index starts from 1)
+                f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.sel(label=name).values.astype(int),i + 1))
+                dat.to_csv(f,index=None, header=False)
 
         
 

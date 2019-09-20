@@ -24,7 +24,6 @@ import pandas as pd
 import glob
 from shutil import copyfile
 import xarray as xr
-import logging
 
 #local modules
 from .d3d import *
@@ -35,24 +34,47 @@ import pyPoseidon.grid as pgrid
 import pyPoseidon.meteo as pmeteo
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.get_value import get_value
+import logging
+import colorlog
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+        'color': {
+            '()': 'colorlog.ColoredFormatter',
+        }
+    },
+    'handlers': {
+        'file': {
+            'level':'DEBUG',
+            'class':'logging.FileHandler',
+            'formatter': 'verbose',
+            'filename': 'model.log'
+        }
+    ,
+        'console':{
+            'level':'DEBUG',
+            'class':'colorlog.StreamHandler',
+            'formatter': 'color'
+        }
+    },
+    'loggers': {
+        'pyPoseidon': {
+            'handlers':['file','console'],
+            'propagate': True,
+            'level':'DEBUG',
+        }
+    }
+}
 
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('model.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
+logging.config.dictConfig(LOGGING)
 
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')

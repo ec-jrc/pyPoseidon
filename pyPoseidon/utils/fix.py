@@ -22,22 +22,8 @@ import logging
 
 
 #logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('dem.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
-
+import colorlog
+logger = colorlog.getLogger('model')
 
 def fix(dem,shpfile,nc=50,**kwargs):
     

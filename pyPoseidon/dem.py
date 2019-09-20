@@ -16,24 +16,8 @@ import importlib
 from pyPoseidon.utils.fix import *
 import logging
 
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('dem.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
-
-
+logger = logging.getLogger('pyPoseidon')
 
 class dem:
     def __init__(self, dem_file=None, **kwargs):
@@ -55,7 +39,7 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
     logger.info('extracting dem from {}\n'.format(source))
     #---------------------------------------------------------------------      
   
-    data = xr.open_dataset(source)  
+    data = xr.open_dataset(source) 
     
     #rename vars,coords
     var = [keys for keys in data.data_vars]

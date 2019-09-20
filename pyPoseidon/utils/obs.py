@@ -20,23 +20,7 @@ import os
 import sys
 import logging
 
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('obs.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
-
+logger = logging.getLogger('pyPoseidon')
 
 
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')

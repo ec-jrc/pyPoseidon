@@ -22,7 +22,6 @@ import pandas as pd
 import glob
 from shutil import copyfile
 import xarray as xr
-import logging
 
 #local modules
 import pyPoseidon
@@ -31,23 +30,9 @@ import pyPoseidon.meteo as pmeteo
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.get_value import get_value
 from pyPoseidon.utils.converter import myconverter
+import logging
 
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('model.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
+logger = logging.getLogger('pyPoseidon')
 
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')

@@ -14,7 +14,6 @@ from matplotlib import tri
 from shapely import geometry, ops
 import geopandas as gp
 import xarray as xr
-import logging
 import os
 import shapely
 import subprocess
@@ -26,24 +25,10 @@ import cartopy.feature as cf
 
 import pyPoseidon.dem as pdem
 from .limgrad import *
+import logging        
         
-        
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger('pyPoseidon')
 
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('jigsaw.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
 
 def jig(path='.',tag='jigsaw'):    
     
@@ -78,15 +63,25 @@ def geo(df, path='.', tag='jigsaw'):
     with open(fgeo, 'a') as f:
         for line in df.index.levels[0]:
             df.loc[line].to_csv(f, index=False, header=0, columns=['lon','lat','z'],sep=';')
-    
+
+
     edges = pd.DataFrame([]) # initiate
+
     # create edges
     for line in df.index.levels[0]:
         i0 = edges.shape[0]
-        ie = df.loc[line].shape[0]+edges.shape[0]
-        edges = edges.append(pd.DataFrame([[i,i + 1,0] for i in range(i0,ie)]))
-        edges.iloc[-1][1]=i0
+        ie = df.loc[line].shape[0] + edges.shape[0]
+        dline = df.loc[line].copy()
+        dline.index = range(i0,ie)
+        dline.loc[:,'ie'] = dline.index.values + 1
+        dline.loc[dline.index[-1],'ie']=i0
+        dout = dline.reset_index().loc[:,['index','ie','tag']]
 
+        dout['tag1'] = dline.loc[dline.ie.values,'tag'].values.astype(int)
+        dout['que'] = np.where(((dout['tag'] != dout['tag1']) & (dout['tag'] > 0)) , dout['tag1'], dout['tag'])    
+        dout = dout.reset_index().loc[:,['index','ie','que']]
+        edges = edges.append(dout)        
+        
     # write header
     with open(fgeo,'a') as f:
         f.write('EDGE2={}\n'.format(edges.shape[0]))
@@ -175,8 +170,10 @@ def read_msh(fmsh):
             
 
 def jigsaw(**kwargs):
-    
+     
     cr = kwargs.get('coast_resolution', 'l')
+    
+    logger.info('Creating grid with JIGSAW\n')
     
     # world polygons - user input
     coast = cf.NaturalEarthFeature(
@@ -184,14 +181,18 @@ def jigsaw(**kwargs):
         name='land',
         scale='{}m'.format({'l':110, 'i':50, 'h':10}[cr]))
     
-    world = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
-    world = world.explode()
+           
+    natural_world = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
     
+    world = kwargs.get('coastlines',natural_world)
+    
+    world = world.explode()
+        
     minlon = kwargs.get('minlon', None)
     maxlon = kwargs.get('maxlon', None)
     minlat = kwargs.get('minlat', None)
     maxlat = kwargs.get('maxlat', None)
-    
+        
     block = world.cx[minlon:maxlon,minlat:maxlat] #mask based on lat/lon window
     
     #create a polygon of the lat/lon window
@@ -215,45 +216,121 @@ def jigsaw(**kwargs):
     idx = np.where(t['in']==True)[0][0] # first(largest) boundary within lat/lon
     b = t.iloc[idx].geometry #get the largest 
     
-    #open (water) boundaries
-    water = b.boundary[0] - (b.boundary[0] - grl)    
-    # land boundaries!!
-    land = b.boundary - grl 
-    
-    #We get boundary length in km
-    # Geometry transform function based on pyproj.transform
-    project = partial(
-        pyproj.transform,
-        pyproj.Proj(init='EPSG:4326'),
-        pyproj.Proj(init='EPSG:32718'))
-    #All land 
-    hr=[]
-    try:
-        for line in b.boundary:
-            shore = transform(project, line).length/1000
-            hr.append(int(shore))
-    except:
-        print('error')
-    
+    # SETUP JIGSAW
     dic={}
     for l in range(len(b.boundary)):
         lon=[]
         lat=[]
-        for f in np.linspace(0.,b.boundary[l].length,hr[l]): 
-            cp = b.boundary[l].interpolate(f)
-            lon.append(cp.x)
-            lat.append(cp.y)
-
-
+        for x,y in b.boundary[l].coords[:]:
+            lon.append(x)
+            lat.append(y)
         dic.update({'line{}'.format(l):{'lon':lon,'lat':lat}})
 
     dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
     df = pd.concat(dict_of_df, axis=0)
     df['z']=0
-
     df = df.drop_duplicates() # drop the repeat value on closed boundaries
     
-      
+    
+    #open (water) boundaries
+    water = b.boundary[0] - (b.boundary[0] - grl) 
+    try:
+        cwater = ops.linemerge(water)
+    except:
+        cwater= water
+
+    mindx = 0
+    #get all lines in a pandas DataFrame
+    if cwater.type == 'LineString':
+            lon=[]
+            lat=[]
+            for x,y in cwater.coords[:]:
+                lon.append(x)
+                lat.append(y)
+            dic= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx + 1}}
+            mindx += 1
+        
+    elif cwater.type == 'MultiLineString' :
+        dic={}
+        for l in range(len(cwater)):
+            lon=[]
+            lat=[]
+            for x,y in cwater[l].coords[:]:
+                lon.append(x)
+                lat.append(y)
+            dic.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx + 1}})
+            mindx += 1
+    
+    dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
+    df_water = pd.concat(dict_of_df, axis=0)
+
+       
+    # land boundaries!!
+    land = b.boundary[0] - grl 
+
+    try:
+        cland = ops.linemerge(land)
+    except:
+        cland = land
+        
+    mindx = 0 
+    
+    #get all lines in a pandas DataFrame
+    if cland.type == 'LineString':
+            lon=[]
+            lat=[]
+            for x,y in cland.coords[:]:
+                lon.append(x)
+                lat.append(y)
+            dic= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}}
+            mindx -= 1
+        
+    elif cland.type == 'MultiLineString' :
+        dic={}
+        for l in range(len(cland)):
+            lon=[]
+            lat=[]
+            for x,y in cland[l].coords[:]:
+                lon.append(x)
+                lat.append(y)
+            dic.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}})
+            mindx -= 1
+            
+    dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
+
+    df_land = pd.concat(dict_of_df, axis=0)
+    
+    ddf = pd.concat([df_water,df_land])
+    
+    #Sort outer boundary
+    
+    out_b = []
+    for line in ddf.index.levels[0]:
+        out_b.append(shapely.geometry.LineString(ddf.loc[line,['lon','lat']].values))
+
+    merged = shapely.ops.linemerge(out_b)
+    merged = pd.DataFrame(merged.coords[:], columns=['lon','lat'])
+    merged = merged.drop_duplicates()
+    match = ddf.drop_duplicates(['lon','lat']).droplevel(0)
+    match = match.reset_index(drop=True)
+
+    df1 = merged.sort_values(['lon', 'lat'])
+    df2 = match.sort_values(['lon', 'lat'])
+    df2.index = df1.index
+    final = df2.sort_index()
+    final = pd.concat([final],keys=['line0'])
+    
+    
+    bmindx = mindx
+    
+    #merge with islands    
+    ndf = df.drop('line0')
+    for line in ndf.index.levels[0][1:]:
+        ndf.loc[line,'tag'] = mindx - 1
+        mindx -= 1
+    ndf['tag'] = ndf.tag.astype(int)
+    df = pd.concat([final,ndf])
+          
     tag = kwargs.get('tag', 'jigsaw')
     rpath = kwargs.get('rpath', '.')
     
@@ -281,7 +358,6 @@ def jigsaw(**kwargs):
          
     dem = pdem.dem(**dem_dic)
       
-    
     hfun(dem, path=path, **kwargs)
     
     calc_dir = rpath+'/jigsaw/'
@@ -315,145 +391,98 @@ def jigsaw(**kwargs):
     
     nodes = nodes.apply(pd.to_numeric)
     tria = tria.apply(pd.to_numeric)
+    edges = edges.apply(pd.to_numeric)
     
-#    dem_dic.update({'grid_x':nodes.lon.values, 'grid_y':nodes.lat.values})
-    
-#    dem = pdem.dem(**dem_dic)
+# Interpolate on grid points 
+
+    dem_dic.update({'grid_x':nodes.lon.values, 'grid_y':nodes.lat.values})
+        
+    dem = pdem.dem(**dem_dic)
    
-    # All elements
-    polygons=[]
-    for i in range(tria.shape[0]):
-        temp = nodes.loc[tria.loc[i,['a','b','c']],['lon','lat']]
-        temp['Coordinates'] = list(zip(temp.lon, temp.lat))
-        poly = shapely.geometry.Polygon(list(temp.Coordinates.values))
-        polygons.append(poly)
-        
-    gpt = gp.GeoDataFrame(geometry=polygons) # all polygons
+    # Boundaries
     
-    # get the boundary of the union
-    cu = gpt[gpt.is_valid].cascaded_union
-    bdic={}
-    for i in range(len(cu.boundary)):
-        xb=cu.boundary[i].xy[0]
-        yb=cu.boundary[i].xy[1]        
-        bg = pd.DataFrame({'lon':xb, 'lat':yb})
-        bdic.update({i:bg})
-        
-    bnodes  = pd.concat(bdic, axis=0)
-    
-    #sort out open/land
-    
-    gdf = gp.GeoDataFrame(
-        bnodes, geometry=gp.points_from_xy(bnodes.lon, bnodes.lat))
+    # LAND Boundaries (negative tag)    
+    ib = 1
+    isl = []
+    for ik in range(edges.e3.min(),0):
+        bb = np.unique(edges.loc[edges.e3 == ik,['e1','e2']].values.flatten())
+        bf = pd.concat([nodes.loc[bb]],keys=['land_boundary_{}'.format(ib)])
+        bf['idx'] = bb
+        if ik >= bmindx: 
+            bf['flag'] = 0
+        else:
+            bf['flag'] = 1
 
-    
-    nodes['pos']= nodes['lon'].map(str) +',' + nodes['lat'].map(str) #create (lon,lat) for sorting the index
-    
-    #open boundaries
-    try:
-        openb={}
-        for i in range(len(water)):
-            openb.update({'open_boundary_{}'.format(i+1):gdf.loc[gdf.intersects(water[i].buffer(.01))]})
-    except:
-            openb = {'open_boundary_1' : gdf.loc[gdf.intersects(water.buffer(.01))]}
-            
-    openb = pd.concat(openb,axis=0)
-    openb.index = openb.index.droplevel(1)
-    openb['pos']= openb['lon'].map(str) +',' + openb['lat'].map(str)
-    openb = openb.drop('geometry', axis=1).drop_duplicates()
-    
-    #get index 
-    wid=[]
-    for l in range(openb.index.levels[0].shape[0]):
-        hd=openb.loc['open_boundary_{}'.format(l+1)]
-        jj =hd.merge(nodes, how='inner', on=['pos'],left_index=True).index.values
-        wid.append(jj)    
-    
-    for l in range(len(wid)):
-        openb.loc['open_boundary_{}'.format(l+1),'idx']=wid[l]
-    openb['idx']=openb['idx'].astype(int)
-    
-    #land boundaries
-    try:
-        landb={}
-        for i in range(len(land)):
-            landb.update({'land_boundary_{}'.format(i+1):gdf.loc[gdf.intersects(land[i].buffer(.01))]})
-    except:
-        landb = {'land_boundary_1' : gdf.loc[gdf.intersects(land.buffer(.01))]}
-    
-    landb = pd.concat(landb,axis=0)
-    landb.index = landb.index.droplevel(1)
-    landb['pos']= landb['lon'].map(str) +',' + landb['lat'].map(str)
-    landb = landb.drop('geometry', axis=1).drop_duplicates()
-    
-    #get index
-    lid=[]
-    for l in range(landb.index.levels[0].shape[0]):
-        idx=[]
-        hd=landb.loc['land_boundary_{}'.format(l+1)]
-        jj =hd.merge(nodes, how='inner', on=['pos'],left_index=True).index.values
-        lid.append(jj)    
+        isl.append(bf)
+        ib += 1
         
-    for l in range(len(lid)):
-        landb.loc['land_boundary_{}'.format(l+1),'idx']=lid[l]
-    landb['idx']=landb['idx'].astype(int)
+    landb = pd.concat(isl)
     
+    land_i = sorted(landb.index.levels[0], key=lambda x: int(x.split('_')[2]))
     
-    #check dual use
-    v = openb.merge(landb, how='inner', on=['pos'],right_index=True).index.values  
-    for line,value in v:
-        openb = openb.drop(value, level=1)
+    # WATER Boundaries (positive tag)
     
-        
-    #make Dataset
-    nod = nodes.loc[:,['lon','lat']].to_xarray().rename({'lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y'}) # nodes
+    wb = 1
+    wbs = []
+    for ik in range(1,edges.e3.max()+1):
+        bb = np.unique(edges.loc[edges.e3 == ik,['e1','e2']].values.flatten())
+        bf = pd.concat([nodes.loc[bb]],keys=['open_boundary_{}'.format(wb)])
+        bf['idx'] = bb
 
+        wbs.append(bf)
+        wb += 1
+        
+    openb = pd.concat(wbs)
+    
+    open_i = sorted(openb.index.levels[0], key=lambda x: int(x.split('_')[2]))
+    
+    #MAKE Dataset
+    
     els = xr.DataArray(
-          tria.loc[:,['a','b','c']].values + 1 , # for index starting at one
+          tria.loc[:,['a','b','c']].values,
           dims=['nSCHISM_hgrid_face', 'nMaxSCHISM_hgrid_face_nodes'], name='SCHISM_hgrid_face_nodes'
           )
 
     nod = nodes.loc[:,['lon','lat']].to_xarray().rename({'index':'nSCHISM_hgrid_node','lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y'})
     nod = nod.drop('nSCHISM_hgrid_node')
 
-    dep = xr.Dataset({'depth': (['nSCHISM_hgrid_node'], np.zeros(nodes.shape[0]))})
+    dep = xr.Dataset({'depth': (['nSCHISM_hgrid_node'], -dem.Dataset.ival.values)})
 
     #open boundaries
     op=[]
     nop=[]
     o_label=[]
-    for i in range(len(openb.index.levels[0])):
-        line = 'open_boundary_{}'.format(i+1)
-        op.append(openb.loc[line,'idx'].values + 1) # for index starting at 1
+    for line in open_i:
+        op.append(openb.loc[line,'idx'].values)
         nop.append(openb.loc[line,'idx'].size)
         o_label.append(line)
-    
+
     xob = pd.DataFrame(op).T
     xob.columns = o_label
-    
+
     oattr = pd.DataFrame({'label':o_label,'nps':nop})
     oattr['type'] = np.nan
     oattr.set_index('label', inplace=True, drop=True)
 
     #land boundaries
-    
+
     lp=[]
     nlp=[]
     l_label=[]
-    for i in range(len(landb.index.levels[0])):
-        line = 'land_boundary_{}'.format(i+1)
-        lp.append(landb.loc[line,'idx'].values + 1) # for index starting at 1
+    itype = []
+    for line in land_i:
+        lp.append(landb.loc[line,'idx'].values)
         nlp.append(landb.loc[line,'idx'].size)
+        itype.append(landb.loc[line,'flag'].values[0])
         l_label.append(line)
-        
+    
     xlb = pd.DataFrame(lp).T
     xlb.columns = l_label
 
     lattr = pd.DataFrame({'label':l_label,'nps':nlp})
-    lattr['type'] = 1.
+    lattr['type'] = itype
     lattr.set_index('label', inplace=True, drop=True)
 
-    
 
     gr = xr.merge([nod,dep,els,xob.to_xarray(), xlb.to_xarray(), lattr.to_xarray(), oattr.to_xarray()]) # total
     

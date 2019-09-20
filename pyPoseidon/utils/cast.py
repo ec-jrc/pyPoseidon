@@ -14,7 +14,6 @@ import datetime
 import sys
 import os, errno
 from shutil import copy2
-import logging
 import glob
 import pyPoseidon.model as pmodel
 import pyPoseidon.grid as pgrid
@@ -22,24 +21,9 @@ from pyPoseidon.utils.get_value import get_value
 import pandas as pd
 #from pyPoseidon.utils import data
 import subprocess
+import logging
 
-
-#logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(levelname)-8s %(asctime)s:%(name)s:%(message)s')
-
-file_handler = logging.FileHandler('cast.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-sformatter = logging.Formatter('%(levelname)-8s %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(sformatter)
-
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
+logger = logging.getLogger('pyPoseidon')
 
 
 def cast(solver=None,**kwargs):
