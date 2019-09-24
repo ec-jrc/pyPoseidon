@@ -315,15 +315,15 @@ class scast():
 
             flag = get_value(self,kwargs,'update',[])
             
-#            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_inputs.txt', 'sflux_air_1.001.nc']]
+            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_inputs.txt', 'sflux_air_1.001.nc']]
 
-#            if (np.any(check)==False) or ('meteo' in flag):
+            if (np.any(check)==False) or ('meteo' in flag):
                
             m.force(**info)
             m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath, date=self.date)  #write u,v,p files 
         
-#            else:
-#                logger.warning('meteo files present\n')
+            else:
+                logger.warning('meteo files present\n')
             
             # modify param file
             rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
