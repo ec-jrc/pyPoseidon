@@ -778,62 +778,115 @@ class schism():
         out=[]
         for i in range(len(hfiles)):
             out.append(xr.open_dataset(hfiles[i]))
-              
-        #process variables
-        hh=[]
-        for i in range(len(out)):
-            inodes = self.mnodes.loc['core{:04d}'.format(i),'local'].values
-            cnodes = self.mnodes.loc['core{:04d}'.format(i),'global_n'].values
-            iside = self.msides.loc['core{:04d}'.format(i),'local'].values
-            cside = self.msides.loc['core{:04d}'.format(i),'global_n'].values    
-            ielems = self.melems.loc['core{:04d}'.format(i),'local'].values
-            celems = self.melems.loc['core{:04d}'.format(i),'global_n'].values
-            p=out[i].sel(nResident_node=inodes-1).sel(nResident_side=iside-1).sel(nResident_elem=ielems-1)
-            p= p.assign_coords(nResident_node = cnodes-1).assign_coords(nResident_elem = celems-1).assign_coords(nResident_side = cside-1)
-            hh.append(p)
+
+        # Create dataset      
+        side=[]
+        node=[]
+        el=[]
+        one=[]
+
+        for key in out[0].variables:
+            if 'nResident_side' in out[0][key].dims : 
+                r = self.combine_(key,out,self.msides,'nResident_side')       
+                side.append(r)
+            elif 'nResident_node' in out[0][key].dims : 
+                r = self.combine_(key,out,self.mnodes,'nResident_node')
+                node.append(r)
+            elif 'nResident_elem' in out[0][key].dims : 
+                r = self.combine_(key,out,self.melems,'nResident_elem')
+                el.append(r)
+            elif len(out[0][key].dims) == 1:
+                one.append(out[0][key])
         
-        side = [key for key in out[0].variables if 'nResident_side' in out[0][key].dims]
-
-        node = [key for key in out[0].variables if 'nResident_node' in out[0][key].dims]
-
-        el = [key for key in out[0].variables if 'nResident_elem' in out[0][key].dims]
-
-        one = [key for key in out[0].variables if 'one' in out[0][key].dims]
-
-        #elems
-        c = xr.combine_nested(hh, concat_dim=['nResident_elem'])
-
-        vels=[]
-        for v in el:
-            vo = c[v].loc[{'nResident_elem':sorted(c.coords['nResident_elem'].values)}].rename({'nResident_elem':'elem'}).drop('elem')
-            vels.append(vo)
         
-        #nodes
-        c = xr.combine_nested(hh, concat_dim=['nResident_node'])
-
-        vnodes=[]
-        for v in node:
-            vo = c[v].loc[{'nResident_node':sorted(c.coords['nResident_node'].values)}].rename({'nResident_node':'node'}).drop('node')
-            vnodes.append(vo)
+        side = xr.merge(side).rename({'nResident_side':'side'})
+        el = xr.merge(el).rename({'nResident_elem':'elem'})
+        node = xr.merge(node).rename({'nResident_node':'node'})
+        one = xr.merge(one).rename({'one':'one_new','it':'iths'})
         
-        #side
-        c = xr.combine_nested(hh, concat_dim=['nResident_side'])
-
-        vside=[]
-        for v in side:
-            vo = c[v].loc[{'nResident_side':sorted(c.coords['nResident_side'].values)}].rename({'nResident_side':'side'}).drop('side')
-            vside.append(vo)
-            
-        #ones
-        vone = out[0][one].rename({'one':'one_new','it':'iths'})
-
         #merge
-        xdat = xr.merge([xr.merge(vside),xr.merge(vels),xr.merge(vnodes),vone])
-      
+        xdat = xr.merge([side,el,node,one])
+              
+        #process variables TODO revisit this approach (the same as xcombine)
+#        hh=[]
+#        for i in range(len(out)):
+#            inodes = self.mnodes.loc['core{:04d}'.format(i),'local'].values
+#            cnodes = self.mnodes.loc['core{:04d}'.format(i),'global_n'].values
+#            iside = self.msides.loc['core{:04d}'.format(i),'local'].values
+#            cside = self.msides.loc['core{:04d}'.format(i),'global_n'].values    
+#            ielems = self.melems.loc['core{:04d}'.format(i),'local'].values
+#            celems = self.melems.loc['core{:04d}'.format(i),'global_n'].values
+#            p=out[i].sel(nResident_node=inodes-1).sel(nResident_side=iside-1).sel(nResident_elem=ielems-1)
+#            p= p.assign_coords(nResident_node = cnodes-1).assign_coords(nResident_elem = celems-1).assign_coords(nResident_side = cside-1)
+#            hh.append(p)
+
+#        side = [key for key in out[0].variables if 'nResident_side' in out[0][key].dims]
+#        node = [key for key in out[0].variables if 'nResident_node' in out[0][key].dims]
+#        el = [key for key in out[0].variables if 'nResident_elem' in out[0][key].dims]
+#        one = [key for key in out[0].variables if 'one' in out[0][key].dims]
+
+#        hels = [xa[el] for xa in hh]
+#        cels = xr.combine_nested(hels, concat_dim=['nResident_elem'])
+#        cels = cels.loc[{'nResident_elem':sorted(c.coords['nResident_elem'].values)}].rename({'nResident_elem':'elem'}).drop('elem')
+
+#        hnods = [xa[node] for xa in hh]
+#        cnods = xr.combine_nested(hnods, concat_dim=['nResident_node'])
+#        cnods = cnods.loc[{'nResident_node':sorted(cnods.coords['nResident_node'].values)}].rename({'nResident_node':'node'}).drop('node')
+
+#        hsids = [xa[side] for xa in hh]
+#        csids = xr.combine_nested(hsids, concat_dim=['nResident_side'])
+#        csids = csids.loc[{'nResident_side':sorted(csids.coords['nResident_side'].values)}].rename({'nResident_side':'side'}).drop('side')
+
+#        one = out[0][one].rename({'one':'one_new','it':'iths'})
+
+#        xdat = xr.merge([csids,cnods,cels,one])
+              
         hfile = 'hotstart_it={}.nc'.format(xdat.iths.values[0])
         logger.info('saving hotstart file\n')
 
         xdat.to_netcdf(path + 'outputs/{}'.format(hfile))
+
+
+
+    ## Any variable
+    def combine(self, out,mnodes,name):
+        keys = mnodes.index.get_level_values(0).unique()
+        r=[]
+        for i in range(len(out)):    
+            v = out[i].to_pandas()
+            v.index += 1   
+            mask = mnodes.loc[keys[i],'local']
+            vm = v.loc[mask]
+            vm.index = mnodes.loc[keys[i],'global_n'].values
+            r.append(vm)
+        r = pd.concat(r).sort_index()
+        r.index -= 1
+        r.index.name = name
+        return r
+    
+    def combine_(self, var, out, mnodes, name):
+        if len(out[0][var].shape) == 3:
+            dd = []
+            for i in range(out[0][var].shape[2]):
+                o = []
+                for j in range(len(out)):
+                    o.append(out[j][var].loc[{out[j][var].dims[2]:i}])
+                r = self.combine(o, mnodes, name)
+                dd.append(xr.DataArray(r.values, dims = out[0][var].dims[:2], name=var))
+            
+            tr = xr.concat(dd,dim=out[0][var].dims[2])
+            a,b,c = out[0][var].dims
+            tr = tr.transpose(a,b,c)
+            return tr
+    
+        elif len(out[0][var].shape) < 3:
+            o = []
+            for j in range(len(out)):
+                o.append(out[j][var])
+            r = self.combine(o, mnodes, name)
+            return(xr.DataArray(r.values, dims = list(out[0][var].dims), name=var))
+
+
 
     def xcombine(self, tfs, sdate, ):
         hh=[]
@@ -848,6 +901,7 @@ class schism():
             p = p.sel(nSCHISM_hgrid_node=inodes-1).sel(nSCHISM_hgrid_face=ielems-1)
             p = p.assign_coords(nSCHISM_hgrid_node = cnodes-1).assign_coords(nSCHISM_hgrid_face = celems-1)
             hh.append(p)
+        
         
         node = [key for key in hh[0].variables if 'nSCHISM_hgrid_node' in hh[0][key].dims]
         hnode = [v[node] for v in hh]
