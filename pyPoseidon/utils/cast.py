@@ -315,7 +315,7 @@ class scast():
 
             flag = get_value(self,kwargs,'update',[])
             
-            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_inputs.txt', 'sflux_air_1.001.nc']]
+            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_air_1.001.nc']]
 
             if (np.any(check)==False) or ('meteo' in flag):
                
