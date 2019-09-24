@@ -319,8 +319,8 @@ class scast():
 
             if (np.any(check)==False) or ('meteo' in flag):
                
-            m.force(**info)
-            m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath, date=self.date)  #write u,v,p files 
+                m.force(**info)
+                m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath, date=self.date)  #write u,v,p files 
         
             else:
                 logger.warning('meteo files present\n')
