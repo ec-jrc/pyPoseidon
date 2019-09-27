@@ -159,7 +159,7 @@ class meteo:
                         
         
 
-def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, combine_by=None, **kwargs):
+def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -201,8 +201,9 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
             data = data.rename({'time':'rtime'})
             data = data.rename({time_coord:'time'})
             data = data.assign_coords(time=data.valid_time)
-        
-    if combine :
+            
+    if combine_forecast :
+        logger.info('combining meteo datasets')
         mask = data.time.to_pandas().duplicated('last').values 
         msl = data.msl[~mask]
         u10 = data.u10[~mask]
@@ -279,9 +280,8 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
        lat_0 = max(0, j0 - 1)
        lat_1 = min(data.latitude.size, j1 + 3)
    
- 
 
-    if i0 > i1 :
+    if i0 >= i1 :
 
         sh = (
             data[['msl','u10', 'v10']]
@@ -320,7 +320,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
 
 
     
-def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine=False, combine_by=None, **kwargs):
+def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
     
     backend_kwargs = kwargs.get('backend_kwargs', {})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -377,7 +377,7 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
         data = data.rename({'step':'time'})
         data = data.assign_coords(time=tts)
     
-#    if combine : TODO
+#    if combine_forecast : TODO
 #        mask = data.time.to_pandas().duplicated('last').values 
 #        msl = data.msl[~mask]
 #        u10 = data.u10[~mask]
@@ -448,7 +448,7 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
    
 
         
-    if i0 > i1 :
+    if i0 >= i1 :
 
         sh = (
             data[['msl','u10', 'v10']]
@@ -555,7 +555,7 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
     j0=np.abs(data.latitude.data-minlat).argmin()
     j1=np.abs(data.latitude.data-maxlat).argmin()
 
-    if i0 > i1 :
+    if i0 >= i1 :
 
       sh = (
           data[['prmslmsl','ugrd10m', 'vgrd10m']]
