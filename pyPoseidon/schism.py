@@ -1231,7 +1231,7 @@ class schism():
             # get index
             bnodes=[]
             for i in range(len(coasts)):
-                bnodes = bnodes + list(self.grid.Dataset[coasts[i]].dropna('index').astype(int).values - 1)
+                bnodes = bnodes + list(self.grid.Dataset[coasts[i]].dropna('index').astype(int).values)
             bnodes = np.unique(bnodes) # keep unique values
             # get x,y
             xx = self.grid.Dataset.SCHISM_hgrid_node_x.to_dataframe().loc[bnodes]
@@ -1246,9 +1246,7 @@ class schism():
             #append
             stations = pd.concat([stations,coastal_stations])
             stations.reset_index(inplace=True,drop=True)
-            stations.index += 1
-            stations.head()
-            
+            stations.index += 1            
 
         
         #modify config paramater
