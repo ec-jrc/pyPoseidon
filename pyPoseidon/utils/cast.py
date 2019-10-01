@@ -188,8 +188,9 @@ class scast():
         
         pwd = os.getcwd()
                       
-        files = [ 'bctides.in', 'launchSchism.sh','sflux/sflux_inputs.txt']
+        files = [ 'bctides.in', 'launchSchism.sh','/sflux/sflux_inputs.txt']
         files_sym = ['hgrid.gr3', 'hgrid.ll', 'manning.gr3', 'vgrid.in', 'drag.gr3', 'rough.gr3', 'station.in', 'windrot_geo2proj.gr3']
+        station_files = ['/outputs/staout_1' , '/outputs/staout_2' , '/outputs/staout_3' , '/outputs/staout_4' , '/outputs/staout_5' , '/outputs/staout_6' , '/outputs/staout_7' , '/outputs/staout_8' , '/outputs/staout_9']
 
                 
         prev=self.folders[0]
@@ -250,6 +251,8 @@ class scast():
                 info.update({'maxlat' : m.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
                                                          
             # copy/link necessary files
+            logger.debug('copy necessary files')
+            
             for filename in files:
                 ipath = glob.glob(ppath+filename)
                 if ipath:
@@ -260,9 +263,48 @@ class scast():
                         if not os.path.exists(rpath + dir_name):
                             os.makedirs(rpath + dir_name)
                         copy2(ppath+filename,rpath+filename)
+            logger.debug('.. done')
 
+            #copy the station files
+            # logger.debug('copy station files')
+            # for filename in station_files:
+            #     ipath = glob.glob(ppath+filename)
+            #     if ipath:
+            #         try:
+            #             copy2(ppath+filename,rpath+filename)
+            #         except:
+            #             dir_name ,file_name = os.path.split(filename)
+            #             if not os.path.exists(rpath + dir_name):
+            #                 os.makedirs(rpath + dir_name)
+            #             copy2(ppath+filename,rpath+filename)
+            # logger.debug('.. done')
+
+
+            #symlink the station files
+            logger.debug('symlink station files')
+            for filename in station_files:
+
+               ipath = glob.glob(self.path+self.folders[0] + filename)
+               print(self.path,self.folders[0], filename)
+               print('ipath=',ipath)
+               if ipath:
+
+                    if not os.path.exists(rpath + '/outputs/'):
+                        os.makedirs(rpath + '/outputs/')
+
+                    try:
+                        os.symlink(ipath[0],rpath + filename)
+                    except OSError as e:
+                        print(e)
+                        if e.errno == errno.EEXIST:
+                            logger.warning('Restart link present\n')
+                            logger.warning('overwriting\n')
+                            os.remove(rpath + filename)
+                            os.symlink(ipath[0],rpath + filename)
+            logger.debug('.. done')
 
             #symlink the big files
+            logger.debug('symlink model files')           
             for filename in files_sym:
                 ipath = glob.glob(self.path+self.folders[0]+'/'+filename)
                 if ipath:
@@ -270,15 +312,19 @@ class scast():
                         os.symlink(ipath[0],rpath+filename)
                     except OSError as e:
                         if e.errno == errno.EEXIST:
-                            sys.stdout.write('Restart link present\n')
-                            sys.stdout.write('overwriting\n')
+                            logger.warning('Restart link present\n')
+                            logger.warning('overwriting\n')
                             os.remove(rpath+filename)
                             os.symlink(ipath[0],rpath+filename)
+            logger.debug('.. done')
+            
 
             # create restart file
+            logger.debug('create restart file')           
             
             #check for combine hotstart
             hotout=int((date - self.date).total_seconds()/info['params']['vals']['dt'])
+            logger.debug('hotout_it = {}'.format(hotout))    
 
             resfile=glob.glob(ppath+'/outputs/hotstart_it={}.nc'.format(hotout))
             if not resfile:
@@ -290,7 +336,7 @@ class scast():
                 p = pmodel(**ph)
                 p.hotstart(it=hotout)  
 
-                
+            
             # link restart file
             inresfile='/outputs/hotstart_it={}.nc'.format(hotout)
             outresfile='/hotstart.nc'
@@ -302,8 +348,8 @@ class scast():
                 os.symlink(ppath+inresfile,rpath+outresfile)
             except OSError as e:
                 if e.errno == errno.EEXIST:
-                    sys.stdout.write('Restart link present\n')
-                    sys.stdout.write('overwriting\n')
+                    logger.warning('Restart link present\n')
+                    logger.warning('overwriting\n')
                     os.remove(rpath+outresfile)
                     os.symlink(ppath+inresfile,rpath+outresfile)
                 else:
