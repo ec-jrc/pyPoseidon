@@ -1072,7 +1072,11 @@ class schism():
         irange = [int(x.split('_')[-1].split('.')[0]) for x in hfiles]
         irange = np.unique(irange)
         
-        total_xdat = []
+        
+        self.read_vgrid() # read grid attributes
+        
+        
+#        total_xdat = []
         for val in irange:
             hfiles=glob.glob(path+'outputs/schout_*_{}.nc'.format(val))
             hfiles.sort()
@@ -1083,111 +1087,105 @@ class schism():
             
             if times.size == 0 : continue
             
-            total_xdat.append(self.tcombine(hfiles,sdate, times))
+            idat = self.tcombine(hfiles,sdate, times)
+                    
+            #MERGE
+                
+            xc = xr.merge([idat,gen,xnodes,xelems,xsides])
+
+            #Choose attrs
+            if header2.ics.values == 1:
+                lat_coord_standard_name = 'projection_y_coordinate'
+                lon_coord_standard_name = 'projection_x_coordinate'
+                x_units = 'm'
+                y_units = 'm'
+                lat_str_len = 23
+                lon_str_len = 23
+            else:
+                lat_coord_standard_name = 'latitude'
+                lon_coord_standard_name = 'longitude'
+                x_units = 'degrees_east'
+                y_units = 'degrees_north'
+                lat_str_len = 8
+                lon_str_len = 9
+            
+            #set Attrs
+            xc.SCHISM_hgrid_node_x.attrs = {'long_name' : 'node x-coordinate', 'standard_name' : lon_coord_standard_name , 'units' : x_units, 'mesh' : 'SCHISM_hgrid'}
+
+            xc.SCHISM_hgrid_node_y.attrs = {'long_name' : 'node y-coordinate', 'standard_name' : lat_coord_standard_name , 'units' : y_units, 'mesh' : 'SCHISM_hgrid'}
+
+            xc.depth.attrs = {'long_name' : 'Bathymetry', 'units' : 'meters', 'positive' : 'down', 'mesh' : 'SCHISM_hgrid', 'location' : 'node'}
+
+            xc.sigma_h_c.attrs = {'long_name' : 'ocean_s_coordinate h_c constant', 'units' : 'meters', 'positive' : 'down'}
+
+            xc.sigma_theta_b.attrs = {'long_name' : 'ocean_s_coordinate theta_b constant'}
+
+            xc.sigma_theta_f.attrs = {'long_name' : 'ocean_s_coordinate theta_f constant'}
+
+            xc.sigma_maxdepth.attrs = {'long_name' : 'ocean_s_coordinate maximum depth cutoff (mixed s over z boundary)', 'units' : 'meters', 'positive' : 'down'}
+
+            xc.Cs.attrs = {'long_name' : 'Function C(s) at whole levels', 'positive' : 'up' }
+
+            xc.dry_value_flag.attrs = {'values' : '0: use last-wet value; 1: use junk'}
+
+            xc.SCHISM_hgrid_face_nodes.attrs = {'long_name' : 'Horizontal Element Table', 'cf_role' : 'face_node_connectivity' , 'start_index' : 0}
+
+            xc.SCHISM_hgrid_edge_nodes.attrs = {'long_name' : 'Map every edge to the two nodes that it connects', 'cf_role' : 'edge_node_connectivity' , 'start_index' : 0}
+
+            xc.SCHISM_hgrid_edge_x.attrs = {'long_name' : 'x_coordinate of 2D mesh edge' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+            xc.SCHISM_hgrid_edge_y.attrs = {'long_name' : 'y_coordinate of 2D mesh edge' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+            xc.SCHISM_hgrid_face_x.attrs = {'long_name' : 'x_coordinate of 2D mesh face' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+            xc.SCHISM_hgrid_face_y.attrs = {'long_name' : 'y_coordinate of 2D mesh face' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+
+            xc.SCHISM_hgrid.attrs = {'long_name' : 'Topology data of 2d unstructured mesh',
+                                       'topology_dimension' : 2,
+                                       'cf_role' : 'mesh_topology',
+                                       'node_coordinates' : 'SCHISM_hgrid_node_x SCHISM_hgrid_node_y',
+                                       'face_node_connectivity' : 'SCHISM_hgrid_face_nodes',
+                                       'edge_coordinates' : 'SCHISM_hgrid_edge_x SCHISM_hgrid_edge_y',
+                                       'face_coordinates' : 'SCHISM_hgrid_face_x SCHISM_hgrid_face_y',
+                                       'edge_node_connectivity' : 'SCHISM_hgrid_edge_nodes'
+                                      }
+
+            xc.node_bottom_index.attrs = {'long_name' : 'bottom level index at each node' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'node',
+                'start_index' : 0}
+
+            xc.ele_bottom_index.attrs = {'long_name' : 'bottom level index at each element' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'elem',
+                'start_index' : 0}
+
+            xc.edge_bottom_index.attrs = {'long_name' : 'bottom level index at each edge' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'edge',
+                'start_index' : 0}
+            
         
-        xall = xr.merge(total_xdat)
+            base_date = ' '.join([str(x) for x in date.T.values.flatten()])
+            xc.time.attrs = {'long_name': 'Time', 'base_date' : base_date , 'standard_name' : 'time' }
+                
+            xc.sigma.attrs ={'long_name' : 'S coordinates at whole levels',
+                         'units' : '1',
+                         'standard_name' : 'ocean_s_coordinate',
+                         'positive' : 'up',
+                         'h_s' : self.hs,
+                         'h_c' : self.h_c,
+                         'theta_b' : self.theta_b,
+                         'theta_f' : self.theta_f,
+                         'formula_terms':
+                         's: sigma eta: elev depth: depth a: sigma_theta_f b: sigma_theta_b depth_c: sigma_h_c'}
+            
+            # Dataset Attrs
+
+            xc.attrs = {'Conventions': 'CF-1.0, UGRID-1.0', 'title': 'SCHISM Model output', 'source': 'SCHISM model output version v10', 'references': 'http://ccrm.vims.edu/schismweb/',
+                         'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
         
-        xall.to_netcdf('xx.nc')
+        
+            xc.to_netcdf('schout_{}.nc'.format(val))
+        
+        
         
         logger.info('done with output netCDF files \n')
-        
-        #MERGE ALL
-        xc = xr.merge([xall,gen,xnodes,xelems,xsides])
-
-        #Choose attrs
-        if header2.ics.values == 1:
-            lat_coord_standard_name = 'projection_y_coordinate'
-            lon_coord_standard_name = 'projection_x_coordinate'
-            x_units = 'm'
-            y_units = 'm'
-            lat_str_len = 23
-            lon_str_len = 23
-        else:
-            lat_coord_standard_name = 'latitude'
-            lon_coord_standard_name = 'longitude'
-            x_units = 'degrees_east'
-            y_units = 'degrees_north'
-            lat_str_len = 8
-            lon_str_len = 9
-            
-        #set Attrs
-        xc.SCHISM_hgrid_node_x.attrs = {'long_name' : 'node x-coordinate', 'standard_name' : lon_coord_standard_name , 'units' : x_units, 'mesh' : 'SCHISM_hgrid'}
-
-        xc.SCHISM_hgrid_node_y.attrs = {'long_name' : 'node y-coordinate', 'standard_name' : lat_coord_standard_name , 'units' : y_units, 'mesh' : 'SCHISM_hgrid'}
-
-        xc.depth.attrs = {'long_name' : 'Bathymetry', 'units' : 'meters', 'positive' : 'down', 'mesh' : 'SCHISM_hgrid', 'location' : 'node'}
-
-        xc.sigma_h_c.attrs = {'long_name' : 'ocean_s_coordinate h_c constant', 'units' : 'meters', 'positive' : 'down'}
-
-        xc.sigma_theta_b.attrs = {'long_name' : 'ocean_s_coordinate theta_b constant'}
-
-        xc.sigma_theta_f.attrs = {'long_name' : 'ocean_s_coordinate theta_f constant'}
-
-        xc.sigma_maxdepth.attrs = {'long_name' : 'ocean_s_coordinate maximum depth cutoff (mixed s over z boundary)', 'units' : 'meters', 'positive' : 'down'}
-
-        xc.Cs.attrs = {'long_name' : 'Function C(s) at whole levels', 'positive' : 'up' }
-
-        xc.dry_value_flag.attrs = {'values' : '0: use last-wet value; 1: use junk'}
-
-        xc.SCHISM_hgrid_face_nodes.attrs = {'long_name' : 'Horizontal Element Table', 'cf_role' : 'face_node_connectivity' , 'start_index' : 0}
-
-        xc.SCHISM_hgrid_edge_nodes.attrs = {'long_name' : 'Map every edge to the two nodes that it connects', 'cf_role' : 'edge_node_connectivity' , 'start_index' : 0}
-
-        xc.SCHISM_hgrid_edge_x.attrs = {'long_name' : 'x_coordinate of 2D mesh edge' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
-
-        xc.SCHISM_hgrid_edge_y.attrs = {'long_name' : 'y_coordinate of 2D mesh edge' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
-
-        xc.SCHISM_hgrid_face_x.attrs = {'long_name' : 'x_coordinate of 2D mesh face' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
-
-        xc.SCHISM_hgrid_face_y.attrs = {'long_name' : 'y_coordinate of 2D mesh face' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
-
-        xc.SCHISM_hgrid.attrs = {'long_name' : 'Topology data of 2d unstructured mesh',
-                                   'topology_dimension' : 2,
-                                   'cf_role' : 'mesh_topology',
-                                   'node_coordinates' : 'SCHISM_hgrid_node_x SCHISM_hgrid_node_y',
-                                   'face_node_connectivity' : 'SCHISM_hgrid_face_nodes',
-                                   'edge_coordinates' : 'SCHISM_hgrid_edge_x SCHISM_hgrid_edge_y',
-                                   'face_coordinates' : 'SCHISM_hgrid_face_x SCHISM_hgrid_face_y',
-                                   'edge_node_connectivity' : 'SCHISM_hgrid_edge_nodes'
-                                  }
-
-        xc.node_bottom_index.attrs = {'long_name' : 'bottom level index at each node' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'node',
-            'start_index' : 0}
-
-        xc.ele_bottom_index.attrs = {'long_name' : 'bottom level index at each element' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'elem',
-            'start_index' : 0}
-
-        xc.edge_bottom_index.attrs = {'long_name' : 'bottom level index at each edge' , 'units' : 'non-dimensional', 'mesh' : 'SCHISM_hgrid', 'location' : 'edge',
-            'start_index' : 0}
-            
-        
-        base_date = ' '.join([str(x) for x in date.T.values.flatten()])
-        xc.time.attrs = {'long_name': 'Time', 'base_date' : base_date , 'standard_name' : 'time' }
-        
-        self.read_vgrid()
-        
-        xc.sigma.attrs ={'long_name' : 'S coordinates at whole levels',
-                     'units' : '1',
-                     'standard_name' : 'ocean_s_coordinate',
-                     'positive' : 'up',
-                     'h_s' : self.hs,
-                     'h_c' : self.h_c,
-                     'theta_b' : self.theta_b,
-                     'theta_f' : self.theta_f,
-                     'formula_terms':
-                     's: sigma eta: elev depth: depth a: sigma_theta_f b: sigma_theta_b depth_c: sigma_h_c'}
-            
-        # Dataset Attrs
-
-        xc.attrs = {'Conventions': 'CF-1.0, UGRID-1.0', 'title': 'SCHISM Model output', 'source': 'SCHISM model output version v10', 'references': 'http://ccrm.vims.edu/schismweb/',
-                     'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
-        
-        
-        
-        
-        
-        return xc
-        
+                
 
 
     def set_obs(self,**kwargs):
