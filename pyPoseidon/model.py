@@ -37,6 +37,7 @@ from pyPoseidon.utils.get_value import get_value
 import logging
 import colorlog
 
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -56,7 +57,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.FileHandler',
             'formatter': 'verbose',
-            'filename': 'model.log'
+            'filename': 'pyPoseidon.log'
         }
     ,
         'console':{
