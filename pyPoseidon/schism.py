@@ -1180,7 +1180,7 @@ class schism():
                          'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
         
         
-            xc.to_netcdf('schout_{}.nc'.format(val))
+            xc.to_netcdf(path+'outputs/schout_{}.nc'.format(val))
         
         
         
@@ -1268,12 +1268,17 @@ class schism():
         sfiles = glob.glob(self.rpath + 'outputs/staout_*')
         sfiles.sort()
 
-        # get the station flags
-        flags = pd.read_csv(self.rpath + 'station.in', header=None,nrows=1,delim_whitespace=True).T
-        flags.columns = ['flag']
-        flags['variable'] = ['elev', 'air_pressure', 'windx', 'windy', 'T', 'S', 'u', 'v', 'w']
+        try:
+            # get the station flags
+            flags = pd.read_csv(self.rpath + 'station.in', header=None,nrows=1,delim_whitespace=True).T
+            flags.columns = ['flag']
+            flags['variable'] = ['elev', 'air_pressure', 'windx', 'windy', 'T', 'S', 'u', 'v', 'w']
         
-        vals = flags[flags.values==1]# get the active ones
+            vals = flags[flags.values==1]# get the active ones
+        except OSError as e:
+            if e.errno == errno.EEXIST: logger.error('No station.in file present')
+            return
+            
 
         dfs=[]
         for idx in vals.index:
