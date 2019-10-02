@@ -286,7 +286,6 @@ class scast():
 
                ipath = glob.glob(self.path+self.folders[0] + filename)
                print(self.path,self.folders[0], filename)
-               print('ipath=',ipath)
                if ipath:
 
                     if not os.path.exists(rpath + '/outputs/'):
@@ -295,7 +294,6 @@ class scast():
                     try:
                         os.symlink(ipath[0],rpath + filename)
                     except OSError as e:
-                        print(e)
                         if e.errno == errno.EEXIST:
                             logger.warning('Restart link present\n')
                             logger.warning('overwriting\n')
