@@ -16,6 +16,7 @@ from matplotlib import animation
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
+from pyPoseidon.utils.seam import to_2d
 
 matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
@@ -152,7 +153,6 @@ class pplot(object):
         t = kwargs.get('t',self._obj.time.values)
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        tri3 = tri3-1 # adjust for python   
          
         if np.abs(x.min()-x.max()) > 359.:
             # Use Matplotlib for triangulation
@@ -208,7 +208,6 @@ class pplot(object):
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        tri3 = tri3-1 # adjust for python    
     
         if np.abs(x.min()-x.max()) > 359.:
             # Use Matplotlib for triangulation
@@ -267,7 +266,6 @@ class pplot(object):
         t = kwargs.get('t',self._obj.time.values)
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        tri3 = tri3-1 # adjust for python    
         
         if np.abs(x.min()-x.max()) > 359.:
             # Use Matplotlib for triangulation
@@ -315,29 +313,25 @@ class pplot(object):
         
         return p, ax  
         
-    def grid(self,**kwargs):
+    def grid(self, cr='l', **kwargs):
         
-        cr = kwargs.get('cr', 'l')
-                  
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        tri3 = tri3-1 # adjust for python    
 
         if np.abs(x.min()-x.max()) > 359.:
-            # Use Matplotlib for triangulation
-            triang = matplotlib.tri.Triangulation(x, y)
-            tri3 = triang.triangles 
+            x,y,tri3 = to_2d(x,y,None,tri3)
+
                 
         fig, ax = plt.subplots(figsize=(12,8))
         
         ax = plt.axes(projection=ccrs.PlateCarree())
         
-        plt.gca().set_aspect('equal')
-        
-        
+#        plt.gca().set_aspect('equal')
+               
         ax.set_aspect('equal')    
-        g = plt.triplot(x,y,tri3,'go-', lw=.5, markersize=5)#, transform=ccrs.PlateCarree() )
+        
+        g = plt.triplot(x,y,tri3,'go-', **kwargs)#, lw=.5, markersize=5)#, transform=ccrs.PlateCarree() )
         
         title = kwargs.get('title', 'Grid plot')
         ax.set_title(title, pad=30)
@@ -413,7 +407,6 @@ class pplot(object):
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        tri3 = tri3-1 # adjust for python    
 
         if np.abs(x.min()-x.max()) > 359.:
             # Use Matplotlib for triangulation
@@ -471,3 +464,9 @@ class pplot(object):
         return v
  
       
+      
+        
+        
+        
+        
+        
