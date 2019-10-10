@@ -153,13 +153,7 @@ class pplot(object):
         t = kwargs.get('t',self._obj.time.values)
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        
-        if np.abs(x.min()-x.max()) > 359.:
-             # Use Matplotlib for triangulation
-             triang = matplotlib.tri.Triangulation(x, y)
-             tri3 = triang.triangles
-        
-             
+                     
         it = kwargs.get('it', None)
         z = self._obj[var].values[it,:].flatten()
         
@@ -224,13 +218,7 @@ class pplot(object):
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        
-        if np.abs(x.min()-x.max()) > 359.:
-             # Use Matplotlib for triangulation
-             triang = matplotlib.tri.Triangulation(x, y)
-             tri3 = triang.triangles
-        
-        
+                
         it = kwargs.get('it', None)
         
         z = self._obj[var].values[it,:].flatten()
@@ -296,13 +284,7 @@ class pplot(object):
         t = kwargs.get('t',self._obj.time.values)
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        
-        if np.abs(x.min()-x.max()) > 359.:
-             # Use Matplotlib for triangulation
-             triang = matplotlib.tri.Triangulation(x, y)
-             tri3 = triang.triangles
-        
-                
+                        
         it = kwargs.get('it', None)
         
         u = self._obj[var].values[it,:,0].flatten()
