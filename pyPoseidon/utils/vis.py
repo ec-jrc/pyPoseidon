@@ -16,7 +16,7 @@ from matplotlib import animation
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
-from pyPoseidon.utils.seam import to_2d
+import geopandas as gp
 
 matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
@@ -146,19 +146,20 @@ class pplot(object):
  
     def contour(self,var,**kwargs):        
         
-        cr = kwargs.get('cr', 'l')
+        cr = kwargs.get('coastlines', 'l')
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-         
+        
         if np.abs(x.min()-x.max()) > 359.:
-            # Use Matplotlib for triangulation
-            triang = matplotlib.tri.Triangulation(x, y)
-            tri3 = triang.triangles
-    
+             # Use Matplotlib for triangulation
+             triang = matplotlib.tri.Triangulation(x, y)
+             tri3 = triang.triangles
+        
+             
         it = kwargs.get('it', None)
         z = self._obj[var].values[it,:].flatten()
         
@@ -181,9 +182,17 @@ class pplot(object):
             z = np.ma.masked_array(z,mask)
             z = z.filled(fill_value=-99999)
         
+        
+        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3','coastlines', 'mask']:
+            try:
+                del kwargs[val]
+            except:
+                pass        
+          
+        
         plt.gca().set_aspect('equal')
                 
-        p = plt.tricontour(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree() )
+        p = plt.tricontour(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree(), **kwargs)
         cbar = fig.colorbar(p,ticks=vrange,orientation='vertical', extend='both')
         if it:
             text = 'time={}'.format(t[it])
@@ -193,27 +202,35 @@ class pplot(object):
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')
         
-        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        if len(cr) > 1 :
+            
+            coastl = gp.GeoDataFrame.from_file(cr)
+            coastl.plot(ax=ax, color='k')
+            
+        else:
+                
+            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
         
-        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
+            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         return p, ax   
     
     def contourf(self,var,**kwargs):
         
-        cr = kwargs.get('cr', 'l')
+        cr = kwargs.get('coastlines', 'l')
         
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-    
+        
         if np.abs(x.min()-x.max()) > 359.:
-            # Use Matplotlib for triangulation
-            triang = matplotlib.tri.Triangulation(x, y)
-            tri3 = triang.triangles
-    
+             # Use Matplotlib for triangulation
+             triang = matplotlib.tri.Triangulation(x, y)
+             tri3 = triang.triangles
+        
+        
         it = kwargs.get('it', None)
         
         z = self._obj[var].values[it,:].flatten()
@@ -237,6 +254,11 @@ class pplot(object):
             z = np.ma.masked_array(z,mask)
             z = z.filled(fill_value=-99999)
         
+        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3','coastlines', 'mask']:
+            try:
+                del kwargs[val]
+            except:
+                pass        
         
         plt.gca().set_aspect('equal')
         
@@ -249,17 +271,25 @@ class pplot(object):
         ax.set_title(title,pad=30) 
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')
+
+
+        if len(cr) > 1 :
+            
+            coastl = gp.GeoDataFrame.from_file(cr)
+            coastl.plot(ax=ax, color='k')
+            
+        else:
         
-        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
         
-        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
+            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         return p, ax   
             
     
     def quiver(self,var,**kwargs):
         
-        cr = kwargs.get('cr', 'l')
+        cr = kwargs.get('coastlines', 'l')
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -268,10 +298,11 @@ class pplot(object):
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         
         if np.abs(x.min()-x.max()) > 359.:
-            # Use Matplotlib for triangulation
-            triang = matplotlib.tri.Triangulation(x, y)
-            tri3 = triang.triangles
+             # Use Matplotlib for triangulation
+             triang = matplotlib.tri.Triangulation(x, y)
+             tri3 = triang.triangles
         
+                
         it = kwargs.get('it', None)
         
         u = self._obj[var].values[it,:,0].flatten()
@@ -294,6 +325,11 @@ class pplot(object):
             v = v.filled(fill_value=-99999)    
             u = u.filled(fill_value=-99999)
         
+        for val in ['x','y','t','it','vmin','vmax','title','tri3','coastlines', 'mask', 'scale']:
+            try:
+                del kwargs[val]
+            except:
+                pass        
         
         plt.gca().set_aspect('equal')
         
@@ -306,22 +342,33 @@ class pplot(object):
             text = 'time={}'.format(t[it])
             an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
         
-        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        if len(cr) > 1 :
+            
+            coastl = gp.GeoDataFrame.from_file(cr)
+            coastl.plot(ax=ax, color='k')
+            
+        else:
+                
+            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
         
-        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
+            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         
         return p, ax  
         
-    def grid(self, cr='l', **kwargs):
+    def grid(self, **kwargs):
+        
+        cr = kwargs.get('coastlines', 'l')
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-
-        if np.abs(x.min()-x.max()) > 359.:
-            x,y,tri3 = to_2d(x,y,None,tri3)
-
+        
+        for val in ['x','y','tri3','coastlines']:
+            try:
+                del kwargs[val]
+            except:
+                pass
                 
         fig, ax = plt.subplots(figsize=(12,8))
         
@@ -336,9 +383,16 @@ class pplot(object):
         title = kwargs.get('title', 'Grid plot')
         ax.set_title(title, pad=30)
         
-        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        if len(cr) > 1 :
+            
+            coastl = gp.GeoDataFrame.from_file(cr)
+            coastl.plot(ax=ax, color='k')
+            
+        else:
         
-        ax.coastlines(coastl); ax.gridlines(draw_labels=True);
+            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        
+            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         
         return g, ax
