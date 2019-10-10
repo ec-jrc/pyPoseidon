@@ -562,6 +562,7 @@ class schism():
                  
     def read_folder(self, rfolder,**kwargs):
         
+        self.rpath = rfolder
         s = glob.glob(rfolder + '/param*')
         mfiles = glob.glob(rfolder + '/sflux/*.nc')
         
@@ -581,7 +582,7 @@ class schism():
         self.params = params.set_index('attrs')
         self.grid = pgrid.grid(type='tri2d',grid_file=hfile)
         
-        self.meteo = xr.open_mfdataset(mfiles) # Meteo
+        self.meteo = xr.open_mfdataset(mfiles, combine='nested',concat_dim=None) # Meteo
         
 
     def global2local(self,**kwargs):
