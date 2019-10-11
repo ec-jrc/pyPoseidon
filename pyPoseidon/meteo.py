@@ -157,6 +157,13 @@ class meteo:
         else:        
             self.Dataset = from_url(**kwargs)
                         
+    def to_output(self,solver=None, **kwargs):
+                    
+        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+            
+        s = getattr(model,solver) # get solver class
+            
+        s.to_force(self.Dataset,vars=['msl','u10','v10'], **kwargs)
         
 
 def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
@@ -611,13 +618,6 @@ def netcdf(filename=None, **kwargs):
 
     
 
-def to_output(dataset=None,solver=None, **kwargs):
-                        
-    model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
-                
-    s = getattr(model,solver) # get solver class
-                
-    s.to_force(dataset,vars=['msl','u10','v10'], **kwargs)
         
        
 
