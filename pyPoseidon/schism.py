@@ -582,7 +582,17 @@ class schism():
         self.params = params.set_index('attrs')
         self.grid = pgrid.grid(type='tri2d',grid_file=hfile)
         
-        self.meteo = xr.open_mfdataset(mfiles, combine='nested',concat_dim=None) # Meteo
+        #meteo 
+        ma = []
+        for ifile in mfiles:
+            g = xr.open_dataset(ifile)
+            ts = '-'.join(g.time.attrs['base_date'].astype(str)[:3])
+            time_r = pd.to_datetime(ts) 
+            times = time_r + pd.to_timedelta(g.time.values,unit='D').round('H')
+            g = g.assign_coords({'time':times})
+            ma.append(g)
+        
+        self.meteo = xr.concat(ma,dim='time')
         
 
     def global2local(self,**kwargs):
