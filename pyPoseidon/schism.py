@@ -84,7 +84,7 @@ class schism():
         for attr, value in kwargs.items():
             if not hasattr(self, attr): setattr(self, attr, value)  
         
-        
+        setattr(self, 'misc', {})
 #============================================================================================        
 # CONFIG
 #============================================================================================
@@ -681,7 +681,7 @@ class schism():
         h2.index = ztots + sigmas
 
         #combine headers
-        self.header = pd.concat([h0, h1, h2])
+        self.misc.update({'header' : pd.concat([h0, h1, h2])})
 
         #Read grid
         gframes = []
@@ -703,7 +703,7 @@ class schism():
         grid = grid.reset_index(drop=True) # reset index
         grid.index = cnodes.values - 1 # reindex based on the global index, -1 for the python convention
         grd = grid.sort_index() #sort with the new index (that is the global_n)
-        self.grd = grd.reset_index(drop=True)#reindex for final version
+        self.misc.update({'grd' : grd.reset_index(drop=True)})#reindex for final version
 
         #Read tessalation
         eframes = []
@@ -765,21 +765,21 @@ class schism():
 
         gt3['kbe'] = gt3[['kbe1', 'kbe2', 'kbe3']].min(axis=1)
         
-        self.gt3 = gt3.set_index('index') # set index back 
+        self.misc.update({'gt3' : gt3.set_index('index')}) # set index back 
         
         
         
         #Droping duplicates
-        self.melems = elems.loc[elems.global_n.drop_duplicates().index] # create the retaining mask
-        self.msides = re.loc[re.global_n.drop_duplicates().index] # keep only one of the duplicates
-        self.mnodes = nodes.loc[nodes.global_n.drop_duplicates().index] # keep only one of the duplicates
+        self.misc.update({'melems' : elems.loc[elems.global_n.drop_duplicates().index]}) # create the retaining mask
+        self.misc.update({'msides' : re.loc[re.global_n.drop_duplicates().index]}) # keep only one of the duplicates
+        self.misc.update({'mnodes' : nodes.loc[nodes.global_n.drop_duplicates().index]}) # keep only one of the duplicates
                 
     
     def hotstart(self, it=None, **kwargs):
         
         path = get_value(self,kwargs,'rpath','./') 
                           
-        if not hasattr(self, 'melems'): self.global2local(**kwargs)
+        if not 'melems' in self.misc: self.global2local(**kwargs)
 
         hfiles = glob.glob(path+'outputs/hotstart_*_{}.nc'.format(it))
         hfiles.sort()
@@ -797,13 +797,13 @@ class schism():
 
         for key in out[0].variables:
             if 'nResident_side' in out[0][key].dims : 
-                r = self.combine_(key,out,self.msides,'nResident_side')       
+                r = self.combine_(key,out,self.misc['msides'],'nResident_side')       
                 side.append(r)
             elif 'nResident_node' in out[0][key].dims : 
-                r = self.combine_(key,out,self.mnodes,'nResident_node')
+                r = self.combine_(key,out,self.misc['mnodes'],'nResident_node')
                 node.append(r)
             elif 'nResident_elem' in out[0][key].dims : 
-                r = self.combine_(key,out,self.melems,'nResident_elem')
+                r = self.combine_(key,out,self.misc['melems'],'nResident_elem')
                 el.append(r)
             elif len(out[0][key].dims) == 1:
                 one.append(out[0][key])
@@ -874,10 +874,10 @@ class schism():
 
         for key in tfs[0].variables:
             if 'nSCHISM_hgrid_face' in tfs[0][key].dims : 
-                r = self.combine_(key,tfs,self.melems,'nSCHISM_hgrid_face')       
+                r = self.combine_(key,tfs,self.misc['melems'],'nSCHISM_hgrid_face')       
                 side.append(r)
             elif 'nSCHISM_hgrid_node' in tfs[0][key].dims : 
-                r = self.combine_(key,tfs,self.mnodes,'nSCHISM_hgrid_node')
+                r = self.combine_(key,tfs,self.misc['mnodes'],'nSCHISM_hgrid_node')
                 node.append(r)
             elif len(tfs[0][key].dims) == 1:
                 single.append(tfs[0][key])
@@ -932,36 +932,36 @@ class schism():
         
         vgrid = pd.read_csv(path + 'vgrid.in', header=None)
         
-        self.ivcor = vgrid.iloc[0].astype(int).values[0]
+        self.misc.update({'ivcor' : vgrid.iloc[0].astype(int).values[0]})
     
         [Nz, kz, hs] = vgrid.iloc[1].str.split(' ')[0]
         
-        self.Nz = int(Nz)
-        self.kz = int(kz)
-        self.hs = float(hs)
+        self.misc.update({'Nz' : int(Nz)})
+        self.misc.update({'kz' : int(kz)})
+        self.misc.update({'hs' : float(hs)})
         
-        zlevels = vgrid.iloc[3:3+self.kz,0].str.split(' ', n = 2, expand = True)
+        zlevels = vgrid.iloc[3:3+self.misc['kz'],0].str.split(' ', n = 2, expand = True)
         zlevels.columns = ['level_index','z-coordinates']
         zlevels.set_index('level_index', inplace=True)
 
-        self.zlevels = zlevels
+        self.misc.update({'zlevels' : zlevels})
         
-        constants_index = 3+self.kz+1
+        constants_index = 3+self.misc['kz']+1
 
         [h_c, theta_b, theta_f] = vgrid.iloc[constants_index].str.split(' ')[0]
-        self.h_c = float(h_c)
-        self.theta_b = float(theta_b)
-        self.theta_f = float(theta_f)
+        self.misc.update({'h_c' : float(h_c)})
+        self.misc.update({'theta_b' : float(theta_b)})
+        self.misc.update({'theta_f' : float(theta_f)})
 
         
         sl_index0 = constants_index+1
-        sl_index1 = sl_index0 + self.Nz - self.kz + 1
+        sl_index1 = sl_index0 + self.misc['Nz'] - self.misc['kz'] + 1
         
         slevels = vgrid.iloc[sl_index0:sl_index1,0].str.split(' ', n = 2, expand = True)
         slevels.columns = ['level_index','s-coordinates']
         slevels.set_index('level_index', inplace=True)
 
-        self.slevels = slevels
+        self.misc.update({'slevels' : slevels})
         
         
         
@@ -975,8 +975,8 @@ class schism():
             logger.info('... done \n')
             
         # Create grid xarray Dataset
-        grd = self.grd
-        gt3 = self.gt3
+        grd = self.misc['grd']
+        gt3 = self.misc['gt3']
         
         # node based variables
         grd.kbp00 = grd.kbp00.astype(int)
@@ -1033,7 +1033,7 @@ class schism():
 
         # General properties
         
-        header2 = self.header.apply(pd.to_numeric)
+        header2 = self.misc['header'].apply(pd.to_numeric)
         nlist = ['start_year','start_month','start_day','start_hour','utc_start','dtout','nspool','nvrt','kz','ics']
         ddf = pd.DataFrame(header2).T
         ddf[nlist] = ddf[nlist].astype(int)
@@ -1178,10 +1178,10 @@ class schism():
                          'units' : '1',
                          'standard_name' : 'ocean_s_coordinate',
                          'positive' : 'up',
-                         'h_s' : self.hs,
-                         'h_c' : self.h_c,
-                         'theta_b' : self.theta_b,
-                         'theta_f' : self.theta_f,
+                         'h_s' : self.misc['hs'],
+                         'h_c' : self.misc['h_c'],
+                         'theta_b' : self.misc['theta_b'],
+                         'theta_f' : self.misc['theta_f'],
                          'formula_terms':
                          's: sigma eta: elev depth: depth a: sigma_theta_f b: sigma_theta_b depth_c: sigma_h_c'}
             
