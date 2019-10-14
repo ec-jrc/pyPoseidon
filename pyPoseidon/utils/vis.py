@@ -155,8 +155,8 @@ class pplot(object):
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
                      
         it = kwargs.get('it', None)
-        z = self._obj[var].values[it,:].flatten()
-        
+        z = kwargs.get('z',self._obj[var].values[it,:].flatten())
+                
         fig, ax = plt.subplots(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
         vmax = kwargs.get('vmax', z.max())
@@ -221,7 +221,7 @@ class pplot(object):
                 
         it = kwargs.get('it', None)
         
-        z = self._obj[var].values[it,:].flatten()
+        z = kwargs.get('z',self._obj[var].values[it,:].flatten())
                 
         fig, ax = plt.subplots(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
@@ -242,7 +242,7 @@ class pplot(object):
             z = np.ma.masked_array(z,mask)
             z = z.filled(fill_value=-99999)
         
-        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3','coastlines', 'mask']:
+        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3','coastlines', 'mask']:
             try:
                 del kwargs[val]
             except:
@@ -287,8 +287,8 @@ class pplot(object):
                         
         it = kwargs.get('it', None)
         
-        u = self._obj[var].values[it,:,0].flatten()
-        v = self._obj[var].values[it,:,1].flatten()
+        u = kwargs.get('u',self._obj[var].values[it,:,0].flatten())
+        v = kwargs.get('v',self._obj[var].values[it,:,1].flatten())
         
         scale = kwargs.get('scale', .1)
         
@@ -385,7 +385,7 @@ class pplot(object):
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
-        cr = kwargs.get('cr', 'l')
+        cr = kwargs.get('coastlines', 'l')
         
         u = kwargs.get('u',self._obj[var].values[:,:,0])
         v = kwargs.get('v',self._obj[var].values[:,:,1])
@@ -437,19 +437,14 @@ class pplot(object):
  
     def frames(self,var,**kwargs):
     
-        cr = kwargs.get('cr', 'l')
+        cr = kwargs.get('coastlines', 'l')
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-
-        if np.abs(x.min()-x.max()) > 359.:
-            # Use Matplotlib for triangulation
-            triang = matplotlib.tri.Triangulation(x, y)
-            tri3 = triang.triangles
     
-        z = self._obj[var].values
+        z = kwargs.get('z',self._obj[var].values)
         
         fig, ax = plt.subplots(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
