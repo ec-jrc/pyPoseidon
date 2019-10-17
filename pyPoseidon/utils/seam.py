@@ -10,7 +10,7 @@ def to_2d(x,y,z,tri3,**kwargs):
     if z==None : z = 1.
     
     gr = pd.DataFrame({'lon':x, 'lat':y, 'z':z})
-    tf = gr[(gr.lon<-150) | (gr.lon>150.)]
+    tf = gr[(gr.lon<-90) | (gr.lon>90.) | (gr.lat > 80)]
     
     elems = pd.DataFrame(tri3, columns=['a','b','c'])
     bes = elems[(elems.a.isin(tf.index.values)) & (elems.b.isin(tf.index.values)) & (elems.c.isin(tf.index.values))]
