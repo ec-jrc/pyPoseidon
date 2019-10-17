@@ -238,12 +238,12 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
         
 
     if ts < data.time.data.min() :
-        logger.warning('coverage between {} and {} \n'.format(pd.to_datetime(data.valid_time.min().values).strftime('%Y.%m.%d %H:%M:%S'),pd.to_datetime(data.valid_time.max().values).strftime('%Y.%m.%d %H:%M:%S')))
+        logger.warning('coverage between {} and {} \n'.format(pd.to_datetime(data.valid_time.values.min()).strftime('%Y.%m.%d %H:%M:%S'),pd.to_datetime(data.valid_time.values.max()).strftime('%Y.%m.%d %H:%M:%S')))
         logger.error('time frame does not match source range\n')
         sys.exit(1)
   
     if te > data.time.data.max() :
-        logger.warning('coverage between {} and {} \n'.format(pd.to_datetime(data.valid_time.min().values).strftime('%Y.%m.%d %H:%M:%S'),pd.to_datetime(data.valid_time.max().values).strftime('%Y.%m.%d %H:%M:%S')))
+        logger.warning('coverage between {} and {} \n'.format(pd.to_datetime(data.valid_time.values.min()).strftime('%Y.%m.%d %H:%M:%S'),pd.to_datetime(data.valid_time.values.max()).strftime('%Y.%m.%d %H:%M:%S')))
         logger.error('time frame does not match source range\n')
         sys.exit(1)
 
