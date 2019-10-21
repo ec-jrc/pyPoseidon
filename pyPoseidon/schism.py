@@ -592,8 +592,11 @@ class schism():
             g = g.assign_coords({'time':times})
             ma.append(g)
         
-        self.meteo = xr.concat(ma,dim='time')
-        
+        try:
+            self.meteo = xr.concat(ma,dim='time')
+        except:
+            logger.warning('No meteo files loaded')
+            pass
 
     def global2local(self,**kwargs):
         
