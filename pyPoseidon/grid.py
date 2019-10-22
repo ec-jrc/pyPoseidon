@@ -38,21 +38,21 @@ class r2d():
         
         else:
             
-            minlon = kwargs.get('minlon', None)
-            maxlon = kwargs.get('maxlon', None)
-            minlat = kwargs.get('minlat', None)
-            maxlat = kwargs.get('maxlat', None)
+            lon_min = kwargs.get('lon_min', None)
+            lon_max = kwargs.get('lon_max', None)
+            lat_min = kwargs.get('lat_min', None)
+            lat_max = kwargs.get('lat_max', None)
             resolution = kwargs.get('resolution', None)
             
-            ni=int(round((maxlon-minlon)/resolution)) #these are cell numbers
-            nj=int(round((maxlat-minlat)/resolution))
+            ni=int(round((lon_max-lon_min)/resolution)) #these are cell numbers
+            nj=int(round((lat_max-lat_min)/resolution))
   
-            maxlon=minlon+ni*resolution #adjust max lon to much the grid
-            maxlat=minlat+nj*resolution
+            lon_max=lon_min+ni*resolution #adjust max lon to much the grid
+            lat_max=lat_min+nj*resolution
 
             # set the grid 
-            x=np.linspace(minlon,maxlon,ni)
-            y=np.linspace(minlat,maxlat,nj)
+            x=np.linspace(lon_min,lon_max,ni)
+            y=np.linspace(lat_min,lat_max,nj)
             gx,gy=np.meshgrid(x,y)
 
             attrs = kwargs.get('attrs', {'Coordinate System': 'Spherical', 'alfori': 0.0, 'xori': 0.0, 'yori': 0.0})

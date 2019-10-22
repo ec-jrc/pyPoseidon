@@ -31,7 +31,7 @@ class dem:
   
     
       
-def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
+def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs):
     
     ncores = kwargs.get('ncores', 1)       
  
@@ -50,19 +50,19 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
     
     #recenter the window 
     
-    lon0 = minlon + 360. if minlon < -180 else minlon
-    lon1 = maxlon + 360. if maxlon < -180 else maxlon
+    lon0 = lon_min + 360. if lon_min < -180 else lon_min
+    lon1 = lon_max + 360. if lon_max < -180 else lon_max
 
     lon0 = lon0 - 360. if lon0 > 180 else lon0
     lon1 = lon1 - 360. if lon1 > 180 else lon1
     
 #   TODO check this for regional files
-    if (minlon < data.longitude.min()) or (maxlon > data.longitude.max()): 
+    if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()): 
         logger.warning('Lon must be within {} and {}'.format(data.longitude.min().values,data.longitude.max().values))
         logger.warning('compensating if global dataset available')
         
 #        sys.exit()
-    if (minlat < data.latitude.min()) or (maxlat > data.latitude.max()): 
+    if (lat_min < data.latitude.min()) or (lat_max > data.latitude.max()): 
         logger.warning('Lat must be within {} and {}'.format(data.latitude.min().values,data.latitude.max().values))
         logger.warning('compensating if global dataset available')
 #        sys.exit()
@@ -72,8 +72,8 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
     i1=np.abs(data.longitude.data-lon1).argmin()
 
 
-    j0=np.abs(data.latitude.data-minlat).argmin()
-    j1=np.abs(data.latitude.data-maxlat).argmin()
+    j0=np.abs(data.latitude.data-lat_min).argmin()
+    j1=np.abs(data.latitude.data-lat_max).argmin()
 
 
     # expand the window a little bit        
@@ -116,8 +116,8 @@ def dem_(source=None, minlon=-180, maxlon=180, minlat=-90, maxlat=90, **kwargs):
             )
     
     
-    if np.abs(np.mean(dem.longitude) - np.mean([minlon, maxlon])) > 170. :
-        c = np.sign(np.mean([minlon, maxlon]))    
+    if np.abs(np.mean(dem.longitude) - np.mean([lon_min, lon_max])) > 170. :
+        c = np.sign(np.mean([lon_min, lon_max]))    
         dem['longitude'] = dem['longitude'] + c*360.
         
 

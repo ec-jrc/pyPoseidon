@@ -226,17 +226,17 @@ class schism():
         if 'se_date' not in dic.keys():
             dic.update({'se_date':self.Dataset.time.values[-1]})
             
-        if 'minlon' not in dic.keys():
-            dic.update({'minlon':self.Dataset.SCHISM_hgrid_node_x.values.min()})
+        if 'lon_min' not in dic.keys():
+            dic.update({'lon_min':self.Dataset.SCHISM_hgrid_node_x.values.min()})
 
-        if 'maxlon' not in dic.keys():
-            dic.update({'maxlon':self.Dataset.SCHISM_hgrid_node_x.values.max()})
+        if 'lon_max' not in dic.keys():
+            dic.update({'lon_max':self.Dataset.SCHISM_hgrid_node_x.values.max()})
             
-        if 'minlat' not in dic.keys():
-            dic.update({'minlat':self.Dataset.SCHISM_hgrid_node_y.values.min()})
+        if 'lat_min' not in dic.keys():
+            dic.update({'lat_min':self.Dataset.SCHISM_hgrid_node_y.values.min()})
         
-        if 'maxlat' not in dic.keys():
-            dic.update({'maxlat':self.Dataset.SCHISM_hgrid_node_y.values.max()})
+        if 'lat_max' not in dic.keys():
+            dic.update({'lat_max':self.Dataset.SCHISM_hgrid_node_y.values.max()})
         
         self.obs = obs(**dic)        
         

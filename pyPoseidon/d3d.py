@@ -48,10 +48,10 @@ class d3d():
         
     def __init__(self,**kwargs):
                 
-        self.minlon = kwargs.get('minlon', None)
-        self.maxlon = kwargs.get('maxlon', None)
-        self.minlat = kwargs.get('minlat', None)
-        self.maxlat = kwargs.get('maxlat', None)
+        self.lon_min = kwargs.get('lon_min', None)
+        self.lon_max = kwargs.get('lon_max', None)
+        self.lat_min = kwargs.get('lat_min', None)
+        self.lat_max = kwargs.get('lat_max', None)
                
         start_date = kwargs.get('start_date', None)
         self.start_date = pd.to_datetime(start_date)
@@ -637,10 +637,10 @@ class d3d():
                  
         # set lat/lon from file
         if hasattr(self, 'grid_file'):
-            kwargs.update({'minlon' : self.grid.Dataset.x.values.min()})
-            kwargs.update({'maxlon' : self.grid.Dataset.x.values.max()})
-            kwargs.update({'minlat' : self.grid.Dataset.y.values.min()})
-            kwargs.update({'maxlat' : self.grid.Dataset.y.values.max()})
+            kwargs.update({'lon_min' : self.grid.Dataset.x.values.min()})
+            kwargs.update({'lon_max' : self.grid.Dataset.x.values.max()})
+            kwargs.update({'lat_min' : self.grid.Dataset.y.values.min()})
+            kwargs.update({'lat_max' : self.grid.Dataset.y.values.max()})
             
         nj, ni  = self.grid.Dataset.lons.shape
         self.nj, self.ni  = nj, ni

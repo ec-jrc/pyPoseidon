@@ -188,18 +188,18 @@ def jigsaw(**kwargs):
     
     world = world.explode()
         
-    minlon = kwargs.get('minlon', None)
-    maxlon = kwargs.get('maxlon', None)
-    minlat = kwargs.get('minlat', None)
-    maxlat = kwargs.get('maxlat', None)
+    lon_min = kwargs.get('lon_min', None)
+    lon_max = kwargs.get('lon_max', None)
+    lat_min = kwargs.get('lat_min', None)
+    lat_max = kwargs.get('lat_max', None)
         
-    block = world.cx[minlon:maxlon,minlat:maxlat] #mask based on lat/lon window
+    block = world.cx[lon_min:lon_max,lat_min:lat_max] #mask based on lat/lon window
     
     #create a polygon of the lat/lon window
-    grp=geometry.Polygon([(minlon,minlat),(minlon,maxlat),(maxlon,maxlat),(maxlon,minlat)])
+    grp=geometry.Polygon([(lon_min,lat_min),(lon_min,lat_max),(lon_max,lat_max),(lon_max,lat_min)])
 
     #create a LineString of the grid
-    grl=geometry.LineString([(minlon,minlat),(minlon,maxlat),(maxlon,maxlat),(maxlon,minlat),(minlon,minlat)])
+    grl=geometry.LineString([(lon_min,lat_min),(lon_min,lat_max),(lon_max,lat_max),(lon_max,lat_min),(lon_min,lat_min)])
 
     
     g = block.unary_union.symmetric_difference(grp) # get the dif from the world
@@ -349,10 +349,10 @@ def jigsaw(**kwargs):
     
     dem_file = kwargs.get('dem_file', None)
     
-    dem_dic={'minlon':minlon, # lat/lon window
-         'maxlon':maxlon,
-         'minlat':minlat,
-         'maxlat':maxlat}
+    dem_dic={'lon_min':lon_min, # lat/lon window
+         'lon_max':lon_max,
+         'lat_min':lat_min,
+         'lat_max':lat_max}
     if dem_file:
         dem_dic.update({'dem_file':dem_file})
          

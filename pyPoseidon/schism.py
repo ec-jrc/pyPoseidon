@@ -19,6 +19,7 @@ import pkg_resources
 import json
 from collections import OrderedDict
 import pandas as pd
+import geopandas as gp
 import glob
 from shutil import copyfile
 import xarray as xr
@@ -47,11 +48,27 @@ class schism():
         rfolder = kwargs.get('rfolder', None)
         if rfolder:
             self.read_folder(**kwargs)
+
+        self.geometry = kwargs.get('geometry', None)
+        
+        if self.geometry:
                 
-        self.minlon = kwargs.get('minlon', None)
-        self.maxlon = kwargs.get('maxlon', None)
-        self.minlat = kwargs.get('minlat', None)
-        self.maxlat = kwargs.get('maxlat', None)
+            if isinstance(self.geometry,dict): 
+                self.lon_min = self.geometry['lon_min']
+                self.lon_max = self.geometry['lon_max']
+                self.lat_min = self.geometry['lat_min']
+                self.lat_max = self.geometry['lat_max']
+            elif isinstance(geometry,str):
+                  
+                try:
+                    geo = gp.GeoDataFrame.from_file(self.geometry)
+                except:
+                    logger.error('geometry argument not a valid geopandas file')
+                    sys.exit(1)
+            
+                self.lon_min, self.lat_min, self.lon_max, self.lat_max = geo.total_bounds
+
+
                
         start_date = kwargs.get('start_date', None)
         self.start_date = pd.to_datetime(start_date)
@@ -295,15 +312,15 @@ class schism():
                  
         # set lat/lon from file
         if hasattr(self, 'grid_file'):
-            kwargs.update({'minlon' : self.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
-            kwargs.update({'maxlon' : self.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
-            kwargs.update({'minlat' : self.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
-            kwargs.update({'maxlat' : self.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
+            kwargs.update({'lon_min' : self.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
+            kwargs.update({'lon_max' : self.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
+            kwargs.update({'lat_min' : self.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
+            kwargs.update({'lat_max' : self.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
             
-            self.minlon = self.grid.Dataset.SCHISM_hgrid_node_x.values.min()
-            self.maxlon = self.grid.Dataset.SCHISM_hgrid_node_x.values.max()
-            self.minlat = self.grid.Dataset.SCHISM_hgrid_node_y.values.min()
-            self.maxlat = self.grid.Dataset.SCHISM_hgrid_node_y.values.max()
+            self.lon_min = self.grid.Dataset.SCHISM_hgrid_node_x.values.min()
+            self.lon_max = self.grid.Dataset.SCHISM_hgrid_node_x.values.max()
+            self.lat_min = self.grid.Dataset.SCHISM_hgrid_node_y.values.min()
+            self.lat_max = self.grid.Dataset.SCHISM_hgrid_node_y.values.max()
             
                                      
         # get bathymetry

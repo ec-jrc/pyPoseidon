@@ -41,10 +41,10 @@ class obs:
 
         self.point = kwargs.get('point', None)
     
-        minlon = kwargs.get('minlon', None)
-        maxlon = kwargs.get('maxlon', None)
-        minlat = kwargs.get('minlat', None)
-        maxlat = kwargs.get('maxlat', None)
+        lon_min = kwargs.get('lon_min', None)
+        lon_max = kwargs.get('lon_max', None)
+        lat_min = kwargs.get('lat_min', None)
+        lat_max = kwargs.get('lat_max', None)
         
             
 #        db = kwargs.get('filename', DATA_PATH+'ioc.csv')
@@ -54,7 +54,7 @@ class obs:
         
         critech.loc[:,['lon','lat']] = critech.loc[:,['lon','lat']].apply(pd.to_numeric)
      
-        w = critech.loc[(critech['lon'] > minlon) & (critech['lon'] < maxlon) & (critech['lat'] > minlat) & (critech['lat'] < maxlat) \
+        w = critech.loc[(critech['lon'] > lon_min) & (critech['lon'] < lon_max) & (critech['lat'] > lat_min) & (critech['lat'] < lat_max) \
                     & ((pd.to_datetime(critech['Min. Time']).dt.round('D') < self.sdate) | (pd.to_datetime(critech['Min. Time']).dt.round('D') < self.edate))]
         
         w.reset_index(inplace=True, drop=True)

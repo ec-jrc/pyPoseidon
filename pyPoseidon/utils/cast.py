@@ -245,10 +245,10 @@ class scast():
                  
             # get lat/lon from file
             if hasattr(self, 'grid_file'):
-                info.update({'minlon' : m.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
-                info.update({'maxlon' : m.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
-                info.update({'minlat' : m.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
-                info.update({'maxlat' : m.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
+                info.update({'lon_min' : m.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
+                info.update({'lon_max' : m.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
+                info.update({'lat_min' : m.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
+                info.update({'lat_max' : m.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
                                                          
             # copy/link necessary files
             logger.debug('copy necessary files')

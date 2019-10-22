@@ -42,19 +42,19 @@ def reduced_gg(dc):
     dc = dc.sortby('latitude', ascending=True)
     
     
-    minlon = dc.longitude.values.min()
-    maxlon = dc.longitude.values.max()
-    minlat = dc.latitude.values.min()
-    maxlat = dc.latitude.values.max()
+    lon_min = dc.longitude.values.min()
+    lon_max = dc.longitude.values.max()
+    lat_min = dc.latitude.values.min()
+    lat_max = dc.latitude.values.max()
     
     glats = 2 * dc.msl.attrs['GRIB_N']
     glons = 2 * glats
     
     dlon = 360./glons
     
-    npoints = (maxlon - minlon)/dlon + 1
+    npoints = (lon_max - lon_min)/dlon + 1
     
-    x = np.linspace(minlon,maxlon,npoints)
+    x = np.linspace(lon_min,lon_max,npoints)
     
     values, index = np.unique(dc.latitude,return_index=True)
     
@@ -81,20 +81,20 @@ def regrid(ds):
 
     de = ds.rename({'longitude': 'lon', 'latitude': 'lat'})
 
-    minlon = de.lon.values.min() # get lat/lon window
-    maxlon = de.lon.values.max()
-    minlat = de.lat.values.min()
-    maxlat = de.lat.values.max()
+    lon_min = de.lon.values.min() # get lat/lon window
+    lon_max = de.lon.values.max()
+    lat_min = de.lat.values.min()
+    lat_max = de.lat.values.max()
 
     Nj, Ni = de.lon.shape # get shape of original grid
     
-    y = np.linspace(minlat, maxlat, Nj) # create a similar grid as the original
-    x = np.linspace(minlon, maxlon, Ni)
+    y = np.linspace(lat_min, lat_max, Nj) # create a similar grid as the original
+    x = np.linspace(lon_min, lon_max, Ni)
     
     dlon = np.diff(x)[0] #resolution
     dlat = np.diff(y)[0]
     
-    ds_out = xe.util.grid_2d(minlon,maxlon,dlon,minlat,maxlat,dlat) # establish out grid 
+    ds_out = xe.util.grid_2d(lon_min,lon_max,dlon,lat_min,lat_max,dlat) # establish out grid 
     
     regridder = xe.Regridder(de, ds_out, 'bilinear') 
     
@@ -166,7 +166,7 @@ class meteo:
         s.to_force(self.Dataset,vars=['msl','u10','v10'], **kwargs)
         
 
-def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
+def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -218,19 +218,19 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
         data = xr.merge([msl,u10,v10])
            
         
-    if not minlon : minlon = data.longitude.data.min()
-    if not maxlon : maxlon = data.longitude.data.max()
-    if not minlat : minlat = data.latitude.data.min()
-    if not maxlat : maxlat = data.latitude.data.max()
+    if not lon_min : lon_min = data.longitude.data.min()
+    if not lon_max : lon_max = data.longitude.data.max()
+    if not lat_min : lat_min = data.latitude.data.min()
+    if not lat_max : lat_max = data.latitude.data.max()
 
 
-    if minlon < data.longitude.data.min() : minlon = minlon + 360.
+    if lon_min < data.longitude.data.min() : lon_min = lon_min + 360.
 
-    if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
+    if lon_max < data.longitude.data.min() : lon_max = lon_max + 360.
 
-    if minlon > data.longitude.data.max() : minlon = minlon - 360.
+    if lon_min > data.longitude.data.max() : lon_min = lon_min - 360.
 
-    if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
+    if lon_max > data.longitude.data.max() : lon_max = lon_max - 360.
                     
     
     if not ts : ts = data.time.data[ft1]
@@ -249,29 +249,29 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
 
 
     if len(data.longitude.shape) == 2:
-        d1 = data.where(data.longitude>minlon,drop=True)
-        d2 = d1.where(d1.longitude<maxlon,drop=True)
-        d3 = d2.where(d2.latitude>minlat,drop=True)
-        d4 = d3.where(d3.latitude<maxlat,drop=True)        
+        d1 = data.where(data.longitude>lon_min,drop=True)
+        d2 = d1.where(d1.longitude<lon_max,drop=True)
+        d3 = d2.where(d2.latitude>lat_min,drop=True)
+        d4 = d3.where(d3.latitude<lat_max,drop=True)        
     
         data = regrid(d4)
     
     if data.msl.attrs['GRIB_gridType'] == 'reduced_gg':
-        d1 = data.where(data.longitude>minlon,drop=True)
-        d2 = d1.where(d1.longitude<maxlon,drop=True)
-        d3 = d2.where(d2.latitude>minlat,drop=True)
-        d4 = d3.where(d3.latitude<maxlat,drop=True)        
+        d1 = data.where(data.longitude>lon_min,drop=True)
+        d2 = d1.where(d1.longitude<lon_max,drop=True)
+        d3 = d2.where(d2.latitude>lat_min,drop=True)
+        d4 = d3.where(d3.latitude<lat_max,drop=True)        
     
         data = reduced_gg(d4)
     
 
     tslice=slice(ts, te, dft)
 
-    i0=np.abs(data.longitude.data-minlon).argmin() 
-    i1=np.abs(data.longitude.data-maxlon).argmin() 
+    i0=np.abs(data.longitude.data-lon_min).argmin() 
+    i1=np.abs(data.longitude.data-lon_max).argmin() 
 
-    j0=np.abs(data.latitude.data-minlat).argmin() 
-    j1=np.abs(data.latitude.data-maxlat).argmin() 
+    j0=np.abs(data.latitude.data-lat_min).argmin() 
+    j1=np.abs(data.latitude.data-lat_max).argmin() 
 
     
     # expand the window a little bit        
@@ -314,8 +314,8 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
             )
       
     # TODO
-    #        if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
-    #            c = np.sign(np.mean(minlon, maxlon))    
+    #        if np.abs(np.mean([lon_min,lon_max]) - np.mean([kwargs.get('lon_min', None), kwargs.get('lon_max', None)])) > 300. :
+    #            c = np.sign(np.mean(lon_min, lon_max))    
     #            tot.longitude = tot.longitude + c*360.
 
 
@@ -327,7 +327,7 @@ def cfgrib(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, s
 
 
     
-def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
+def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
     
     backend_kwargs = kwargs.get('backend_kwargs', {})
     xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
@@ -394,19 +394,19 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
 
     #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing      
                 
-    if not minlon : minlon = data.longitude.data.min()
-    if not maxlon : maxlon = data.longitude.data.max()
-    if not minlat : minlat = data.latitude.data.min()
-    if not maxlat : maxlat = data.latitude.data.max()
+    if not lon_min : lon_min = data.longitude.data.min()
+    if not lon_max : lon_max = data.longitude.data.max()
+    if not lat_min : lat_min = data.latitude.data.min()
+    if not lat_max : lat_max = data.latitude.data.max()
 
 
-    if minlon < data.longitude.data.min() : minlon = minlon + 360.
+    if lon_min < data.longitude.data.min() : lon_min = lon_min + 360.
 
-    if maxlon < data.longitude.data.min() : maxlon = maxlon + 360.
+    if lon_max < data.longitude.data.min() : lon_max = lon_max + 360.
 
-    if minlon > data.longitude.data.max() : minlon = minlon - 360.
+    if lon_min > data.longitude.data.max() : lon_min = lon_min - 360.
 
-    if maxlon > data.longitude.data.max() : maxlon = maxlon - 360.
+    if lon_max > data.longitude.data.max() : lon_max = lon_max - 360.
 
    
     
@@ -425,20 +425,20 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
         sys.exit(1)
 
     if len(data.longitude.shape) == 2:
-        d1 = data.where(data.longitude>minlon,drop=True)
-        d2 = d1.where(d1.longitude<maxlon,drop=True)
-        d3 = d2.where(d2.latitude>minlat,drop=True)
-        d4 = d3.where(d3.latitude<maxlat,drop=True)        
+        d1 = data.where(data.longitude>lon_min,drop=True)
+        d2 = d1.where(d1.longitude<lon_max,drop=True)
+        d3 = d2.where(d2.latitude>lat_min,drop=True)
+        d4 = d3.where(d3.latitude<lat_max,drop=True)        
     
         data = regrid(d4)
 
     tslice=slice(ts, te, dft)
 
-    i0=np.abs(data.longitude.data-minlon).argmin() 
-    i1=np.abs(data.longitude.data-maxlon).argmin() 
+    i0=np.abs(data.longitude.data-lon_min).argmin() 
+    i1=np.abs(data.longitude.data-lon_max).argmin() 
 
-    j0=np.abs(data.latitude.data-minlat).argmin()
-    j1=np.abs(data.latitude.data-maxlat).argmin() 
+    j0=np.abs(data.latitude.data-lat_min).argmin()
+    j1=np.abs(data.latitude.data-lat_max).argmin() 
 
     # expand the window a little bit        
     lon_0 = max(0, i0 - 2)
@@ -481,8 +481,8 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
             )
 
 # TODO    
-#    if np.abs(np.mean([minlon,maxlon]) - np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)])) > 300. :
-#        c = np.sign(np.mean([kwargs.get('minlon', None), kwargs.get('maxlon', None)]))    
+#    if np.abs(np.mean([lon_min,lon_max]) - np.mean([kwargs.get('lon_min', None), kwargs.get('lon_max', None)])) > 300. :
+#        c = np.sign(np.mean([kwargs.get('lon_min', None), kwargs.get('lon_max', None)]))    
 #        tot.longitude = tot.longitude + c*360.
 
     #--------------------------------------------------------------------- 
@@ -493,7 +493,7 @@ def pynio(filenames=None, minlon=None, maxlon=None, minlat=None, maxlat=None, st
 
 
 
-def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, start_date=None, end_date=None, time_frame=None, **kwargs):
+def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, **kwargs):
         
     try:
         start_date = pd.to_datetime(start_date)
@@ -535,8 +535,8 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
     except:
         pass  
  
-    lon0 = minlon + 360. if minlon < data.longitude.min() else minlon
-    lon1 = maxlon + 360. if maxlon < data.longitude.min() else maxlon
+    lon0 = lon_min + 360. if lon_min < data.longitude.min() else lon_min
+    lon1 = lon_max + 360. if lon_max < data.longitude.min() else lon_max
 
     lon0 = lon0 - 360. if lon0 > data.longitude.max() else lon0
     lon1 = lon1 - 360. if lon1 > data.longitude.max() else lon1
@@ -559,8 +559,8 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
     i1=np.abs(data.longitude.data-lon1).argmin()
 
 
-    j0=np.abs(data.latitude.data-minlat).argmin()
-    j1=np.abs(data.latitude.data-maxlat).argmin()
+    j0=np.abs(data.latitude.data-lat_min).argmin()
+    j1=np.abs(data.latitude.data-lat_max).argmin()
 
     if i0 >= i1 :
 
@@ -587,8 +587,8 @@ def from_url(url = None, minlon=None, maxlon=None, minlat=None, maxlat=None, sta
           .sel(time=tslice)
           )
       
-    if np.abs(np.mean(tot.longitude) - np.mean([minlon, maxlon])) > 300. :
-      c = np.sign(np.mean([minlon, maxlon]))    
+    if np.abs(np.mean(tot.longitude) - np.mean([lon_min, lon_max])) > 300. :
+      c = np.sign(np.mean([lon_min, lon_max]))    
       tot['longitude'] = tot['longitude'] + c*360.
 
 
