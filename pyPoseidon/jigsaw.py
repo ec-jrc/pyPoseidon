@@ -11,42 +11,18 @@ Jigsaw module
 import pandas as pd
 import numpy as np
 from matplotlib import tri
-from shapely import geometry, ops
 import geopandas as gp
 import xarray as xr
 import os
 import shapely
 import subprocess
 import sys
-import pyproj
-from shapely.ops import transform
-from functools import partial
 import cartopy.feature as cf
 
 import pyPoseidon.dem as pdem
-from .limgrad import *
 import logging        
         
 logger = logging.getLogger('pyPoseidon')
-
-
-def jig(path='.',tag='jigsaw'):    
-    
-    fjig = path + '/' + tag+'.jig'
-    
-    with open(fjig,'w') as f:
-        f.write('GEOM_FILE ={}\n'.format(tag+'-geo.msh'))
-        f.write('MESH_FILE ={}\n'.format(tag+'.msh'))
-        f.write('HFUN_FILE ={}\n'.format(tag+'-hfun.msh'))
-        f.write('HFUN_SCAL = ABSOLUTE\n')
-        f.write('HFUN_HMAX = Inf\n')
-        f.write('HFUN_HMIN = 0.0\n')
-        f.write('MESH_DIMS = 2\n')
-        f.write('MESH_TOP1 = TRUE\n')
-        f.write('MESH_EPS1 = 1.0\n')
-        f.write('MESH_RAD2 = 1\n')
-        f.write('GEOM_FEAT = TRUE\n')
-        f.write('VERBOSITY = 2')
 
 
 def geo(df, path='.', tag='jigsaw'):
@@ -90,64 +66,6 @@ def geo(df, path='.', tag='jigsaw'):
         edges.to_csv(f, index=False, header=0, sep=';')
         
 
-def hfun(dem, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
-    
-    X, Y = np.meshgrid(dem.Dataset.longitude.values,dem.Dataset.latitude.values)
-    V = dem.Dataset.values
-    
-    #scale
-    hmin = resolution_min                       # min. H(X) [deg.]
-    hmax = resolution_max                       # max. H(X)
-
-    V[V>0] = 0 #normalize to only negative values
-
-    hfun =  np.sqrt(-V)/.5 # scale with sqrt(H)
-    hfun[hfun < hmin] = hmin
-    hfun[hfun > hmax] = hmax
-    
-    hfun = hfun.flatten() # make it 1-d
-    
-    hfun = np.array([[hf] for hf in list(hfun)]) #convert it to the appropriate format for LIMHFN2 below
-    
-    #triangulate
-    points = np.column_stack([X.flatten(),Y.flatten()])
-    # Use Matplotlib for triangulation
-    triang = tri.Triangulation(points[:,0], points[:,1])
-#    tri3 = triang.triangles
-    edges = triang.edges
-    #edge lengths
-    elen = [shapely.geometry.LineString(points[edge]).length for edge in edges]
-    
-    [fun,flag] = limgrad2(edges,elen,hfun,dhdx,imax)
-
-    ##OUTPUT
-    
-    fhfun = path + tag+'-hfun.msh'
-    # write header
-    with open(fhfun,'w') as f:
-        f.write('#{}; created by pyPoseidon\n'.format(tag+'-hfun.msh'))
-        f.write('MSHID=3;EUCLIDEAN-GRID\n')
-        f.write('NDIMS=2\n')
-        f.write('COORD=1;{}\n'.format(dem.Dataset.longitude.size))
-        
-    with open(fhfun, 'a') as f:
-        dem.Dataset.longitude.to_dataframe().to_csv(f, index=False, header=0)
-        
-    with open(fhfun, 'a') as f:
-        f.write('COORD=2;{}\n'.format(dem.Dataset.latitude.size))
-        
-    with open(fhfun, 'a') as f:
-        dem.Dataset.latitude.to_dataframe().to_csv(f, index=False, header=0)
-    
-    with open(fhfun, 'a') as f:
-        f.write('VALUE={};1\n'.format(dem.Dataset.longitude.size * dem.Dataset.latitude.size))
-    
-    #converted TRANSPOSED, IS THERE A WAY TO FIX IT?
-    cfun = fun.flatten().reshape(X.shape).T
-    with open(fhfun, 'a') as f:
-        for i in range(fun.size):
-            f.write('{}\n'.format(cfun.flatten()[i]))
-            
 
 def read_msh(fmsh):
     
@@ -171,9 +89,83 @@ def read_msh(fmsh):
 
 def jigsaw(**kwargs):
      
-    cr = kwargs.get('coast_resolution', 'l')
     
     logger.info('Creating grid with JIGSAW\n')
+       
+    geometry = kwargs.get('geometry', None)
+    
+    if isinstance(geometry,dict): 
+             
+        df , bmindx = jdefault(**kwargs)
+        
+        gr = jigsaw_(df, bmindx, **kwargs)       
+        
+    elif isinstance(geometry,str):
+        
+        df = jcustom(**kwargs)
+        
+        bmindx = df.tag.min()
+        
+        gr = jigsaw_(df, bmindx, **kwargs)
+          
+    
+    return gr
+
+
+
+def jcustom(**kwargs):
+
+
+    geometry = kwargs.get('geometry', None)
+
+    try:
+        geo = gp.GeoDataFrame.from_file(geometry)
+    except:
+        logger.error('geometry argument not a valid file')
+        sys.exit(1)
+
+
+    idx=0
+    dic={}
+    for idx, line  in geo.iterrows():
+        lon=[]
+        lat=[]
+        for x,y in line.geometry.coords[:]:
+            lon.append(x)
+            lat.append(y)
+        dic.update({'line{}'.format(idx):{'lon':lon,'lat':lat,'tag':line.tag}})
+        idx += 1
+
+    dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
+    
+    df = pd.concat(dict_of_df, axis=0)
+    
+    df['z']=0
+    df = df.drop_duplicates() # drop the repeat value on closed boundaries
+    
+    out_b = []
+    for line in df.index.levels[0]:
+        out_b.append(shapely.geometry.LineString(df.loc[line,['lon','lat']].values))
+
+    merged = shapely.ops.linemerge(out_b)
+    merged = pd.DataFrame(merged.coords[:], columns=['lon','lat'])
+    merged = merged.drop_duplicates()
+    match = df.drop_duplicates(['lon','lat']).droplevel(0)
+    match = match.reset_index(drop=True)
+
+    df1 = merged.sort_values(['lon', 'lat'])
+    df2 = match.sort_values(['lon', 'lat'])
+    df2.index = df1.index
+    final = df2.sort_index()
+    final = pd.concat([final],keys=['line0'])
+
+    
+    return final
+
+
+def jdefault(**kwargs):
+    
+    cr = kwargs.get('coast_resolution', 'l')
     
     # world polygons - user input
     coast = cf.NaturalEarthFeature(
@@ -187,21 +179,25 @@ def jigsaw(**kwargs):
     world = kwargs.get('coastlines',natural_world)
     
     world = world.explode()
-        
-    lon_min = kwargs.get('lon_min', None)
-    lon_max = kwargs.get('lon_max', None)
-    lat_min = kwargs.get('lat_min', None)
-    lat_max = kwargs.get('lat_max', None)
-        
-    block = world.cx[lon_min:lon_max,lat_min:lat_max] #mask based on lat/lon window
+    
+    geometry = kwargs.get('geometry', None)
+    
+    lon_min = geometry['lon_min']
+    lon_max = geometry['lon_max']
+    lat_min = geometry['lat_min']
+    lat_max = geometry['lat_max']
+    
     
     #create a polygon of the lat/lon window
-    grp=geometry.Polygon([(lon_min,lat_min),(lon_min,lat_max),(lon_max,lat_max),(lon_max,lat_min)])
+    grp=shapely.geometry.Polygon([(lon_min,lat_min),(lon_min,lat_max),(lon_max,lat_max),(lon_max,lat_min)])
 
     #create a LineString of the grid
-    grl=geometry.LineString([(lon_min,lat_min),(lon_min,lat_max),(lon_max,lat_max),(lon_max,lat_min),(lon_min,lat_min)])
-
+    grl=shapely.geometry.LineString([(lon_min,lat_min),(lon_min,lat_max),(lon_max,lat_max),(lon_max,lat_min),(lon_min,lat_min)])
     
+    
+
+    block = world.cx[lon_min:lon_max,lat_min:lat_max] #mask based on lat/lon window
+        
     g = block.unary_union.symmetric_difference(grp) # get the dif from the world
 
     try: # make geoDataFrame 
@@ -235,7 +231,7 @@ def jigsaw(**kwargs):
     #open (water) boundaries
     water = b.boundary[0] - (b.boundary[0] - grl) 
     try:
-        cwater = ops.linemerge(water)
+        cwater = shapely.ops.linemerge(water)
     except:
         cwater= water
 
@@ -269,7 +265,7 @@ def jigsaw(**kwargs):
     land = b.boundary[0] - grl 
 
     try:
-        cland = ops.linemerge(land)
+        cland = shapely.ops.linemerge(land)
     except:
         cland = land
         
@@ -330,11 +326,16 @@ def jigsaw(**kwargs):
         mindx -= 1
     ndf['tag'] = ndf.tag.astype(int)
     df = pd.concat([final,ndf])
-          
+    
+    return df, bmindx      
+    
+def jigsaw_(df, bmindx, **kwargs):    
+    
+    logger.info('Creating JIGSAW files\n')
+    
     tag = kwargs.get('tag', 'jigsaw')
     rpath = kwargs.get('rpath', '.')
     
-    logger.info('Creating JIGSAW files\n')
     
     if not os.path.exists(rpath):
             os.makedirs(rpath)
@@ -344,21 +345,58 @@ def jigsaw(**kwargs):
         os.makedirs(path)
     
     
-    jig(path=path,tag=tag)
     geo(df,path=path,tag=tag)
     
-    dem_file = kwargs.get('dem_file', None)
-    
-    dem_dic={'lon_min':lon_min, # lat/lon window
-         'lon_max':lon_max,
-         'lat_min':lat_min,
-         'lat_max':lat_max}
-    if dem_file:
-        dem_dic.update({'dem_file':dem_file})
-         
-    dem = pdem.dem(**dem_dic)
       
-    hfun(dem, path=path, **kwargs)
+    hfun = kwargs.get('hfun', None)
+    
+    if hfun:
+        dh = xr.open_dataset(hfun)
+                
+        # write hfun file
+    
+        fhfun = path + tag+'-hfun.msh'
+        # write header
+        with open(fhfun,'w') as f:
+            f.write('#{}; created by pyPoseidon\n'.format(tag+'-hfun.msh'))
+            f.write('MSHID=3;EUCLIDEAN-GRID\n')
+            f.write('NDIMS=2\n')
+            f.write('COORD=1;{}\n'.format(dh.longitude.size))
+        
+        with open(fhfun, 'a') as f:
+            np.savetxt(f, dh.longitude.values)
+        
+        with open(fhfun, 'a') as f:
+            f.write('COORD=2;{}\n'.format(dh.latitude.size))
+        
+        with open(fhfun, 'a') as f:
+            np.savetxt(f, dh.latitude.values)
+    
+        with open(fhfun, 'a') as f:
+            f.write('VALUE={};1\n'.format(dh.z.size))
+    
+        with open(fhfun, 'a') as f:
+            np.savetxt(f, dh.z.values.flatten())
+      
+    
+    # write jig file
+    fjig = path + '/' + tag+'.jig'
+    
+    with open(fjig,'w') as f:
+        f.write('GEOM_FILE ={}\n'.format(tag+'-geo.msh'))
+        f.write('MESH_FILE ={}\n'.format(tag+'.msh'))
+        if hfun : f.write('HFUN_FILE ={}\n'.format(tag+'-hfun.msh'))
+        f.write('HFUN_SCAL = ABSOLUTE\n')
+        f.write('HFUN_HMAX = Inf\n')
+        f.write('HFUN_HMIN = 0.0\n')
+        f.write('MESH_DIMS = 2\n')
+        f.write('MESH_TOP1 = TRUE\n')
+        f.write('MESH_EPS1 = 1.0\n')
+        f.write('MESH_RAD2 = 1\n')
+        f.write('GEOM_FEAT = TRUE\n')
+        f.write('VERBOSITY = 2')
+    
+    
     
     calc_dir = rpath+'/jigsaw/'
     
@@ -394,10 +432,6 @@ def jigsaw(**kwargs):
     edges = edges.apply(pd.to_numeric)
     
 # Interpolate on grid points 
-
-    dem_dic.update({'grid_x':nodes.lon.values, 'grid_y':nodes.lat.values})
-        
-    dem = pdem.dem(**dem_dic)
    
     # Boundaries
     
@@ -446,7 +480,7 @@ def jigsaw(**kwargs):
     nod = nodes.loc[:,['lon','lat']].to_xarray().rename({'index':'nSCHISM_hgrid_node','lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y'})
     nod = nod.drop('nSCHISM_hgrid_node')
 
-    dep = xr.Dataset({'depth': (['nSCHISM_hgrid_node'], -dem.Dataset.ival.values)})
+    dep = xr.Dataset({'depth': (['nSCHISM_hgrid_node'], np.zeros(nod.nSCHISM_hgrid_node.shape[0]))})
 
     #open boundaries
     op=[]

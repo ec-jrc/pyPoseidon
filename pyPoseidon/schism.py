@@ -58,7 +58,7 @@ class schism():
                 self.lon_max = self.geometry['lon_max']
                 self.lat_min = self.geometry['lat_min']
                 self.lat_max = self.geometry['lat_max']
-            elif isinstance(geometry,str):
+            elif isinstance(self.geometry,str):
                   
                 try:
                     geo = gp.GeoDataFrame.from_file(self.geometry)
