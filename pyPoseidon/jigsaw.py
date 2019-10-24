@@ -10,7 +10,6 @@ Jigsaw module
 
 import pandas as pd
 import numpy as np
-from matplotlib import tri
 import geopandas as gp
 import xarray as xr
 import os
