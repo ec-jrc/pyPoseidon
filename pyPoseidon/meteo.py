@@ -166,10 +166,10 @@ class meteo:
         s.to_force(self.Dataset,vars=['msl','u10','v10'], **kwargs)
         
 
-def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
+def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by='by_coords', **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
-    xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
+    xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
 
     try:
         start_date = pd.to_datetime(start_date)
@@ -327,10 +327,10 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
 
 
     
-def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by=None, **kwargs):
+def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by='by_coords', **kwargs):
     
     backend_kwargs = kwargs.get('backend_kwargs', {})
-    xr_kwargs = kwargs.get('xr_kwargs', {'concat_dim':'step'})
+    xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
     if 'preprocess' in xr_kwargs.keys():
         xr_kwargs['preprocess'] = fix_my_data        
 
