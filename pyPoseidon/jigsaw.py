@@ -16,7 +16,6 @@ import os
 import shapely
 import subprocess
 import sys
-import cartopy.feature as cf
 
 import pyPoseidon.dem as pdem
 import logging        
@@ -164,18 +163,11 @@ def jcustom(**kwargs):
 
 def jdefault(**kwargs):
     
-    cr = kwargs.get('coast_resolution', 'l')
+    world = kwargs.get('coastlines',None)
     
-    # world polygons - user input
-    coast = cf.NaturalEarthFeature(
-        category='physical',
-        name='land',
-        scale='{}m'.format({'l':110, 'i':50, 'h':10}[cr]))
-    
-           
-    natural_world = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
-    
-    world = kwargs.get('coastlines',natural_world)
+    if world is None :
+        logger.error('coastlines not given')
+        sys.exit(1)
     
     world = world.explode()
     

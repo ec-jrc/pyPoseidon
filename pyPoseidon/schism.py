@@ -23,6 +23,9 @@ import geopandas as gp
 import glob
 from shutil import copyfile
 import xarray as xr
+import cartopy.feature as cf
+import geopandas as gp
+
 
 #local modules
 import pyPoseidon
@@ -69,6 +72,30 @@ class schism():
                 self.lon_min, self.lat_min, self.lon_max, self.lat_max = geo.total_bounds
 
 
+        # coastlines
+        coastlines = kwargs.get('coastlines',None)
+        
+        if coastlines is None:
+            cr = kwargs.get('coast_resolution', 'l')
+    
+            # world polygons - user input
+            coast = cf.NaturalEarthFeature(
+                category='physical',
+                name='land',
+                scale='{}m'.format({'l':110, 'i':50, 'h':10}[cr]))
+    
+           
+            self.coastlines = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
+    
+        else:
+            
+            try:
+                coast = gp.GeoDataFrame.from_file(coastlines)
+            except:
+                coast = gp.GeoDataFrame(coastlines)
+                
+            self.coastlines = coast
+        
                
         start_date = kwargs.get('start_date', None)
         self.start_date = pd.to_datetime(start_date)
