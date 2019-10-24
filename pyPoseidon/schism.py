@@ -343,7 +343,7 @@ class schism():
         
         path = get_value(self,kwargs,'rpath','./') 
         flag = get_value(self,kwargs,'update',[])
-        
+        split_by = get_value(self,kwargs,'split_by',None)
         
         if not os.path.exists(path):
             os.makedirs(path)
@@ -460,8 +460,14 @@ class schism():
             
         #save meteo
         if hasattr(self, 'atm') :
-           try:
-              self.to_force(self.meteo.Dataset,vars=['msl','u10','v10'],rpath=path,**kwargs)
+           try:               
+              if split_by :
+                  times, datasets = zip(*self.meteo.Dataset.groupby('time.{}'.format(split_by)))
+                  mpaths = ['sflux/sflux_air_1.{:03d}.nc'.format(t + 1) for t in np.arange(len(times))]
+                  for das,mpath in list(zip(datasets,mpaths)):
+                      self.to_force(das,vars=['msl','u10','v10'],rpath=path, filename=mpath, **kwargs)
+              else:  
+                  self.to_force(self.meteo.Dataset,vars=['msl','u10','v10'],rpath=path,**kwargs)                 
            except AttributeError as e:
               logger.warning('no meteo data available.. no update..\n')
               pass
