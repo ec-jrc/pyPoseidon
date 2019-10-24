@@ -17,6 +17,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import geopandas as gp
+import shapely
 
 matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
@@ -146,8 +147,6 @@ class pplot(object):
  
     def contour(self,var,**kwargs):        
         
-        cr = kwargs.get('coastlines', 'l')
-        
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
@@ -162,13 +161,14 @@ class pplot(object):
         vmax = kwargs.get('vmax', z.max())
     
         nv = kwargs.get('nv', 10)
-    
+        xy=kwargs.get('xy',(.3,1.05))
         title = kwargs.get('title', 'contour plot for {}'.format(var))
         
         vrange=np.linspace(vmin,vmax,nv,endpoint=True)
        ## CHOOSE YOUR PROJECTION
-    #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
+    #   ax = plt.axes(projection=ccrs.Orthographic(x.mean(), y.mean()))
         ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.background_patch.set_facecolor('k')
         
         #optional mask for the data
         mask = kwargs.get('mask',None)
@@ -177,43 +177,29 @@ class pplot(object):
             z = z.filled(fill_value=-99999)
         
         
-        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3','coastlines', 'mask']:
+        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3', 'mask','xy','z']:
             try:
                 del kwargs[val]
             except:
                 pass        
           
-        
-        plt.gca().set_aspect('equal')
+        ax.set_aspect('equal')
                 
-        p = plt.tricontour(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree(), **kwargs)
+        p = plt.tricontour(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)
         cbar = fig.colorbar(p,ticks=vrange,orientation='vertical', extend='both')
         if it:
+    
             text = 'time={}'.format(t[it])
-            an = ax.annotate(text, xy=(0.05, -0.1), xycoords='axes fraction')
+            an = ax.annotate(text, xy=xy, xycoords='axes fraction')
         
         ax.set_title(title,pad=30) 
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')
-        
-        if len(cr) > 1 :
-            
-            coastl = gp.GeoDataFrame.from_file(cr)
-            coastl.plot(ax=ax, color='k')
-            
-        else:
                 
-            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
-        
-            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
-        
         return p, ax   
     
     def contourf(self,var,**kwargs):
-        
-        cr = kwargs.get('coastlines', 'l')
-        
-        
+                
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
@@ -223,7 +209,7 @@ class pplot(object):
         
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
                 
-        fig, ax = plt.subplots(figsize=(12,8)) 
+        fig = plt.figure(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
         vmax = kwargs.get('vmax', z.max())
     
@@ -235,6 +221,9 @@ class pplot(object):
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
         ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.background_patch.set_facecolor('k')
+        
+        ax.set_extent([x.min(), x.max(), y.min(), y.max()])
         
         #optional mask for the data
         mask = kwargs.get('mask',None)
@@ -242,43 +231,36 @@ class pplot(object):
             z = np.ma.masked_array(z,mask)
             z = z.filled(fill_value=-99999)
         
-        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3','coastlines', 'mask']:
+        xy=kwargs.get('xy',(.3,1.05))
+        
+        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3', 'mask','xy']:
             try:
                 del kwargs[val]
             except:
                 pass        
         
-        plt.gca().set_aspect('equal')
         
-        p = plt.tricontourf(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree() )
+    #    ax = plt.gca()
+        ax.set_aspect('equal')
+        
+        
+        p = plt.tricontourf(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)#, transform=ccrs.PlateCarree() )
         cbar = fig.colorbar(p,ticks=vrange,orientation='vertical', extend='both')
         if it :
+                       
             text = 'time={}'.format(t[it])
-            an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
+            an = ax.annotate(text, xy=xy, xycoords='axes fraction')
         
         ax.set_title(title,pad=30) 
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')
 
-
-        if len(cr) > 1 :
-            
-            coastl = gp.GeoDataFrame.from_file(cr)
-            coastl.plot(ax=ax, color='k')
-            
-        else:
-        
-            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
-        
-            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
         
         return p, ax   
             
     
     def quiver(self,var,**kwargs):
-        
-        cr = kwargs.get('coastlines', 'l')
-        
+                
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
@@ -294,10 +276,12 @@ class pplot(object):
         
         fig = plt.figure(figsize=(12,8)) 
         title = kwargs.get('title', 'vector plot for {}'.format(var))
+        xy=kwargs.get('xy',(0.05, -.1))
         
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
         ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.background_patch.set_facecolor('k')
         
         #optional mask for the data
         mask = kwargs.get('mask',None)
@@ -307,75 +291,52 @@ class pplot(object):
             v = v.filled(fill_value=-99999)    
             u = u.filled(fill_value=-99999)
         
-        for val in ['x','y','t','it','vmin','vmax','title','tri3','coastlines', 'mask', 'scale']:
+        for val in ['x','y','t','it','u','v','title','tri3', 'xy', 'scale','mask']:
             try:
                 del kwargs[val]
             except:
                 pass        
         
-        plt.gca().set_aspect('equal')
+        ax.set_aspect('equal')
+                
         
-        p = plt.quiver(x, y, u, v, angles='xy', scale_units='xy', scale=scale)
+        p = plt.quiver(x, y, u, v, angles='xy', scale_units='xy', scale=scale, **kwargs)
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')        
         ax.set_title(title, pad=30) 
         
         if it :
+                     
             text = 'time={}'.format(t[it])
-            an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
-        
-        if len(cr) > 1 :
-            
-            coastl = gp.GeoDataFrame.from_file(cr)
-            coastl.plot(ax=ax, color='k')
-            
-        else:
-                
-            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
-        
-            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
+            an = ax.annotate(text, xy=xy, xycoords='axes fraction')
         
         
         return p, ax  
         
     def grid(self, **kwargs):
         
-        cr = kwargs.get('coastlines', 'l')
-        
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         
-        for val in ['x','y','tri3','coastlines']:
+        for val in ['x','y','tri3']:
             try:
                 del kwargs[val]
             except:
                 pass
                 
-        fig, ax = plt.subplots(figsize=(12,8))
+        fig = plt.figure(figsize=(12,8)) 
         
         ax = plt.axes(projection=ccrs.PlateCarree())
-        
-#        plt.gca().set_aspect('equal')
+        ax.background_patch.set_facecolor('k')
+
+        ax.set_aspect('equal')
                
-        ax.set_aspect('equal')    
-        
         g = plt.triplot(x,y,tri3,'go-', **kwargs)#, lw=.5, markersize=5)#, transform=ccrs.PlateCarree() )
         
         title = kwargs.get('title', 'Grid plot')
         ax.set_title(title, pad=30)
-        
-        if len(cr) > 1 :
-            
-            coastl = gp.GeoDataFrame.from_file(cr)
-            coastl.plot(ax=ax, color='k')
-            
-        else:
-        
-            coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
-        
-            ax.coastlines(coastl); ax.gridlines(draw_labels=True);
-        
+                
         
         return g, ax
     
@@ -385,7 +346,11 @@ class pplot(object):
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
-        cr = kwargs.get('coastlines', 'l')
+        
+        
+        cr = kwargs.get('coastlines', None)
+        c_attrs = kwargs.get('coastlines_attrs', {})
+        
         
         u = kwargs.get('u',self._obj[var].values[:,:,0])
         v = kwargs.get('v',self._obj[var].values[:,:,1])
@@ -396,30 +361,21 @@ class pplot(object):
         
         fig = plt.figure(figsize=(12,8))
         ax = plt.axes(projection=ccrs.PlateCarree())
-        crs = ccrs.PlateCarree()
+
         ax.set_aspect('equal')
-
-        coastl = '{}m'.format({'l':110, 'i':50, 'h':10}[cr])
+        ax.set_extent([x.min(), x.max(), y.min(), y.max()])
         
-
-        land_50m = cfeature.NaturalEarthFeature('physical', 'land', coastl,
-                                            edgecolor='face',
-                                            facecolor=cfeature.COLORS['land'],zorder=0)
-
-        sea_50m = cfeature.NaturalEarthFeature('physical', 'ocean', coastl,
-                                                edgecolor='face',
-                                                facecolor=cfeature.COLORS['water'], zorder=0)
-
         title = kwargs.get('title', None)
-
-        ax.coastlines(coastl)
-        ax.add_feature(land_50m)
-        ax.add_feature(sea_50m)
 
         scale = kwargs.get('scale', 1.) # change accordingly to fit your needs
         step = kwargs.get('step', 1) # change accordingly to fit your needs
 
-        Q = ax.quiver(x, y, u[0,:], v[0,:], pivot='mid', color='k', angles='xy', scale_units='xy', scale = scale, transform=crs)
+        Q = ax.quiver(x, y, u[0,:], v[0,:], pivot='mid', color='k', angles='xy', scale_units='xy', scale = scale)
+
+        if cr :           
+            coastl = gp.GeoDataFrame.from_file(cr)
+            coastl.plot(ax=ax, **c_attrs)
+        
 
         ax.set_xlim(x.min(), x.max())
         ax.set_ylim(y.min(), y.max())
@@ -437,7 +393,8 @@ class pplot(object):
  
     def frames(self,var,**kwargs):
     
-        cr = kwargs.get('coastlines', 'l')
+        cr = kwargs.get('coastlines', None)
+        c_attrs = kwargs.get('coastlines_attrs', {})
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -446,7 +403,7 @@ class pplot(object):
     
         z = kwargs.get('z',self._obj[var].values)
         
-        fig, ax = plt.subplots(figsize=(12,8)) 
+        fig = plt.figure(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
         vmax = kwargs.get('vmax', z.max())
     
@@ -465,10 +422,12 @@ class pplot(object):
         
     ## CHOOSE YOUR PROJECTION
  #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
-    #ax = plt.axes(projection=ccrs.PlateCarree())
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.background_patch.set_facecolor('k')
     # Limit the extent of the map to a small longitude/latitude range.
-
+    #    ax = plt.gca()
         ax.set_aspect('equal')
+        ax.set_extent([x.min(), x.max(), y.min(), y.max()])
         ims = []
         for i in range(len(t)):
             im = ax.tricontourf(x, y, tri3, z[i,:], vrange, vmin=vmin, vmax=vmax)#, transform=ccrs.PlateCarree())
@@ -478,10 +437,15 @@ class pplot(object):
         #te = ax.text(90, 90, text)
             an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
             ims.append(add_arts + [an])
+            
+            if cr :           
+                coastl = gp.GeoDataFrame.from_file(cr)
+                coastl.plot(ax=ax, **c_attrs)
+                    
         if title : ax.set_title(title) 
     #ax.set_global()
     #ax.coastlines('50m')
-    #ax.set_extent([grid_x.min(), grid_x.max(), grid_y.min(), grid_y.max()])
+        
 
 
 #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
@@ -495,9 +459,3 @@ class pplot(object):
         return v
  
       
-      
-        
-        
-        
-        
-        
