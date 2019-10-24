@@ -150,7 +150,10 @@ class pplot(object):
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
-        t = kwargs.get('t',self._obj.time.values)
+        try:
+            t = kwargs.get('t',self._obj.time.values)
+        except:
+            pass
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
                      
@@ -205,7 +208,10 @@ class pplot(object):
                 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
-        t = kwargs.get('t',self._obj.time.values)
+        try:
+            t = kwargs.get('t',self._obj.time.values)
+        except:
+            pass
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         
                 
@@ -268,7 +274,10 @@ class pplot(object):
                 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
-        t = kwargs.get('t',self._obj.time.values)
+        try:
+            t = kwargs.get('t',self._obj.time.values)
+        except:
+            pass
         
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
