@@ -138,6 +138,7 @@ def video(fname, mimetype):
 
 
 @xr.register_dataset_accessor('pplot')
+#@xr.register_dataarray_accessor('pplot')
 
 class pplot(object):
     
@@ -145,7 +146,7 @@ class pplot(object):
         self._obj = xarray_obj    
         
  
-    def contour(self,var,**kwargs):        
+    def contour(self,**kwargs):        
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -154,6 +155,8 @@ class pplot(object):
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
                      
         it = kwargs.get('it', None)
+        
+        var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
                 
         fig, ax = plt.subplots(figsize=(12,8)) 
@@ -177,7 +180,7 @@ class pplot(object):
             z = z.filled(fill_value=-99999)
         
         
-        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3', 'mask','xy','z']:
+        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3', 'mask','xy','z', 'var']:
             try:
                 del kwargs[val]
             except:
@@ -198,15 +201,17 @@ class pplot(object):
                 
         return p, ax   
     
-    def contourf(self,var,**kwargs):
+    def contourf(self,**kwargs):
                 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        
                 
         it = kwargs.get('it', None)
         
+        var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
                 
         fig = plt.figure(figsize=(12,8)) 
@@ -233,7 +238,7 @@ class pplot(object):
         
         xy=kwargs.get('xy',(.3,1.05))
         
-        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3', 'mask','xy']:
+        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3', 'mask','xy','var']:
             try:
                 del kwargs[val]
             except:
@@ -259,20 +264,23 @@ class pplot(object):
         return p, ax   
             
     
-    def quiver(self,var,**kwargs):
+    def quiver(self,**kwargs):
                 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
         
+        
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
                         
         it = kwargs.get('it', None)
         
+        var = kwargs.get('var','dahv')
         u = kwargs.get('u',self._obj[var].values[it,:,0].flatten())
         v = kwargs.get('v',self._obj[var].values[it,:,1].flatten())
         
         scale = kwargs.get('scale', .1)
+        color = kwargs.get('color', 'white')
         
         fig = plt.figure(figsize=(12,8)) 
         title = kwargs.get('title', 'vector plot for {}'.format(var))
@@ -291,7 +299,7 @@ class pplot(object):
             v = v.filled(fill_value=-99999)    
             u = u.filled(fill_value=-99999)
         
-        for val in ['x','y','t','it','u','v','title','tri3', 'xy', 'scale','mask']:
+        for val in ['x','y','t','it','u','v','title','tri3', 'xy', 'scale','mask','color','var']:
             try:
                 del kwargs[val]
             except:
@@ -300,7 +308,7 @@ class pplot(object):
         ax.set_aspect('equal')
                 
         
-        p = plt.quiver(x, y, u, v, angles='xy', scale_units='xy', scale=scale, **kwargs)
+        p = plt.quiver(x, y, u, v, angles='xy', scale_units='xy', scale=scale, color=color, **kwargs)
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')        
         ax.set_title(title, pad=30) 
@@ -342,7 +350,7 @@ class pplot(object):
     
     
     
-    def qframes(self,var,**kwargs):
+    def qframes(self,**kwargs):
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -351,7 +359,7 @@ class pplot(object):
         cr = kwargs.get('coastlines', None)
         c_attrs = kwargs.get('coastlines_attrs', {})
         
-        
+        var = kwargs.get('var','dahv')
         u = kwargs.get('u',self._obj[var].values[:,:,0])
         v = kwargs.get('v',self._obj[var].values[:,:,1])
         
@@ -372,8 +380,11 @@ class pplot(object):
 
         Q = ax.quiver(x, y, u[0,:], v[0,:], pivot='mid', color='k', angles='xy', scale_units='xy', scale = scale)
 
-        if cr :           
-            coastl = gp.GeoDataFrame.from_file(cr)
+        if cr is not None:
+            try:           
+                coastl = gp.GeoDataFrame.from_file(cr)
+            except:
+                coastl = gp.GeoDataFrame(cr)
             coastl.plot(ax=ax, **c_attrs)
         
 
@@ -391,7 +402,7 @@ class pplot(object):
         return v
                 
  
-    def frames(self,var,**kwargs):
+    def frames(self,**kwargs):
     
         cr = kwargs.get('coastlines', None)
         c_attrs = kwargs.get('coastlines_attrs', {})
@@ -401,6 +412,7 @@ class pplot(object):
         t = kwargs.get('t',self._obj.time.values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
     
+        var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values)
         
         fig = plt.figure(figsize=(12,8)) 
@@ -438,8 +450,11 @@ class pplot(object):
             an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
             ims.append(add_arts + [an])
             
-            if cr :           
-                coastl = gp.GeoDataFrame.from_file(cr)
+            if cr is not None:
+                try:
+                    coastl = gp.GeoDataFrame.from_file(cr)
+                except:
+                    coastl = gp.GeoDataFrame(cr)
                 coastl.plot(ax=ax, **c_attrs)
                     
         if title : ax.set_title(title) 
