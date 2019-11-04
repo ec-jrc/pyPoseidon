@@ -671,21 +671,18 @@ class d3d():
         ncores = get_value(self,kwargs,'ncores',1)
         
         conda_env = get_value(self,kwargs,'conda_env', None)
-        
-        conda_bin = get_value(self,kwargs,'conda_bin', None)
-        
+                
         argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
         
         #--------------------------------------------------------------------- 
         logger.info('executing model\n')
         #--------------------------------------------------------------------- 
-        
-                        
+                
         if conda_env is None:        
             # note that cwd is the folder where the executable is
             ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         else:
-            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {} {} {}'.format(argfile,ncores,bin_path,conda_bin,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {} {}'.format(argfile,ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         
         
         with open(calc_dir+self.tag+'_run.log', 'w') as f: #save output
