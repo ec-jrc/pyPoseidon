@@ -1311,6 +1311,8 @@ class schism():
             stations.index += 1            
 
         
+        stations['gindex'] = stations['gindex'].astype(int)
+        
         #modify config paramater
         self.params.loc['iout_sta'] = 1
         self.params.loc['nspool_sta'] = nspool_sta
