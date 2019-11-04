@@ -4,10 +4,7 @@ export argfile=$1
 
 export ncores=$2
 
-if [ $# -gt 3 ]; then
-	source $4/activate $5 #relevant conda env
-	export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-fi
+source activate pyPoseidon
 
 if [ $# -gt 2 ]; then
        d3d="$3"
