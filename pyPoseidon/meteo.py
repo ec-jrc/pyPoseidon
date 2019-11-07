@@ -170,6 +170,8 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
+    minlon = lon_min
+    maxlon = lon_max
 
     try:
         start_date = pd.to_datetime(start_date)
@@ -313,10 +315,13 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
             .sel(time=tslice)
             )
       
-    # TODO
-    #        if np.abs(np.mean([lon_min,lon_max]) - np.mean([kwargs.get('lon_min', None), kwargs.get('lon_max', None)])) > 300. :
-    #            c = np.sign(np.mean(lon_min, lon_max))    
-    #            tot.longitude = tot.longitude + c*360.
+    # Adjust lon values
+    try:
+        if np.abs(np.mean([lon_min,lon_max]) - np.mean([minlon, maxlon])) > 300. :
+            c = np.sign(np.mean([minlon, maxlon]))    
+            tot['longitude'] = tot.longitude.values + c*360.
+    except:
+        pass
 
 
     #--------------------------------------------------------------------- 
@@ -331,6 +336,11 @@ def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None
     
     backend_kwargs = kwargs.get('backend_kwargs', {})
     xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
+    minlon = lon_min
+    maxlon = lon_max
+    
+    
+    
     if 'preprocess' in xr_kwargs.keys():
         xr_kwargs['preprocess'] = fix_my_data        
 
@@ -480,10 +490,13 @@ def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None
             .sel(time=tslice)
             )
 
-# TODO    
-#    if np.abs(np.mean([lon_min,lon_max]) - np.mean([kwargs.get('lon_min', None), kwargs.get('lon_max', None)])) > 300. :
-#        c = np.sign(np.mean([kwargs.get('lon_min', None), kwargs.get('lon_max', None)]))    
-#        tot.longitude = tot.longitude + c*360.
+    # Adjust lon values
+    try:
+        if np.abs(np.mean([lon_min,lon_max]) - np.mean([minlon, maxlon])) > 300. :
+            c = np.sign(np.mean([minlon, maxlon]))    
+            tot['longitude'] = tot.longitude.values + c*360.
+    except:
+        pass
 
     #--------------------------------------------------------------------- 
     logger.info('meteo done\n')

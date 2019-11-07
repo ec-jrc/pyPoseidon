@@ -14,18 +14,11 @@ from pyPoseidon.utils.vis import *
 from pyPoseidon.utils.obs import obs
 from pyPoseidon.grid import *
 import pyPoseidon.model as pmodel
-import pyresample
-import pandas as pd
 import datetime
 from pyPoseidon.utils.get_value import get_value
-import holoviews as hv
-import geoviews as gv
-from cartopy import crs
 import xarray as xr
 import glob
 import sys
-import subprocess
-import scipy.interpolate 
 import logging
 
 logger = logging.getLogger('pyPoseidon')
@@ -57,7 +50,7 @@ class d3d():
             self.folders = [rpath]
         
         #check if many tags present
-        ifiles = glob.glob(self.folders[0]+'/*_info.pkl')
+        ifiles = glob.glob(self.folders[0]+'/*_model.json')
                 
         if len(ifiles) > 1:
             #--------------------------------------------------------------------- 
@@ -67,20 +60,19 @@ class d3d():
         tag = kwargs.get('tag', None)
         
         if tag :
-            ifile = self.folders[0]+'/'+tag+'_info.pkl'
+            ifile = self.folders[0]+'/'+tag+'_model.json'
         else:
             ifile = ifiles[0]
         
         #--------------------------------------------------------------------- 
         logger.info('reading data based on {} \n'.format(ifile))
         #--------------------------------------------------------------------- 
-                       
+
         with open(ifile, 'rb') as f:
-                          info = pd.read_json(f,lines=True).T
-                          info[info.isnull().values] = None
-                          self.info = info.to_dict()[0]
-                          
-                                                  
+            info = pd.read_json(f,lines=True).T
+            info[info.isnull().values] = None
+            self.info = info.to_dict()[0]
+                       
                         
         grid=r2d.read_file(self.folders[0]+'/'+self.info['tag']+'.grd')
             
@@ -94,7 +86,7 @@ class d3d():
         b=deb[:-1,:-1]
         b[b==-999.]=np.nan
         
-        self.dem = xr.Dataset({'bathymetry': (['latitude', 'longitude'], b)},
+        self.dem = xr.Dataset({'bathymetry': (['latitude', 'longitude'], -b)},
                     coords={'longitude': ('longitude', grid.lons[0,:]),   
                             'latitude': ('latitude', grid.lats[:,0])})
         
@@ -105,7 +97,7 @@ class d3d():
                                                         
         nfiles = [folder +'/'+'trim-'+self.info['tag']+'.nc' for folder in self.folders]
         
-        ds = xr.open_mfdataset(nfiles)
+        ds = xr.open_mfdataset(nfiles, combine='by_coords',data_vars ='minimal')
                 
         self.Dataset=ds
             
@@ -123,42 +115,32 @@ class d3d():
                
         self.obs = obs(**dic)
                
-                        
-    def hview(self,var,**kwargs):
-        
-        return hv.Dataset(self.Dataset[var])
-   
-   
-    def gview(self,var,**kwargs):
-        
-        return gv.Dataset(self.Dataset[var])
-    
-                                   
     def frames(self,var,**kwargs):
 
 
         X, Y = self.Dataset.XZ.values[1:-1,1:-1],self.Dataset.YZ.values[1:-1,1:-1]
         xh = np.ma.masked_array(X.T, self.w) #mask land
         yh = np.ma.masked_array(Y.T, self.w)        
-        
+
         if len(var) == 1 :  
-            var =  self.Dataset[var[0]].transpose(self.Dataset[var[0]].dims[0],self.Dataset[var[0]].dims[2],self.Dataset[var[0]].dims[1])[:,1:-1,1:-1]
+            
+            var =  self.Dataset[var[0]].transpose(self.Dataset[var[0]].dims[0],self.Dataset[var[0]].dims[2],self.Dataset[var[0]].dims[1],transpose_coords=True)[:,1:-1,1:-1]
             ww = np.broadcast_to(self.w == True, var.shape)
             v =  np.ma.masked_array(var, ww)
-            
             return contour(xh,yh,v,self.Dataset.time.values,**kwargs)
-            
+
         elif len(var) == 2:
+
             a0 = self.Dataset[var[0]].squeeze()
             var0 =  a0.transpose(a0.dims[0],a0.dims[2],a0.dims[1])[:,1:-1,1:-1]
             a1 = self.Dataset[var[1]].squeeze()
             var1 =  a1.transpose(a1.dims[0],a1.dims[2],a1.dims[1])[:,1:-1,1:-1]
             ww = np.broadcast_to(self.w == True, var0.shape)
-            
+
             v0 =  np.ma.masked_array(var0, ww)
             v1 =  np.ma.masked_array(var1, ww)
             return quiver(xh,yh,v0,v1,self.Dataset.time.values,**kwargs)
-
+                        
 
 class schism():
     
