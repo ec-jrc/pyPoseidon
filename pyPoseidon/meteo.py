@@ -20,7 +20,6 @@ import xarray as xr
 import pandas as pd
 import importlib
 from pyPoseidon.utils.get_value import get_value
-import xesmf as xe
 import logging
 
 logger = logging.getLogger('pyPoseidon')

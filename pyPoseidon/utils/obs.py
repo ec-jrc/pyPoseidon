@@ -10,7 +10,6 @@ Observations management module
 
 import requests, urllib
 import datetime
-from pydap.client import open_url
 from dateutil.parser import parse
 import numpy as np
 import pandas as pd
@@ -185,6 +184,7 @@ class obs:
         
 #    def soest(self):
         
+#        from pydap.client import open_url
 #        url = 'https://uhslc.soest.hawaii.edu/thredds/dodsC/uhslc/fdh/OS_UH-FDH329_20170628_D'
 #        dataset = open_url(url)
         
