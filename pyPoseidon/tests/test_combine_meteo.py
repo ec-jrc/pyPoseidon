@@ -1,4 +1,4 @@
-import pyPoseidon.meteo as pmeteo
+import pyPoseidon.meteo as pm
 import pytest
 import xarray as xr
 import os
@@ -13,16 +13,16 @@ def cfgrib():
     filenames.sort()
     
     #read meteo files
-    df = pmeteo(meteo_files=filenames, combine=True) # use combine
-    df0 = pmeteo(meteo_files=[filenames[0]]) # each one seperately
-    df1 = pmeteo(meteo_files=[filenames[1]]) # each one seperately
-    df2 = pmeteo(meteo_files=[filenames[2]]) # each one seperately
-    df3 = pmeteo(meteo_files=[filenames[3]]) # each one seperately
+    df = pm.meteo(meteo_files=filenames, combine_by='nested', combine_forecast=True, xr_kwargs = {'concat_dim' : 'step'}) # use combine
+    df0 = pm.meteo(meteo_files=[filenames[0]]) # each one seperately
+    df1 = pm.meteo(meteo_files=[filenames[1]]) # each one seperately
+    df2 = pm.meteo(meteo_files=[filenames[2]]) # each one seperately
+    df3 = pm.meteo(meteo_files=[filenames[3]]) # each one seperately
     
     #merge the single files
-    joined = xr.concat([df0.uvp.isel(time=slice(0,12)), df1.uvp.isel(time=slice(0,12)), df2.uvp.isel(time=slice(0,12)), df3.uvp], dim='time')
+    joined = xr.concat([df0.Dataset.isel(time=slice(0,12)), df1.Dataset.isel(time=slice(0,12)), df2.Dataset.isel(time=slice(0,12)), df3.Dataset], dim='time')
     
-    return joined.equals(df.uvp) # compare
+    return joined.equals(df.Dataset) # compare
         
     
 def test_answer():
