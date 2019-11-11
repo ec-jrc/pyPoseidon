@@ -202,9 +202,9 @@ class d3d():
 
     def force(self,**kwargs):
                          
-        meteo_files =  get_value(self,kwargs,'meteo_files',None) 
+        meteo_source =  get_value(self,kwargs,'meteo_source',None) 
         
-        kwargs.update({'meteo_files':meteo_files})
+        kwargs.update({'meteo_source':meteo_source})
 
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
@@ -411,8 +411,8 @@ class d3d():
                 self.dem = pdem.dem(**kwargs)
             else:
                 logger.info('reading local dem file ..\n')
-                dem_file = z['rpath']+self.tag+'.dep'
-                rdem = from_dep(dem_file)
+                dem_source = z['rpath']+self.tag+'.dep'
+                rdem = from_dep(dem_source)
                                 
         else:
             self.dem = pdem.dem(**kwargs)

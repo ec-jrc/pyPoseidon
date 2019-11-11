@@ -202,9 +202,9 @@ class schism():
 #============================================================================================       
     def force(self,**kwargs):
                 
-        meteo_files =  get_value(self,kwargs,'meteo_files',None)        
+        meteo_source =  get_value(self,kwargs,'meteo_source',None)        
         
-        kwargs.update({'meteo_files':meteo_files})
+        kwargs.update({'meteo_source':meteo_source})
         
         flag = get_value(self,kwargs,'update',[])
         
@@ -316,9 +316,9 @@ class schism():
         kwargs['grid_x'] = self.grid.Dataset.SCHISM_hgrid_node_x.values
         kwargs['grid_y'] = self.grid.Dataset.SCHISM_hgrid_node_y.values
         
-        dpath =  get_value(self,kwargs,'dem_file',None)        
+        dpath =  get_value(self,kwargs,'dem_source',None)        
         
-        kwargs.update({'dem_file':dpath})
+        kwargs.update({'dem_source':dpath})
                 
         flag = get_value(self,kwargs,'update',[])
         # check if files exist

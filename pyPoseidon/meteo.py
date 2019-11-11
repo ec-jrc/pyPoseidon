@@ -149,9 +149,9 @@ class meteo:
                     self.Dataset = from_url(**kwargs)
                 
             else:
-                    if 'grib' in meteo_files[0].split('.')[-1]:
+                    if 'grib' in meteo_source[0].split('.')[-1]:
                         self.Dataset = cfgrib(meteo_source, **kwargs)
-                    elif 'nc' in meteo_files[0].split('.')[-1]:  
+                    elif 'nc' in meteo_source[0].split('.')[-1]:  
                         self.Dataset = netcdf(meteo_source, **kwargs)
         except:
             

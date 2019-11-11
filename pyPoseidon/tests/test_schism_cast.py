@@ -1,5 +1,5 @@
 import pytest
-import pyPoseidon.model as pm
+import pyPoseidon
 from pyPoseidon.utils import cast, data
 import json
 import pandas as pd
@@ -7,40 +7,44 @@ import datetime
 import os
 import numpy as np
 
+PWD = os.getcwd()
+
 #define in a dictionary the properties of the model..
 case={'solver':'schism',
-     'grid_file': './data/hgrid.gr3', 
+     'grid_file': PWD + '/data/hgrid.gr3', 
      'manning':.12,
      'windrot':0.00001,
      'tag':'schism',
      'start_date':'2018-10-1 0:0:0',
      'time_frame':'12H',
-     'dem_file' : './data/dem.nc',
-     'meteo_files' : ['./data/uvp_2018100100.grib',
-                     './data/uvp_2018100112.grib'], #meteo files
-     'combine': True, #combine meteo
+     'dem_source' : PWD + '/data/dem.nc',
+     'meteo_source' : [PWD + '/data/uvp_2018100100.grib',
+                       PWD + '/data/uvp_2018100112.grib'], #meteo files
+     'combine_forecast': True, #combine meteo
+     'combine_by':'nested',
+     'xr_kwargs': {'concat_dim':'step'},
      'ncores': 4 , #number of cores
-     'conda_env': 'pyPoseidon', # optional conda env for the solver
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':.5, 'hotout':1, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
     }
 
 #define in a dictionary the properties of the model..
 check={'solver':'schism',
-     'grid_file': './data/hgrid.gr3', 
+     'grid_file': PWD + '/data/hgrid.gr3', 
      'manning':.12,
      'windrot':0.00001,
      'tag':'schism',
      'start_date':'2018-10-1 0:0:0',
      'time_frame':'36H',
-     'dem_file' : './data/dem.nc',
-     'meteo_files' : ['./data/uvp_2018100100.grib',
-                     './data/uvp_2018100112.grib',
-                     './data/uvp_2018100200.grib', 
-                     './data/uvp_2018100212.grib'], #meteo files
-     'combine': True, #combine meteo
+     'dem_source' : PWD + '/data/dem.nc',
+     'meteo_source' : [PWD + '/data/uvp_2018100100.grib',
+                       PWD + '/data/uvp_2018100112.grib',
+                       PWD + '/data/uvp_2018100200.grib', 
+                       PWD + '/data/uvp_2018100212.grib'], #meteo files
+     'combine_forecast': True, #combine meteo
+     'combine_by':'nested',
+     'xr_kwargs': {'concat_dim':'step'},     
      'ncores': 4 , #number of cores
-     'conda_env': 'pyPoseidon', # optional conda env for the solver
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':1.5, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
     }
@@ -52,10 +56,10 @@ def schism(tmpdir):
     rpath = str(tmpdir)+'/schism/'
     case.update({'rpath':rpath+'20181001.00/'}) # use tmpdir for running the model
         
-    b = pm(**case)
+    b = pyPoseidon.model(**case)
     
     b.execute()
-
+    
     # run the cast
     with open(rpath + '20181001.00/schism_model.json', 'rb') as f:
         info = pd.read_json(f,lines=True).T
@@ -80,7 +84,7 @@ def schism(tmpdir):
     
     #creating a sequence of folder from which we read the meteo.
     meteo = []
-    PATH='./data/'
+    PATH= PWD + '/data/'
     for date in date_list:
         end_date= pd.to_datetime(date) + pd.to_timedelta(info['time_frame'])
         end_date = end_date.strftime(format='%Y-%m-%d %H:%M:%S')
@@ -88,7 +92,7 @@ def schism(tmpdir):
         dur = [PATH+'uvp_'+datetime.datetime.strftime(x, '%Y%m%d%H')+'.grib' for x in dr]
         meteo.append(dur)
 
-    info.update({'meteo_files':meteo})
+    info.update({'meteo_source':meteo})
     
     info['time_frame'] = len(folders)*[info['time_frame']]
     
@@ -100,20 +104,20 @@ def schism(tmpdir):
     # Run check case - Total duration
     check.update({'rpath':rpath+'check/'}) # use tmpdir for running the model
         
-    c = pm(**check)
+    c = pyPoseidon.model(**check)
     
     c.execute()
-    
+        
     # COMPARE
     folders = [info['path']+f for f in info['folders']]
-    output = data(folders=folders,solver='schism')
+    output = data.data(folders=folders,solver='schism')
     
-    total = data(folders=[rpath+'check/'],solver='schism')
+    total = data.data(folders=[rpath+'check/'],solver='schism')
     
 
     rb = []
-    for var in total.results.Dataset.data_vars:
-        if not total.results.Dataset[var].equals(output.results.Dataset[var]):
+    for var in total.Dataset.data_vars:
+        if not total.Dataset[var].equals(output.Dataset[var]):
             rb.append(var)
     
     print(rb)

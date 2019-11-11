@@ -166,31 +166,29 @@ class schism():
         
         for folder in self.folders:
             
-            with open(folder + tag +'_model.json', 'r') as f:
+            with open(folder + '/' + tag +'_model.json', 'r') as f:
                 info = pd.read_json(f,lines=True).T
                 info[info.isnull().values] = None
                 info = info.to_dict()[0]
             
             p = pmodel(**info)
             
-            xdat = p.results()
+            p.results()
                                     
-            savenc = kwargs.get('savenc',False)
-            
-            if savenc :
-                xdat.to_netcdf(folder+'/outputs/schout.nc') 
+            xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
+            xdat.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
             
             datai.append(xdat) #append to list 
                                        
 
-        self.Dataset = xr.merge(datai) #save final xarray
+        self.Dataset = xr.open_mfdataset(datai,combine='by_coords',data_vars='minimal')
                                 
         
         dic={}
         
         try:
             
-            with open(self.folders[0]+tag +'_model.json', 'r') as f:
+            with open(self.folders[0]+ '/' + tag +'_model.json', 'r') as f:
                       info = pd.read_json(f,lines=True).T
                       info[info.isnull().values] = None
                       self.info = info.to_dict()[0]

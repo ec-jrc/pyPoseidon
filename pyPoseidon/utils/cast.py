@@ -54,7 +54,7 @@ class dcast():
         cf = [glob.glob(self.path+prev+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
                     
-        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frame[1:]):
+        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_source[1:],self.time_frame[1:]):
             
             ppath = self.path+'/{}/'.format(prev)
             if not os.path.exists(ppath):
@@ -86,7 +86,7 @@ class dcast():
             info['date'] = date
             info['start_date'] = date
             info['time_frame'] = time_frame
-            info['meteo_files'] = meteo
+            info['meteo_source'] = meteo
             info['rpath'] = rpath
             if self.restart_step:
                 info['restart_step'] = self.restart_step
@@ -197,7 +197,7 @@ class scast():
         fpath = self.path+'/{}/'.format(prev)
                     
 
-        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_files[1:],self.time_frame[1:]):
+        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_source[1:],self.time_frame[1:]):
             
             ppath = self.path+'/{}/'.format(prev)
             if not os.path.exists(ppath):
@@ -231,7 +231,7 @@ class scast():
             info['date'] = self.date
             info['start_date'] = date
             info['time_frame'] = time_frame
-            info['meteo_files'] = meteo
+            info['meteo_source'] = meteo
             info['rpath'] = rpath
             info['grid_file'] = ppath + '/hgrid.gr3'
             

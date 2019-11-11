@@ -1,44 +1,50 @@
 import pytest
-import pyPoseidon.model as pm
+import pyPoseidon
+import os
+
+PWD = os.getcwd()
+
 
 #define in a dictionary the properties of the model..
 case1={'solver':'schism',
-     'grid_file': './data/hgrid.gr3', 
+     'grid_file': PWD + '/data/hgrid.gr3', 
      'manning':.12,
      'windrot':0.00001,
      'tag':'test',
-     'start_date':'2017-1-1 0:0:0',
+     'start_date':'2017-10-1 0:0:0',
      'time_frame':'12H',
+     'meteo_source' : [PWD + '/data/erai.grib'], #meteo file
+     'dem_source' : PWD + '/data/dem.nc',
      'ncores': 4 , #number of cores
-     'conda_env':'pyPoseidon',
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
     }
 
 case2={'solver':'schism',
-     'grid_file': './data/hgrid.gr3', 
+     'grid_file': PWD + '/data/hgrid.gr3', 
      'manning':.12,
      'windrot':0.00001,
      'tag':'test',
-     'start_date':'2017-1-1 0:0:0',
-     'end_date':'2017-1-2 0:0:0', #optional instead of time_frame
+     'start_date':'2017-10-1 0:0:0',
+     'end_date':'2017-10-2 0:0:0', #optional instead of time_frame
+     'dem_source' : PWD + '/data/dem.nc',
+     'meteo_source' : [PWD + '/data/erai.grib'], #meteo file
      'ncores': 4 , #number of cores
-     'conda_env':'pyPoseidon',
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
     }
 
     
 case3={'solver':'schism',
-     'grid_file': './data/hgrid.gr3', 
+     'grid_file': PWD + '/data/hgrid.gr3', 
      'manning':.12,
      'windrot':0.00001,
      'tag':'test',
      'start_date':'2011-1-1 0:0:0',
      'time_frame':'12H',
-     'meteo_files' : ['./data/era5.grib'], #meteo file
+     'meteo_source' : [PWD + '/data/era5.grib'], #meteo file
+     'dem_source' : PWD + '/data/dem.nc',
      'ncores': 4 , #number of cores
-     'conda_env':'pyPoseidon',
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
     }
@@ -48,11 +54,11 @@ def schism(tmpdir,dic):
     rpath = str(tmpdir)+'/'
     dic.update({'rpath':rpath}) # use tmpdir for running the model
         
-    b = pm(**dic)
+    b = pyPoseidon.model(**dic)
     
     try:
         b.execute()
-        a = pm.read_model(rpath+'test_model.json') # read model
+        a = pyPoseidon.read_model(rpath+'test_model.json') # read model
         a.execute()
         return True
     except:
