@@ -12,10 +12,11 @@ import numpy as np
 
 #define the lat/lon window and time frame of interest
 window1 = {
-    'minlon' : -30,
-    'maxlon' : -10.,
-    'minlat' : 60.,
-    'maxlat' : 70.
+    'lon_min' : -30,
+    'lon_max' : -10.,
+    'lat_min' : 60.,
+    'lat_max' : 70.,
+    'dem_source' : './data/dem.nc'
 }
 
 
@@ -26,31 +27,31 @@ def schism(tmpdir,kwargs):
     
     #update dem
     
-    xp = grid.impl.Dataset.SCHISM_hgrid_node_x.values
-    yp = grid.impl.Dataset.SCHISM_hgrid_node_y.values     
+    xp = grid.Dataset.SCHISM_hgrid_node_x.values
+    yp = grid.Dataset.SCHISM_hgrid_node_y.values     
     
     kwargs.update({'grid_x':xp, 'grid_y':yp})
     #get dem 
     df = pdem.dem(**kwargs)
 
-    grid.impl.Dataset['depth'].loc[:] = -df.altimetry.ival.values
+    grid.Dataset['depth'].loc[:] = -df.Dataset.ival.values
 
     filename_ = str(tmpdir.join('hgrid_.gr3'))
     #output to grid file
-    grid.impl.to_file(filename_)
+    grid.to_file(filename_)
 
     #read again new grid
     grid_ = pgrid.grid(type='tri2d',grid_file=filename_)
 
     #compare
-    return grid.impl.Dataset.equals(grid_.impl.Dataset)
+    return grid.Dataset.equals(grid_.Dataset)
     
 def d3d(tmpdir, kwargs):
     
     ## lat,lon grid
     resolution=.1
-    lon=np.arange(kwargs['minlon'],kwargs['maxlon'],resolution)
-    lat=np.arange(kwargs['minlat'],kwargs['maxlat'],resolution)
+    lon=np.arange(kwargs['lon_min'],kwargs['lon_max'],resolution)
+    lat=np.arange(kwargs['lat_min'],kwargs['lat_max'],resolution)
     xp, yp = np.meshgrid(lon,lat)
     
     kwargs.update({'grid_x':xp, 'grid_y':yp})
@@ -60,14 +61,15 @@ def d3d(tmpdir, kwargs):
 
     rpath = str(tmpdir)+'/'
     #output 
-    pdem.to_output(df.altimetry,solver='d3d',rpath=rpath)
+    pdem.to_output(df.Dataset,solver='d3d',rpath=rpath)
 
     #read again dem
-    rd = pmodel.d3d.from_dep(rpath + 'd3d.dep')
+    m = pmodel(solver='d3d')
+    rd = m.from_dep(rpath + 'd3d.dep')
 
     #compare  
     c1 = -rd.where(rd!=-999)
-    c2 = df.altimetry.ival.where(df.altimetry.ival < 0)
+    c2 = df.Dataset.ival.where(df.Dataset.ival < 0)
 
     return c1.fillna(0).equals(c2.fillna(0))
     

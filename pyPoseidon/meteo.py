@@ -122,40 +122,41 @@ def regrid(ds):
 
 class meteo:
    
-    def __init__(self, meteo_files=None, engine=None, url=None, **kwargs):
+    def __init__(self, meteo_source=None, engine=None, **kwargs):
         
         """Read meteo data from variable sources.
  
         Parameters
         ----------
-        mfiles : str
-            list of files
+        meteo_source : list of str or url
+            list of files, link
         engine : str
-            Name of xarray backend to be used
-        url : str
-            url for an online server (erdapp, etc.)
+            Name of xarray backend to be used or 'url'
         
         Returns
         -------
         retrieved : xarray DataSet
 
         """
-                     
-        if meteo_files:                    
+        try:                              
             if engine == 'cfgrib' :
-                self.Dataset = cfgrib(meteo_files, **kwargs)
+                    self.Dataset = cfgrib(meteo_source, **kwargs)
             elif engine == 'pynio' :
-                self.Dataset = pynio(meteo_files, **kwargs)
+                    self.Dataset = pynio(meteo_source, **kwargs)
             elif engine == 'netcdf' :
-                self.Dataset = netcdf(meteo_files, **kwargs)
+                    self.Dataset = netcdf(meteo_source, **kwargs)
+            elif engine == 'url':        
+                    self.Dataset = from_url(**kwargs)
+                
             else:
-                if 'grib' in meteo_files[0].split('.')[-1]:
-                    self.Dataset = cfgrib(meteo_files, **kwargs)
-                elif 'nc' in meteo_files[0].split('.')[-1]:  
-                    self.Dataset = netcdf(meteo_files, **kwargs)
-                           
-        else:        
+                    if 'grib' in meteo_files[0].split('.')[-1]:
+                        self.Dataset = cfgrib(meteo_source, **kwargs)
+                    elif 'nc' in meteo_files[0].split('.')[-1]:  
+                        self.Dataset = netcdf(meteo_source, **kwargs)
+        except:
+            
             self.Dataset = from_url(**kwargs)
+                           
                         
     def to_output(self,solver=None, **kwargs):
                     

@@ -11,7 +11,7 @@ def func(tmpdir,name):
 
     filename_ = str(tmpdir.join('hgrid_.gr3'))
     #output to grid file
-    grid.impl.to_file(filename_)
+    grid.to_file(filename_)
 
     #read again new grid
     grid_ = pgrid.grid(type='tri2d',grid_file=filename_)
@@ -20,7 +20,7 @@ def func(tmpdir,name):
     os.remove(filename_)
 
     #compare
-    return grid.impl.Dataset.equals(grid_.impl.Dataset)
+    return grid.Dataset.equals(grid_.Dataset)
 
 
 def test_answer(tmpdir):
