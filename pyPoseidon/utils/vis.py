@@ -214,13 +214,11 @@ class pplot(object):
             pass
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         
-                
         it = kwargs.get('it', None)
         
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
                 
-        fig = plt.figure(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
         vmax = kwargs.get('vmax', z.max())
     
@@ -230,8 +228,9 @@ class pplot(object):
         
         vrange=np.linspace(vmin,vmax,nv,endpoint=True)
        ## CHOOSE YOUR PROJECTION
-    #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
-        ax = plt.axes(projection=ccrs.PlateCarree())
+    #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))        
+        [fig,ax] = kwargs.get('figure',[plt.figure(figsize=(12,8)),plt.axes(projection=ccrs.PlateCarree())])
+                    
         ax.background_patch.set_facecolor('k')
         
         ax.set_extent([x.min(), x.max(), y.min(), y.max()])
@@ -244,7 +243,7 @@ class pplot(object):
         
         xy=kwargs.get('xy',(.3,1.05))
         
-        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3', 'mask','xy','var']:
+        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3', 'mask','xy','var','figure']:
             try:
                 del kwargs[val]
             except:
@@ -255,7 +254,7 @@ class pplot(object):
         ax.set_aspect('equal')
         
         
-        p = plt.tricontourf(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)#, transform=ccrs.PlateCarree() )
+        p = ax.tricontourf(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)#, transform=ccrs.PlateCarree() )
         cbar = fig.colorbar(p,ticks=vrange,orientation='vertical', extend='both')
         if it :
                        
@@ -263,11 +262,10 @@ class pplot(object):
             an = ax.annotate(text, xy=xy, xycoords='axes fraction')
         
         ax.set_title(title,pad=30) 
-        plt.xlabel('Longitude (degrees)')
-        plt.ylabel('Latitude (degrees)')
-
+        ax.set_xlabel('Longitude (degrees)')
+        ax.set_ylabel('Latitude (degrees)')
         
-        return p, ax   
+        return fig, ax   
             
     
     def quiver(self,**kwargs):
@@ -342,9 +340,9 @@ class pplot(object):
             except:
                 pass
                 
-        fig = plt.figure(figsize=(12,8)) 
-        
+        fig = plt.figure(figsize=(12,8))       
         ax = plt.axes(projection=ccrs.PlateCarree())
+        
         ax.background_patch.set_facecolor('k')
 
         ax.set_aspect('equal')
@@ -355,7 +353,7 @@ class pplot(object):
         ax.set_title(title, pad=30)
                 
         
-        return g, ax
+        return fig , ax
     
     
     
