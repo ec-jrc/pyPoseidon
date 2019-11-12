@@ -51,7 +51,7 @@ class dcast():
         prev=self.folders[0]
         fpath = self.path+'/{}/'.format(prev)
         
-        cf = [glob.glob(self.path+prev+'/'+e) for e in files]
+        cf = [glob.glob(self.path+'/'+prev+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
                     
         for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_source[1:],self.time_frame[1:]):
@@ -99,15 +99,17 @@ class dcast():
 
             for filename in cfiles:
                  copy2(ppath+filename,rpath+filename)
+                 logger.debug('copy {} to {}'.format(ppath+filename,rpath+filename))
         #     if os.path.exists(rpath+filename)==False: 
         #        os.symlink(fpath+filename,rpath+filename)
         
         
             #symlink the big files
             for filename in files_sym:
-                ipath = glob.glob(self.path+self.folders[0]+'/'+filename)[0]
+                ipath = glob.glob(self.path+'/'+self.folders[0]+'/'+filename)[0]
                 try:
                     os.symlink(os.path.realpath(ipath),rpath+filename)
+                    logger.debug('symlink {} to {}'.format(os.path.realpath(ipath),rpath+filename))
                 except OSError as e:
                   if e.errno == errno.EEXIST:
                       logger.warning('symlink for file {} present\n'.format(filename))
@@ -125,13 +127,14 @@ class dcast():
 
           #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
             try:
-              os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+              os.symlink(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile)
+              logger.debug('symlink {} to {}'.format(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile))
             except OSError as e:
               if e.errno == errno.EEXIST:
                   logger.warning('Restart symlink present\n')
                   logger.warning('overwriting\n')
                   os.remove(rpath+'tri-rst.'+outresfile)
-                  os.symlink(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+                  os.symlink(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile)
               else:
                   raise e            
 
@@ -285,7 +288,6 @@ class scast():
             for filename in station_files:
 
                ipath = glob.glob(self.path+self.folders[0] + filename)
-               print(self.path,self.folders[0], filename)
                if ipath:
 
                     if not os.path.exists(rpath + '/outputs/'):

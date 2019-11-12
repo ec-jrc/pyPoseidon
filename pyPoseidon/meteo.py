@@ -138,24 +138,19 @@ class meteo:
         retrieved : xarray DataSet
 
         """
-        try:                              
-            if engine == 'cfgrib' :
-                    self.Dataset = cfgrib(meteo_source, **kwargs)
-            elif engine == 'pynio' :
-                    self.Dataset = pynio(meteo_source, **kwargs)
-            elif engine == 'netcdf' :
-                    self.Dataset = netcdf(meteo_source, **kwargs)
-            elif engine == 'url':        
-                    self.Dataset = from_url(**kwargs)
+        if engine == 'cfgrib' :
+                self.Dataset = cfgrib(meteo_source, **kwargs)
+        elif engine == 'pynio' :
+                self.Dataset = pynio(meteo_source, **kwargs)
+        elif engine == 'netcdf' :
+                self.Dataset = netcdf(meteo_source, **kwargs)
+        elif engine == 'url':        
+                self.Dataset = from_url(**kwargs)
                 
-            else:
-                    if 'grib' in meteo_source[0].split('.')[-1]:
-                        self.Dataset = cfgrib(meteo_source, **kwargs)
-                    elif 'nc' in meteo_source[0].split('.')[-1]:  
-                        self.Dataset = netcdf(meteo_source, **kwargs)
-        except:
+        else:
             
-            self.Dataset = from_url(**kwargs)
+            logger.warning('Please define xarray engine for meteo ... exiting')
+            sys.exit(1)
                            
                         
     def to_output(self,solver=None, **kwargs):

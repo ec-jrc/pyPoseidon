@@ -121,7 +121,10 @@ class schism():
         self.atm = kwargs.get('atm', True)
         self.monitor = kwargs.get('monitor', False)
     
-        self.epath = kwargs.get('epath', None)
+        try:
+            self.epath = os.environ['SCHISM']
+        except:
+            self.epath = kwargs.get('epath', None)
     
         self.solver = self.__class__.__name__    
                                                        
@@ -501,9 +504,12 @@ class schism():
                               
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
-                        
-        bin_path = get_value(self,kwargs,'epath', None) 
         
+        try:
+            bin_path = os.environ['SCHISM']
+        except:
+            bin_path = get_value(self,kwargs,'epath', None)
+                                
         if bin_path is None:
             #------------------------------------------------------------------------------ 
             logger.warning('Schism executable path (epath) not given -> using default \n')
@@ -511,13 +517,9 @@ class schism():
             bin_path = 'schism'
               
         ncores = get_value(self,kwargs,'ncores',1)
-        
-        conda_env = get_value(self,kwargs,'conda_env', None)
-                        
+                            
             
         with open(calc_dir + 'launchSchism.sh', 'w') as f:
-            if conda_env :
-                f.write('source activate {}\n'.format(conda_env))
             f.write('exec={}\n'.format(bin_path))
             f.write('mkdir outputs\n')
             f.write('mpirun -N {} $exec\n'.format(ncores))   
@@ -538,12 +540,13 @@ class schism():
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
                 
-        bin_path = get_value(self,kwargs,'epath', None)   
-            
+        try:
+            bin_path = os.environ['SCHISM']
+        except:
+            bin_path = get_value(self,kwargs,'epath', None)
+                    
         ncores = get_value(self,kwargs,'ncores',1)
         
-        conda_env = get_value(self,kwargs,'conda_env', None)
-
         #--------------------------------------------------------------------- 
         logger.info('executing model\n')
         #--------------------------------------------------------------------- 

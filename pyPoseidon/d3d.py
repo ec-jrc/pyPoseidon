@@ -82,7 +82,10 @@ class d3d():
 
         self.solver = self.__class__.__name__    
         
-        self.epath = kwargs.get('epath', None)
+        try:
+            self.epath = os.environ['D3D']
+        except:
+            self.epath = kwargs.get('epath', None)
         
 
                                              
@@ -665,24 +668,22 @@ class d3d():
     def run(self,**kwargs):
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
-                
-        bin_path = get_value(self,kwargs,'epath', None)   
-            
-        ncores = get_value(self,kwargs,'ncores',1)
         
-        conda_env = get_value(self,kwargs,'conda_env', None)
-                
+        try:
+            bin_path = os.environ['D3D']
+        except:
+            bin_path = get_value(self,kwargs,'epath', None)
+                    
+        ncores = get_value(self,kwargs,'ncores',1)
+                        
         argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
         
         #--------------------------------------------------------------------- 
         logger.info('executing model\n')
         #--------------------------------------------------------------------- 
                 
-        if conda_env is None:        
-            # note that cwd is the folder where the executable is
-            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
-        else:
-            ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {} {}'.format(argfile,ncores,bin_path,conda_env)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        # note that cwd is the folder where the executable is
+        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         
         
         with open(calc_dir+self.tag+'_run.log', 'w') as f: #save output
@@ -829,7 +830,11 @@ class d3d():
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
                         
-        bin_path = get_value(self,kwargs,'epath', None) 
+        try:
+            bin_path = os.environ['D3D']
+        except:
+            bin_path = get_value(self,kwargs,'epath', None)
+         
         
         if bin_path is None:
             #--------------------------------------------------------------------- 
@@ -838,9 +843,7 @@ class d3d():
               
             
         ncores = get_value(self,kwargs,'ncores',1)
-        
-        conda_env = get_value(self,kwargs,'conda_env', None)
-                        
+                                
         if not os.path.exists( calc_dir+self.tag+'_hydro.xml') :
             
           # edit and save config file
