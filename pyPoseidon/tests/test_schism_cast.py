@@ -20,6 +20,7 @@ case={'solver':'schism',
      'dem_source' : PWD + '/data/dem.nc',
      'meteo_source' : [PWD + '/data/uvp_2018100100.grib',
                        PWD + '/data/uvp_2018100112.grib'], #meteo files
+     'engine':'cfgrib',                  
      'combine_forecast': True, #combine meteo
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},
@@ -41,6 +42,7 @@ check={'solver':'schism',
                        PWD + '/data/uvp_2018100112.grib',
                        PWD + '/data/uvp_2018100200.grib', 
                        PWD + '/data/uvp_2018100212.grib'], #meteo files
+     'engine':'cfgrib',
      'combine_forecast': True, #combine meteo
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},     

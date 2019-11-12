@@ -14,6 +14,7 @@ case1={'solver':'schism',
      'start_date':'2017-10-1 0:0:0',
      'time_frame':'12H',
      'meteo_source' : [PWD + '/data/erai.grib'], #meteo file
+     'engine':'cfgrib',
      'dem_source' : PWD + '/data/dem.nc',
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
@@ -29,6 +30,7 @@ case2={'solver':'schism',
      'end_date':'2017-10-2 0:0:0', #optional instead of time_frame
      'dem_source' : PWD + '/data/dem.nc',
      'meteo_source' : [PWD + '/data/erai.grib'], #meteo file
+     'engine':'cfgrib',
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
@@ -43,6 +45,7 @@ case3={'solver':'schism',
      'start_date':'2011-1-1 0:0:0',
      'time_frame':'12H',
      'meteo_source' : [PWD + '/data/era5.grib'], #meteo file
+     'engine':'cfgrib',
      'dem_source' : PWD + '/data/dem.nc',
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem

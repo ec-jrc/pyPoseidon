@@ -18,7 +18,7 @@ case1={'lon_min' : -30,
      'ncores': 4 , #number of cores
      'meteo_source' : [PWD + '/data/uvp_2018100100.grib'],
      'dem_source' : PWD + '/data/dem.nc',
-     'epath':'/Users/brey/DELFT3D/SVN/7545/bin/lnx64/', #folder for solver executables
+     'engine':'cfgrib',
 #     'update':['all'] # optional to select update quantities
     }
 
