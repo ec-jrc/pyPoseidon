@@ -4,6 +4,8 @@ export argfile=$1
 
 export ncores=$2
 
+source activate pyPoseidon
+
 if [ $# -gt 2 ]; then
        d3d="$3"
 fi

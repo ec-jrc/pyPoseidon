@@ -520,6 +520,7 @@ class schism():
                             
             
         with open(calc_dir + 'launchSchism.sh', 'w') as f:
+            f.write('source activate pyPoseidon\n')
             f.write('exec={}\n'.format(bin_path))
             f.write('mkdir outputs\n')
             f.write('mpirun -N {} $exec\n'.format(ncores))   
