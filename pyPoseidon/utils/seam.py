@@ -2,10 +2,13 @@ import pandas as pd
 import geopandas as gp
 import numpy as np
 import shapely
+import glob
+import pyresample
+import xarray as xr
 from shapely.ops import triangulate
 
 
-def to_2d(x,y,z,tri3,**kwargs):
+def get_seam(x,y,z,tri3,**kwargs):
             
     if z==None : z = 1.
     
@@ -129,3 +132,66 @@ def to_2d(x,y,z,tri3,**kwargs):
     xx = mes.lon.values
     yy = mes.lat.values
     return xx,yy,ges.values
+
+
+
+def to_2d(files=None, var=None, grid=None):
+    
+    out = xr.open_mfdataset(files,combine='by_coords',concat_dim='time', data_vars='minimal')
+    
+    x = out.SCHISM_hgrid_node_x[:].values
+    y = out.SCHISM_hgrid_node_y[:].values
+    tri3 = out.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
+    
+    try:
+        [xn,yn,tri3n] = grid
+    except:
+        xn,yn,tri3n = to_2d(x,y,None,tri3)
+    
+    
+    nps = xn.shape[0] - x.shape[0] # number of extra nodes
+    xi = xn[-nps:] # lat/lon of extra nodes
+    yi = yn[-nps:]
+    
+    # reposition to avoid -180/180 boundary
+    pxi = reposition(xi)
+    pyi = yi
+    
+    
+    xmask = (x<-170) | (x>170.) # get a slice of the grid around IM
+    # reposition to avoid -180/180 boundary
+    px = reposition(x[xmask])
+    py = y[xmask]
+    # create swaths
+    orig = pyresample.geometry.SwathDefinition(lons=px,lats=py)
+    targ = pyresample.geometry.SwathDefinition(lons=pxi,lats=pyi)
+
+    # Resample
+    xelev=[]
+    for i in range(out.time.shape[0]):
+        z = out[var].values[i,:]
+        zm = z[xmask]
+        z_ = pyresample.kd_tree.resample_nearest(orig,zm,targ,radius_of_influence=50000,fill_value=0)
+        e = np.concatenate((z, z_))
+        xelev.append(e)
+        
+    # create xarray
+    xe = xr.Dataset({var : (['time', 'nSCHISM_hgrid_node'], xelev),
+                'SCHISM_hgrid_node_x' :(['nSCHISM_hgrid_node'], xn),
+                'SCHISM_hgrid_node_y' :(['nSCHISM_hgrid_node'], yn),
+                'SCHISM_hgrid_face_nodes' : (['nSCHISM_hgrid_face', 'nMaxSCHISM_hgrid_face_nodes'], tri3n)
+               },
+                    coords={'time': ('time', out.time.values)})
+
+    return xe
+    
+    
+def reposition(px):
+    
+    px[px<0] = px[px<0] + 360.
+    px = px - 100
+    
+    return px
+    
+    
+    
