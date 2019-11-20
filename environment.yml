@@ -30,9 +30,6 @@ dependencies:
   - eccodes
   - mayavi
   - esmpy
-  - sphinx
-  - sphinx-gallery
-  - sphinx_rtd_theme
   - pytest
   - cfgrib
   - jigsaw
