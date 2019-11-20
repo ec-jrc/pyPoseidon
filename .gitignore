@@ -11,7 +11,7 @@
 examples/test
 
 # the local Notebook folder
-Notebooks/*
+Notebooks/* 
 
 # dotx files
 *.dotx
