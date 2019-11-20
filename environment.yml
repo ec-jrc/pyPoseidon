@@ -36,7 +36,8 @@ dependencies:
   - pytest
   - cfgrib
   - jigsaw
+  - colorlog
+  - pygeos
   - pip
   - pip:    
     - xesmf
-    - colorlog
