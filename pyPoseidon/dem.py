@@ -13,7 +13,7 @@ import pyresample
 import xarray as xr
 import sys
 import importlib
-from pyPoseidon.utils.fix import *
+from pyPoseidon.utils.fix import fix
 import logging
 
 
@@ -26,8 +26,7 @@ class dem:
      
     def adjust(self,shpfile,**kwargs):
          
-         wmask, cg = fix(self.Dataset,shpfile,**kwargs)
-         self.Dataset = bmatch(self.Dataset,wmask,**kwargs)
+        self.Dataset = fix(self.Dataset,shpfile,**kwargs)
   
     
       
