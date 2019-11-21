@@ -38,10 +38,10 @@ def fix(dem,coastline,**kwargs):
         shp = gp.GeoDataFrame(coastline)
 
     
-    try:       
+    if 'ival' in dem.data_vars:       
         xp = dem.ilons.values
         yp = dem.ilats.values
-    except:
+    else:
         xp = dem.longitude.values
         yp = dem.latitude.values
         
@@ -51,7 +51,40 @@ def fix(dem,coastline,**kwargs):
     maxlat = yp.max()
 
     
-    block = shp.cx[minlon:maxlon,minlat:maxlat]
+    if xp.mean() < 0 and xp.min() < -180. :
+        flag = -1
+    elif xp.mean() > 0 and xp.max() > 180. :
+        flag = 1
+    else:
+        flag = 0
+    
+    
+    if flag == 1 :
+        block1 = shp.cx[minlon:180,minlat:maxlat].copy()
+        block2 = shp.cx[-180:(maxlon-360.),minlat:maxlat].copy()
+    
+        for idx, poly in block2.iterrows():
+            block2.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: (x + 360.,y), poly.geometry)
+    
+        block = block1.append(block2)
+    
+    elif flag == -1 :
+    
+        block1 = shp.cx[minlon + 360 : 180,minlat:maxlat].copy()
+        block2 = shp.cx[-180:maxlon,minlat:maxlat].copy()
+    
+        for idx, poly in block1.iterrows():
+            block1.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: (x - 360.,y), poly.geometry)
+    
+        block = block1.append(block2)
+
+    else:
+        block = shp.cx[minlon:maxlon,minlat:maxlat]
+        
+    try:
+        block = gp.GeoDataFrame(geometry = list(block.unary_union))
+    except:
+        pass
     
     #create a polygon of the lat/lon window
     grp=shapely.geometry.Polygon([(minlon,minlat),(minlon,maxlat),(maxlon,maxlat),(maxlon,minlat)])
@@ -78,26 +111,42 @@ def fix(dem,coastline,**kwargs):
     water = b
     land = grp - b
     
-    df = dem.to_dataframe().reset_index()
+    if 'ival' in dem.data_vars:
+        df = pd.DataFrame({'longitude':dem.ilons.values.flatten(),'latitude':dem.ilats.values.flatten(),'elevation':dem.ival.values.flatten()})
+    else:
+        df = dem.elevation.to_dataframe().reset_index()
+    
     
     spoints_ = pygeos.points(list(df.loc[:,['longitude','latitude']].values)) # create pygeos objects for the points
     
     # Add land boundaries to a pygeos object
-    lbs = []
-    for l in range(len(land.boundary)):
-        z = pygeos.linearrings(land.boundary[l].coords[:]) 
-        lbs.append(z)
+    try:
+        lbs = []
+        for l in range(len(land.boundary)):
+            z = pygeos.linearrings(land.boundary[l].coords[:]) 
+            lbs.append(z)        
+    except:
+        lbs = pygeos.linearrings(land.boundary.coords[:])
+        
+            
     bp = pygeos.polygons(lbs)
     
     #find the points on land
-    wl=[]
-    for l in range(len(land.boundary)):
-        wl.append(pygeos.contains(bp[l],spoints_))
+    try:
+        wl=[]
+        for l in range(len(land.boundary)):
+            wl.append(pygeos.contains(bp[l],spoints_))
+            
+        #merge the masks 
+        lmask=np.zeros(spoints_.shape, dtype=bool)
+        for i in range(len(wl)):
+            lmask = np.logical_or(lmask,wl[i])
+        
+    except:
+        wl = pygeos.contains(bp,spoints_)
+        lmask=np.zeros(spoints_.shape, dtype=bool)
+        lmask = np.logical_or(lmask,wl)
 
-    #merge the masks 
-    lmask=np.zeros(spoints_.shape, dtype=bool)
-    for i in range(len(wl)):
-        lmask = np.logical_or(lmask,wl[i])
        
     wmask = ~lmask # invert for wet mask
     
@@ -115,15 +164,23 @@ def fix(dem,coastline,**kwargs):
         
         #Define points with positive bathymetry        
         x, y = np.meshgrid(dem.longitude,dem.latitude)#!!!!!!!!
+        
+        if flag == 1:
+            xw = xw - 180.
+            x = x - 180.
+        elif flag == -1:
+            xw = xw + 180.
+            x = x + 180.
+        
         # wet.fill_value = 0.
-        mx = np.ma.masked_array(x,dem.values>0) 
-        my = np.ma.masked_array(y,dem.values>0)
+        mx = np.ma.masked_array(x,dem.elevation.values>0) 
+        my = np.ma.masked_array(y,dem.elevation.values>0)
     
         # fill the nan, if present, with values in order to compute values there if needed.
-        dem.data[np.isnan(dem)]=9999. 
+        dem.elevation.data[np.isnan(dem.elevation.values)]=9999. 
 
         #mask positive bathymetry 
-        wet_dem = np.ma.masked_array(dem,dem.values > 0 )
+        wet_dem = np.ma.masked_array(dem.elevation,dem.elevation.values > 0 )
     
         orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
         targ = pyresample.geometry.SwathDefinition(lons=xw,lats=yw) # wet points
@@ -145,15 +202,23 @@ def fix(dem,coastline,**kwargs):
         yl = pl.latitude.values
         
         x, y = np.meshgrid(dem.longitude,dem.latitude)
+        
+        if flag == 1:
+            xl = xl - 180.
+            x = x - 180.
+        elif flag == -1:
+            xl = xl + 180.
+            x = x + 180.
+        
         # wet.fill_value = 0.
-        dx = np.ma.masked_array(x,dem.values<0) 
-        dy = np.ma.masked_array(y,dem.values<0)
+        dx = np.ma.masked_array(x,dem.elevation.values<0) 
+        dy = np.ma.masked_array(y,dem.elevation.values<0)
         
         # fill the nan, if present, with values in order to compute values there if needed.
-        dem.data[np.isnan(dem)]=9999. 
+        dem.elevation.data[np.isnan(dem.elevation.values)]=9999. 
 
         #mask positive bathymetry 
-        dry_dem = np.ma.masked_array(dem,dem.values < 0 )
+        dry_dem = np.ma.masked_array(dem.elevation,dem.elevation.values < 0 )
     
         orig = pyresample.geometry.SwathDefinition(lons=dx,lats=dy) # original bathymetry points
         targ = pyresample.geometry.SwathDefinition(lons=xl,lats=yl) # wet points
@@ -164,12 +229,24 @@ def fix(dem,coastline,**kwargs):
         
     #reassemble dataset
     
-    df_new = df.set_index(['latitude','longitude'])
-    new_dem = df_new.to_xarray() 
-    
-    new_dem = new_dem.rename({'elevation':'adjusted'})
-    
-    new_dem.attrs = {'coastline':'based on coastline'}
+    if 'ival' in dem.data_vars:
+        
+        if len(dem.ival.shape) == 1 :
+            new_dem = df.elevation.to_xarray()
+            new_dem = xr.merge([new_dem])
+            new_dem = new_dem.rename({'elevation':'fval'})
+            new_dem.fval.attrs = {'coastline':'based on coastline'}
+            new_dem = new_dem.rename({'index':'k'}).drop('k')
+        else:
+            new_dem = df.set_index(['latitude','longitude']).to_xarray().rename({'longitude':'l','latitude':'k','elevation':'fval'}).drop(['k','l'])
+
+        
+    else:
+        
+        df_new = df.set_index(['latitude','longitude'])
+        new_dem = df_new.to_xarray() 
+        new_dem = new_dem.rename({'elevation':'adjusted'})
+        new_dem.attrs = {'coastline':'based on coastline'}
     
     cdem = xr.merge([dem,new_dem])
     

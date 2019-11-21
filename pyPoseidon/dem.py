@@ -167,7 +167,7 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         
     else:
         
-        return dem
+        return xr.merge([dem])
  
 
  
