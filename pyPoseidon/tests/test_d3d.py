@@ -37,6 +37,7 @@ def d3d(tmpdir,dic):
     except:
         return False
 
+@pytest.mark.solvers
 @pytest.mark.parametrize('case', [case1])
 def test_answer(tmpdir, case):
     assert d3d(tmpdir,case) == True

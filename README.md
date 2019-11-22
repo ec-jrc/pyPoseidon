@@ -23,7 +23,7 @@ You should have an environment named pyPoseidon (check it with 'conda env list')
 
 Activate the environment 
 
-* source activate pyPoseidon
+* conda activate pyPoseidon
 
 For using the environment in Jupyter notebooks use
 
@@ -41,7 +41,7 @@ From a new terminal window, start Jupyter with
 
 * jupyter notebook
 
-Navigate to the pyPoseidon/examples & pyPoseidon/Notebook folders for using the Notebooks. 
+Navigate to pyPoseidon/examples folder for testing the Notebooks. 
 
 
 ### Prerequisities
@@ -52,8 +52,18 @@ SCHISM needs to be compiled for your system. You can download it from  http://co
 
 ## Tests
 
-No tests are available at the moment.
+There are 2 sets of tests. You can run pyPoseidon unitests with the standard command
 
+* pytest 
+
+In order to test also the solver integration please specify the PATH to the executables in your system such as 
+
+* export D3D = '/path_to_folder_bin/lnx64/'
+* export SCHISM = '/path_to_schism_executable'
+
+Then use 
+
+* pytest --with--solvers
 
 ## License
 * The project is released under the EUPL v1.2 license. 

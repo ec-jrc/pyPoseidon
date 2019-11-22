@@ -540,12 +540,7 @@ class schism():
     def run(self,**kwargs):
         
         calc_dir = get_value(self,kwargs,'rpath','./') 
-                
-        try:
-            bin_path = os.environ['SCHISM']
-        except:
-            bin_path = get_value(self,kwargs,'epath', None)
-                    
+                                    
         ncores = get_value(self,kwargs,'ncores',1)
         
         #--------------------------------------------------------------------- 

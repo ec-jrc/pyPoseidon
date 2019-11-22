@@ -138,6 +138,7 @@ def schism(tmpdir):
     else:
         return False 
 
+@pytest.mark.solvers
 def test_answer(tmpdir):
     assert schism(tmpdir) == True
     

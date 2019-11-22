@@ -27,5 +27,5 @@ def test_answer(tmpdir, kwargs):
     
     df = pdem.dem(**kwargs)
     
-    check = np.isnan(df.Dataset.values).sum() == 0
+    check = np.isnan(df.Dataset.elevation.values).sum() == 0
     assert check == True
