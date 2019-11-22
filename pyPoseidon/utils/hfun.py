@@ -1,6 +1,10 @@
 import pandas as pd
 import shapely
 import numpy as np
+import xarray as xr
+from .limgrad import *
+from matplotlib import tri
+
 
 def hfun(dem, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
     
@@ -33,31 +37,14 @@ def hfun(dem, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhd
     
     [fun,flag] = limgrad2(edges,elen,hfun,dhdx,imax)
 
+    cfun = fun.flatten().reshape(X.shape).T
+
     ##OUTPUT
     
-    fhfun = path + tag+'-hfun.msh'
-    # write header
-    with open(fhfun,'w') as f:
-        f.write('#{}; created by pyPoseidon\n'.format(tag+'-hfun.msh'))
-        f.write('MSHID=3;EUCLIDEAN-GRID\n')
-        f.write('NDIMS=2\n')
-        f.write('COORD=1;{}\n'.format(dem.Dataset.longitude.size))
-        
-    with open(fhfun, 'a') as f:
-        dem.Dataset.longitude.to_dataframe().to_csv(f, index=False, header=0)
-        
-    with open(fhfun, 'a') as f:
-        f.write('COORD=2;{}\n'.format(dem.Dataset.latitude.size))
-        
-    with open(fhfun, 'a') as f:
-        dem.Dataset.latitude.to_dataframe().to_csv(f, index=False, header=0)
+    dh = xr.Dataset({'z': (['longitude', 'latitude'], cfun)},
+                coords={'longitude': ('longitude', dem.Dataset.longitude.values),
+                        'latitude': ('latitude', dem.Dataset.latitude.values)})
     
-    with open(fhfun, 'a') as f:
-        f.write('VALUE={};1\n'.format(dem.Dataset.longitude.size * dem.Dataset.latitude.size))
     
-    #converted TRANSPOSED, IS THERE A WAY TO FIX IT?
-    cfun = fun.flatten().reshape(X.shape).T
-    with open(fhfun, 'a') as f:
-        for i in range(fun.size):
-            f.write('{}\n'.format(cfun.flatten()[i]))
-            
+    return dh
+             
