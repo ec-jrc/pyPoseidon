@@ -35,6 +35,4 @@ dependencies:
   - jigsaw
   - colorlog
   - pygeos
-  - pip
-  - pip:    
-    - xesmf
+  - xesmf
