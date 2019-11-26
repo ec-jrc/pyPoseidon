@@ -7,7 +7,7 @@
 # cfgrib idx
 *.idx
 
-# the local test folder 
+# the local test folder
 examples/test
 
 # the local Notebook folder
@@ -70,3 +70,8 @@ __pycache__
 *.egg-info
 github.token
 *.log
+
+# direnv
+.direnv/
+.envrc
+venv/

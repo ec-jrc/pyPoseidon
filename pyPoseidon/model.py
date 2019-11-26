@@ -35,6 +35,7 @@ import pyPoseidon.meteo as pmeteo
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.get_value import get_value
 import logging
+import logging.config
 import colorlog
 
 
