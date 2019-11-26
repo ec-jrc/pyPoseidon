@@ -34,9 +34,6 @@ Notebooks/*
 # zip files
 *.zip
 
-# netcdf files
-*.nc
-
 # Tide files
 *_v1
 
