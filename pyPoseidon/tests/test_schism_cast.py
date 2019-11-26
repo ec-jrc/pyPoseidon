@@ -7,20 +7,26 @@ import datetime
 import os
 import numpy as np
 
-PWD = os.getcwd()
+from . import DATA_DIR
+
+
+GRID_FILE = DATA_DIR / "hgrid.gr3"
+DEM_FILE = DATA_DIR / "dem.nc"
+METEO_FILES_1 = [(DATA_DIR / name).as_posix() for name in ('uvp_2018100100.grib', 'uvp_2018100112.grib')]
+METEO_FILES_2 = [(DATA_DIR / name).as_posix() for name in ('uvp_2018100100.grib', 'uvp_2018100112.grib', 'uvp_2018100200.grib', 'uvp_2018100212.grib')]
+
 
 #define in a dictionary the properties of the model..
 case={'solver':'schism',
-     'grid_file': PWD + '/data/hgrid.gr3', 
+     'grid_file': GRID_FILE,
      'manning':.12,
      'windrot':0.00001,
      'tag':'schism',
      'start_date':'2018-10-1 0:0:0',
      'time_frame':'12H',
-     'dem_source' : PWD + '/data/dem.nc',
-     'meteo_source' : [PWD + '/data/uvp_2018100100.grib',
-                       PWD + '/data/uvp_2018100112.grib'], #meteo files
-     'engine':'cfgrib',                  
+     'dem_source' : DEM_FILE,
+     'meteo_source' : METEO_FILES_1,
+     'engine':'cfgrib',
      'combine_forecast': True, #combine meteo
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},
@@ -31,21 +37,18 @@ case={'solver':'schism',
 
 #define in a dictionary the properties of the model..
 check={'solver':'schism',
-     'grid_file': PWD + '/data/hgrid.gr3', 
+     'grid_file': GRID_FILE,
      'manning':.12,
      'windrot':0.00001,
      'tag':'schism',
      'start_date':'2018-10-1 0:0:0',
      'time_frame':'36H',
-     'dem_source' : PWD + '/data/dem.nc',
-     'meteo_source' : [PWD + '/data/uvp_2018100100.grib',
-                       PWD + '/data/uvp_2018100112.grib',
-                       PWD + '/data/uvp_2018100200.grib', 
-                       PWD + '/data/uvp_2018100212.grib'], #meteo files
+     'dem_source' : DEM_FILE,
+     'meteo_source' : METEO_FILES_2,
      'engine':'cfgrib',
      'combine_forecast': True, #combine meteo
      'combine_by':'nested',
-     'xr_kwargs': {'concat_dim':'step'},     
+     'xr_kwargs': {'concat_dim':'step'},
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':1.5, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }

@@ -7,7 +7,11 @@ import datetime
 import os
 import numpy as np
 
-PWD = os.getcwd()
+from . import DATA_DIR
+
+GRIB_FILES_1 = [(DATA_DIR / filename).as_posix() for filename in ('uvp_2018100100.grib', 'uvp_2018100112.grib')]
+GRIB_FILES_2 = [(DATA_DIR / filename).as_posix() for filename in ('uvp_2018100100.grib', 'uvp_2018100112.grib', 'uvp_2018100200.grib')]
+DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
 #define in a dictionary the properties of the model..
 case1={'lon_min' : -30,
@@ -17,16 +21,16 @@ case1={'lon_min' : -30,
      'start_date':'2018-10-1',
      'time_frame':'12H',
      'solver':'d3d',
-     'resolution':0.1, #grid resoltuion 
-     'map_step':60, # step for output of map field in d3d 
+     'resolution':0.1, #grid resoltuion
+     'map_step':60, # step for output of map field in d3d
      'restart_step':720, # when to output restart file
      'ncores': 4 , #number of cores
-     'meteo_source' : [PWD + '/data/uvp_2018100100.grib',PWD + '/data/uvp_2018100112.grib'],
+     'meteo_source' : GRIB_FILES_1,
      'engine':'cfgrib',
      'combine_forecast' : True,
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},
-     'dem_source' : PWD + '/data/dem.nc',
+     'dem_source' : DEM_FILE,
 #     'update':['all'] # optional to select update quantities
     }
 
@@ -37,12 +41,12 @@ case2={'lon_min' : -30,
      'start_date':'2018-10-1',
      'time_frame':'24H',
      'solver':'d3d',
-     'resolution':0.1, #grid resoltuion 
-     'map_step':60, # step for output of map field in d3d 
+     'resolution':0.1, #grid resoltuion
+     'map_step':60, # step for output of map field in d3d
      'restart_step':720, # when to output restart file
      'ncores': 4 , #number of cores
-     'dem_source' : PWD + '/data/dem.nc',
-     'meteo_source' : [PWD + '/data/uvp_2018100100.grib',PWD + '/data/uvp_2018100112.grib', PWD + '/data/uvp_2018100200.grib'],
+     'dem_source' : DEM_FILE,
+     'meteo_source' : GRIB_FILES_2,
      'engine':'cfgrib',
      'combine_forecast' : True,
      'combine_by':'nested',
@@ -81,12 +85,11 @@ def d3d(tmpdir,dic):
    
     #set meteo files
     meteo = []
-    PATH=PWD + '/data/'
     for date in date_list:
         end_date= pd.to_datetime(date) + pd.to_timedelta(info['time_frame'])
         end_date = end_date.strftime(format='%Y-%m-%d %H:%M:%S')
         dr = pd.date_range(date, end_date, freq='12H')
-        dur = [PATH+'uvp_'+datetime.datetime.strftime(x, '%Y%m%d%H')+'.grib' for x in dr]
+        dur = [(DATA_DIR / ('uvp_' + datetime.datetime.strftime(x, '%Y%m%d%H') + '.grib')).as_posix() for x in dr]
         meteo.append(dur)
     info.update({'meteo_source':meteo})
     print(meteo)

@@ -2,7 +2,7 @@ import pytest
 import pyPoseidon
 import os
 
-PWD = os.getcwd()
+from . import DATA_DIR
 
 #define in a dictionary the properties of the model..
 case1={'lon_min' : -30,
@@ -12,12 +12,12 @@ case1={'lon_min' : -30,
      'start_date':'2018-10-1',
      'time_frame':'12H',
      'solver':'d3d',
-     'resolution':0.2, #grid resoltuion 
-     'map_step':20, # step for output of map field in d3d 
+     'resolution':0.2, #grid resoltuion
+     'map_step':20, # step for output of map field in d3d
      'restart_step':60, # when to output restart file
      'ncores': 4 , #number of cores
-     'meteo_source' : [PWD + '/data/uvp_2018100100.grib'],
-     'dem_source' : PWD + '/data/dem.nc',
+     'meteo_source' : [(DATA_DIR / 'uvp_2018100100.grib').as_posix()],
+     'dem_source' : (DATA_DIR / 'dem.nc').as_posix(),
      'engine':'cfgrib',
 #     'update':['all'] # optional to select update quantities
     }

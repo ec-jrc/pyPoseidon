@@ -10,13 +10,17 @@ import shutil
 import numpy as np
 
 
+from . import DATA_DIR
+
+DEM_SOURCE = DATA_DIR / "dem.nc"
+
 #define the lat/lon window and time frame of interest
 window1 = {
     'lon_min' : -30,
     'lon_max' : -10.,
     'lat_min' : 60.,
     'lat_max' : 70.,
-    'dem_source' : './data/dem.nc'
+    'dem_source' : DEM_SOURCE,
 }
 
 

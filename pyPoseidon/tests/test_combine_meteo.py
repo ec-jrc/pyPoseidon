@@ -5,13 +5,12 @@ import os
 from glob import glob
 import numpy as np
 
+from . import DATA_DIR
+
 
 def cfgrib():
+    filenames = sorted(DATA_DIR.glob("uvp_*"))
 
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
-    filenames = glob(path + '/uvp_*')
-    filenames.sort()
-    
     #read meteo files
     df = pm.meteo(meteo_source=filenames, engine='cfgrib', combine_by='nested', combine_forecast=True, xr_kwargs = {'concat_dim' : 'step'}) # use combine
     df0 = pm.meteo(meteo_source=[filenames[0]],engine='cfgrib') # each one seperately

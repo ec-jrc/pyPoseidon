@@ -11,9 +11,16 @@ __all__ = [
     'grid',
     'utils',
     'tide'
+    'TEST_DIR',
 ]
 
+import pathlib
 
 from .model import *
 from .d3d import d3d
 from .schism import schism
+
+# specify package paths
+ROOT_DIR = pathlib.Path(__file__).resolve().parent
+TEST_DIR = ROOT_DIR / "tests"
+DATA_DIR = TEST_DIR / "data"

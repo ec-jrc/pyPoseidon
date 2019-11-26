@@ -2,10 +2,12 @@ import pyPoseidon.grid as pgrid
 import pytest
 import os
 
+from . import DATA_DIR
+
 
 def func(tmpdir,name):
 
-    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', name)
+    filename = DATA_DIR / name
     #read grid file
     grid = pgrid.grid(type='tri2d',grid_file=filename)
 

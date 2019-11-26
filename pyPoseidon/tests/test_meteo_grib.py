@@ -6,10 +6,11 @@ import os
 import shutil
 import numpy as np
 
+from . import DATA_DIR
+
 
 def schism(tmpdir,name):
-
-    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', name)
+    filename = (DATA_DIR / name).as_posix()
     #read meteo file
     df = pmeteo.meteo(meteo_source=filename, engine='cfgrib')
     df.Dataset = df.Dataset.sortby('latitude', ascending=True)
@@ -34,10 +35,9 @@ def schism(tmpdir,name):
     v10 = np.array_equal(df.Dataset.v10.values,dr.vwind.values)
 
     return all([msl,u10,v10])
-    
-def d3d(tmpdir,name):
 
-    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', name)
+def d3d(tmpdir,name):
+    filename = (DATA_DIR / name).as_posix()
     #read meteo file
     df = pmeteo.meteo(meteo_source=filename, engine='cfgrib')
     
