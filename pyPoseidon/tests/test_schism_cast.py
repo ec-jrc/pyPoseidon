@@ -60,33 +60,33 @@ def schism(tmpdir):
     #initialize a model
     rpath = str(tmpdir)+'/schism/'
     case.update({'rpath':rpath+'20181001.00/'}) # use tmpdir for running the model
-        
+
     b = pyPoseidon.model(**case)
-    
+
     b.execute()
-    
+
     # run the cast
     with open(rpath + '20181001.00/schism_model.json', 'rb') as f:
         info = pd.read_json(f,lines=True).T
         info[info.isnull().values] = None
         info = info.to_dict()[0]
 
-                  
+
     info.update({'path': rpath})
-    
+
     #creating a time sequence of the runs
     start_date = pd.to_datetime('2018-10-1 0:0:0')
     end_date = pd.to_datetime('2018-10-2 0:0:0')
     date_list = pd.date_range(start_date,end_date, freq='12H')
-    
+
     #append to dic
     info.update({'start_date':start_date,'end_date':end_date, 'dates' : date_list})
-    
+
     #creating a sequence of folder to store the runs. In this case we name them after the date attribute.
     #NOTE that the first folder is the fisrt run already perfomed!!
     folders = [datetime.datetime.strftime(x, '%Y%m%d.%H') for x in date_list]
     info.update({'folders':folders})
-    
+
     #creating a sequence of folder from which we read the meteo.
     meteo = []
     PATH= PWD + '/data/'
@@ -98,51 +98,49 @@ def schism(tmpdir):
         meteo.append(dur)
 
     info.update({'meteo_source':meteo})
-    
+
     info['time_frame'] = len(folders)*[info['time_frame']]
-    
+
     #set cast
     h = cast.cast(**info) # initialize
-    
+
     h.run()
-    
+
     # Run check case - Total duration
     check.update({'rpath':rpath+'check/'}) # use tmpdir for running the model
-        
+
     c = pyPoseidon.model(**check)
-    
+
     c.execute()
-        
+
     # COMPARE
     folders = [info['path']+f for f in info['folders']]
     output = data.data(folders=folders,solver='schism')
-    
+
     total = data.data(folders=[rpath+'check/'],solver='schism')
-    
+
 
     rb = []
     for var in total.Dataset.data_vars:
         if not total.Dataset[var].equals(output.Dataset[var]):
             rb.append(var)
-    
+
     print(rb)
-    
-    
+
+
 #    flag = True TODO
 #    for var in rb:
 #        flag = False
-#        mdif = np.abs(total.results.Dataset[var].values - output.results.Dataset[var].values).max()        
+#        mdif = np.abs(total.results.Dataset[var].values - output.results.Dataset[var].values).max()
 #        if mdif < 1.e-14 :
-#            flag = True 
-#    print(mdif)                
+#            flag = True
+#    print(mdif)
 
     if (rb == ['zcor']) or rb==[]:
         return True
     else:
-        return False 
+        return False
 
 @pytest.mark.solvers
 def test_answer(tmpdir):
     assert schism(tmpdir) == True
-    
-

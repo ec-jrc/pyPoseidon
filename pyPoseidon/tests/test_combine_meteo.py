@@ -17,13 +17,12 @@ def cfgrib():
     df1 = pm.meteo(meteo_source=[filenames[1]],engine='cfgrib') # each one seperately
     df2 = pm.meteo(meteo_source=[filenames[2]],engine='cfgrib') # each one seperately
     df3 = pm.meteo(meteo_source=[filenames[3]],engine='cfgrib') # each one seperately
-    
+
     #merge the single files
     joined = xr.concat([df0.Dataset.isel(time=slice(0,12)), df1.Dataset.isel(time=slice(0,12)), df2.Dataset.isel(time=slice(0,12)), df3.Dataset], dim='time')
-    
+
     return joined.equals(df.Dataset) # compare
-        
-    
+
+
 def test_answer():
     assert cfgrib() == True
-    

@@ -68,21 +68,21 @@ def d3d(tmpdir,dic):
         info = pd.read_json(f,lines=True).T
         info[info.isnull().values] = None
         info = info.to_dict()[0]
-                      
+
     info.update({'path':rpath}) # The path of the project
-    
+
     #creating a time sequence of the runs
     start_date = pd.to_datetime('2018-10-1 0:0:0')
     end_date = pd.to_datetime('2018-10-1 12:0:0')
     date_list = pd.date_range(start_date,end_date, freq='12H')
     #append to dic
     info.update({'start_date':start_date,'end_date':end_date, 'dates' : date_list})
-    
+
     #creating a sequence of folder to store the runs. In this case we name them after the date attribute.
     #NOTE that the first folder is the fisrt run already perfomed!!
     folders = [datetime.datetime.strftime(x, '%Y%m%d.%H') for x in date_list]
     info.update({'folders':folders})
-   
+
     #set meteo files
     meteo = []
     for date in date_list:
@@ -93,31 +93,31 @@ def d3d(tmpdir,dic):
         meteo.append(dur)
     info.update({'meteo_source':meteo})
     print(meteo)
-    
+
     info.update({'time_frame' : len(folders)*[info['time_frame']]})
-        
-    
+
+
     h = cast.cast(**info) # initialize
     h.run()
     # combine output
     folders = [info['path']+'/'+f for f in info['folders']]
     res = data.data(folders=folders,solver='d3d')
-    
-    
+
+
     # check single run
     case2.update({'rpath':rpath + '/combined/'})
     a = pyPoseidon.model(**case2)
     a.execute()
     out = data.data(**case2)
-    
+
     test = True
     for var in out.Dataset.data_vars:
         if not out.Dataset[var].equals(res.Dataset[var]):
             if np.abs(out.Dataset[var].values-res.Dataset[var].values).max() > 1.e-6 : test = False
-        
-    
+
+
     return test
-                     
+
 
 @pytest.mark.solvers
 @pytest.mark.parametrize('case', [case1])

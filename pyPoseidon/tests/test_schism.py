@@ -41,7 +41,7 @@ case2={'solver':'schism',
      'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
     }
 
-    
+
 case3={'solver':'schism',
      'grid_file': PWD + '/data/hgrid.gr3',
      'manning':.12,
@@ -61,9 +61,9 @@ def schism(tmpdir,dic):
     #initialize a model
     rpath = str(tmpdir)+'/'
     dic.update({'rpath':rpath}) # use tmpdir for running the model
-        
+
     b = pyPoseidon.model(**dic)
-    
+
     try:
         b.execute()
         a = pyPoseidon.read_model(rpath+'test_model.json') # read model
