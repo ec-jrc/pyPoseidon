@@ -612,7 +612,7 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
         
 
 
-def netcdf(filename=None, **kwargs):
+def netcdf(filenames=None, **kwargs):
 
         
     #--------------------------------------------------------------------- 
