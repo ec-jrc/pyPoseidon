@@ -27,7 +27,7 @@ window1 = {
 
 def schism(tmpdir,kwargs):
 
-    grid = pgrid.grid(type='tri2d',grid_file='./data/hgrid.gr3')
+    grid = pgrid.grid(type='tri2d',grid_file=(DATA_DIR / 'hgrid.gr3').as_posix())
 
     #update dem
 
