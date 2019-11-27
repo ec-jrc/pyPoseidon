@@ -80,9 +80,7 @@ def d3d(tmpdir, kwargs):
 
 
 @pytest.mark.parametrize('kwargs', [ window1 ])
-def test_answer(tmpdir, kwargs):
-
-
-    assert schism(tmpdir,kwargs) == True
-    assert d3d(tmpdir,kwargs) == True
+@pytest.mark.parametrize('solver', [schism, d3d])
+def test_answer(tmpdir, kwargs, solver):
+    assert solver(tmpdir,kwargs) == True
 

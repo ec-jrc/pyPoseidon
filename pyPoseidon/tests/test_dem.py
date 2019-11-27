@@ -32,8 +32,5 @@ window3={'lon_min':175.-360., # lat/lon window
 
 @pytest.mark.parametrize('kwargs', [ window1, window2, window3 ])
 def test_answer(tmpdir, kwargs):
-
     df = pdem.dem(**kwargs)
-
-    check = np.isnan(df.Dataset.elevation.values).sum() == 0
-    assert check == True
+    assert np.isnan(df.Dataset.elevation.values).sum() == 0
