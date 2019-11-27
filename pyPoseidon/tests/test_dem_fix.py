@@ -41,7 +41,7 @@ window4 = {
     'lon_max' : 1.,
     'lat_min' : 42.,
     'lat_max' : 45.,
-    'dem_source' : PWD + '/data/dem.nc'
+    'dem_source' : DEM_SOURCE,
 }
 
 
