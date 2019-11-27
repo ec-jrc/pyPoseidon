@@ -160,7 +160,7 @@ class meteo:
 
 
         var_list = kwargs.pop('vars', ['msl','u10','v10'])
-        s.to_force(self.Dataset,vars=var_list, **kwargs_)
+        s.to_force(self.Dataset,vars=var_list, **kwargs)
 
 
 def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by='by_coords', **kwargs):
