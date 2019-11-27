@@ -36,6 +36,14 @@ window3 = {
      'dem_source' : DEM_SOURCE,
 }
 
+window4 = {
+    'lon_min' : -3,
+    'lon_max' : 1.,
+    'lat_min' : 42.,
+    'lat_max' : 45.,
+    'dem_source' : PWD + '/data/dem.nc'
+}
+
 
 
 cr = 'l'
@@ -55,14 +63,14 @@ GSHHS = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
 
 
 
-@pytest.mark.parametrize('dic', [ window1 , window2, window3])
+@pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
 def test_answer(tmpdir, dic):
     # Just elevation
     df = pdem.dem(**dic) #get dem
     df.adjust(natural_earth)
-
-    c1 = 'adjusted' in df.Dataset.data_vars
-
+    
+    c1 = np.isnan(df.Dataset.adjusted.values).sum() == 0
+    
     # Schism grid
 
     grid_file = DATA_DIR / 'hgrid.gr3'
@@ -73,9 +81,9 @@ def test_answer(tmpdir, dic):
 
     df = pdem.dem(**dic) #get dem
     df.adjust(natural_earth)
-
-    c2 = 'fval' in df.Dataset.data_vars
-
+       
+    c2 = np.isnan(df.Dataset.fval.values).sum() == 0
+    
     ## D3D grid
     dic.update({'resolution':.1})
     grid = pg.grid(type = 'r2d', **dic)
@@ -87,9 +95,7 @@ def test_answer(tmpdir, dic):
     #get dem
     df = pdem.dem(**dic)
     df.adjust(natural_earth)
-
-    c3 = 'fval' in df.Dataset.data_vars
-
-
-
+    
+    c3 = np.isnan(df.Dataset.fval.values).sum() == 0
+    
     assert all([c1,c2,c3])
