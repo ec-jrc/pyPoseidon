@@ -158,11 +158,8 @@ class meteo:
             
         s = getattr(model,solver) # get solver class
         
-        var_list = kwargs.get('vars', ['msl','u10','v10'])
-            
-        kwargs_ = kwargs.copy()
-        del kwargs_['vars']  
-            
+
+        var_list = kwargs.pop('vars', ['msl','u10','v10'])
         s.to_force(self.Dataset,vars=var_list, **kwargs_)
         
 
