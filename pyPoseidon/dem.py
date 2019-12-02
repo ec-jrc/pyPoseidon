@@ -132,8 +132,19 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         # resample on the given grid
         xx,yy = np.meshgrid(dem.longitude ,dem.latitude)   #original grid         
 
+        # Translate for pyresample
+        if xx.mean() < 0 and xx.min() < -180. :
+            xx = xx + 180.
+            gx = grid_x + 180.
+        elif xx.mean() > 0 and xx.max() > 180. :
+            xx = xx - 180.
+            gx = grid_x - 180.
+        else:
+            gx = grid_x
+        
+
         orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
-        targ = pyresample.geometry.SwathDefinition(lons=grid_x,lats=grid_y) # target grid
+        targ = pyresample.geometry.SwathDefinition(lons=gx,lats=grid_y) # target grid
 
         # with nearest using only the water values        
 

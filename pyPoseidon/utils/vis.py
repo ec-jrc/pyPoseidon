@@ -173,8 +173,11 @@ class pplot(object):
         vrange=np.linspace(vmin,vmax,nv,endpoint=True)
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(x.mean(), y.mean()))
-        ax = plt.axes(projection=ccrs.PlateCarree())
-        ax.background_patch.set_facecolor('k')
+    #   ax = plt.axes(projection=ccrs.PlateCarree())
+    #   ax.background_patch.set_facecolor('k')
+        
+        ax = plt.axes()                       
+        
         
         #optional mask for the data
         mask = kwargs.get('mask',None)
@@ -229,11 +232,12 @@ class pplot(object):
         vrange=np.linspace(vmin,vmax,nv,endpoint=True)
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))        
-        [fig,ax] = kwargs.get('figure',[plt.figure(figsize=(12,8)),plt.axes(projection=ccrs.PlateCarree())])
-                    
-        ax.background_patch.set_facecolor('k')
-        
-        ax.set_extent([x.min(), x.max(), y.min(), y.max()])
+    #    [fig,ax] = kwargs.get('figure',[plt.figure(figsize=(12,8)),plt.axes(projection=ccrs.PlateCarree())])
+    #    ax.set_extent([x.min(), x.max(), y.min(), y.max()])    
+    #     ax.background_patch.set_facecolor('k')
+    
+        fig = plt.figure(figsize=(12,8))
+        ax = plt.axes()                       
         
         #optional mask for the data
         mask = kwargs.get('mask',None)
@@ -249,8 +253,6 @@ class pplot(object):
             except:
                 pass        
         
-        
-    #    ax = plt.gca()
         ax.set_aspect('equal')
         
         
@@ -295,8 +297,11 @@ class pplot(object):
         
        ## CHOOSE YOUR PROJECTION
     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
-        ax = plt.axes(projection=ccrs.PlateCarree())
-        ax.background_patch.set_facecolor('k')
+    #   ax = plt.axes(projection=ccrs.PlateCarree())
+    #   ax.background_patch.set_facecolor('k')
+        
+        ax = plt.gca()                       
+        
         
         #optional mask for the data
         mask = kwargs.get('mask',None)
@@ -340,10 +345,10 @@ class pplot(object):
             except:
                 pass
                 
-        fig = plt.figure(figsize=(12,8))       
-        ax = plt.axes(projection=ccrs.PlateCarree())
-        
-        ax.background_patch.set_facecolor('k')
+        fig = plt.figure(figsize=(12,8))
+        ax = plt.gca()       
+        #ax = plt.axes(projection=ccrs.PlateCarree())        
+       # ax.background_patch.set_facecolor('k')
 
         ax.set_aspect('equal')
                
@@ -351,6 +356,8 @@ class pplot(object):
         
         title = kwargs.get('title', 'Grid plot')
         ax.set_title(title, pad=30)
+        ax.set_xlabel('Longitude (degrees)')
+        ax.set_ylabel('Latitude (degrees)')
                 
         
         return fig , ax
@@ -372,27 +379,31 @@ class pplot(object):
         
         t = kwargs.get('t',self._obj.time.values)
         
-        scale = kwargs.get('scale', .1)
+        color = kwargs.get('color', 'white')
         
+        
+#        ax = plt.axes(projection=ccrs.PlateCarree())
+      #  ax.set_extent([x.min(), x.max(), y.min(), y.max()])
+         
         fig = plt.figure(figsize=(12,8))
-        ax = plt.axes(projection=ccrs.PlateCarree())
+        ax = plt.gca()                       
+        
 
         ax.set_aspect('equal')
-        ax.set_extent([x.min(), x.max(), y.min(), y.max()])
         
         title = kwargs.get('title', None)
 
         scale = kwargs.get('scale', 1.) # change accordingly to fit your needs
         step = kwargs.get('step', 1) # change accordingly to fit your needs
 
-        Q = ax.quiver(x, y, u[0,:], v[0,:], pivot='mid', color='k', angles='xy', scale_units='xy', scale = scale)
+        Q = ax.quiver(x, y, u[0,:], v[0,:], pivot='mid', color=color, angles='xy', scale_units='xy', scale = scale)
 
-        if cr is not None:
-            try:           
-                coastl = gp.GeoDataFrame.from_file(cr)
-            except:
-                coastl = gp.GeoDataFrame(cr)
-            coastl.plot(ax=ax, **c_attrs)
+#        if cr is not None:
+#            try:           
+#                coastl = gp.GeoDataFrame.from_file(cr)
+#            except:
+#                coastl = gp.GeoDataFrame(cr)
+#            coastl.plot(ax=ax, **c_attrs)
         
 
         ax.set_xlim(x.min(), x.max())
@@ -400,11 +411,12 @@ class pplot(object):
         ax.set_title(title) 
         #ax.set_global()
 
-        plt.close()
         # you need to set blit=False, or the first set of arrows never gets
         # cleared on subsequent frames
         v = animation.FuncAnimation(fig, update_qframes, fargs=(Q, u, v), blit=False, repeat=False,
                                frames = range(0,np.size(t)))   
+        
+        plt.close()
         
         return v
                 
@@ -441,12 +453,14 @@ class pplot(object):
         
     ## CHOOSE YOUR PROJECTION
  #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
-        ax = plt.axes(projection=ccrs.PlateCarree())
-        ax.background_patch.set_facecolor('k')
+      #  ax = plt.axes(projection=ccrs.PlateCarree())
+     #   ax.background_patch.set_facecolor('k')        
     # Limit the extent of the map to a small longitude/latitude range.
-    #    ax = plt.gca()
+    #    ax.set_extent([x.min(), x.max(), y.min(), y.max()])
+        
+        ax = plt.axes()                       
         ax.set_aspect('equal')
-        ax.set_extent([x.min(), x.max(), y.min(), y.max()])
+        
         ims = []
         for i in range(len(t)):
             im = ax.tricontourf(x, y, tri3, z[i,:], vrange, vmin=vmin, vmax=vmax)#, transform=ccrs.PlateCarree())
@@ -457,12 +471,12 @@ class pplot(object):
             an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
             ims.append(add_arts + [an])
             
-            if cr is not None:
-                try:
-                    coastl = gp.GeoDataFrame.from_file(cr)
-                except:
-                    coastl = gp.GeoDataFrame(cr)
-                coastl.plot(ax=ax, **c_attrs)
+#            if cr is not None: TO DO
+#                try:
+#                    coastl = gp.GeoDataFrame.from_file(cr)
+#                except:
+#                    coastl = gp.GeoDataFrame(cr)
+#                coastl.plot(ax=ax, **c_attrs)
                     
         if title : ax.set_title(title) 
     #ax.set_global()
