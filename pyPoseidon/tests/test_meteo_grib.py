@@ -30,11 +30,10 @@ def schism(tmpdir,name):
 #        print ("Error: %s - %s." % (e.filename, e.strerror))
 
     #compare
-    msl = np.array_equal(df.Dataset.msl.values,dr.prmsl.values)
-    u10 = np.array_equal(df.Dataset.u10.values,dr.uwind.values)
-    v10 = np.array_equal(df.Dataset.v10.values,dr.vwind.values)
+    assert np.array_equal(df.Dataset.msl.values, dr.prmsl.values)
+    assert np.array_equal(df.Dataset.u10.values, dr.uwind.values)
+    assert np.array_equal(df.Dataset.v10.values, dr.vwind.values)
 
-    return all([msl,u10,v10])
 
 def d3d(tmpdir,name):
     filename = (DATA_DIR / name).as_posix()
@@ -58,15 +57,13 @@ def d3d(tmpdir,name):
     #compare
     df.Dataset = df.Dataset.sortby('latitude', ascending=True)
 
-    msl = np.abs(df.Dataset.msl.values - dr.msl.values).max() < 1e-3
-    u10 = np.abs(df.Dataset.u10.values - dr.u10.values).max() < 1e-3
-    v10 = np.abs(df.Dataset.v10.values - dr.v10.values).max() < 1e-3
-
-    return all([msl,u10,v10])
+    assert np.abs(df.Dataset.msl.values - dr.msl.values).max() < 1e-3
+    assert np.abs(df.Dataset.u10.values - dr.u10.values).max() < 1e-3
+    assert np.abs(df.Dataset.v10.values - dr.v10.values).max() < 1e-3
 
 
 
 @pytest.mark.parametrize('filename', ['erai.grib', 'era5.grib', 'uvp_2018100112.grib' ])
-def test_answer(tmpdir, filename):
-    assert schism(tmpdir,filename) == True
-    assert d3d(tmpdir,filename) == True
+@pytest.mark.parametrize('solver', [schism, d3d])
+def test_meteo_grib(tmpdir, filename, solver):
+    solver(tmpdir,filename)
