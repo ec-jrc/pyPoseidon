@@ -38,10 +38,17 @@ class r2d():
         
         else:
             
-            lon_min = kwargs.get('lon_min', None)
-            lon_max = kwargs.get('lon_max', None)
-            lat_min = kwargs.get('lat_min', None)
-            lat_max = kwargs.get('lat_max', None)
+            geometry = kwargs.get('geometry', None)
+    
+            try:
+                lon_min = geometry['lon_min']
+                lon_max = geometry['lon_max']
+                lat_min = geometry['lat_min']
+                lat_max = geometry['lat_max']
+            except:
+                logger.error('geometry not set properly\n')
+                sys.exit(1)
+            
             resolution = kwargs.get('resolution', None)
             
             ni=int(round((lon_max-lon_min)/resolution)) #these are cell numbers

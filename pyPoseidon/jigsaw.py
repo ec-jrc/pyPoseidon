@@ -176,10 +176,14 @@ def jdefault(**kwargs):
     
     geometry = kwargs.get('geometry', None)
     
-    lon_min = geometry['lon_min']
-    lon_max = geometry['lon_max']
-    lat_min = geometry['lat_min']
-    lat_max = geometry['lat_max']
+    try:
+        lon_min = geometry['lon_min']
+        lon_max = geometry['lon_max']
+        lat_min = geometry['lat_min']
+        lat_max = geometry['lat_max']
+    except:
+        logger.error('geometry not set properly')
+        sys.exit(1)
     
     
     #create a polygon of the lat/lon window
