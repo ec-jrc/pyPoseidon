@@ -160,11 +160,11 @@ class tri2d():
     
         #create xarray of grid
         grid = q.loc[:,['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y']].to_xarray()
-        grid = grid.drop('nSCHISM_hgrid_node')
+        grid = grid.drop_vars('nSCHISM_hgrid_node')
         
         #create xarray of depth
         depth = q.loc[:,'depth'].to_xarray()
-        depth = depth.drop('nSCHISM_hgrid_node')
+        depth = depth.drop_vars('nSCHISM_hgrid_node')
             
         #read connectivity
         e = pd.DataFrame(df.loc[nj+1:nj+ni,'data'].str.split().values.tolist())

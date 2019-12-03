@@ -10,6 +10,9 @@
 # the local test folder
 examples/test
 
+# the local jigsaw folder
+pyPoseidon/tests/jigsaw/*
+
 # the local Notebook folder
 Notebooks/* 
 

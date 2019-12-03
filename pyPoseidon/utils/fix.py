@@ -236,9 +236,9 @@ def fix(dem,coastline,**kwargs):
             new_dem = xr.merge([new_dem])
             new_dem = new_dem.rename({'elevation':'fval'})
             new_dem.fval.attrs = {'coastline':'based on coastline'}
-            new_dem = new_dem.rename({'index':'k'}).drop('k')
+            new_dem = new_dem.rename({'index':'k'}).drop_vars('k')
         else:
-            new_dem = df.set_index(['latitude','longitude']).to_xarray().rename({'longitude':'l','latitude':'k','elevation':'fval'}).drop(['k','l'])
+            new_dem = df.set_index(['latitude','longitude']).to_xarray().rename({'longitude':'l','latitude':'k','elevation':'fval'}).drop_vars(['k','l'])
 
         
     else:

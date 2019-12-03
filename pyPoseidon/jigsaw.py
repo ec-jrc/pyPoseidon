@@ -17,10 +17,13 @@ import shapely
 import subprocess
 import sys
 
+from pyPoseidon.utils.sort import *
 import pyPoseidon.dem as pdem
 import logging        
         
 logger = logging.getLogger('pyPoseidon')
+
+
 
 
 def geo(df, path='.', tag='jigsaw'):
@@ -185,11 +188,39 @@ def jdefault(**kwargs):
     #create a LineString of the grid
     grl=shapely.geometry.LineString([(lon_min,lat_min),(lon_min,lat_max),(lon_max,lat_max),(lon_max,lat_min),(lon_min,lat_min)])
     
-    
+    # check -180/180 trespass
+    if np.mean([lon_min,lon_max]) < 0 and lon_min < -180. :
+        flag = -1
+    elif np.mean([lon_min,lon_max]) > 0 and lon_max > 180. :
+        flag = 1
+    else:
+        flag = 0
 
-    block = world.cx[lon_min:lon_max,lat_min:lat_max] #mask based on lat/lon window
+    #adjust abd mask based on lat/lon window
+    if flag == 1 :
+        block1 = world.cx[lon_min:180,lat_min:lat_max].copy()
+        block2 = world.cx[-180:(lon_max-360.),lat_min:lat_max].copy()
+    
+        for idx, poly in block2.iterrows():
+            block2.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: (x+360.,y), poly.geometry)
+    
+        block = block1.append(block2)
+    
+    elif flag == -1 :
+    
+        block1 = world.cx[lon_min + 360 : 180,lat_min:lat_max].copy()
+        block2 = world.cx[-180:lon_max,lat_min:lat_max].copy()
+    
+        for idx, poly in block1.iterrows():
+            block1.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: (x - 360.,y), poly.geometry)
+    
+        block = block1.append(block2)
+
+    else:
+        block = world.cx[lon_min:lon_max,lat_min:lat_max]
+
         
-    g = block.unary_union.symmetric_difference(grp) # get the dif from the world
+    g = block.buffer(.001).unary_union.symmetric_difference(grp) # get the dif from the world
 
     try: # make geoDataFrame 
         t = gp.GeoDataFrame({'geometry':g})
@@ -204,15 +235,25 @@ def jdefault(**kwargs):
     b = t.iloc[idx].geometry #get the largest 
     
     # SETUP JIGSAW
+    
     dic={}
-    for l in range(len(b.boundary)):
-        lon=[]
-        lat=[]
-        for x,y in b.boundary[l].coords[:]:
-            lon.append(x)
-            lat.append(y)
-        dic.update({'line{}'.format(l):{'lon':lon,'lat':lat}})
+    try:
+        for l in range(len(b.boundary)):
+            lon=[]
+            lat=[]
+            for x,y in b.boundary[l].coords[:]: 
+                lon.append(x)
+                lat.append(y)
+            dic.update({'line{}'.format(l):{'lon':lon,'lat':lat}})
+    except:
+            lon=[]
+            lat=[]
+            for x,y in b.boundary.coords[:]: 
+                lon.append(x)
+                lat.append(y)
+            dic.update({'line{}'.format(0):{'lon':lon,'lat':lat}})
 
+    
     dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
     df = pd.concat(dict_of_df, axis=0)
     df['z']=0
@@ -220,7 +261,12 @@ def jdefault(**kwargs):
     
     
     #open (water) boundaries
-    water = b.boundary[0] - (b.boundary[0] - grl) 
+    
+    try:
+        water = b.boundary[0] - (b.boundary[0] - grl)
+    except:
+        water = b.boundary - (b.boundary - grl)
+
     try:
         cwater = shapely.ops.linemerge(water)
     except:
@@ -253,7 +299,10 @@ def jdefault(**kwargs):
 
        
     # land boundaries!!
-    land = b.boundary[0] - grl 
+    try:
+        land = b.boundary[0] - grl
+    except:
+        land = b.boundary - grl 
 
     try:
         cland = shapely.ops.linemerge(land)
@@ -263,29 +312,34 @@ def jdefault(**kwargs):
     mindx = 0 
     
     #get all lines in a pandas DataFrame
+    dic_land = {}
+    
     if cland.type == 'LineString':
             lon=[]
             lat=[]
             for x,y in cland.coords[:]:
                 lon.append(x)
                 lat.append(y)
-            dic= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}}
+            dic_land= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}}
             mindx -= 1
         
     elif cland.type == 'MultiLineString' :
-        dic={}
+        dic_land={}
         for l in range(len(cland)):
             lon=[]
             lat=[]
             for x,y in cland[l].coords[:]:
                 lon.append(x)
                 lat.append(y)
-            dic.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}})
+            dic_land.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}})
             mindx -= 1
-            
-    dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
+    
+    dict_of_df = {k: pd.DataFrame(v) for k,v in dic_land.items()}
 
-    df_land = pd.concat(dict_of_df, axis=0)
+    try:       
+        df_land = pd.concat(dict_of_df, axis=0)
+    except:
+        df_land = pd.DataFrame({})
     
     ddf = pd.concat([df_water,df_land])
     
@@ -312,6 +366,7 @@ def jdefault(**kwargs):
     
     #merge with islands    
     ndf = df.drop('line0')
+    ndf['tag']=''
     for line in ndf.index.levels[0][1:]:
         ndf.loc[line,'tag'] = mindx - 1
         mindx -= 1
@@ -396,7 +451,7 @@ def jigsaw_(df, bmindx, **kwargs):
     #--------------------------------- 
     
     #execute jigsaw
-    ex=subprocess.Popen(args=[os.environ['CONDA_PREFIX']+'/envs/pyPoseidon/bin/jigsaw {}'.format(tag+'.jig')], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+    ex=subprocess.Popen(args=['jigsaw {}'.format(tag+'.jig')], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         
     with open(calc_dir+'err.log', 'w') as f: 
       for line in iter(ex.stderr.readline,b''): 
@@ -422,8 +477,44 @@ def jigsaw_(df, bmindx, **kwargs):
     tria = tria.apply(pd.to_numeric)
     edges = edges.apply(pd.to_numeric)
     
-# Interpolate on grid points 
+    # Look for hanging nodes 
+    tri3 = tria.values[:,:3]
+    q = np.unique(tri3.flatten()) # all the unique nodes in elements
+
+    dq = list(set(range(nodes.shape[0])) - set(q)) # the ones that are in gcrop but not in elems
+
+    dq.sort()
+    nodes = nodes.drop(dq) # drop nodes
+    nodes = nodes.rename_axis('tag').reset_index() # reset index
+    
+    ### Re-index tessalation
+
+    A, idxA = np.unique(nodes['tag'], return_inverse=True)
+    B, idxB = np.unique(tria['a'], return_inverse=True)
+    IDX = np.in1d(A,B)
+    tria['a'] = idxA[IDX][idxB]
+    B, idxB = np.unique(tria['b'], return_inverse=True)
+    IDX = np.in1d(A,B)
+    tria['b'] = idxA[IDX][idxB]
+    B, idxB = np.unique(tria['c'], return_inverse=True)
+    IDX = np.in1d(A,B)
+    tria['c'] = idxA[IDX][idxB]
+    
+    # Drop invalid edges
+    drop_e = edges.loc[edges.e1.isin(dq) | edges.e2.isin(dq)].index
+    edges = edges.drop(drop_e).reset_index(drop=True)
+    ### Re-index edges
+    A, idxA = np.unique(nodes['tag'], return_inverse=True)
+    B, idxB = np.unique(edges['e1'], return_inverse=True)
+    IDX = np.in1d(A,B)
+    edges['e1'] = idxA[IDX][idxB]
+    B, idxB = np.unique(edges['e2'], return_inverse=True)
+    IDX = np.in1d(A,B)
+    edges['e2'] = idxA[IDX][idxB]
+    #clean up
+    nodes = nodes.drop('tag',axis=1)
    
+       
     # Boundaries
     
     # LAND Boundaries (negative tag)    
@@ -438,8 +529,9 @@ def jigsaw_(df, bmindx, **kwargs):
         else:
             bf['flag'] = 1
 
-        isl.append(bf)
-        ib += 1
+        if not bf.empty:
+            isl.append(bf)
+            ib += 1
         
     landb = pd.concat(isl)
     
@@ -461,6 +553,29 @@ def jigsaw_(df, bmindx, **kwargs):
     
     open_i = sorted(openb.index.levels[0], key=lambda x: int(x.split('_')[2]))
     
+    
+    if openb.index.levels[0].shape[0] == 1: # sort the nodes if open box 
+    
+        pts = openb[['lon','lat']].values
+
+        origin = [openb.mean()['lon'], openb.mean()['lat']]
+
+        refvec = [1, 0]
+
+        sps = sorted(pts, key=lambda po: clockwiseangle_and_distance(po, origin, refvec))
+
+        sps = np.array(sps)
+    
+    # reorder openb
+    fs = [tuple(lst) for lst in sps]
+    ss = [tuple(lst) for lst in pts]
+    
+    index_dict = dict((value, idx) for idx,value in enumerate(ss))
+    idx = [index_dict[x] for x in fs]
+    
+    openb = openb.iloc[idx]
+    
+    
     #MAKE Dataset
     
     els = xr.DataArray(
@@ -469,7 +584,7 @@ def jigsaw_(df, bmindx, **kwargs):
           )
 
     nod = nodes.loc[:,['lon','lat']].to_xarray().rename({'index':'nSCHISM_hgrid_node','lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y'})
-    nod = nod.drop('nSCHISM_hgrid_node')
+    nod = nod.drop_vars('nSCHISM_hgrid_node')
 
     dep = xr.Dataset({'depth': (['nSCHISM_hgrid_node'], np.zeros(nod.nSCHISM_hgrid_node.shape[0]))})
 
