@@ -451,7 +451,7 @@ def jigsaw_(df, bmindx, **kwargs):
     #--------------------------------- 
     
     #execute jigsaw
-    ex=subprocess.Popen(args=[os.environ['CONDA_PREFIX']+'/envs/pyPoseidon/bin/jigsaw {}'.format(tag+'.jig')], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+    ex=subprocess.Popen(args=['jigsaw {}'.format(tag+'.jig')], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         
     with open(calc_dir+'err.log', 'w') as f: 
       for line in iter(ex.stderr.readline,b''): 
@@ -584,7 +584,7 @@ def jigsaw_(df, bmindx, **kwargs):
           )
 
     nod = nodes.loc[:,['lon','lat']].to_xarray().rename({'index':'nSCHISM_hgrid_node','lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y'})
-    nod = nod.drop('nSCHISM_hgrid_node')
+    nod = nod.drop_vars('nSCHISM_hgrid_node')
 
     dep = xr.Dataset({'depth': (['nSCHISM_hgrid_node'], np.zeros(nod.nSCHISM_hgrid_node.shape[0]))})
 
