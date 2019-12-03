@@ -58,28 +58,31 @@ coast = cf.GSHHSFeature(
 GSHHS = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
 
 
-
 @pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
-def test_answer(tmpdir, dic):
-    
+def test_elevation(tmpdir, dic):
     # Just elevation
     df = pdem.dem(**dic, dem_source = DEM_SOURCE) #get dem
     df.adjust(natural_earth)
-    
-    c1 = np.isnan(df.Dataset.adjusted.values).sum() == 0
-    
-    # Schism grid
 
-    grid = pg.grid(type = 'tri2d',geometry=dic, coastlines=natural_earth) # read grid
+    assert np.isnan(df.Dataset.adjusted.values).sum() == 0
+
+    
+# Schism grid    
+@pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
+def test_schism_grid(tmpdir, dic):
+    
+    grid = pg.grid(type = 'tri2d',geometry=dic, coastlines=natural_earth)
     xg = grid.Dataset.SCHISM_hgrid_node_x.values
     yg = grid.Dataset.SCHISM_hgrid_node_y.values
 
     df = pdem.dem(**dic, grid_x=xg, grid_y=yg, dem_source=DEM_SOURCE) #get dem
-    df.adjust(natural_earth)
-       
-    c2 = np.isnan(df.Dataset.fval.values).sum() == 0
+    df.adjust(natural_earth) 
+          
+    assert np.isnan(df.Dataset.fval.values).sum() == 0
     
-    ## D3D grid
+# D3D grid
+@pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
+def test_d3d_grid(tmpdir, dic):
     
     grid = pg.grid(type = 'r2d', geometry=dic, resolution=.1)
     gr = grid.Dataset
@@ -88,7 +91,5 @@ def test_answer(tmpdir, dic):
     #get dem
     df = pdem.dem(**dic, grid_x=xp, grid_y=yp, dem_source=DEM_SOURCE)
     df.adjust(natural_earth)
-    
-    c3 = np.isnan(df.Dataset.fval.values).sum() == 0
-    
-    assert all([c1,c2,c3])
+
+    assert np.isnan(df.Dataset.fval.values).sum() == 0

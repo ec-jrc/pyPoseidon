@@ -8,7 +8,7 @@ import numpy as np
 from . import DATA_DIR
 
 
-def cfgrib():
+def test_answer():
     filenames = sorted(DATA_DIR.glob("uvp_*"))
 
     #read meteo files
@@ -21,8 +21,4 @@ def cfgrib():
     #merge the single files
     joined = xr.concat([df0.Dataset.isel(time=slice(0,12)), df1.Dataset.isel(time=slice(0,12)), df2.Dataset.isel(time=slice(0,12)), df3.Dataset], dim='time')
 
-    return joined.equals(df.Dataset) # compare
-
-
-def test_answer():
-    assert cfgrib() == True
+    assert joined.equals(df.Dataset) # compare
