@@ -48,10 +48,24 @@ class d3d():
         
     def __init__(self,**kwargs):
                 
-        self.lon_min = kwargs.get('lon_min', None)
-        self.lon_max = kwargs.get('lon_max', None)
-        self.lat_min = kwargs.get('lat_min', None)
-        self.lat_max = kwargs.get('lat_max', None)
+        self.geometry = kwargs.get('geometry', None)
+        
+        if self.geometry:
+                
+            if isinstance(self.geometry,dict): 
+                self.lon_min = self.geometry['lon_min']
+                self.lon_max = self.geometry['lon_max']
+                self.lat_min = self.geometry['lat_min']
+                self.lat_max = self.geometry['lat_max']
+            elif isinstance(self.geometry,str):
+                  
+                try:
+                    geo = gp.GeoDataFrame.from_file(self.geometry)
+                except:
+                    logger.error('geometry argument not a valid geopandas file')
+                    sys.exit(1)
+            
+                self.lon_min, self.lat_min, self.lon_max, self.lat_max = geo.total_bounds
                
         start_date = kwargs.get('start_date', None)
         self.start_date = pd.to_datetime(start_date)
@@ -411,6 +425,7 @@ class d3d():
         # check if files exist
         if flag :
             if ('dem' in flag) | ('all' in flag):
+                kwargs.update({'lon_min': self.lon_min, 'lat_min': self.lat_min, 'lon_max':self.lon_max, 'lat_max': self.lat_max})
                 self.dem = pdem.dem(**kwargs)
             else:
                 logger.info('reading local dem file ..\n')
@@ -418,6 +433,7 @@ class d3d():
                 rdem = from_dep(dem_source)
                                 
         else:
+            kwargs.update({'lon_min': self.lon_min, 'lat_min': self.lat_min, 'lon_max':self.lon_max, 'lat_max': self.lat_max})
             self.dem = pdem.dem(**kwargs)
 
     @staticmethod 

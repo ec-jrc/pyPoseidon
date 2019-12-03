@@ -327,6 +327,7 @@ class schism():
         # check if files exist
         if flag :
             if ('dem' in flag) | ('all' in flag) :
+                kwargs.update({'lon_min': self.lon_min, 'lat_min': self.lat_min, 'lon_max':self.lon_max, 'lat_max': self.lat_max})
                 self.dem = pdem.dem(**kwargs)
             else:
                 logger.info('dem from grid file\n')
@@ -1033,7 +1034,7 @@ class schism():
         grd.kbp00 = grd.kbp00.astype(int)
         xnodes = grd.to_xarray().rename({'lon':'SCHISM_hgrid_node_x','lat':'SCHISM_hgrid_node_y','kbp00':'node_bottom_index', 'index':'nSCHISM_hgrid_node'})
 
-        xnodes = xnodes.drop('nSCHISM_hgrid_node')
+        xnodes = xnodes.drop_vars('nSCHISM_hgrid_node')
 
         # element based variables
         gt34 = gt3.loc[:,['ga','gb','gc']].values # SCHISM_hgrid_face_nodes
@@ -1117,7 +1118,7 @@ class schism():
 
         gen = gen.rename({'ics':'coordinate_system_flag','h0':'minimum_depth','h_c':'sigma_h_c','theta_b':'sigma_theta_b','theta_f':'sigma_theta_f','h_s':'sigma_maxdepth'})
         
-        gen = gen.drop('one')
+        gen = gen.drop_vars('one')
         
         #set timestamp
         date = header2.loc[:,['start_year','start_month','start_day','start_hour','utc_start']]

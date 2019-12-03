@@ -14,10 +14,7 @@ GRIB_FILES_2 = [(DATA_DIR / filename).as_posix() for filename in ('uvp_201810010
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
 #define in a dictionary the properties of the model..
-case1={'lon_min' : -30,
-     'lon_max' : -10.,
-     'lat_min' : 60.,
-     'lat_max' : 70.,
+case1={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 70.},
      'start_date':'2018-10-1',
      'time_frame':'12H',
      'solver':'d3d',
@@ -34,10 +31,7 @@ case1={'lon_min' : -30,
 #     'update':['all'] # optional to select update quantities
     }
 
-case2={'lon_min' : -30,
-     'lon_max' : -10.,
-     'lat_min' : 60.,
-     'lat_max' : 70.,
+case2={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 70.},
      'start_date':'2018-10-1',
      'time_frame':'24H',
      'solver':'d3d',

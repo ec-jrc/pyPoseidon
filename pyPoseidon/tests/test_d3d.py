@@ -5,10 +5,7 @@ import os
 from . import DATA_DIR
 
 #define in a dictionary the properties of the model..
-case1={'lon_min' : -30,
-     'lon_max' : -10.,
-     'lat_min' : 60.,
-     'lat_max' : 70.,
+case1={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 70.},
      'start_date':'2018-10-1',
      'time_frame':'12H',
      'solver':'d3d',
