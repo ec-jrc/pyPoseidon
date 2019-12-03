@@ -10,8 +10,8 @@ import numpy as np
 from . import DATA_DIR
 
 
-GRID_FILE = DATA_DIR / "hgrid.gr3"
-DEM_FILE = DATA_DIR / "dem.nc"
+GRID_FILE = (DATA_DIR / 'hgrid.gr3').as_posix()
+DEM_FILE = (DATA_DIR / 'dem.nc').as_posix()
 METEO_FILES_1 = [(DATA_DIR / name).as_posix() for name in ('uvp_2018100100.grib', 'uvp_2018100112.grib')]
 METEO_FILES_2 = [(DATA_DIR / name).as_posix() for name in ('uvp_2018100100.grib', 'uvp_2018100112.grib', 'uvp_2018100200.grib', 'uvp_2018100212.grib')]
 
@@ -89,12 +89,12 @@ def schism(tmpdir):
 
     #creating a sequence of folder from which we read the meteo.
     meteo = []
-    PATH= PWD + '/data/'
     for date in date_list:
         end_date= pd.to_datetime(date) + pd.to_timedelta(info['time_frame'])
         end_date = end_date.strftime(format='%Y-%m-%d %H:%M:%S')
         dr = pd.date_range(date, end_date, freq='12H')
-        dur = [PATH+'uvp_'+datetime.datetime.strftime(x, '%Y%m%d%H')+'.grib' for x in dr]
+        names = ['uvp_'+ datetime.datetime.strftime(x, '%Y%m%d%H') + '.grib' for x in dr]
+        dur = [ (DATA_DIR / name).as_posix() for name in names ] 
         meteo.append(dur)
 
     info.update({'meteo_source':meteo})
