@@ -103,15 +103,70 @@ def jigsaw(**kwargs):
         
     elif isinstance(geometry,str):
         
-        df = jcustom(**kwargs)
+        if geometry=='global': 
+            
+            df = sgl(**kwargs)
+            
+            bmindx = df.tag.min()
+            
+            gr = jigsaw_(df, bmindx, **kwargs)    
+                       
+        else:
         
-        bmindx = df.tag.min()
+            df = jcustom(**kwargs)
         
-        gr = jigsaw_(df, bmindx, **kwargs)
+            bmindx = df.tag.min()
+        
+            gr = jigsaw_(df, bmindx, **kwargs)
           
     
     return gr
 
+
+def sgl(**kwargs):
+    
+    try:
+        geo = gp.GeoDataFrame.from_file(kwargs.get('coastlines',None))
+    except:
+        logger.error('geometry argument not a valid file')
+        sys.exit(1)
+    
+    geo['tag'] = - (geo.index + 1)
+    
+    idx=0
+    dic={}
+    for i, line  in geo.iloc[:-1].iterrows():
+        lon=[]
+        lat=[]
+        try:
+            for x,y in line.geometry.boundary.coords[:]:
+                lon.append(x)
+                lat.append(y)
+            dic.update({'line{}'.format(idx):{'lon':lon,'lat':lat,'tag':line.tag}})
+            idx += 1
+        except:
+            for x,y in line.geometry.boundary[0].coords[:]:
+                lon.append(x)
+                lat.append(y)
+            dic.update({'line{}'.format(idx):{'lon':lon,'lat':lat,'tag':line.tag}})
+            idx += 1
+            
+    for i, line  in geo.iloc[-1:].iterrows():
+        lon=[]
+        lat=[]
+        for x,y in line.geometry.coords[:]:
+            lon.append(x)
+            lat.append(y)
+            dic.update({'line{}'.format(idx):{'lon':lon,'lat':lat,'tag':line.tag}})
+
+    dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
+
+    df = pd.concat(dict_of_df, axis=0)
+
+    df['z']=0
+    df = df.drop_duplicates() # drop the repeat value on closed boundaries
+
+    return df
 
 
 def jcustom(**kwargs):
@@ -536,11 +591,17 @@ def jigsaw_(df, bmindx, **kwargs):
         if not bf.empty:
             isl.append(bf)
             ib += 1
+    
+    if isl :   
+         
+        landb = pd.concat(isl)
+    
+        land_i = sorted(landb.index.levels[0], key=lambda x: int(x.split('_')[2]))
+    
+    else:
         
-    landb = pd.concat(isl)
-    
-    land_i = sorted(landb.index.levels[0], key=lambda x: int(x.split('_')[2]))
-    
+        land_i = []
+        
     # WATER Boundaries (positive tag)
     
     wb = 1
@@ -552,33 +613,37 @@ def jigsaw_(df, bmindx, **kwargs):
 
         wbs.append(bf)
         wb += 1
+    
+    if wbs:   
+         
+        openb = pd.concat(wbs)
         
-    openb = pd.concat(wbs)
+        open_i = sorted(openb.index.levels[0], key=lambda x: int(x.split('_')[2]))    
     
-    open_i = sorted(openb.index.levels[0], key=lambda x: int(x.split('_')[2]))
+        if openb.index.levels[0].shape[0] == 1: # sort the nodes if open box 
     
-    
-    if openb.index.levels[0].shape[0] == 1: # sort the nodes if open box 
-    
-        pts = openb[['lon','lat']].values
+            pts = openb[['lon','lat']].values
 
-        origin = [openb.mean()['lon'], openb.mean()['lat']]
+            origin = [openb.mean()['lon'], openb.mean()['lat']]
 
-        refvec = [1, 0]
+            refvec = [1, 0]
 
-        sps = sorted(pts, key=lambda po: clockwiseangle_and_distance(po, origin, refvec))
+            sps = sorted(pts, key=lambda po: clockwiseangle_and_distance(po, origin, refvec))
 
-        sps = np.array(sps)
+            sps = np.array(sps)
     
-    # reorder openb
-    fs = [tuple(lst) for lst in sps]
-    ss = [tuple(lst) for lst in pts]
+            # reorder openb
+            fs = [tuple(lst) for lst in sps]
+            ss = [tuple(lst) for lst in pts]
     
-    index_dict = dict((value, idx) for idx,value in enumerate(ss))
-    idx = [index_dict[x] for x in fs]
+            index_dict = dict((value, idx) for idx,value in enumerate(ss))
+            idx = [index_dict[x] for x in fs]
     
-    openb = openb.iloc[idx]
+            openb = openb.iloc[idx]
     
+    else:
+        
+        open_i = []
     
     #MAKE Dataset
     
