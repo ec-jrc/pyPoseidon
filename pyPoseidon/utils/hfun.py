@@ -6,11 +6,11 @@ from .limgrad import *
 from matplotlib import tri
 
 
-def hfun(dem, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
+def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
     
       
-    X, Y = np.meshgrid(dem.Dataset.longitude.values,dem.Dataset.latitude.values)
-    V = dem.Dataset.values
+    X, Y = np.meshgrid(data.longitude.values,data.latitude.values)
+    V = data.values
     
     #scale
     hmin = resolution_min                       # min. H(X) [deg.]
@@ -42,8 +42,8 @@ def hfun(dem, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhd
     ##OUTPUT
     
     dh = xr.Dataset({'z': (['longitude', 'latitude'], cfun)},
-                coords={'longitude': ('longitude', dem.Dataset.longitude.values),
-                        'latitude': ('latitude', dem.Dataset.latitude.values)})
+                coords={'longitude': ('longitude', data.longitude.values),
+                        'latitude': ('latitude', data.latitude.values)})
     
     
     return dh
