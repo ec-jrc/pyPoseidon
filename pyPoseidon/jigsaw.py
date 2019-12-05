@@ -17,7 +17,7 @@ import shapely
 import subprocess
 import sys
 
-from pyPoseidon.utils.stereo import to_lat_lon
+from pyPoseidon.utils.stereo import to_lat_lon, to_stereo
 from pyPoseidon.utils.sort import *
 import pyPoseidon.dem as pdem
 import logging        
@@ -137,8 +137,59 @@ def sgl(**kwargs):
     try:
         geo = gp.GeoDataFrame.from_file(kwargs.get('coastlines',None))
     except:
-        logger.error('geometry argument not a valid file')
-        sys.exit(1)
+        logger.warning('coastlines is not a file, trying with geopandas Dataset')
+        try:
+            geo = kwargs.get('coastlines',None)
+        except:    
+            logger.error('coastlines argument not valid ')
+            sys.exit(1)
+    
+        # Manage coastlines
+        logger.info('preparing coastlines')
+        #Kaspian Sea, if present
+        kasp = ((geo.bounds.miny > 36.) & (geo.bounds.maxy < 48.) & (geo.bounds.maxx < 55.) & (geo.bounds.minx > 45.))
+        geo = geo.drop(geo.loc[kasp].index)
+    
+        #ANTARTICA
+        anta_mask = (geo.bounds.miny < -89.) # indentify antartica
+        anta = geo.loc[anta_mask]
+        indx = anta.index # keep index
+    
+        anta = pd.DataFrame(anta.boundary.values[0].coords[:], columns=['lon','lat']) # convert boundary values to pandas
+        d1 = anta.where(anta.lon==anta.lon.max()).dropna().index[1:] # get artificial boundaries as -180/180
+        d2 = anta.where(anta.lon==anta.lon.min()).dropna().index[1:]
+        anta = anta.drop(d1).drop(d2) # drop the points
+        d3 = anta.where(anta.lat==anta.lat.min()).dropna().index # drop lat=-90 line
+        anta = anta.drop(d3)
+        an = gp.GeoDataFrame({'geometry' : [shapely.geometry.LineString(anta.values)], 'length':shapely.geometry.LineString(anta.values).length }, index=indx) # put together a LineString
+        geo.loc[indx] = shapely.geometry.LineString(anta.values) # put it back to geo
+    
+        # International Meridian
+        m1 = geo[geo.bounds.minx == -180.].index
+        m2 = geo[geo.bounds.maxx == 180.].index
+        mm = np.concatenate((m1, m2)) # join them
+        mm = [j for j in mm if j!=indx] # subtract antartica
+    
+        # convert to u,v (stereographic coordinates)
+        for idx, poly in geo.iterrows():
+            geo.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: to_stereo(x,y), poly.geometry)
+    
+        w = geo.drop(indx) # get all polygons
+        ww = w.loc[mm] # join the split polygons
+        gw = gp.GeoDataFrame(geometry = list(ww.buffer(.0001).unary_union)) # merge the polygons that are split (around -180/180)
+    
+        w = w.drop(mm)
+        # Check antartica LineString
+        if not geo.iloc[indx].geometry.values[0].is_ring:
+            ca = gp.GeoDataFrame(geometry = [shapely.geometry.LinearRing(geo.loc[indx].geometry.values[0])], index=indx)
+            ca['geometry'] = shapely.geometry.LineString(ca.geometry.values[0])
+        else:
+            ca = geo.loc[indx]
+    
+        # PUT ALL TOGETHER    
+        geo = pd.concat([w, gw, ca], ignore_index=True).reset_index(drop=True)        
+    
+    logger.info('storing boundaries')
     
     geo['tag'] = - (geo.index + 1)
     

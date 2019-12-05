@@ -58,7 +58,6 @@ window4 = {
 
 def test_answer(tmpdir, window, coast):
     
-    print(os.environ['CONDA_PREFIX'])
     df = pg.grid(type='tri2d',geometry=window, coastlines=coast, rpath = str(tmpdir)+'/')
     
     check = np.isnan(df.Dataset.depth.values).sum() == 0
