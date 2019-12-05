@@ -17,6 +17,7 @@ import shapely
 import subprocess
 import sys
 
+from pyPoseidon.utils.stereo import to_lat_lon
 from pyPoseidon.utils.sort import *
 import pyPoseidon.dem as pdem
 import logging        
@@ -109,7 +110,15 @@ def jigsaw(**kwargs):
             
             bmindx = df.tag.min()
             
-            gr = jigsaw_(df, bmindx, **kwargs)    
+            gr = jigsaw_(df, bmindx, **kwargs)   
+            
+            # convert to lat/lon
+            u, v = gr.SCHISM_hgrid_node_x.values, gr.SCHISM_hgrid_node_y.values 
+            
+            rlon, rlat = to_lat_lon(u,v)
+            
+            gr['SCHISM_hgrid_node_x'].values = rlon
+            gr['SCHISM_hgrid_node_y'].values = rlat
                        
         else:
         

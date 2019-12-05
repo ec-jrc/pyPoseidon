@@ -14,3 +14,26 @@ def to_stereo(lon,lat, R=1):
     
     return u,v
     
+def to_lat_lon(u, v, R=1):
+    
+    #to 3D
+    c=4*R**2/(u**2+v**2+4*R**2)
+    
+    x=c*u
+    y=c*v
+    z=2*c*R-R
+    
+    #to lat/lon
+    rad = x**2+y**2+z**2
+    rad = np.sqrt(rad)
+    
+    rlat = np.arcsin(z/rad)
+    rlon = np.arctan2(y,x)
+    
+    rlat = rlat * 180 / np.pi
+    rlon = rlon * 180 / np.pi
+    
+    return rlon,rlat
+    
+    
+    
