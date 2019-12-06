@@ -613,15 +613,47 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
 
 
 
-def netcdf(filenames=None, **kwargs):
+def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_by='by_coords', **kwargs):
 
 
     #---------------------------------------------------------------------
     logger.info('extracting meteo\n')
     #---------------------------------------------------------------------
 
-    return xr.open_mfdataset(filenames, combine='by_coords')
+    data = xr.open_mfdataset(filenames, combine=combine_by, **kwargs)
+    
+    #rename var/coords
+    time_coord = [x for x in data.coords if 'time' in data[x].long_name.lower() ]
+    lon_coord = [x for x in data.coords if 'longitude' in data[x].long_name.lower() ]
+    lat_coord = [x for x in data.coords if 'latitude' in data[x].long_name.lower() ]
 
+    sn={}
+    for x in data.variables:
+        try:
+            sn.update({x:data[x].standard_name.lower()})
+        except:
+            sn.update({x:data[x].long_name.lower()})
+            
+    msl_ = [x for (x,v) in sn.items() if 'pressure' in v ]
+    u10_ = [x for (x,v) in sn.items() if ('u wind' in v) | ('u-component' in v)]
+    v10_ = [x for (x,v) in sn.items() if ('v wind' in v) | ('v-component' in v)]
+    
+    data = data.rename({msl_[0]:'msl',u10_[0]:'u10',v10_[0]:'v10',lon_coord[0]:'longitude',lat_coord[0]:'latitude'})
+    
+    
+    data = data.sel(longitude=slice(lon_min,lon_max)).sel(latitude=slice(lat_min,lat_max))
+    
+    try:
+        data = data.sel(time=slice(start_date,end_date))
+    except:
+        data = data.sel(time=slice(start_date,start_date + pd.to_timedelta(time_frame)))
+
+    s,f,i = irange
+    data = data.isel(time=slice(s,f,i))
+    
+    
+    return data
+    
     #---------------------------------------------------------------------
     logger.info('meteo done\n')
     #---------------------------------------------------------------------
