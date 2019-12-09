@@ -85,7 +85,7 @@ class schism():
                 scale='{}m'.format({'l':110, 'i':50, 'h':10}[cr]))
     
            
-            self.coastlines = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
+            self.coastlines = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
     
         else:
             
@@ -592,12 +592,20 @@ class schism():
          elif isinstance(meteo,pmeteo.meteo):
              dic.update({'meteo':meteo.Dataset.attrs})
 
+         coast=self.__dict__.get('coast_resolution', None)
+         coastline=self.__dict__.get('coastlines', None)
+         if isinstance(coast,str):
+             dic.update({'coastlines':None})
+         elif isinstance(coastline,gp.GeoDataFrame):  # TODO
+             dic.update({'coastlines':None})
+
          dic['version']=pyPoseidon.__version__
                
          for attr, value in dic.items():
-             if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
-             if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
-             if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
+             if isinstance(value, datetime.datetime) : dic[attr]=value.isoformat()
+             if isinstance(value, pd.Timedelta) : dic[attr]=value.isoformat()          
+             if isinstance(value, pd.DataFrame) : dic[attr]=value.to_dict()
+             
          json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)
          
          
