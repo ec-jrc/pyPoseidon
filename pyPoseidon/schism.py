@@ -650,7 +650,7 @@ class schism():
             ma.append(g)
         
         try:
-            self.meteo = xr.concat(ma,dim='time')
+            self.meteo = xr.merge(ma)
         except:
             logger.warning('No meteo files loaded')
             pass

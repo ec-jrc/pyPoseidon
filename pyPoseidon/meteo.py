@@ -157,10 +157,16 @@ class meteo:
         model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
 
         s = getattr(model,solver) # get solver class
-
-
         var_list = kwargs.pop('vars', ['msl','u10','v10'])
-        s.to_force(self.Dataset,vars=var_list, **kwargs)
+        
+        split_by = get_value(self,kwargs,'split_by',None)
+        if split_by :
+            times, datasets = zip(*self.Dataset.groupby('time.{}'.format(split_by)))
+            mpaths = ['sflux/sflux_air_1.{:03d}.nc'.format(t + 1) for t in np.arange(len(times))]
+            for das,mpath in list(zip(datasets,mpaths)):
+                s.to_force(das,vars=var_list, filename=mpath, **kwargs)
+        else:  
+            s.to_force(self.Dataset,vars=var_list, **kwargs)
 
 
 def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by='by_coords', **kwargs):
