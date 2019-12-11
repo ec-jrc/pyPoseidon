@@ -11,15 +11,10 @@ def readme():
 
 # copy structure from xarray/xarray-extras setup
 
-
-
 DISTNAME = 'pyPoseidon'
 
-MAJOR = 0
-MINOR = 4
-MICRO = 0
 ISRELEASED = False
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+VERSION = '0.2.0'
 QUALIFIER = ''
 
 
