@@ -1,11 +1,20 @@
 # .pyc files
-*.pyc
+*.py[cod]
 
 # mac files
 *.DS_Store
 
-# the local test folder 
+# cfgrib idx
+*.idx
+
+# the local test folder
 examples/test
+
+# the local jigsaw folder
+pyPoseidon/tests/jigsaw/*
+
+# the local Notebook folder
+Notebooks/* 
 
 # dotx files
 *.dotx
@@ -28,9 +37,6 @@ examples/test
 # zip files
 *.zip
 
-# netcdf files
-*.nc
-
 # Tide files
 *_v1
 
@@ -42,16 +48,33 @@ examples/test
 *.dat
 
 #ignore .jupyter chekpoints folder
-.ipynb_checkpoints/
+.ipynb_checkpoints
 
 # all temp folders
 tmp/
+
+# all temp folders
+dask-worker-space/
 
 # Setuptools distribution folder.
 /dist/
 
 # Build folder.
 build/
+docs/_build
 
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
+
+.pytest_cache
+.cache
+*.egg
+__pycache__
+*.egg-info
+github.token
+*.log
+
+# direnv
+.direnv/
+.envrc
+venv/

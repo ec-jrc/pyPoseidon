@@ -1,7 +1,7 @@
 Framework for Hydrological simulations
 =======================================
 
-This is a development project utilising multiple solvers (currently DELFT3D, SCHISM to follow soon) for considering storm surge. The purpose is to create a simple, portable and transparent way of setting up, running and analysing hydrodynamic computations through python scripts and Jupyter Notebooks (http://jupyter.org). See Notebooks in examples/ and Notebooks/ for relevant prototypes.
+This is a development project utilising multiple solvers (currently DELFT3D & SCHISM) for considering storm surge. The purpose is to create a simple, portable and transparent way of setting up, running and analysing hydrodynamic computations through python scripts and Jupyter Notebooks (http://jupyter.org). See Notebooks in examples/ and Notebooks/ for relevant prototypes.
 
 ## Instalation
 
@@ -23,13 +23,13 @@ You should have an environment named pyPoseidon (check it with 'conda env list')
 
 Activate the environment 
 
-* source activate pyPoseidon
+* conda activate pyPoseidon
 
 For using the environment in Jupyter notebooks use
 
 * conda config --add channels conda-forge
 * conda install ipykernel
-* python -m ipykernel install --name pyPoseidon
+* python -m ipykernel install --name pyPoseidon --user
 
 Finally, install pyPoseidon the usual way
 
@@ -41,26 +41,30 @@ From a new terminal window, start Jupyter with
 
 * jupyter notebook
 
-Navigate to the pyPoseidon/examples & pyPoseidon/Notebook folders for using the Notebooks. 
+Navigate to pyPoseidon/examples folder for testing the Notebooks. 
 
 
 ### Prerequisities
 
 DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. See Wiki for more details.
 
+SCHISM needs to be compiled for your system. You can download it from  http://columbia.vims.edu/schism/tags/. See http://ccrm.vims.edu/schismweb/ for more info.
+
 ## Tests
 
-No tests are available at the moment.
+There are 2 sets of tests. You can run pyPoseidon unitests with the standard command
 
-## Authors
+* pytest 
 
-* **George Breyiannis** 
+In order to test also the solver integration please specify the PATH to the executables in your system such as 
 
+* export D3D = '/path_to_folder_bin/lnx64/'
+* export SCHISM = '/path_to_schism_executable'
 
-## Acknowledgments
+Then use 
 
-* All the people that teach me stuff.  
+* pytest --with--solvers
 
 ## License
-* The project is released under the GPL v3 license. 
+* The project is released under the EUPL v1.2 license. 
 
