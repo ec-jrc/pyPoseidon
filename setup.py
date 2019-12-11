@@ -14,7 +14,7 @@ def readme():
 DISTNAME = 'pyPoseidon'
 
 ISRELEASED = False
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 QUALIFIER = ''
 
 
