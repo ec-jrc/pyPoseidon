@@ -1,8 +1,10 @@
 import numpy as np
 
 
-def to_stereo(lon,lat, R=1):
+def to_stereo(x,y, R=1):
 
+    lon = np.array(x)
+    lat = np.array(y)
     # to 3D
     kx=np.cos(lat/180*np.pi)*np.cos(lon/180*np.pi)*R
     ky=np.cos(lat/180*np.pi)*np.sin(lon/180*np.pi)*R
