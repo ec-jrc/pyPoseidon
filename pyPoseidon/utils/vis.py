@@ -434,7 +434,14 @@ class pplot(object):
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values)
         
-        fig = plt.figure(figsize=(12,8)) 
+        # set figure size
+        xr = x.max() - x.min() 
+        yr = y.max() - y.min()
+        ratio = yr/xr
+        xf=12
+        yf=np.ceil(12*ratio).astype(int)
+        
+        fig = plt.figure(figsize=(xf,yf)) 
         vmin = kwargs.get('vmin', z.min())
         vmax = kwargs.get('vmax', z.max())
     
@@ -468,7 +475,7 @@ class pplot(object):
             add_arts = im.collections
             text = 'time={}'.format(t[i])
         #te = ax.text(90, 90, text)
-            an = ax.annotate(text, xy=(0.05, -.1), xycoords='axes fraction')
+            an = ax.annotate(text, xy=(0.05, -.2), xycoords='axes fraction')
             ims.append(add_arts + [an])
             
 #            if cr is not None: TO DO
@@ -485,7 +492,7 @@ class pplot(object):
 
 
 #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
-        cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
+        cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both',fraction=0.017, pad=0.04)
 #plt.colorbar()
 
         v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
