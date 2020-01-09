@@ -36,6 +36,7 @@ from pyPoseidon.utils.get_value import get_value
 from pyPoseidon.utils.converter import myconverter
 from pyPoseidon.utils import obs
 from pyPoseidon.utils.cpoint import closest_node
+from pyPoseidon.utils.hfun import hfun
 
 import logging
 logger = logging.getLogger('pyPoseidon')
@@ -43,6 +44,7 @@ logger = logging.getLogger('pyPoseidon')
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
 DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
+TEST_DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/tests/data/'
         
 class schism():
      
@@ -338,7 +340,18 @@ class schism():
 
         if not kwargs : kwargs = self.__dict__.copy()
                                          
-        # Grid         
+        # Grid  
+        dem = pdem.dem(**self.geometry, dem_source = TEST_DATA_PATH + 'dem.nc')
+        
+        res_min = get_value(self,kwargs,'resolution_min',.01) 
+        res_max = get_value(self,kwargs,'resolution_max',.5)
+        dhdx = get_value(self,kwargs,'dhdx',.15)
+        
+        w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
+        w.to_netcdf(self.rpath + 'hfun.nc') # save hfun
+        
+        kwargs.update({'hfun':self.rpath + 'hfun.nc'})
+               
         self.grid=pgrid.grid(type='tri2d',**kwargs)
                  
         # set lat/lon from file
@@ -419,7 +432,13 @@ class schism():
         #save hgrid.gr3
         try:
         
-            bat = -self.dem.Dataset.ival.values.astype(float) #minus for the hydro run
+            try:
+            
+                bat = -self.dem.Dataset.fval.values.astype(float) #minus for the hydro run
+            
+            except:
+                
+                bat = -self.dem.Dataset.ival.values.astype(float) #minus for the hydro run
                             
             self.grid.Dataset.depth.loc[:bat.size] = bat
                             
