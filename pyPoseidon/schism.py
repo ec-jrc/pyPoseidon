@@ -78,7 +78,7 @@ class schism():
         coastlines = kwargs.get('coastlines',None)
         
         if coastlines is None:
-            cr = kwargs.get('coast_resolution', 'l')
+            cr = kwargs.get('coast_resolution', 'i')
     
             # world polygons - user input
             coast = cf.NaturalEarthFeature(
