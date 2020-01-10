@@ -71,7 +71,7 @@ def test_elevation(tmpdir, dic):
 @pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
 def test_schism_grid(tmpdir, dic):
     
-    grid = pg.grid(type = 'tri2d',geometry=dic, coastlines=natural_earth)
+    grid = pg.grid(type = 'tri2d',geometry=dic, coastlines=natural_earth, rpath = str(tmpdir)+'/')
     xg = grid.Dataset.SCHISM_hgrid_node_x.values
     yg = grid.Dataset.SCHISM_hgrid_node_y.values
 
@@ -84,7 +84,7 @@ def test_schism_grid(tmpdir, dic):
 @pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
 def test_d3d_grid(tmpdir, dic):
     
-    grid = pg.grid(type = 'r2d', geometry=dic, resolution=.1)
+    grid = pg.grid(type = 'r2d', geometry=dic, resolution=.1, rpath = str(tmpdir)+'/')
     gr = grid.Dataset
     xp,yp=gr.lons, gr.lats
 
