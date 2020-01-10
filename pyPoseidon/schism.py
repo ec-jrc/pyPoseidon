@@ -348,6 +348,9 @@ class schism():
         dhdx = get_value(self,kwargs,'dhdx',.15)
         
         w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
+        if not os.path.exists(self.rpath): # check if run folder exists
+            os.makedirs(self.rpath)
+        
         w.to_netcdf(self.rpath + 'hfun.nc') # save hfun
         
         kwargs.update({'hfun':self.rpath + 'hfun.nc'})
