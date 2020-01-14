@@ -234,6 +234,7 @@ class scast():
             info['date'] = self.date
             info['start_date'] = date
             info['time_frame'] = time_frame
+            info['end_date'] = date + pd.to_timedelta(time_frame)
             info['meteo_source'] = meteo
             info['rpath'] = rpath
             info['grid_file'] = ppath + '/hgrid.gr3'
