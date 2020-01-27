@@ -628,7 +628,7 @@ class schism():
     def read_folder(self, rfolder,**kwargs):
         
         self.rpath = rfolder
-        s = glob.glob(rfolder + '/param*')
+        s = glob.glob(rfolder + '/param.nml')
         mfiles = glob.glob(rfolder + '/sflux/*.nc')
         
         hfile = rfolder + '/hgrid.gr3' # Grid
