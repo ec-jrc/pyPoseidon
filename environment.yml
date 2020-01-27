@@ -36,3 +36,7 @@ dependencies:
   - colorlog
   - pygeos
   - xesmf
+  - pip
+  - pip:    
+     - f90nml
+  
