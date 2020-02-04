@@ -32,7 +32,7 @@ case={'solver':'schism',
      'xr_kwargs': {'concat_dim':'step'},
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
-     'parameters':{'dt':400, 'rnday':.5, 'hotout':1, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
+     'parameters':{'dt':400, 'rnday':.5, 'nhot':1, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
 
 #define in a dictionary the properties of the model..
@@ -51,7 +51,7 @@ check={'solver':'schism',
      'xr_kwargs': {'concat_dim':'step'},
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
-     'parameters':{'dt':400, 'rnday':1.5, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
+     'parameters':{'dt':400, 'rnday':1.5, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
 
 

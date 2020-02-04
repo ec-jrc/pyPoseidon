@@ -38,6 +38,7 @@ from pyPoseidon.utils.converter import myconverter
 from pyPoseidon.utils import obs
 from pyPoseidon.utils.cpoint import closest_node
 from pyPoseidon.utils.hfun import hfun
+from pyPoseidon.utils.unml import unml
 
 import logging
 logger = logging.getLogger('pyPoseidon')
@@ -161,18 +162,19 @@ class schism():
         
         #update key values
         
-        patch = {'OPT':{'start_year' : self.start_date.year, 'start_month' : self.start_date.month,
-                  'start_day' : self.start_date.day, 'start_hour' : self.start_date.hour}}
-                
+        patch = {'start_year' : self.start_date.year, 'start_month' : self.start_date.month,
+                  'start_day' : self.start_date.day, 'start_hour' : self.start_date.hour}
+        
+        params = unml(params, patch)        
         #update 
         if dic :
-            patch.update(dic)
+            params = unml(params, dic)
         
         #test rnday
         if np.float(params['CORE']['rnday']) * 24 * 3600 > (self.end_date - self.start_date).total_seconds():
             #--------------------------------------------------------------------- 
             logger.warning('rnday larger than simulation range\n')
-            logger.warning('rnday={} while simulation time is {}\n'.format(params['rnday'],(self.end_date - self.start_date).total_seconds()/(3600*24.)))
+            logger.warning('rnday={} while simulation time is {}\n'.format(params['core']['rnday'],(self.end_date - self.start_date).total_seconds()/(3600*24.)))
             #---------------------------------------------------------------------             
             
         
@@ -186,7 +188,7 @@ class schism():
             #---------------------------------------------------------------------             
             
             path = get_value(self,kwargs,'rpath','./')
-            self.params = f90nml.patch(config_file, patch, path + 'param.nml') 
+            self.params.write(path + 'param.nml',force=True)
 
 #============================================================================================        
 # METEO
@@ -327,20 +329,7 @@ class schism():
         if not kwargs : kwargs = self.__dict__.copy()
                                          
         # Grid  
-        dem = pdem.dem(**self.geometry, dem_source = TEST_DATA_PATH + 'dem.nc')
-                
-        res_min = get_value(self,kwargs,'resolution_min',.01) 
-        res_max = get_value(self,kwargs,'resolution_max',.5)
-        dhdx = get_value(self,kwargs,'dhdx',.15)
-        
-        w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
-        if not os.path.exists(self.rpath): # check if run folder exists
-            os.makedirs(self.rpath)
-        
-        w.to_netcdf(self.rpath + 'hfun.nc') # save hfun
-        
-        kwargs.update({'hfun':self.rpath + 'hfun.nc'})
-               
+                       
         self.grid=pgrid.grid(type='tri2d',**kwargs)
                  
         # set lat/lon from file

@@ -228,9 +228,10 @@ class scast():
             for attr in list(args):
                 info[attr] = kwargs[attr]
             
-            info['config_file'] = ppath + 'param.in'
+            info['config_file'] = ppath + 'param.nml'
                                         
-            #update the properties   
+            #update the properties         
+              
             info['date'] = self.date
             info['start_date'] = date
             info['time_frame'] = time_frame
@@ -324,7 +325,7 @@ class scast():
             logger.debug('create restart file')           
             
             #check for combine hotstart
-            hotout=int((date - self.date).total_seconds()/info['params']['vals']['dt'])
+            hotout=int((date - self.date).total_seconds()/info['params']['core']['dt'])
             logger.debug('hotout_it = {}'.format(hotout))    
 
             resfile=glob.glob(ppath+'/outputs/hotstart_it={}.nc'.format(hotout))
@@ -362,7 +363,7 @@ class scast():
 
             flag = get_value(self,kwargs,'update',[])
             
-            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_air_1.001.nc']]
+            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_air_1.0001.nc']]
 
             if (np.any(check)==False) or ('meteo' in flag):
                
@@ -374,8 +375,8 @@ class scast():
             
             # modify param file
             rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
-            hotout_write = int(rnday_new * 24 * 3600 / info['params']['vals']['dt'])
-            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'hotout_write' : hotout_write , 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
+            hotout_write = int(rnday_new * 24 * 3600 / info['params']['core']['dt'])
+            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'nhot_write' : hotout_write , 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
             
             m.config(output=True, **info)
                                               
