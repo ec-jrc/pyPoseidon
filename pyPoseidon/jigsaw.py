@@ -20,6 +20,7 @@ import sys
 from pyPoseidon.utils.stereo import to_lat_lon, to_stereo
 from pyPoseidon.utils.sort import *
 import pyPoseidon.dem as pdem
+from pyPoseidon.utils.hfun import *
 import logging        
         
 logger = logging.getLogger('pyPoseidon')
@@ -104,7 +105,11 @@ def jigsaw(**kwargs):
         
     elif isinstance(geometry,str):
         
-        if geometry=='global': 
+        if geometry=='global':
+                 
+            hfun0 = hfun_(kwargs.get('coastlines',None),kwargs.get('res',.1))
+            
+            kwargs.update({'hfun':hfun0}) 
             
             df = sgl(**kwargs)
             
@@ -112,13 +117,17 @@ def jigsaw(**kwargs):
             
             gr = jigsaw_(df, bmindx, **kwargs)   
             
-            # convert to lat/lon
-            u, v = gr.SCHISM_hgrid_node_x.values, gr.SCHISM_hgrid_node_y.values 
             
-            rlon, rlat = to_lat_lon(u,v)
+            convert = kwargs.get('to_lat_lon',True)
             
-            gr['SCHISM_hgrid_node_x'].values = rlon
-            gr['SCHISM_hgrid_node_y'].values = rlat
+            if convert :
+                # convert to lat/lon
+                u, v = gr.SCHISM_hgrid_node_x.values, gr.SCHISM_hgrid_node_y.values 
+            
+                rlon, rlat = to_lat_lon(u,v)
+            
+                gr['SCHISM_hgrid_node_x'].values = rlon
+                gr['SCHISM_hgrid_node_y'].values = rlat
                        
         else:
         
@@ -511,38 +520,16 @@ def jigsaw_(df, bmindx, **kwargs):
     
     
     geo(df,path=path,tag=tag)
-    
-      
+          
     hfun = kwargs.get('hfun', None)
     
-    if hfun:
-        dh = xr.open_dataset(hfun)
-                
-        # write hfun file
-    
-        fhfun = path + tag+'-hfun.msh'
-        # write header
-        with open(fhfun,'w') as f:
-            f.write('#{}; created by pyPoseidon\n'.format(tag+'-hfun.msh'))
-            f.write('MSHID=3;EUCLIDEAN-GRID\n')
-            f.write('NDIMS=2\n')
-            f.write('COORD=1;{}\n'.format(dh.longitude.size))
-        
-        with open(fhfun, 'a') as f:
-            np.savetxt(f, dh.longitude.values)
-        
-        with open(fhfun, 'a') as f:
-            f.write('COORD=2;{}\n'.format(dh.latitude.size))
-        
-        with open(fhfun, 'a') as f:
-            np.savetxt(f, dh.latitude.values)
-    
-        with open(fhfun, 'a') as f:
-            f.write('VALUE={};1\n'.format(dh.z.size))
-    
-        with open(fhfun, 'a') as f:
-            np.savetxt(f, dh.z.values.flatten())
-      
+    if hfun is not None:
+
+        if isinstance(hfun,str):
+            dh = xr.open_dataset(hfun)
+            to_hfun_grid(dh,path + tag+'-hfun.msh')   # write hfun file  
+        else:
+            to_hfun_mesh(hfun,path + tag+'-hfun.msh') 
     
     # write jig file
     fjig = path + '/' + tag+'.jig'
