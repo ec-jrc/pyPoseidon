@@ -12,6 +12,7 @@ from mayavi import mlab
 from mayavi.sources.builtin_surface import BuiltinSurface
 import xarray as xr
 import numpy as np
+import pandas as pd
 
 
 @xr.register_dataset_accessor('pplot3')
@@ -88,6 +89,13 @@ class pplot3(object):
         
         mlab.colorbar(grd, title='Bathymetry', orientation='vertical')
         
+        coast = kwargs.get('coastlines',None)
+        
+        if coast is not None :
+            src, lines = self.c3d(coast,R=R)
+            mlab.pipeline.surface(src, color=(1,0,0), line_width=10, opacity=0.8)
+        
+        
         mlab.show()
         return
     
@@ -114,7 +122,92 @@ class pplot3(object):
         self.globe(R - .02)
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(px,py,pz,tri3, representation='wireframe', opacity=1.0)
+        
+        coast = kwargs.get('coastlines',None)
+        
+        if coast is not None :
+            src, lines = self.c3d(coast,R=R)
+            mlab.pipeline.surface(src, color=(1,0,0), line_width=10, opacity=0.8)
                                     
         mlab.show()
         return
                 
+
+    def c3d(self,coastlines,R=1):
+        
+        bo = coastlines.geometry.values
+        
+        dic={}
+        for l in range(len(bo)):
+        #    print(l)
+            lon=[]
+            lat=[]
+            try:
+                for x,y in bo[l].boundary.coords[:]: 
+                    lon.append(x)
+                    lat.append(y)
+            except:
+                for x,y in bo[l].boundary[0].coords[:]: 
+                    lon.append(x)
+                    lat.append(y)
+
+        
+            dic.update({'line{}'.format(l):{'lon':lon,'lat':lat}})
+
+        dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
+        dff = pd.concat(dict_of_df, axis=0)
+        dff['z']=0
+        dff.head()
+        
+        # add 3D coordinates
+        dff['x']=np.cos(dff.lat/180*np.pi)*np.cos(dff.lon/180*np.pi)*R
+        dff['y']=np.cos(dff.lat/180*np.pi)*np.sin(dff.lon/180*np.pi)*R
+        dff['z']=np.sin(dff.lat/180*np.pi)*R
+        
+        # We create a list of positions and connections, each describing a line.
+        # We will collapse them in one array before plotting.
+        x = list()
+        y = list()
+        z = list()
+        s = list()
+        connections = list()
+
+        # The index of the current point in the total amount of points
+        index = 0
+
+        # Create each line one after the other in a loop
+        for key, sdf in dff.groupby(level=0):
+            x.append(sdf.x.values)
+            y.append(sdf.y.values)
+            z.append(sdf.z.values)
+            N = sdf.shape[0]
+            #s.append(np.linspace(-2 * np.pi, 2 * np.pi, N))
+            # This is the tricky part: in a line, each point is connected
+            # to the one following it. We have to express this with the indices
+            # of the final set of points once all lines have been combined
+            # together, this is why we need to keep track of the total number of
+            # points already created (index)
+            connections.append(np.vstack(
+                               [np.arange(index,   index + N - 1.5),
+                                np.arange(index + 1, index + N - .5)]
+                                    ).T)
+            index += N
+
+        # Now collapse all positions, scalars and connections in big arrays
+        x = np.hstack(x)
+        y = np.hstack(y)
+        z = np.hstack(z)
+        #s = np.hstack(s)
+        connections = np.vstack(connections)
+
+        # Create the points
+        src = mlab.pipeline.scalar_scatter(x, y, z)#, s)
+
+        # Connect them
+        src.mlab_source.dataset.lines = connections
+        src.update()
+
+        # The stripper filter cleans up connected lines
+        lines = mlab.pipeline.stripper(src)
+    
+        return src, lines
