@@ -625,6 +625,8 @@ class schism():
 
         self.grid = pgrid.grid(type='tri2d',grid_file=hfile)
         
+        load_meteo=get_value(self,kwargs,'load_meteo',False)
+        
         #meteo 
         ma = []
         for ifile in mfiles:
@@ -635,11 +637,14 @@ class schism():
             g = g.assign_coords({'time':times})
             ma.append(g)
         
-        try:
-            self.meteo = xr.merge(ma)
-        except:
-            logger.warning('No meteo files loaded')
-            pass
+        if load_meteo is True:
+            try:
+                self.meteo = xr.merge(ma)
+            except:
+                logger.warning('Loading meteo failed')
+                pass
+        else:
+            logger.warning('No meteo loaded')
 
     def global2local(self,**kwargs):
         
