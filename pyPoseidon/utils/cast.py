@@ -271,39 +271,39 @@ class scast():
             logger.debug('.. done')
 
             #copy the station files
-            # logger.debug('copy station files')
-            # for filename in station_files:
-            #     ipath = glob.glob(ppath+filename)
-            #     if ipath:
-            #         try:
-            #             copy2(ppath+filename,rpath+filename)
-            #         except:
-            #             dir_name ,file_name = os.path.split(filename)
-            #             if not os.path.exists(rpath + dir_name):
-            #                 os.makedirs(rpath + dir_name)
-            #             copy2(ppath+filename,rpath+filename)
-            # logger.debug('.. done')
+            logger.debug('copy station files')
+            for filename in station_files:
+                 ipath = glob.glob(ppath+filename)
+                 if ipath:
+                     try:
+                         copy2(ppath+filename,rpath+filename)
+                     except:
+                         dir_name ,file_name = os.path.split(filename)
+                         if not os.path.exists(rpath + dir_name):
+                             os.makedirs(rpath + dir_name)
+                         copy2(ppath+filename,rpath+filename)
+            logger.debug('.. done')
 
 
             #symlink the station files
-            logger.debug('symlink station files')
-            for filename in station_files:
+            #logger.debug('symlink station files')
+            #for filename in station_files:
 
-               ipath = glob.glob(self.path+self.folders[0] + filename)
-               if ipath:
+            #   ipath = glob.glob(self.path+self.folders[0] + filename)
+            #   if ipath:
 
-                    if not os.path.exists(rpath + '/outputs/'):
-                        os.makedirs(rpath + '/outputs/')
+            #        if not os.path.exists(rpath + '/outputs/'):
+            #            os.makedirs(rpath + '/outputs/')
 
-                    try:
-                        os.symlink(ipath[0],rpath + filename)
-                    except OSError as e:
-                        if e.errno == errno.EEXIST:
-                            logger.warning('Restart link present\n')
-                            logger.warning('overwriting\n')
-                            os.remove(rpath + filename)
-                            os.symlink(ipath[0],rpath + filename)
-            logger.debug('.. done')
+            #        try:
+            #            os.symlink(ipath[0],rpath + filename)
+            #        except OSError as e:
+            #            if e.errno == errno.EEXIST:
+            #                logger.warning('Restart link present\n')
+            #                logger.warning('overwriting\n')
+            #                os.remove(rpath + filename)
+            #                os.symlink(ipath[0],rpath + filename)
+            #logger.debug('.. done')
 
             #symlink the big files
             logger.debug('symlink model files')           
@@ -376,7 +376,7 @@ class scast():
             # modify param file
             rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
             hotout_write = int(rnday_new * 24 * 3600 / info['params']['core']['dt'])
-            info['parameters'].update({'ihot': 2, 'rnday':rnday_new, 'nhot_write' : hotout_write , 'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year })
+            info['parameters'].update({'ihot': 2, 'rnday':rnday_new,  'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year})
             
             m.config(output=True, **info)
                                               

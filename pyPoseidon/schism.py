@@ -102,17 +102,20 @@ class schism():
                 
             self.coastlines = coast
         
-               
-        start_date = kwargs.get('start_date', None)
-        self.start_date = pd.to_datetime(start_date)
         
-        if 'time_frame' in kwargs:
-            time_frame = kwargs.get('time_frame', None)
-            self.end_date = self.start_date + pd.to_timedelta(time_frame)
-        elif 'end_date' in kwargs:
-            end_date = kwargs.get('end_date', None)
-            self.end_date = pd.to_datetime(end_date)
-            self.time_frame = self.end_date - self.start_date
+        if not hasattr(self, 'start_date'):        
+            start_date = kwargs.get('start_date', None)
+            self.start_date = pd.to_datetime(start_date)
+
+        if not hasattr(self, 'end_date'):        
+        
+            if 'time_frame' in kwargs:
+                time_frame = kwargs.get('time_frame', None)
+                self.end_date = self.start_date + pd.to_timedelta(time_frame)
+            elif 'end_date' in kwargs:
+                end_date = kwargs.get('end_date', None)
+                self.end_date = pd.to_datetime(end_date)
+                self.time_frame = self.end_date - self.start_date
 
         if not hasattr(self, 'date'): self.date = self.start_date
         
@@ -622,6 +625,19 @@ class schism():
         
         hfile = rfolder + '/hgrid.gr3' # Grid
         self.params = f90nml.read(s[0])
+        
+        mykeys = ['start_year','start_month','start_day']
+        sdate = [self.params['opt'][x] for x in mykeys] # extract date info from param.nml
+        sd = '-'.join(str(item) for item in sdate) # join in str
+        sd = pd.to_datetime(sd) # convert to datestamp
+         
+        sh = [self.params['opt'][x] for x in ['start_hour','utc_start']] # get time attrs
+        sd = sd + pd.to_timedelta('{}H'.format(sh[0] + sh[1])) # complete start_date
+        
+        ed = sd + pd.to_timedelta('{}D'.format(self.params['core']['rnday'])) # compute end date based on rnday
+        
+        self.start_date = sd #set attrs
+        self.end_date = ed
 
         self.grid = pgrid.grid(type='tri2d',grid_file=hfile)
         
@@ -1131,9 +1147,10 @@ class schism():
         # Read Netcdf output files
         hfiles = glob.glob(path+'outputs/schout_*_*.nc')
         
-        irange = [int(x.split('_')[-1].split('.')[0]) for x in hfiles]
-        irange = np.unique(irange)
+        irange_ = [int(x.split('_')[-1].split('.')[0]) for x in hfiles]
+        irange_ = np.unique(irange_)
         
+        irange = get_value(self,kwargs,'rlist',irange_)
         
         self.read_vgrid() # read grid attributes
         

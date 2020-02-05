@@ -166,17 +166,26 @@ class schism():
         
         for folder in self.folders:
             
-            with open(folder + '/' + tag +'_model.json', 'r') as f:
-                info = pd.read_json(f,lines=True).T
-                info[info.isnull().values] = None
-                info = info.to_dict()[0]
-            
-            p = pmodel(**info)
-            
-            p.results()
-                                    
+                            
             xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
             xdat.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+                
+            if len(xdat) > 0:
+                datai.append(xdat) #append to list 
+
+            else:   #run merge output 
+            
+                with open(folder + '/' + tag +'_model.json', 'r') as f:
+                    info = pd.read_json(f,lines=True).T
+                    info[info.isnull().values] = None
+                    info = info.to_dict()[0]
+            
+                p = pmodel(**info)
+            
+                p.results()
+                                    
+                xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
+                xdat.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
             
             datai.append(xdat) #append to list 
                                        
