@@ -1036,7 +1036,7 @@ class schism():
         
         path = get_value(self,kwargs,'rpath','./') 
         
-        if not hasattr(self, 'melems'): 
+        if len(self.misc) == 0: 
             logger.info('retrieving index references ... \n')
             self.global2local(**kwargs)
             logger.info('... done \n')

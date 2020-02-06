@@ -163,10 +163,10 @@ class schism():
         
         tag = kwargs.get('tag', 'schism')
         
-        
+        misc = kwargs.get('misc', {})
+                
         for folder in self.folders:
-            
-                            
+                                        
             xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
             xdat.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
                 
@@ -181,9 +181,13 @@ class schism():
                     info = info.to_dict()[0]
             
                 p = pmodel(**info)
-            
+                            
+                p.misc = misc
+                            
                 p.results()
-                                    
+                
+                self.misc = p.misc
+                                                    
                 xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
                 xdat.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
             
