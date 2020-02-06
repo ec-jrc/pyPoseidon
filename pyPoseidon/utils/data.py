@@ -172,6 +172,7 @@ class schism():
                 
             if len(xdat) > 0:
                 datai.append(xdat) #append to list 
+                            
 
             else:   #run merge output 
             
@@ -195,7 +196,20 @@ class schism():
                                        
 
         self.Dataset = xr.open_mfdataset(datai,combine='by_coords',data_vars='minimal')
+
+
+        with open(self.folders[-1] + '/' + tag +'_model.json', 'r') as f:
+            info = pd.read_json(f,lines=True).T
+            info[info.isnull().values] = None
+            info = info.to_dict()[0]
                                 
+        p = pmodel(**info)
+        
+        dstamp = kwargs.get('dstamp', info['date'])
+        p.get_obs(dstamp=dstamp)
+    
+        self.time_series = p.time_series
+        
         
         dic={}
         

@@ -1360,7 +1360,8 @@ class schism():
         except OSError as e:
             if e.errno == errno.EEXIST: logger.error('No station.in file present')
             return
-            
+        
+        dstamp = kwargs.get('dstamp', self.start_date)
 
         dfs=[]
         for idx in vals.index:
@@ -1369,7 +1370,7 @@ class schism():
             df = df.set_index(0)
             df.index.name = 'time'
             df.columns.name = vals.loc[idx,'variable']
-            df.index = pd.to_datetime(self.start_date) + pd.to_timedelta(df.index,unit='S')
+            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index,unit='S')
             pindex = pd.MultiIndex.from_product([df.T.columns,df.T.index])
 
             dfs.append(pd.DataFrame(df.values.flatten(),index = pindex, columns=[vals.loc[idx,'variable']]).to_xarray().rename({'level_0':'time','level_1':'point'}))        
