@@ -143,10 +143,10 @@ def to_2d(files=None, var=None, grid=None):
     y = out.SCHISM_hgrid_node_y[:].values
     tri3 = out.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
     
-    try:
+    if grid is not None:
         [xn,yn,tri3n] = grid
-    except:
-        xn,yn,tri3n = to_2d(x,y,None,tri3)
+    else:
+        xn,yn,tri3n = get_seam(x,y,None,tri3)
     
     
     nps = xn.shape[0] - x.shape[0] # number of extra nodes
