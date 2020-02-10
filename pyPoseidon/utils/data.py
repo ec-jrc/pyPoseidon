@@ -164,7 +164,7 @@ class schism():
         tag = kwargs.get('tag', 'schism')
         
         misc = kwargs.get('misc', {})
-                
+                        
         for folder in self.folders:
                                         
             xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
@@ -172,7 +172,6 @@ class schism():
                 
             if len(xdat) > 0:
                 datai.append(xdat) #append to list 
-                            
 
             else:   #run merge output 
             
@@ -192,12 +191,11 @@ class schism():
                 xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
                 xdat.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
             
-            datai.append(xdat) #append to list 
+                datai.append(xdat) #append to list 
                                        
-
         self.Dataset = xr.open_mfdataset(datai,combine='by_coords',data_vars='minimal')
 
-
+        
         with open(self.folders[-1] + '/' + tag +'_model.json', 'r') as f:
             info = pd.read_json(f,lines=True).T
             info[info.isnull().values] = None
