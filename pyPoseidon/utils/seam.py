@@ -6,6 +6,9 @@ import glob
 import pyresample
 import xarray as xr
 from shapely.ops import triangulate
+import logging
+
+logger = logging.getLogger('pyPoseidon')
 
 
 def get_seam(x,y,z,tri3,**kwargs):
@@ -135,7 +138,7 @@ def get_seam(x,y,z,tri3,**kwargs):
 
 
 
-def to_2d(files=None, var=None, grid=None):
+def to_2d(files=None, var=None, grid=None, **kwargs):
     
     out = xr.open_mfdataset(files,combine='by_coords',concat_dim='time', data_vars='minimal')
     
@@ -148,17 +151,24 @@ def to_2d(files=None, var=None, grid=None):
     else:
         xn,yn,tri3n = get_seam(x,y,None,tri3)
     
+    save = kwargs.get('save',True)
     
+    if save is True: 
+        logger.info('saving conversion to 2d attrs')
+        np.save('to2d',[xn,yn,tri3n])
+        
     nps = xn.shape[0] - x.shape[0] # number of extra nodes
-    xi = xn[-nps:] # lat/lon of extra nodes
-    yi = yn[-nps:]
+    xi = xn[-nps:].copy() # lat/lon of extra nodes
+    yi = yn[-nps:].copy()
     
     # reposition to avoid -180/180 boundary
     pxi = reposition(xi)
     pyi = yi
     
-    
-    xmask = (x<-170) | (x>170.) # get a slice of the grid around IM
+    a = pxi.min()
+    b = pxi.max() - 360
+
+    xmask = (x<b) | (x>a) # get a slice of the grid around IM
     # reposition to avoid -180/180 boundary
     px = reposition(x[xmask])
     py = y[xmask]
@@ -189,7 +199,6 @@ def to_2d(files=None, var=None, grid=None):
 def reposition(px):
     
     px[px<0] = px[px<0] + 360.
-    px = px - 100
     
     return px
     
