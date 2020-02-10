@@ -638,8 +638,18 @@ class schism():
         
         self.start_date = sd #set attrs
         self.end_date = ed
-
-        self.grid = pgrid.grid(type='tri2d',grid_file=hfile)
+        
+        load_grid=get_value(self,kwargs,'load_grid',False)
+        
+        if load_grid:
+            try:
+                self.grid = pgrid.grid(type='tri2d',grid_file=hfile)
+            except:
+                logger.warning('Loading grid failed')
+                pass
+        else:
+            logger.warning('No grid loaded')
+            
         
         load_meteo=get_value(self,kwargs,'load_meteo',False)
         
