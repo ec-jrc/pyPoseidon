@@ -12,12 +12,18 @@ Visualization module
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from matplotlib import animation
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import geopandas as gp
 import shapely
+
+import sys
+import os
+ffmpeg = sys.exec_prefix + '/bin/ffmpeg' 
+os.environ['FFMPEG_BINARY'] = ffmpeg
+from matplotlib import animation
+
 
 matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
