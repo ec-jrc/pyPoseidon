@@ -481,7 +481,7 @@ class pplot(object):
             add_arts = im.collections
             text = 'time={}'.format(t[i])
         #te = ax.text(90, 90, text)
-            an = ax.annotate(text, xy=(0.05, -.2), xycoords='axes fraction')
+            an = ax.annotate(text, xy=(0.1, -.2), xycoords='axes fraction')
             ims.append(add_arts + [an])
             
 #            if cr is not None: TO DO
