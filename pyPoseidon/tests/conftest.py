@@ -17,7 +17,9 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--with--solvers"):
         # --with--solvers given in cli: do not skip solver tests
         return
+
     skip_solvers = pytest.mark.skip(reason="need --with--solvers option to run")
+    
     for item in items:
         if "solvers" in item.keywords:
             item.add_marker(skip_solvers)
