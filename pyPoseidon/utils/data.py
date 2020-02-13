@@ -204,10 +204,12 @@ class schism():
         p = pmodel(**info)
         
         dstamp = kwargs.get('dstamp', info['date'])
-        p.get_obs(dstamp=dstamp)
+        try: 
+            p.get_obs(dstamp=dstamp)
+            self.time_series = p.time_series
+        except:
+            logger.info('no station data loaded')     
     
-        self.time_series = p.time_series
-        
         
         dic={}
         
