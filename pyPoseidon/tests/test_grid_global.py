@@ -25,6 +25,7 @@ coast = cf.GSHHSFeature(
 GSHHS = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize('coast', ne[1:2])
 
 def test_answer(tmpdir, coast):
