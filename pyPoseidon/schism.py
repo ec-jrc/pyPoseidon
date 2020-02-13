@@ -440,9 +440,9 @@ class schism():
         manfile=path+'manning.gr3'
         
         
-        if hasattr(self, 'manfile') :
-            copyfile(self.manfile, manfile) #copy original grid file
-            if self.manfile == manfile:
+        if hasattr(self, 'manning_file') :
+            copyfile(self.manning_file, manfile) #copy original manning file
+            if self.manning_file == manfile:
                 logger.info('Keeping manning file ..\n')
         
         
@@ -469,10 +469,10 @@ class schism():
         
         windfile=path+'windrot_geo2proj.gr3'
 
-        if hasattr(self, 'windproj') :
-            copyfile(self.windproj, windfile) #copy original grid file
-            if self.windproj != windproj :
-                logger.info('Keeping windproj file ..\n')
+        if hasattr(self, 'windrot_file') :
+            copyfile(self.windrot_file, windfile) #copy original grid file
+            if self.windrot_file != windproj :
+                logger.info('Keeping windrot_file file ..\n')
 
         if hasattr(self, 'windrot') :
             with open(windfile,'w') as f:
