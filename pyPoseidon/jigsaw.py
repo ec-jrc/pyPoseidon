@@ -646,29 +646,43 @@ def jigsaw_(df, bmindx, **kwargs):
     
     # LAND Boundaries (negative tag)    
     ib = 1
+    ib_ = 1
     isl = []
     for ik in range(edges.e3.min(),0):
         bb = np.unique(edges.loc[edges.e3 == ik,['e1','e2']].values.flatten())
-        bf = pd.concat([nodes.loc[bb]],keys=['land_boundary_{}'.format(ib)])
+        bf = pd.concat([nodes.loc[bb]])
         bf['idx'] = bb
         if ik >= bmindx: 
-            bf['flag'] = 0
+            flag = 0
+            bf['indx'] = 'land_boundary_{}_{}'.format(ib,flag)
+            c1=True
+            c2=False
         else:
-            bf['flag'] = 1
+            flag = 1
+            bf['indx'] = 'land_boundary_{}_{}'.format(ib_,flag)
+            c1=False
+            c2=True
 
+        bf['flag'] = flag
+        bf = bf.reset_index().set_index(['indx','index'])
+        bf.index.names=['','']
+        
         if not bf.empty:
             isl.append(bf)
-            ib += 1
-    
+            if c1 is True : ib += 1
+            if c2 is True : ib_ += 1
+
     if isl :   
-         
+
         landb = pd.concat(isl)
-    
-        land_i = sorted(landb.index.levels[0], key=lambda x: int(x.split('_')[2]))
-    
+
+        land_i = sorted(landb.index.levels[0], key=lambda x: [int(x.split('_')[3]),int(x.split('_')[2])])
+
     else:
-        
+
         land_i = []
+        
+
         
     # WATER Boundaries (positive tag)
     

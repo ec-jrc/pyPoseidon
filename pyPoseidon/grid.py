@@ -258,7 +258,7 @@ class tri2d():
         try:
             linfo.columns = ['nps','type','label']
             linfo.label = linfo.label.str.rstrip()
-            linfo.label = linfo.label.str.replace(' ', '_')
+            linfo.label = linfo.label.str.replace(' ', '_') + '_' + linfo.type.astype(str)
             linfo.set_index('label', inplace=True, drop=True)
             linfo = linfo.apply(pd.to_numeric)
         except:
@@ -352,9 +352,10 @@ class tri2d():
             f.write('{} = Number of land boundaries\n'.format(nlb))
             f.write('{} = Total number of land boundary nodes\n'.format(lps.sum()))
             for i in range(nlb):
-                name = 'land_boundary_{}'.format(i + 1)
+                name = lbound.columns[i]
+                idx = name.split('_')[-2]
                 dat = lbound[name].dropna().astype(int) + 1 # convert to fortran (index starts from 1)
-                f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.sel(label=name).values.astype(int),i + 1))
+                f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.sel(label=name).values.astype(int),idx))
                 dat.to_csv(f,index=None, header=False)
 
         

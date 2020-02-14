@@ -471,8 +471,8 @@ class schism():
 
         if hasattr(self, 'windrot_file') :
             copyfile(self.windrot_file, windfile) #copy original grid file
-            if self.windrot_file != windproj :
-                logger.info('Keeping windrot_file file ..\n')
+            if self.windrot_file != windfile :
+                logger.info('Keeping windrot_geo2proj file ..\n')
 
         if hasattr(self, 'windrot') :
             with open(windfile,'w') as f:
