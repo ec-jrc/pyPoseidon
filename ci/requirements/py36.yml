@@ -1,0 +1,42 @@
+name: pyPoseidon
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.6
+  - dask
+  - scipy
+  - numpy
+  - pyresample
+  - pandas
+  - netCDF4
+  - seaborn
+  - requests
+  - pydap
+  - geopandas
+  - xarray
+  - ipykernel
+  - bokeh
+  - ffmpeg
+  - datashader
+  - hvplot
+  - holoviews
+  - geoviews
+  - rasterio
+  - ipympl
+  - tqdm
+  - pynio
+  - eccodes
+  - mayavi
+  - esmpy
+  - pytest
+  - cfgrib
+  - jigsaw
+  - colorlog
+  - pygeos
+  - xesmf
+  - pip
+  - pip:    
+     - f90nml
+  

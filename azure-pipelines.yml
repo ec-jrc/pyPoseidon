@@ -2,31 +2,37 @@
 # Create and test a Python package on multiple Python versions.
 # Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
+# follow xarray way https://github.com/pydata/xarray/blob/master/azure-pipelines.yml 
 
-trigger:
-- master
+variables:
+  pytest_extra_flags: ''
+  allow_failure: false
+  upstream_dev: false
 
-pool:
-  vmImage: 'ubuntu-latest'
-strategy:
-  matrix:
-    Python36:
-      python.version: '3.6'
-    Python37:
-      python.version: '3.7'
+jobs:
 
-steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '$(python.version)'
-  displayName: 'Use Python $(python.version)'
+- job: Linux
+  strategy:
+    matrix:
+      py36:
+        conda_env: py36
+      py37:
+        conda_env: py37
+      py38:
+        conda_env: py38
+  pool:
+    vmImage: 'ubuntu-16.04'
+  steps:
+  - template: ci/azure/unit-tests.yml
 
-- script: |
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
-  displayName: 'Install dependencies'
-
-- script: |
-    pip install pytest pytest-azurepipelines
-    pytest
-  displayName: 'pytest'
+- job: MacOSX
+  strategy:
+    matrix:
+      py37:
+        conda_env: py37   		
+      py38:
+        conda_env: py38
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - template: ci/azure/unit-tests.yml
