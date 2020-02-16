@@ -19,5 +19,5 @@ steps:
     source activate pyPoseidon-tests
     conda info -a
     conda list
-    python print(pyPoseidon.__version__)
+    python ci/version.py
   displayName: Version info
