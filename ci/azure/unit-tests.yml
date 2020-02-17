@@ -18,7 +18,7 @@ steps:
 # https://github.com/microsoft/azure-pipelines-tasks/issues/9302
 - bash: |
     source activate pyPoseidon-tests
-    pytest pyPoseidon/tests\
+    pytest pyPoseidon/tests \
     --junitxml=junit/test-results.xml \
 #    --cov=. \
 #    --cov-report=xml \
