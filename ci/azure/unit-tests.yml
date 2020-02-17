@@ -20,9 +20,9 @@ steps:
     source activate pyPoseidon-tests
     pytest pyPoseidon/tests\
     --junitxml=junit/test-results.xml \
-    --cov=. \
-    --cov-report=xml \
-    $(pytest_extra_flags) || [ "$ALLOW_FAILURE" = "true" ]
+#    --cov=. \
+#    --cov-report=xml \
+#    $(pytest_extra_flags) || [ "$ALLOW_FAILURE" = "true" ]
   displayName: Run tests
 
 
@@ -32,8 +32,8 @@ steps:
     testResultsFiles: '**/test-*.xml'
     testRunTitle: 'Publish test results for Python $(python.version)'	
 
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura
-    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-    reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+#- task: PublishCodeCoverageResults@1
+#  inputs:
+#    codeCoverageTool: Cobertura
+#    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+#    reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
