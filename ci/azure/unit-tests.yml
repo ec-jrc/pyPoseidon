@@ -9,12 +9,16 @@ steps:
 
 # Work around for allowed test failures:
 # https://github.com/microsoft/azure-pipelines-tasks/issues/9302
-- bash: |
-    source activate pyPoseidon-tests
-    pytest \
-    --junitxml=junit/test-results.xml \
-    --cov=pyPoseidon \
-    --cov-report=xml \
-    $(pytest_extra_flags) || [ "$ALLOW_FAILURE" = "true" ]
-  displayName: Run tests
+#- bash: |
+#    source activate pyPoseidon-tests
+#    pytest \
+#    --junitxml=junit/test-results.xml \
+#    --cov=pyPoseidon \
+#    --cov-report=xml \
+#    $(pytest_extra_flags) || [ "$ALLOW_FAILURE" = "true" ]
+#  displayName: Run tests
 
+- script: |
+    pip install pytest-cov
+    pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
+  displayName: 'Test with pytest'
