@@ -20,8 +20,8 @@ steps:
     source activate pyPoseidon-tests
     pytest pyPoseidon/tests \
     --junitxml=junit/test-results.xml
-    --cov=. \
-    --cov-report=html \
+    --cov=pyPoseidon \
+    --cov-report=xml \
 #    $(pytest_extra_flags) || [ "$ALLOW_FAILURE" = "true" ]
   displayName: Run tests
 
