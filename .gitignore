@@ -16,6 +16,9 @@ pyPoseidon/tests/jigsaw/*
 # the local Notebook folder
 Notebooks/* 
 
+# .coverage files
+.coverage
+
 # dotx files
 *.dotx
 
