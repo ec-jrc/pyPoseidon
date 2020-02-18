@@ -22,7 +22,7 @@ steps:
       --junitxml=junit/test-results.xml \
       --cov=pyPoseidon \
       --cov-report=xml \
-	  pyPoseidon/tests 
+      pyPoseidon/tests 
 #    $(pytest_extra_flags) || [ "$ALLOW_FAILURE" = "true" ]
   displayName: Run tests
 
