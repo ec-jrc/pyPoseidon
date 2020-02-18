@@ -14,12 +14,8 @@ jobs:
 - job: Linux
   strategy:
     matrix:
-      py36:
-        conda_env: py36
       py37:
         conda_env: py37
-      py38:
-        conda_env: py38
   pool:
     vmImage: 'ubuntu-16.04'
   steps:
@@ -30,8 +26,6 @@ jobs:
     matrix:
       py37:
         conda_env: py37   		
-      py38:
-        conda_env: py38
   pool:
     vmImage: 'macOS-10.13'
   steps:
