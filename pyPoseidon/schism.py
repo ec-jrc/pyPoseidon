@@ -39,6 +39,7 @@ from pyPoseidon.utils import obs
 from pyPoseidon.utils.cpoint import closest_node
 from pyPoseidon.utils.hfun import hfun
 from pyPoseidon.utils.unml import unml
+from pyPoseidon.utils.data import data
 
 import logging
 logger = logging.getLogger('pyPoseidon')
@@ -1387,3 +1388,9 @@ class schism():
         
         
         self.time_series = xr.combine_by_coords(dfs)
+        
+        
+        
+    def get_data(self,**kwargs):
+        
+        self.data = data(**self.__dict__)

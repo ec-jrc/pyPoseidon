@@ -211,7 +211,7 @@ class pplot(object):
         plt.xlabel('Longitude (degrees)')
         plt.ylabel('Latitude (degrees)')
                 
-        return p, ax   
+        return p#, ax   
     
     def contourf(self,**kwargs):
                 
@@ -273,7 +273,7 @@ class pplot(object):
         ax.set_xlabel('Longitude (degrees)')
         ax.set_ylabel('Latitude (degrees)')
         
-        return fig, ax   
+        return p #fig, ax   
             
     
     def quiver(self,**kwargs):
@@ -337,7 +337,7 @@ class pplot(object):
             an = ax.annotate(text, xy=xy, xycoords='axes fraction')
         
         
-        return p, ax  
+        return p#, ax  
         
     def grid(self, **kwargs):
         
@@ -366,7 +366,7 @@ class pplot(object):
         ax.set_ylabel('Latitude (degrees)')
                 
         
-        return fig , ax
+        return g #fig , ax
     
     
     

@@ -13,7 +13,7 @@ import os
 from pyPoseidon.utils.vis import *
 from pyPoseidon.utils.obs import obs
 from pyPoseidon.grid import *
-import pyPoseidon.model as pmodel
+import pyPoseidon.model as pm
 import datetime
 from pyPoseidon.utils.get_value import get_value
 import xarray as xr
@@ -157,7 +157,6 @@ class schism():
             self.folders = [rpath]
 
         
-        logger.info('Combining output\n')
                 
         datai=[]
         
@@ -166,6 +165,9 @@ class schism():
         misc = kwargs.get('misc', {})
                         
         for folder in self.folders:
+            
+            logger.info('Combining output for folder {}\n'.format(folder))
+            
                                         
             xdat = glob.glob(folder + '/outputs/schout_[!0]*.nc')
             xdat.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
@@ -180,7 +182,7 @@ class schism():
                     info[info.isnull().values] = None
                     info = info.to_dict()[0]
             
-                p = pmodel(**info)
+                p = pm.model(**info)
                             
                 p.misc = misc
                             
@@ -200,8 +202,10 @@ class schism():
             info = pd.read_json(f,lines=True).T
             info[info.isnull().values] = None
             info = info.to_dict()[0]
-                                
-        p = pmodel(**info)
+        
+        p = pm.model(**info)
+        
+        logger.info('Retrieve station timeseries if any\n')
         
         dstamp = kwargs.get('dstamp', info['date'])
         try: 
@@ -245,7 +249,28 @@ class schism():
         if 'lat_max' not in dic.keys():
             dic.update({'lat_max':self.Dataset.SCHISM_hgrid_node_y.values.max()})
         
-        self.obs = obs(**dic)        
+        logger.info('Retrieve observations info\n')
+        
+        self.obs = obs(**dic)
+        
+        logger.info('collect observational data')
+        tgs = self.obs.locations.loc[self.obs.locations.Group=='TD UNESCO']
+        
+        dic={}
+        for i in tgs.index:
+        #            print(i, tgs.loc[i].Name.strip())
+                while True:
+                        p = self.obs.iloc(i)
+                        if p is not None:
+                                p = p.dropna()
+                                break
+                dic.update({tgs.loc[i].Name.strip():p})
+
+        tg = pd.concat(dic, axis=0, sort=True)
+        
+        self.obs.data = tg
+
+               
         
        
                           
