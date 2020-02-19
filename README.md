@@ -3,6 +3,8 @@ Framework for Hydrodynamic simulations
 
 [![Build Status](https://dev.azure.com/breyiannis/pyPoseidon/_apis/build/status/brey.pyPoseidon?branchName=master)](https://dev.azure.com/breyiannis/pyPoseidon/_build/latest?definitionId=1&branchName=master)
 
+![Azure DevOps coverage](https://img.shields.io/azure-devops/coverage/breyiannis/pyPoseidon/1)
+
 This is a development project utilising multiple solvers (currently DELFT3D & SCHISM) for considering storm surge. The purpose is to create a simple, portable and transparent way of setting up, running and analysing hydrodynamic computations through python scripts and Jupyter Notebooks (http://jupyter.org). See Notebooks in examples/ for relevant prototypes.
 
 ## Instalation
