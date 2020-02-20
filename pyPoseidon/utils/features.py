@@ -71,11 +71,6 @@ def create_features(path='./',tag='schism'):
     gf_ = gf_.drop(['a','b','c','ap','bp','cp'], axis=1)
     
 
-    
-    colormap = branca.colormap.LinearColormap(['green', 'yellow', 'red'], vmin=vmin.values, vmax=vmax.values)
-    colormap.caption = 'Elevation'
-
-
     ## All frames
     fs=[]
     for l in range(d.time.shape[0]):

@@ -253,22 +253,33 @@ class schism():
         
         self.obs = obs(**dic)
         
-        logger.info('collect observational data')
-        tgs = self.obs.locations.loc[self.obs.locations.Group=='TD UNESCO']
+        ret = kwargs.get('online',False)
         
-        dic={}
-        for i in tgs.index:
-        #            print(i, tgs.loc[i].Name.strip())
-                while True:
-                        p = self.obs.iloc(i)
-                        if p is not None:
-                                p = p.dropna()
+        if ret is True:
+            logger.info('collect observational data')
+            tgs = self.obs.locations.loc[self.obs.locations.Group=='TD UNESCO']
+        
+            dic={}
+            for i in tgs.index:
+            #            print(i, tgs.loc[i].Name.strip())
+                    while True:
+                            p = self.obs.iloc(i)
+                            if p is not None:
+                                if p.shape[0]>1:
+                                    p = p.dropna()
                                 break
-                dic.update({tgs.loc[i].Name.strip():p})
+                    dic.update({tgs.loc[i].Name.strip():p})
 
-        tg = pd.concat(dic, axis=0, sort=True)
+            tg = pd.concat(dic, axis=0, sort=True)
+            
+            try:
+                tg = tg.drop('TimeUTC',axis=1)
+            except:
+                pass
         
-        self.obs.data = tg
+            tg.to_csv(self.folders[0]+ '/' + 'obs.csv')
+        
+            self.obs.data = tg
 
                
         

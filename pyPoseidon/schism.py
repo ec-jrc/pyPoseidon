@@ -1393,4 +1393,8 @@ class schism():
         
     def get_data(self,**kwargs):
         
-        self.data = data(**self.__dict__)
+        dic = self.__dict__
+        
+        dic.update(kwargs)
+        
+        self.data = data(**dic)
