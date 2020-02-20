@@ -4,39 +4,26 @@ channels:
   - conda-forge
 
 dependencies:
-  - python=3.7
-  - dask
-  - scipy
-  - numpy
-  - pyresample
-  - pandas
-  - netCDF4
-  - seaborn
-  - requests
-  - pydap
-  - geopandas
-  - xarray
-  - ipykernel
-  - bokeh
-  - ffmpeg
-  - datashader
-  - hvplot
-  - holoviews
-  - geoviews
-  - rasterio
-  - ipympl
-  - tqdm
-  - pynio
-  - eccodes
-  - mayavi
-  - esmpy
+  - python >=3.7
+  - mayavi >4.7
+  - pyresample >1.13
+  - pydap >3.2
+  - pynio >1.5
+  - pygeos >=0.5
+  - geoviews >1.6
+  - rasterio >1.0
+  - jigsaw >0.9
+  - seaborn >=0.9
+  - hvplot >0.5
+  - cfgrib >0.9.7
+  - esmpy >=8.0
+  - moviepy >0.2.3
+  - imageio-ffmpeg >=0.3.0
+  - bump2version >0.5
+  - scikit-learn >=0.21
+  - colorlog >4.0.2
+  - f90nml >=1.1.2
   - pytest
-  - cfgrib
-  - jigsaw
-  - colorlog
-  - pygeos
-  - xesmf
-  - pip
-  - pip:    
-     - f90nml
+  - pytest-cov
+  - ipympl
   
