@@ -5,21 +5,29 @@ import pytest
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--with--solvers", action="store_true", default=False, help="run tests with solvers"
+        "--runschism", action="store_true", default=False, help="run schism tests"
+    )
+    parser.addoption(
+        "--rundelft", action="store_true", default=False, help="run delft tests"
+    )
+    parser.addoption(
+        "--slow", action="store_true", default=False, help="run slow tests"
     )
 
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "solvers: mark test as need solvers to run")
-
-
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--with--solvers"):
-        # --with--solvers given in cli: do not skip solver tests
-        return
-
-    skip_solvers = pytest.mark.skip(reason="need --with--solvers option to run")
+    should_run_schism = config.getoption("--runschism")
+    should_run_delft = config.getoption("--rundelft")
+    should_run_slow = config.getoption("--slow")
     
+    skip_schism = pytest.mark.skip(reason="need --runshism option to run")
+    skip_delft = pytest.mark.skip(reason="need --rundelft option to run")
+    skip_slow = pytest.mark.skip(reason="need --slow option to run")
+
     for item in items:
-        if "solvers" in item.keywords:
-            item.add_marker(skip_solvers)
+        if "schism" in item.keywords and not should_run_schism:
+            item.add_marker(skip_schism)
+        if "delft" in item.keywords and not should_run_delft:
+            item.add_marker(skip_delft)
+        if "slow" in item.keywords and not should_run_slow:
+            item.add_marker(skip_slow)

@@ -63,7 +63,7 @@ def schism(tmpdir,case):
     except:
         return False
 
-@pytest.mark.solvers
+@pytest.mark.schism
 @pytest.mark.parametrize('case', [case0, case1, case2, case3])
 def test_answer(tmpdir, case):
     assert schism(tmpdir,case) == True

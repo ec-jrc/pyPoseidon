@@ -4,7 +4,7 @@ channels:
   - conda-forge
 
 dependencies:
-  - python >=3.7
+  - python =3.7
   - mayavi >4.7
   - pyresample >1.13
   - pydap >3.2
@@ -12,18 +12,15 @@ dependencies:
   - pygeos >=0.5
   - geoviews >1.6
   - rasterio >1.0
-  - jigsaw >0.9
+  - jigsaw =0.9.11
   - seaborn >=0.9
   - hvplot >0.5
   - cfgrib >0.9.7
-  - esmpy >=8.0
   - moviepy >0.2.3
   - imageio-ffmpeg >=0.3.0
   - bump2version >0.5
-  - scikit-learn >=0.21
   - colorlog >4.0.2
   - f90nml >=1.1.2
   - pytest
   - pytest-cov
   - ipympl
-  
