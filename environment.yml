@@ -15,6 +15,7 @@ dependencies:
   - jigsaw =0.9.11
   - seaborn >=0.9
   - hvplot >0.5
+  - descartes
   - cfgrib >0.9.7
   - moviepy >0.2.3
   - imageio-ffmpeg >=0.3.0
