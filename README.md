@@ -54,9 +54,9 @@ SCHISM needs to be compiled for your system. You can download it from  http://co
 
 ## Tests
 
-There are 2 sets of tests. You can run pyPoseidon unitests with the standard command
+There are several sets of tests. You can run pyPoseidon unitests with 
 
-* pytest 
+* pytest --pyargs pyPoseidon
 
 In order to test also the solver integration please specify the PATH to the executables in your system such as 
 
@@ -65,7 +65,11 @@ In order to test also the solver integration please specify the PATH to the exec
 
 Then use 
 
-* pytest --with--solvers
+* python -m pyPoseidon.tests --runschism
+
+or
+
+* python -m pyPoseidon.tests --rundelft
 
 ## License
 * The project is released under the EUPL v1.2 license. 
