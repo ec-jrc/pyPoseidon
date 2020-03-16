@@ -2,6 +2,17 @@
 
 import pytest
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "slow: mark test to run only when --slow is used"
+    )
+    config.addinivalue_line(
+        "markers", "schism: mark test to run only when --runschism is used"
+    )
+    config.addinivalue_line(
+        "markers", "delft: mark test to run only when --rundelft is used"
+    )
+
 
 def pytest_addoption(parser):
     parser.addoption(
