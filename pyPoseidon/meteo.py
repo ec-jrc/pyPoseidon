@@ -145,6 +145,8 @@ class meteo:
                 self.Dataset = netcdf(meteo_source, **kwargs)
         elif engine == 'url':
                 self.Dataset = from_url(**kwargs)
+        elif engine == 'passthrough':
+                self.Dataset = meteo_source
 
         else:
 
@@ -216,6 +218,7 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
 
     if combine_forecast :
         logger.info('combining meteo datasets')
+                
         mask = data.time.to_pandas().duplicated('last').values
         msl = data.msl[~mask]
         u10 = data.u10[~mask]
@@ -626,7 +629,7 @@ def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
     logger.info('extracting meteo\n')
     #---------------------------------------------------------------------
 
-    data = xr.open_mfdataset(filenames, combine=combine_by, **kwargs)
+    data = xr.open_mfdataset(filenames, combine=combine_by)
     
     #rename var/coords
     time_coord = [x for x in data.coords if 'time' in data[x].long_name.lower() ]
