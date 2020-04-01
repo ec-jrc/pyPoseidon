@@ -101,7 +101,7 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
           .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
           )
 
-        p1.longitude.values = p1.longitude.values -360.
+        p1 = p1.assign_coords({'longitude':p1.longitude.values - 360.})
 
 
         p2 = (

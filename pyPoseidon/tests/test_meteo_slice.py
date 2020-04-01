@@ -37,7 +37,7 @@ def test_meteo(tmpdir,name):
     tlist = (pd.to_datetime(b.time.data) - pd.to_datetime(b.time.data[0])) # convert to Schism's time coords
     tlist = tlist/pd.to_timedelta('1D')
 
-    b.time.values = tlist
+    b = b.assign_coords({'time':tlist})
     
     al = xr.open_dataset(rpath + 'all.nc')
     
