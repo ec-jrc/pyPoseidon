@@ -689,6 +689,13 @@ class d3d():
             bin_path = os.environ['D3D']
         except:
             bin_path = get_value(self,kwargs,'epath', None)
+
+        try:
+            lib_path = os.environ['LD3D']
+        except:
+            lib_path = get_value(self,kwargs,'lpath', None)
+
+
                     
         ncores = get_value(self,kwargs,'ncores',1)
                         
@@ -699,7 +706,7 @@ class d3d():
         #--------------------------------------------------------------------- 
                 
         # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path,lib_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
         
         
         with open(calc_dir+self.tag+'_run.log', 'w') as f: #save output
@@ -851,10 +858,20 @@ class d3d():
         except:
             bin_path = get_value(self,kwargs,'epath', None)
          
+        try:
+            lib_path = os.environ['LD3D']
+        except:
+            lib_path = get_value(self,kwargs,'lpath', None)
+
         
         if bin_path is None:
             #--------------------------------------------------------------------- 
             logger.warning('D3D executable path (epath) not given\n')
+            #--------------------------------------------------------------------- 
+        
+        if lib_path is None:
+            #--------------------------------------------------------------------- 
+            logger.warning('D3D libraries path (lpath) not given\n')
             #--------------------------------------------------------------------- 
               
             
