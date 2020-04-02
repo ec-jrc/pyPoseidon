@@ -6,7 +6,7 @@ export ncores=$2
 
 if [ $# -gt 2 ]; then
        D3D="$3"
-	   LD3D="$4"
+       LD3D="$4"
 fi
 
 if [ -z $D3D ];then
