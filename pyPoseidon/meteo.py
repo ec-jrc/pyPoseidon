@@ -303,7 +303,7 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
             .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
             .sel(time=tslice)
             )
-        sh.longitude.values = sh.longitude.values -360.
+        sh = sh.assign_coords({'longitude':sh.longitude.values - 360.})
 
         sh1 = (
             data[['msl','u10', 'v10']]
@@ -478,7 +478,7 @@ def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None
             .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
             .sel(time=tslice)
             )
-        sh.longitude.values = sh.longitude.values -360.
+        sh = sh.assign_coords({'longitude':sh.longitude.values - 360.})
 
         sh1 = (
             data[['msl','u10', 'v10']]
@@ -588,7 +588,8 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
           .isel(longitude=slice(i0,data.longitude.size),latitude=slice(j0,j1+1))
           .sel(time=tslice)
           )
-      sh.longitude.values = sh.longitude.values -360.
+      sh = sh.assign_coords({'longitude':sh.longitude.values - 360.})
+      
 
       sh1 = (
           data[['prmslmsl','ugrd10m', 'vgrd10m']]

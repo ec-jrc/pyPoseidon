@@ -1383,9 +1383,11 @@ class schism():
             df.columns.name = vals.loc[idx,'variable']
             df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index,unit='S')
             pindex = pd.MultiIndex.from_product([df.T.columns,df.T.index])
+            
+            r = pd.DataFrame(df.values.flatten(),index = pindex, columns=[vals.loc[idx,'variable']])
+            r.index.names = ['time','point']
 
-            dfs.append(pd.DataFrame(df.values.flatten(),index = pindex, columns=[vals.loc[idx,'variable']]).to_xarray().rename({'level_0':'time','level_1':'point'}))        
-        
+            dfs.append(r.to_xarray())        
         
         self.time_series = xr.combine_by_coords(dfs)
         
