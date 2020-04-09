@@ -85,6 +85,11 @@ def fix(dem,coastline,**kwargs):
         block = gp.GeoDataFrame(geometry = list(block.unary_union))
     except:
         pass
+
+    #--------------------------------------------------------------------- 
+    logger.debug('compute water and land\n')
+    #--------------------------------------------------------------------- 
+
     
     #create a polygon of the lat/lon window
     grp=shapely.geometry.Polygon([(minlon,minlat),(minlon,maxlat),(maxlon,maxlat),(maxlon,minlat)])
@@ -116,6 +121,9 @@ def fix(dem,coastline,**kwargs):
     else:
         df = dem.elevation.to_dataframe().reset_index()
     
+    #--------------------------------------------------------------------- 
+    logger.debug('invoke pygeos\n')
+    #--------------------------------------------------------------------- 
     
     spoints_ = pygeos.points(list(df.loc[:,['longitude','latitude']].values)) # create pygeos objects for the points
     
@@ -130,6 +138,10 @@ def fix(dem,coastline,**kwargs):
         
             
     bp = pygeos.polygons(lbs)
+    
+    #--------------------------------------------------------------------- 
+    logger.debug('find wet and dry masks\n')
+    #--------------------------------------------------------------------- 
     
     #find the points on land
     try:
@@ -149,6 +161,11 @@ def fix(dem,coastline,**kwargs):
 
        
     wmask = ~lmask # invert for wet mask
+    
+    #--------------------------------------------------------------------- 
+    logger.debug('fix wet points\n')
+    #--------------------------------------------------------------------- 
+    
     
     #Now see if the wet points have indeed negative values
     
@@ -189,6 +206,11 @@ def fix(dem,coastline,**kwargs):
         
         df.loc[pw.index,'elevation'] = bw # replace in original dataset
     
+    
+    #--------------------------------------------------------------------- 
+    logger.debug('fix dry points\n')
+    #--------------------------------------------------------------------- 
+    
     #.. the same for dry points
     
     pl_mask = df.loc[lmask,'elevation'] < 0 
@@ -227,6 +249,11 @@ def fix(dem,coastline,**kwargs):
         
         df.loc[pl.index,'elevation'] = bd  # replace in original dataset
         
+    #--------------------------------------------------------------------- 
+    logger.debug('assemble dataset \n')
+    #--------------------------------------------------------------------- 
+    
+    
     #reassemble dataset
     
     if 'ival' in dem.data_vars:
