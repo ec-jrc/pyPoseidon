@@ -109,12 +109,32 @@ def fix(dem,coastline,**kwargs):
     t = t.reset_index(drop=True)
     
     t['in'] = gp.GeoDataFrame(geometry=[grp] * t.shape[0]).contains(t) # find the largest of boundaries
-    idx = np.where(t['in']==True)[0][0] # first(largest) boundary within lat/lon
-    b = t.iloc[idx].geometry #get the largest 
+    
+    try:
+        idx = np.where(t['in']==True)[0][0] # first(largest) boundary within lat/lon
+        b = t.iloc[idx].geometry #get the largest 
+    except:
+        b = shapely.geometry.GeometryCollection()
 
     #define wet/dry
     water = b
     land = grp - b
+    
+    if (not land) | (not water):
+        
+        #--------------------------------------------------------------------- 
+        logger.debug('only water/land present...\n')
+        #--------------------------------------------------------------------- 
+        
+        if 'ival' in dem.data_vars:
+                
+            dem = dem.assign(fval=dem.ival)
+        
+        else:
+        
+            dem = dem.assign(adjusted=dem.elevation)
+            
+        return dem
     
     if 'ival' in dem.data_vars:
         df = pd.DataFrame({'longitude':dem.ilons.values.flatten(),'latitude':dem.ilats.values.flatten(),'elevation':dem.ival.values.flatten()})

@@ -238,7 +238,7 @@ class scast():
             info['end_date'] = date + pd.to_timedelta(time_frame)
             info['meteo_source'] = meteo
             info['rpath'] = rpath
-            info['grid_file'] = ppath + '/hgrid.gr3'
+#            info['grid_file'] = ppath + '/hgrid.gr3'
             
 #            for attr, value in self.items():
 #                setattr(info, attr, value)
@@ -379,6 +379,8 @@ class scast():
             info['parameters'].update({'ihot': 2, 'rnday':rnday_new,  'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year})
             
             m.config(output=True, **info)
+            
+            m.config_file = rpath + 'param.nml'
                                               
             os.chdir(rpath)
             #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
