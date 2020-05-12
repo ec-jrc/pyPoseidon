@@ -121,7 +121,7 @@ def regrid(ds):
 
 class meteo:
 
-    def __init__(self, meteo_source=None, engine=None, **kwargs):
+    def __init__(self, meteo_source=None, engine='cfgrib', **kwargs):
 
         """Read meteo data from variable sources.
 
