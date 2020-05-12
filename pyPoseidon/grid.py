@@ -353,7 +353,7 @@ class tri2d():
             f.write('{} = Total number of land boundary nodes\n'.format(lps.sum()))
             for i in range(nlb):
                 name = lbound.columns[i]
-                idx = name.split('_')[-2]
+                idx = name.split('_')[-1]
                 dat = lbound[name].dropna().astype(int) + 1 # convert to fortran (index starts from 1)
                 f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.sel(label=name).values.astype(int),idx))
                 dat.to_csv(f,index=None, header=False)
