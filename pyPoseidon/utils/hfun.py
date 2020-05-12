@@ -104,7 +104,7 @@ def to_hfun_grid(dh,fhfun):
 
 
 
-def hfun_(coastlines,res=.1):
+def hfun_(coastlines,res=.1, R=1.):
      
     amask = (coastlines.bounds.miny < -88)
     anta = coastlines[amask]
@@ -117,7 +117,7 @@ def hfun_(coastlines,res=.1):
     ant = ant.drop(d1).drop(d2) # drop the points
     d3 = ant.where(ant.lat==ant.lat.min()).dropna().index # drop lat=-90 line
     ant = ant.drop(d3)
-    ub, vb = to_stereo(ant.lon.values,ant.lat.values)
+    ub, vb = to_stereo(ant.lon.values,ant.lat.values, R)
     ant.lon=ub
     ant.lat=vb
 
@@ -134,7 +134,6 @@ def hfun_(coastlines,res=.1):
     
     
     #stereo->2D scale
-    R = 1
     ci=4*R**2/(ui**2+vi**2+4*R**2)
     ci
     

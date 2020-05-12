@@ -109,7 +109,7 @@ def jigsaw(**kwargs):
         
         if geometry=='global':
                  
-            hfun0 = hfun_(kwargs.get('coastlines',None),kwargs.get('res',.1))
+            hfun0 = hfun_(kwargs.get('coastlines',None),kwargs.get('res',.1), kwargs.get('R',1.))
             
             kwargs.update({'hfun':hfun0}) 
             
@@ -126,7 +126,7 @@ def jigsaw(**kwargs):
                 # convert to lat/lon
                 u, v = gr.SCHISM_hgrid_node_x.values, gr.SCHISM_hgrid_node_y.values 
             
-                rlon, rlat = to_lat_lon(u,v)
+                rlon, rlat = to_lat_lon(u,v,R=kwargs.get('R',1.))
             
                 gr['SCHISM_hgrid_node_x'].values = rlon
                 gr['SCHISM_hgrid_node_y'].values = rlat
@@ -202,7 +202,7 @@ def sgl(**kwargs):
     
         # convert to u,v (stereographic coordinates)
         for idx, poly in geo.iterrows():
-            geo.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: to_stereo(x,y), poly.geometry)
+            geo.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: to_stereo(x,y, R=kwargs.get('R',1.)), poly.geometry)
     
         w = geo.drop(indx) # get all polygons
         ww = w.loc[mm] # join the split polygons
