@@ -421,7 +421,7 @@ def jdefault(**kwargs):
     except:
         cwater= water
 
-    mindx = 0
+    mindx = 1
     #get all lines in a pandas DataFrame
     if cwater.type == 'LineString':
             lon=[]
@@ -429,7 +429,7 @@ def jdefault(**kwargs):
             for x,y in cwater.coords[:]:
                 lon.append(x)
                 lat.append(y)
-            dic= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx + 1}}
+            dic= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx}}
             mindx += 1
         
     elif cwater.type == 'MultiLineString' :
@@ -440,7 +440,7 @@ def jdefault(**kwargs):
             for x,y in cwater[l].coords[:]:
                 lon.append(x)
                 lat.append(y)
-            dic.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx + 1}})
+            dic.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx}})
             mindx += 1
     
     dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
@@ -458,7 +458,7 @@ def jdefault(**kwargs):
     except:
         cland = land
         
-    mindx = 0 
+    mindx = -1 
     
     #get all lines in a pandas DataFrame
     dic_land = {}
@@ -469,7 +469,7 @@ def jdefault(**kwargs):
             for x,y in cland.coords[:]:
                 lon.append(x)
                 lat.append(y)
-            dic_land= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}}
+            dic_land= {'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx}}
             mindx -= 1
         
     elif cland.type == 'MultiLineString' :
@@ -480,7 +480,7 @@ def jdefault(**kwargs):
             for x,y in cland[l].coords[:]:
                 lon.append(x)
                 lat.append(y)
-            dic_land.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx - 1}})
+            dic_land.update({'line{}'.format(mindx):{'lon':lon,'lat':lat, 'z':0 ,'tag':mindx}})
             mindx -= 1
     
     dict_of_df = {k: pd.DataFrame(v) for k,v in dic_land.items()}
