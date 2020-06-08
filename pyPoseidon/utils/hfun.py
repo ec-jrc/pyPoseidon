@@ -25,6 +25,12 @@ def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dh
     hfun[hfun < hmin] = hmin
     hfun[hfun > hmax] = hmax
     
+#    subspace = kwargs.get('subspace', None) 
+    
+#    if subspace is not None:
+#        mask = ...
+#        hfun[mask] = 
+    
     hfun = hfun.flatten() # make it 1-d
     
     hfun = np.array([[hf] for hf in list(hfun)]) #convert it to the appropriate format for LIMHFN2 below
@@ -106,7 +112,7 @@ def to_hfun_grid(dh,fhfun):
 
 def hfun_(coastlines,res=.1, R=1.):
      
-    amask = (coastlines.bounds.miny < -88)
+    amask = (coastlines.bounds.miny < coastlines.bounds.miny.min() + .1)
     anta = coastlines[amask]
     anta = anta.reset_index(drop=True)
     
