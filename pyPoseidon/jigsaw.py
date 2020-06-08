@@ -181,7 +181,7 @@ def sgl(**kwargs):
         geo = geo.drop(geo.loc[kasp].index)
     
         #ANTARTICA
-        anta_mask = (geo.bounds.miny < -89.) # indentify antartica
+        anta_mask = (geo.bounds.miny < geo.bounds.miny.min() + .1) # indentify antartica
         anta = geo.loc[anta_mask]
         indx = anta.index # keep index
     
