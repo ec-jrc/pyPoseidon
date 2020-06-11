@@ -171,7 +171,7 @@ class meteo:
             s.to_force(self.Dataset,vars=var_list, **kwargs)
 
 
-def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by='by_coords', **kwargs):
+def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], merge=False, combine_forecast=False, combine_by='by_coords', **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
     xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
@@ -216,14 +216,25 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
             data = data.rename({time_coord:'time'})
             data = data.assign_coords(time=data.valid_time)
 
-    if combine_forecast :
-        logger.info('combining meteo datasets')
+    if merge :
+        logger.info('merging meteo datasets')
                 
         mask = data.time.to_pandas().duplicated('last').values
         msl = data.msl[~mask]
         u10 = data.u10[~mask]
         v10 = data.v10[~mask]
         data = xr.merge([msl,u10,v10])
+        
+    if combine_forecast :
+        logger.info('combining meteo datasets')
+        mask_ = pd.to_datetime(data.time.values)>=ts
+        data_ = data.sel(time=mask_)        
+        mask = data_.time.to_pandas().duplicated('last').values
+        idx = np.argwhere(mask==False)[0]
+        mask[idx]=np.invert(mask[idx])
+        mask[0]=np.invert(mask[0])
+        data_ = data_.sel(time=~mask)
+        data = data_[['msl','u10','v10']]
 
 
     if not lon_min : lon_min = data.longitude.data.min()
@@ -338,7 +349,7 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
 
 
 
-def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_forecast=False, combine_by='by_coords', **kwargs):
+def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], merge=False, combine_forecast=False, combine_by='by_coords', **kwargs):
 
     backend_kwargs = kwargs.get('backend_kwargs', {})
     xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
