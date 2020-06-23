@@ -108,7 +108,7 @@ def fix(dem,coastline,**kwargs):
     t = t.sort_values(by='length', ascending=0) #use the length to list them
     t = t.reset_index(drop=True)
     
-    t['in'] = gp.GeoDataFrame(geometry=[grp] * t.shape[0]).contains(t) # find the largest of boundaries
+    t['in'] = gp.GeoDataFrame(geometry=[grp.buffer(.001)] * t.shape[0]).contains(t) # find the largest of boundaries
     
     try:
         idx = np.where(t['in']==True)[0][0] # first(largest) boundary within lat/lon
@@ -164,21 +164,20 @@ def fix(dem,coastline,**kwargs):
     #--------------------------------------------------------------------- 
     
     #find the points on land
+    
+    tree = pygeos.STRtree(spoints_)
+    
     try:
         wl=[]
         for l in range(len(land.boundary)):
-            wl.append(pygeos.contains(bp[l],spoints_))
-            
-        #merge the masks 
-        lmask=np.zeros(spoints_.shape, dtype=bool)
-        for i in range(len(wl)):
-            lmask = np.logical_or(lmask,wl[i])
-        
+            wl.append(tree.query(bp[l], predicate='contains').tolist())
     except:
-        wl = pygeos.contains(bp,spoints_)
-        lmask=np.zeros(spoints_.shape, dtype=bool)
-        lmask = np.logical_or(lmask,wl)
-
+        wl = tree.query(bp, predicate='contains').tolist()
+    
+    ns = [j for i in wl for j in i]
+    
+    lmask=np.zeros(spoints_.shape, dtype=bool)
+    lmask[ns] = True
        
     wmask = ~lmask # invert for wet mask
     

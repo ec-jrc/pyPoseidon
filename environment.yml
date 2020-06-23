@@ -8,7 +8,6 @@ dependencies:
   - mayavi
   - pyresample
   - pydap
-  - pynio
   - dask
   - pygeos 
   - geoviews

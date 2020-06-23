@@ -150,11 +150,20 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
         targ = pyresample.geometry.SwathDefinition(lons=gx,lats=grid_y) # target grid
 
+        
+        wet = kwargs.get('wet_only', False)
+        if wet:
+            #mask positive bathymetry 
+            vals = np.ma.masked_array(dem,dem.values > 0 )
+        else:
+            vals = dem.values
+
+
         # with nearest using only the water values        
 
         #    itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
 
-        grid_con = pyresample.image.ImageContainerNearest(dem.values, orig, radius_of_influence=50000,fill_value=np.nan)#,nprocs=ncores)
+        grid_con = pyresample.image.ImageContainerNearest(vals, orig, radius_of_influence=50000,fill_value=np.nan)#,nprocs=ncores)
 
         area_con = grid_con.resample(targ)
 
