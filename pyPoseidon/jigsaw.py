@@ -185,7 +185,10 @@ def sgl(**kwargs):
         anta = geo.loc[anta_mask]
         indx = anta.index # keep index
     
-        anta = pd.DataFrame(anta.boundary.values[0].coords[:], columns=['lon','lat']) # convert boundary values to pandas
+        try:
+            anta = pd.DataFrame(anta.boundary.values[0].coords[:], columns=['lon','lat'])
+        except: 
+            anta = pd.DataFrame(anta.boundary.explode()[0].coords[:], columns=['lon','lat']) # convert boundary values to pandas
         d1 = anta.where(anta.lon==anta.lon.max()).dropna().index[1:] # get artificial boundaries as -180/180
         d2 = anta.where(anta.lon==anta.lon.min()).dropna().index[1:]
         anta = anta.drop(d1).drop(d2) # drop the points
@@ -564,6 +567,7 @@ def jigsaw_(df, bmindx, **kwargs):
         f.write('HFUN_HMIN = 0.0\n')
         f.write('MESH_DIMS = 2\n')
         f.write('MESH_TOP1 = TRUE\n')
+#        f.write('MESH_TOP2 = TRUE\n')
         f.write('MESH_EPS1 = 1.0\n')
         f.write('MESH_RAD2 = 1\n')
         f.write('GEOM_FEAT = TRUE\n')
