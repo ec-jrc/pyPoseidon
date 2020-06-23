@@ -7,6 +7,24 @@ from .limgrad import *
 import matplotlib
 from pyPoseidon.utils.stereo import to_lat_lon, to_stereo
 import pyPoseidon
+import math
+
+#https://stackoverflow.com/questions/44934631/making-grid-triangular-mesh-quickly-with-numpy
+def MakeFacesVectorized1(Nr,Nc):
+
+    out = np.empty((Nr-1,Nc-1,2,3),dtype=int)
+
+    r = np.arange(Nr*Nc).reshape(Nr,Nc)
+
+    out[:,:, 0,0] = r[:-1,:-1]
+    out[:,:, 1,0] = r[:-1,1:]
+    out[:,:, 0,1] = r[:-1,1:]
+
+    out[:,:, 1,1] = r[1:,1:]
+    out[:,:, :,2] = r[1:,:-1,None]
+
+    out.shape =(-1,3)
+    return out
 
 
 def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
@@ -33,17 +51,20 @@ def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dh
     
     hfun = hfun.flatten() # make it 1-d
     
-    hfun = np.array([[hf] for hf in list(hfun)]) #convert it to the appropriate format for LIMHFN2 below
+    hfun = hfun.reshape(hfun.shape[0],-1) #convert it to the appropriate format for LIMHFN2 below
     
     #triangulate
     points = np.column_stack([X.flatten(),Y.flatten()])
+    tria = MakeFacesVectorized1(V.shape[0],V.shape[1])
     # Use Matplotlib for triangulation
-    triang = matplotlib.tri.Triangulation(points[:,0], points[:,1])
+    triang = matplotlib.tri.Triangulation(points[:,0], points[:,1], tria)
 #    tri3 = triang.triangles
     edges = triang.edges
     #edge lengths
-    elen = [shapely.geometry.LineString(points[edge]).length for edge in edges]
-    
+    ptdiff = lambda p: (p[0][0]-p[1][0], p[0][1]-p[1][1]) 
+    diffs = map(ptdiff , points[edges]) 
+    elen = [math.hypot(d1,d2) for d1,d2 in diffs]
+     
     [fun,flag] = limgrad2(edges,elen,hfun,dhdx,imax)
 
     cfun = fun.flatten().reshape(X.shape).T
@@ -117,7 +138,11 @@ def hfun_(coastlines,res=.1, R=1.):
     anta = anta.reset_index(drop=True)
     
     ### convert to stereo
-    ant = pd.DataFrame(anta.boundary.values[0].coords[:], columns=['lon','lat']) # convert boundary values to pandas
+    try:
+        ant = pd.DataFrame(anta.boundary.values[0].coords[:], columns=['lon','lat'])
+    except: 
+        ant = pd.DataFrame(anta.boundary.explode().values[0].coords[:], columns=['lon','lat']) # convert boundary values to pandas
+
     d1 = ant.where(ant.lon==ant.lon.max()).dropna().index[1:] # get artificial boundaries as -180/180
     d2 = ant.where(ant.lon==ant.lon.min()).dropna().index[1:]
     ant = ant.drop(d1).drop(d2) # drop the points
