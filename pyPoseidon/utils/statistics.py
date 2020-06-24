@@ -90,10 +90,10 @@ def vtable(obsrv,model):
     #0.3<PS<0.6  Reasonable
     #0<PS<0.3    Poor
     #PS<0        Bad 
-    # reference: https://cirpwiki.info/wiki/Statistics
+    # reference: https://en.wikipedia.org/wiki/Nash%E2%80%93Sutcliffe_model_efficiency_coefficient
 
         try:
-            nsccoef = 1 - np.nanmean((model-obsrv)**2)/np.nanmean((obsrv-np.nanmean(obsrv))**2)
+            nsccoef = 1 - np.nansum((model-obsrv)**2)/np.nansum((obsrv-np.nanmean(obsrv))**2)
         except:
             nsccoef = np.NaN
 
