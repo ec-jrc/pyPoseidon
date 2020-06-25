@@ -779,7 +779,15 @@ def jigsaw_(df, bmindx, **kwargs):
     lattr.set_index('label', inplace=True, drop=True)
 
 
-    gr = xr.merge([nod,dep,els,xob.to_xarray(), xlb.to_xarray(), lattr.to_xarray(), oattr.to_xarray()]) # total
+    dic={}
+    for name in xlb.columns:
+        dic.update({name:(['index'],xlb[name].values)})
+
+    xlb_ = xr.Dataset(dic, coords={'index': ('index', xlb.index.values)})         
+
+
+
+    gr = xr.merge([nod,dep,els,xob.to_xarray(), xlb_, lattr.to_xarray(), oattr.to_xarray()]) # total
     
     
     logger.info('..done creating mesh\n')
