@@ -15,8 +15,14 @@ import pandas as pd
 import sys
 from .jigsaw import *
 import logging
+import f90nml
+import os
+import subprocess
 
 logger = logging.getLogger('pyPoseidon')
+
+
+DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
 
 
 def grid(type=None, **kwargs):
@@ -359,4 +365,91 @@ class tri2d():
                 dat.to_csv(f,index=None, header=False)
 
         
+    def validate(self,**kwargs):      
+        
+        #--------------------------------------------------------------------- 
+        logger.info('start grid validation\n')
+        #--------------------------------------------------------------------- 
+        
+        path = kwargs.get('rpath','./') 
+        
+        if not os.path.exists(path):
+            os.makedirs(path)
+               
+        # save bctides.in
+        nobs = [key for key in self.Dataset.keys() if 'open' in key]
+        
+        with open(path + 'bctides.in', 'w') as f:
+            f.write('Header\n')
+            f.write('{} {}\n'.format(0, 40.)) #  ntip tip_dp
+            f.write('{}\n'.format(0)) #nbfr
+            f.write('{}\n'.format(len(nobs))) #number of open boundaries
+            for i in range(len(nobs)):
+                nnodes = self.Dataset[nobs[i]].dropna(dim='index').size
+                f.write('{} {} {} {} {}\n'.format(nnodes,2,0,0,0)) # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
+                f.write('{}\n'.format(0)) # ethconst !constant elevation value for this segment    
+       
+       #save vgrid.in
+        with open(path + 'vgrid.in', 'w') as f:
+            f.write('{}\n'.format(2)) #ivcor (1: LSC2; 2: SZ)
+            f.write('{} {} {}\n'.format(2,1,1.e6)) #nvrt(=Nz); kz (# of Z-levels); hs (transition depth between S and Z)
+            f.write('Z levels\n') # Z levels !Z-levels in the lower portion
+            f.write('{} {}\n'.format(1,-1.e6)) #!level index, z-coordinates, z-coordinate of the last Z-level must match -hs 
+            f.write('S levels\n') # S-levels below 
+            f.write('{} {} {}\n'.format(40.,1.,1.e-4))  #constants used in S-transformation: h_c, theta_b, theta_f
+            f.write('{} {}\n'.format(1,-1.)) #first S-level (sigma-coordinate must be -1)
+            f.write('{} {}\n'.format(2,0.)) # levels index, sigma-coordinate, last sigma-coordinate must be 0
 
+       # save params.nml
+        config_file = DATA_PATH + 'param_val.nml'
+        params = f90nml.read(config_file)
+        params.write(path + 'param.nml',force=True)            
+                         
+        
+        #save hgrid.gr3
+        self.to_file(filename= path+'hgrid.gr3')
+                             
+        
+        try:
+            bin_path = os.environ['SCHISM']
+        except:
+            bin_path = kwargs.get('epath',None)
+                                
+        if bin_path is None:
+            #------------------------------------------------------------------------------ 
+            logger.warning('Schism executable path (epath) not given -> using default \n')
+            #------------------------------------------------------------------------------
+            bin_path = 'schism'
+              
+        ncores = 1
+        calc_dir = path
+                            
+            
+        with open(calc_dir + 'launchSchism.sh', 'w') as f:
+            f.write('exec={}\n'.format(bin_path))
+            f.write('mkdir outputs\n')
+            f.write('mpirun -N {} $exec\n'.format(ncores))   
+                 
+          #make the script executable
+        execf = calc_dir+'launchSchism.sh'
+        mode = os.stat(execf).st_mode
+        mode |= (mode & 0o444) >> 2    # copy R bits to X
+        os.chmod(execf, mode)
+
+            # note that cwd is the folder where the executable is
+        ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+            
+        out, err = ex.communicate()[:]
+        
+        if 'successfully' in str(out):
+            
+            #--------------------------------------------------------------------- 
+            logger.info('grid is validated for SCHISM\n')
+            #--------------------------------------------------------------------- 
+
+        else:
+            logger.debug(str(out))
+            #--------------------------------------------------------------------- 
+            logger.info('grid fails.. exiting \n')
+            #--------------------------------------------------------------------- 
+ 
