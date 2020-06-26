@@ -221,7 +221,7 @@ def fix(dem,coastline,**kwargs):
         orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
         targ = pyresample.geometry.SwathDefinition(lons=xw,lats=yw) # wet points
         
-        bw = pyresample.kd_tree.resample_nearest(orig,wet_dem,targ,radius_of_influence=50000,fill_value=np.NaN)
+        bw = pyresample.kd_tree.resample_nearest(orig,wet_dem,targ,radius_of_influence=50000,fill_value=0)
         
         df.loc[pw.index,'elevation'] = bw # replace in original dataset
     
@@ -264,7 +264,7 @@ def fix(dem,coastline,**kwargs):
         orig = pyresample.geometry.SwathDefinition(lons=dx,lats=dy) # original bathymetry points
         targ = pyresample.geometry.SwathDefinition(lons=xl,lats=yl) # wet points
         
-        bd = pyresample.kd_tree.resample_nearest(orig,dry_dem,targ,radius_of_influence=50000,fill_value=np.NaN)
+        bd = pyresample.kd_tree.resample_nearest(orig,dry_dem,targ,radius_of_influence=50000,fill_value=0)
         
         df.loc[pl.index,'elevation'] = bd  # replace in original dataset
         
