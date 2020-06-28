@@ -50,6 +50,9 @@ Notebooks/*
 # dat files
 *.dat
 
+# gr3 files
+*.gr3
+
 #ignore .jupyter chekpoints folder
 .ipynb_checkpoints
 
