@@ -94,9 +94,9 @@ class dnest(nest):
         orig = pyresample.geometry.SwathDefinition(lons=xz,lats=yz) # original points
         targ = pyresample.geometry.SwathDefinition(lons=nest.impl.grid.x,lats=nest.impl.grid.y) # target grid
         
-        s_ini = pyresample.kd_tree.resample_nearest(orig,s1,targ,radius_of_influence=50000,fill_value=0)
-        u_ini = pyresample.kd_tree.resample_nearest(orig,u1,targ,radius_of_influence=50000,fill_value=0)
-        v_ini = pyresample.kd_tree.resample_nearest(orig,v1,targ,radius_of_influence=50000,fill_value=0)
+        s_ini = pyresample.kd_tree.resample_nearest(orig,s1,targ,radius_of_influence=100000,fill_value=0)
+        u_ini = pyresample.kd_tree.resample_nearest(orig,u1,targ,radius_of_influence=100000,fill_value=0)
+        v_ini = pyresample.kd_tree.resample_nearest(orig,v1,targ,radius_of_influence=100000,fill_value=0)
         
         
         # Write .ini file

@@ -59,6 +59,7 @@ def schism(tmpdir,case):
 
     try:
         b.execute()
+        b.results()
         return True
     except:
         return False

@@ -161,9 +161,9 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
         # with nearest using only the water values        
 
-        #    itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=50000,fill_value=np.nan,nprocs=ncores)
+        #    itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=100000,fill_value=np.nan,nprocs=ncores)
 
-        grid_con = pyresample.image.ImageContainerNearest(vals, orig, radius_of_influence=50000,fill_value=np.nan)#,nprocs=ncores)
+        grid_con = pyresample.image.ImageContainerNearest(vals, orig, radius_of_influence=100000,fill_value=np.nan)#,nprocs=ncores)
 
         area_con = grid_con.resample(targ)
 

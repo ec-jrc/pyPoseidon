@@ -27,7 +27,7 @@ case={'solver':'schism',
      'dem_source' : DEM_FILE,
      'meteo_source' : METEO_FILES_1,
      'engine':'cfgrib',
-     'combine_forecast': True, #combine meteo
+     'merge': True, #combine meteo
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},
      'ncores': 4 , #number of cores
@@ -46,7 +46,7 @@ check={'solver':'schism',
      'dem_source' : DEM_FILE,
      'meteo_source' : METEO_FILES_2,
      'engine':'cfgrib',
-     'combine_forecast': True, #combine meteo
+     'merge': True, #combine meteo
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},
      'ncores': 4 , #number of cores

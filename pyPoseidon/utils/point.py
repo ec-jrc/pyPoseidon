@@ -73,11 +73,11 @@ class point:
                 
         if method == 'nearest':
             for k in range(vals.shape[0]):
-                s = pyresample.kd_tree.resample_nearest(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=np.nan)
+                s = pyresample.kd_tree.resample_nearest(orig,vals[k,:,:],targ,radius_of_influence=100000,fill_value=np.nan)
                 svals.append(s[0])
         elif method == 'gauss':
             for k in range(vals.shape[0]):
-                s = pyresample.kd_tree.resample_gauss(orig,vals[k,:,:],targ,radius_of_influence=50000,fill_value=np.nan,sigmas=25000)                
+                s = pyresample.kd_tree.resample_gauss(orig,vals[k,:,:],targ,radius_of_influence=100000,fill_value=np.nan,sigmas=25000)                
                 svals.append(s[0])
                 
 

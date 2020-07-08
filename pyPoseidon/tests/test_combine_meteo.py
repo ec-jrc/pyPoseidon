@@ -12,7 +12,7 @@ def test_answer():
     filenames = sorted(DATA_DIR.glob("uvp_*"))
 
     #read meteo files
-    df = pm.meteo(meteo_source=filenames, engine='cfgrib', combine_by='nested', combine_forecast=True, xr_kwargs = {'concat_dim' : 'step'}) # use combine
+    df = pm.meteo(meteo_source=filenames, engine='cfgrib', combine_by='nested', merge=True, xr_kwargs = {'concat_dim' : 'step'}) # use combine
     df0 = pm.meteo(meteo_source=[filenames[0]],engine='cfgrib') # each one seperately
     df1 = pm.meteo(meteo_source=[filenames[1]],engine='cfgrib') # each one seperately
     df2 = pm.meteo(meteo_source=[filenames[2]],engine='cfgrib') # each one seperately

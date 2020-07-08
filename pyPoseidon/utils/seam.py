@@ -181,7 +181,7 @@ def to_2d(files=None, var=None, grid=None, **kwargs):
     for i in range(out.time.shape[0]):
         z = out[var].values[i,:]
         zm = z[xmask]
-        z_ = pyresample.kd_tree.resample_nearest(orig,zm,targ,radius_of_influence=50000,fill_value=0)
+        z_ = pyresample.kd_tree.resample_nearest(orig,zm,targ,radius_of_influence=100000,fill_value=0)
         e = np.concatenate((z, z_))
         xelev.append(e)
         

@@ -171,10 +171,12 @@ def fix(dem,coastline,**kwargs):
         wl=[]
         for l in range(len(land.boundary)):
             wl.append(tree.query(bp[l], predicate='contains').tolist())
+        ns = [j for i in wl for j in i]
     except:
         wl = tree.query(bp, predicate='contains').tolist()
+        ns = wl
     
-    ns = [j for i in wl for j in i]
+    
     
     lmask=np.zeros(spoints_.shape, dtype=bool)
     lmask[ns] = True
@@ -221,7 +223,7 @@ def fix(dem,coastline,**kwargs):
         orig = pyresample.geometry.SwathDefinition(lons=mx,lats=my) # original bathymetry points
         targ = pyresample.geometry.SwathDefinition(lons=xw,lats=yw) # wet points
         
-        bw = pyresample.kd_tree.resample_nearest(orig,wet_dem,targ,radius_of_influence=50000,fill_value=np.nan)
+        bw = pyresample.kd_tree.resample_nearest(orig,wet_dem,targ,radius_of_influence=100000,fill_value=np.nan)
         
         df.loc[pw.index,'elevation'] = bw # replace in original dataset
     
@@ -264,7 +266,7 @@ def fix(dem,coastline,**kwargs):
         orig = pyresample.geometry.SwathDefinition(lons=dx,lats=dy) # original bathymetry points
         targ = pyresample.geometry.SwathDefinition(lons=xl,lats=yl) # wet points
         
-        bd = pyresample.kd_tree.resample_nearest(orig,dry_dem,targ,radius_of_influence=50000,fill_value=np.nan)
+        bd = pyresample.kd_tree.resample_nearest(orig,dry_dem,targ,radius_of_influence=100000,fill_value=np.nan)
         
         df.loc[pl.index,'elevation'] = bd  # replace in original dataset
         

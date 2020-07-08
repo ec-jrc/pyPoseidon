@@ -1275,9 +1275,7 @@ class schism():
         
         
         logger.info('done with output netCDF files \n')
-                
-
-
+        
     def set_obs(self,**kwargs):
         
         path = get_value(self,kwargs,'rpath','./') 
@@ -1401,5 +1399,4 @@ class schism():
         
         self.data = data(**dic)
         
-    
-        
+                

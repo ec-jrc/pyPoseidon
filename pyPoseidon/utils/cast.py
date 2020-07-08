@@ -191,7 +191,7 @@ class scast():
         
         pwd = os.getcwd()
                       
-        files = [ 'bctides.in', 'launchSchism.sh','/sflux/sflux_inputs.txt']
+        files = [ 'bctides.in', 'launchSchism.sh','/sflux/sflux_inputs.txt', '/outputs/flux.out']
         files_sym = ['hgrid.gr3', 'hgrid.ll', 'manning.gr3', 'vgrid.in', 'drag.gr3', 'rough.gr3', 'station.in', 'windrot_geo2proj.gr3']
         station_files = ['/outputs/staout_1' , '/outputs/staout_2' , '/outputs/staout_3' , '/outputs/staout_4' , '/outputs/staout_5' , '/outputs/staout_6' , '/outputs/staout_7' , '/outputs/staout_8' , '/outputs/staout_9']
 

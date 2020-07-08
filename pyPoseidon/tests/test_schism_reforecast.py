@@ -25,14 +25,17 @@ case={'solver':'schism',
      'windrot':0.00001,
      'tag':'schism',
      'start_date':'2018-10-1 0:0:0',
-     'time_frame':'24H',
+     'time_frame':'12H',
      'dem_source' : DEM_FILE,
-     'engine':'passthrough',
+     'meteo_source' : METEO_FILES_1,
+     'engine':'cfgrib',
+     'combine_forecast': True, #combine meteo
+     'combine_by':'nested',
+     'xr_kwargs': {'concat_dim':'step'},
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
-     'parameters':{'dt':400, 'rnday':1., 'nhot':1, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
+     'parameters':{'dt':400, 'rnday':.5, 'nhot':1, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
-    
     
 
 #define in a dictionary the properties of the model..
@@ -57,16 +60,6 @@ def schism(tmpdir):
     rpath = str(tmpdir)+'/schism/'
     case.update({'rpath':rpath+'20181001.00/'}) # use tmpdir for running the model
 
-    #creating a time sequence of the runs
-    start_date = pd.to_datetime('2018-10-1 0:0:0')
-    end_date = pd.to_datetime('2018-10-2 0:0:0')
-    date_list = pd.date_range(start_date,end_date, freq='12H')
-
-
-    m0 = pm.meteo(meteo_source=METEO_FILES_1,engine='cfgrib')
-    
-    case.update({'meteo_source':m0.Dataset}) 
-
     b = pyPoseidon.model(**case)
 
     b.execute()
@@ -80,6 +73,10 @@ def schism(tmpdir):
 
     info.update({'path': rpath})
 
+    #creating a time sequence of the runs
+    start_date = pd.to_datetime('2018-10-1 0:0:0')
+    end_date = pd.to_datetime('2018-10-2 0:0:0')
+    date_list = pd.date_range(start_date,end_date, freq='12H')
 
     #append to dic
     info.update({'start_date':start_date,'end_date':end_date, 'dates' : date_list})
@@ -90,19 +87,14 @@ def schism(tmpdir):
     info.update({'folders':folders})
 
     #creating a sequence of folder from which we read the meteo.
-    meteo = [m0.Dataset]
-    for date in date_list[1:]:
-        end_date= pd.to_datetime(date) + pd.to_timedelta(info['time_frame'])
-        end_date = end_date.strftime(format='%Y-%m-%d %H:%M:%S')
-        dr = [date - pd.to_timedelta('12H'), date]
+    meteo = []
+    for date in date_list:
+        prev_date= pd.to_datetime(date) - pd.to_timedelta(info['time_frame'])
+        prev_date = prev_date.strftime(format='%Y-%m-%d %H:%M:%S')
+        dr = pd.date_range(prev_date, date, freq='12H')
         names = ['uvp_'+ datetime.datetime.strftime(x, '%Y%m%d%H') + '.grib' for x in dr]
-        dur = [ (DATA_DIR / name).as_posix() for name in names] 
-        m1 = pm.meteo(meteo_source=dur[0],engine='cfgrib')
-        m2 = pm.meteo(meteo_source=dur[1],engine='cfgrib')
-        w1 = m1.Dataset.isel(time=slice(12,13))
-        w2 = m2.Dataset.isel(time=slice(1,None)) # note that we keep the 12 hour from the previous file
-        mf = xr.combine_by_coords([w1,w2])
-        meteo.append(mf)
+        dur = [ (DATA_DIR / name).as_posix() for name in names ] 
+        meteo.append(dur)
 
     info.update({'meteo_source':meteo})
 
@@ -112,6 +104,7 @@ def schism(tmpdir):
     h = cast.cast(**info) # initialize
 
     h.run()
+
 
     # Run check case - Total duration
     check.update({'rpath':rpath+'check/'}) # use tmpdir for running the model
