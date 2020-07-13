@@ -9,7 +9,7 @@ dependencies:
   - pyresample
   - pydap
   - dask
-  - pygeos 
+  - pygeos>=0.7.1 
   - geoviews
   - geopandas
   - rasterio
