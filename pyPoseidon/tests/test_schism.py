@@ -21,7 +21,7 @@ case1={'solver':'schism',
      'dem_source' : DEM_FILE,
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
-     'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
+     'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
 
 case2={'solver':'schism',
@@ -36,7 +36,7 @@ case2={'solver':'schism',
      'engine':'cfgrib',
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
-     'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
+     'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
 
 
@@ -52,7 +52,7 @@ case3={'solver':'schism',
      'dem_source' : DEM_FILE,
      'ncores': 4 , #number of cores
      'update':['all'], #update only meteo, keep dem
-     'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
+     'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
 
 def schism(tmpdir,dic):

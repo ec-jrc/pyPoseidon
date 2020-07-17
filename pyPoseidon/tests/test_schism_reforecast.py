@@ -25,7 +25,7 @@ case={'solver':'schism',
      'windrot':0.00001,
      'tag':'schism',
      'start_date':'2018-10-1 0:0:0',
-     'time_frame':'12H',
+     'time_frame':'24H',
      'dem_source' : DEM_FILE,
      'meteo_source' : METEO_FILES_1,
      'engine':'cfgrib',
@@ -89,7 +89,7 @@ def schism(tmpdir):
     #creating a sequence of folder from which we read the meteo.
     meteo = []
     for date in date_list:
-        prev_date= pd.to_datetime(date) - pd.to_timedelta(info['time_frame'])
+        prev_date= pd.to_datetime(date) - pd.to_timedelta('12H')
         prev_date = prev_date.strftime(format='%Y-%m-%d %H:%M:%S')
         dr = pd.date_range(prev_date, date, freq='12H')
         names = ['uvp_'+ datetime.datetime.strftime(x, '%Y%m%d%H') + '.grib' for x in dr]
@@ -124,7 +124,7 @@ def schism(tmpdir):
     w4 = m4.Dataset.isel(time=slice(1,13))
 
     #combine
-    meteo = xr.combine_by_coords([w1,w2,w3,w4])
+    meteo = xr.combine_by_coords([w1,w2,w3,w4],combine_attrs='override')
     #saving
     check.update({'meteo_source' : meteo})
     

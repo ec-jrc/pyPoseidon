@@ -49,7 +49,7 @@ def schism(tmpdir,case):
          'dem_source' : DEM_FILE,
          'ncores': 4 , #number of cores
          'update':['all'], #update only meteo, keep dem
-         'parameters':{'dt':400, 'rnday':0.3, 'hotout':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'hotout_write':108 }
+         'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
         }
         
     rpath = str(tmpdir)+'/'
