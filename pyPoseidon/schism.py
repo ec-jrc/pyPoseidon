@@ -804,9 +804,9 @@ class schism():
             tri.loc[key,'gb'] = nod.reindex(tri.loc[key,'b'].values).values
             tri.loc[key,'gc'] = nod.reindex(tri.loc[key,'c'].values).values 
         
-        tri.loc[:,'ga'] = tri.loc[:,'ga'].apply(pd.to_numeric(int)) # make integer
-        tri.loc[:,'gb'] = tri.loc[:,'gb'].apply(pd.to_numeric(int)) # make integer
-        tri.loc[:,'gc'] = tri.loc[:,'gc'].apply(pd.to_numeric(int)) # make integer
+        tri.loc[:,'ga'] = tri.loc[:,'ga'].values.astype(int) # make integer
+        tri.loc[:,'gb'] = tri.loc[:,'gb'].values.astype(int) # make integer
+        tri.loc[:,'gc'] = tri.loc[:,'gc'].values.astype(int) # make integer
         
         tri = tri.drop(['a','b','c'],axis=1) #drop local references
 
