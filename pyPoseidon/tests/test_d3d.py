@@ -1,5 +1,6 @@
 import pytest
 import pyPoseidon
+from pyPoseidon.utils import data
 import os
 
 from . import DATA_DIR
@@ -28,8 +29,10 @@ def d3d(tmpdir,dic):
 
     try:
         b.execute()
+        out = data.data(**dic)
         a = pyPoseidon.read_model(rpath+'d3d_model.json') # read model
         a.execute()
+        out = data.data(**dic)
         return True
     except:
         return False

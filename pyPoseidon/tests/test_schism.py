@@ -64,8 +64,10 @@ def schism(tmpdir,dic):
 
     try:
         b.execute()
+        b.results()
         a = pyPoseidon.read_model(rpath+'test_model.json') # read model
         a.execute()
+        a.results()
         return True
     except:
         return False
