@@ -227,14 +227,14 @@ class tri2d():
         except:
             pass
 
-        ops = pd.DataFrame(onodes).T
-        try:
-            ops.columns = oinfo.index
-        except:
-            pass
-            
-        ops = ops - 1 # start_index = 0
-        
+
+        obnodes = [j for i in onodes for j in i]
+        dfo = pd.DataFrame({'node':obnodes,'type':-1,'id':0},index=np.arange(len(obnodes)))
+        idx=1
+        for l in range(len(onodes)):
+            dfo.loc[dfo.node.isin(onodes[l]),'id'] = idx
+            idx += 1
+                
         #Land boundaries
         n1 = df[df.data.str.contains('land boundaries')].index
         n1 = n1.values[0]
@@ -270,13 +270,22 @@ class tri2d():
         except:
             pass
             
-        lps = pd.DataFrame(lnodes).T
-        lps.columns = linfo.index
+            
+        lbnodes = [j for i in lnodes for j in i]
+        dfl = pd.DataFrame({'node':lbnodes,'type':0,'id':0},index=np.arange(len(lbnodes)))
+        idx=-1
+        for l in range(len(lnodes)):
+            dfl.loc[dfl.node.isin(lnodes[l]),'id'] = idx
+            dfl.loc[dfl.node.isin(lnodes[l]),'type'] = linfo.iloc[l].type
+            idx -= 1
         
-        lps = lps - 1 # start_index = 0     
+        bbs = pd.concat([dfo,dfl])
+        bbs.index.name = 'bnodes'
+        
+        bbs.node = bbs.node - 1 # start_index = 0  
             
         # merge to one xarray DataSet
-        g = xr.merge([grid,depth,els,ops.to_xarray(),lps.to_xarray(),oinfo.to_xarray(),linfo.to_xarray()])
+        g = xr.merge([grid,depth,els,bbs.to_xarray()])
                     
         g.attrs = {}
         
@@ -312,58 +321,63 @@ class tri2d():
         
         e.to_csv(filename,index=True, sep='\t', header=None, mode='a', columns=['nv','a','b','c'])           
         
+        
+        bs = self.Dataset[['node','id','type']].to_dataframe()
+        
         # open boundaries
-        keys = [k for k in self.Dataset.keys() if 'open' in k]
+        number_of_open_boundaries = bs.id.max()
+        number_of_open_boundaries_nodes=bs.loc[bs.id>0].shape[0]
 
-        if keys :
-        
-            obound = self.Dataset[keys].to_dataframe() # get the dataframe
+        if number_of_open_boundaries > 0:
+            with open(filename, 'a') as f:
 
-            nob = obound.shape[1] # number of boundaries
 
-            ops = (~obound.isna()).sum() # number of nodes for each boundary
-        
+                f.write('{} = Number of open boundaries\n'.format(number_of_open_boundaries))
+                f.write('{} = Total number of open boundary nodes\n'.format(number_of_open_boundaries_nodes))
+
+
+                for i in range(1, number_of_open_boundaries + 1):
+                    dat = bs.loc[bs.id==i,'node'] + 1 #fortran
+                    f.write('{} = Number of nodes for open boundary {}\n'.format(dat.size,i))
+                    dat.to_csv(f,index=None,header=False)
+
         else:
-            
-            nob = 0
-            ops = np.array(0)
-        
-        with open(filename, 'a') as f:
-            f.write('{} = Number of open boundaries\n'.format(nob))
-            f.write('{} = Total number of open boundary nodes\n'.format(ops.sum()))
-            for i in range(nob):
-                dat = obound['open_boundary_{}'.format(i + 1)].dropna().astype(int) + 1 # convert to fortran (index starts from 1)
-                f.write('{} = Number of nodes for open boundary {}\n'.format(dat.size,i+1))
-                dat.to_csv(f,index=None,header=False)
-                                
+    
+            with open(filename, 'a') as f:
+
+                f.write('{} = Number of open boundaries\n'.format(0))
+                f.write('{} = Total number of open boundary nodes\n'.format(0))                                
 
         # land boundaries                      
 
-        keys = [k for k in self.Dataset.keys() if 'land' in k]
-
-        if keys :
-
-            lbound = self.Dataset[keys].to_dataframe() # get the dataframe
-
-            nlb = lbound.shape[1] # number of boundaries
-
-            lps = (~lbound.isna()).sum() # number of nodes for each boundary
+        number_of_land_boundaries = bs.id.min()
+        number_of_land_boundaries_nodes=bs.loc[bs.id<0].shape[0]
         
-        else:
+        if number_of_land_boundaries < 0:
+            with open(filename, 'a') as f:
+
+
+                f.write('{} = Number of land boundaries\n'.format(-number_of_land_boundaries))
+                f.write('{} = Total number of open boundary nodes\n'.format(number_of_land_boundaries_nodes))
+
+                ik=1
+                for i in range(-1 , number_of_land_boundaries - 1, -1):
+                    dat_ = bs.loc[bs.id==i]
+                    dat = dat_.node + 1 #fortran
+                    dat_t = dat_.type.iloc[0]
             
-            nlb = 0
-            lps = np.array(0)
-        
-        with open(filename, 'a') as f:
-            f.write('{} = Number of land boundaries\n'.format(nlb))
-            f.write('{} = Total number of land boundary nodes\n'.format(lps.sum()))
-            for i in range(nlb):
-                name = lbound.columns[i]
-                idx = name.split('_')[-2]
-                dat = lbound[name].dropna().astype(int) + 1 # convert to fortran (index starts from 1)
-                f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,self.Dataset.type.sel(label=name).values.astype(int),idx))
-                dat.to_csv(f,index=None, header=False)
+                    f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,dat_t,ik))
+                    dat.to_csv(f,index=None,header=False)
+                    ik += 1
 
+        else:
+    
+            with open(filename, 'a') as f:
+
+                f.write('{} = Number of land boundaries\n'.format(0))
+                f.write('{} = Total number of land boundary nodes\n'.format(0))
+
+    
         
     def validate(self,**kwargs):      
         

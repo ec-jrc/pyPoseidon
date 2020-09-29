@@ -730,6 +730,16 @@ def jigsaw_(df, bmindx, **kwargs):
     else:
         
         open_i = []
+        
+        
+    # Fix an issue with jumping identifiers
+    
+    nns = np.array([int(x.split('_')[-1]) for x in open_i])
+    if nns.max() != nns.size:
+        nns = np.arange(nns.size) + 1
+        open_i = ['open_boundary_{}'.format(x) for x in nns] 
+        lidx = dict(zip(openb.index.levels[0].to_list(), open_i))    
+        openb.rename(index=lidx, level=0, inplace=True)
     
     #MAKE Dataset
     
@@ -752,12 +762,17 @@ def jigsaw_(df, bmindx, **kwargs):
         nop.append(openb.loc[line,'idx'].size)
         o_label.append(line)
 
-    xob = pd.DataFrame(op).T
-    xob.columns = o_label
-
     oattr = pd.DataFrame({'label':o_label,'nps':nop})
     oattr['type'] = np.nan
     oattr.set_index('label', inplace=True, drop=True)
+
+
+    obns = [j for i in op for j in i]
+    odf = pd.DataFrame({'node':obns,'type':0,'id':0},index=np.arange(len(obns)))
+    for l in range(len(op)):
+        odf.loc[odf.node.isin(op[l]),'id'] = idx
+        odf.loc[odf.node.isin(op[l]),'type'] = oattr.iloc[l].type
+        idx += 1
 
     #land boundaries
 
@@ -771,23 +786,24 @@ def jigsaw_(df, bmindx, **kwargs):
         itype.append(landb.loc[line,'flag'].values[0])
         l_label.append(line)
     
-    xlb = pd.DataFrame(lp).T
-    xlb.columns = l_label
-
     lattr = pd.DataFrame({'label':l_label,'nps':nlp})
     lattr['type'] = itype
     lattr.set_index('label', inplace=True, drop=True)
 
+    lbns = [j for i in lp for j in i]
+    ldf = pd.DataFrame({'node':lbns,'type':1,'id':0},index=np.arange(len(lbns)))
+    
+    idx=-1
+    for l in range(len(lp)):
+        ldf.loc[ldf.node.isin(lp[l]),'id'] = idx
+        ldf.loc[ldf.node.isin(lp[l]),'type'] = lattr.iloc[l].type
+        idx -= 1
+        
+    tbf = pd.concat([odf,ldf])
+    tbf.index.name = 'bnodes'
+        
 
-    dic={}
-    for name in xlb.columns:
-        dic.update({name:(['index'],xlb[name].values)})
-
-    xlb_ = xr.Dataset(dic, coords={'index': ('index', xlb.index.values)})         
-
-
-
-    gr = xr.merge([nod,dep,els,xob.to_xarray(), xlb_, lattr.to_xarray(), oattr.to_xarray()]) # total
+    gr = xr.merge([nod,dep,els,tbf.to_xarray()]) # total
     
     
     logger.info('..done creating mesh\n')
