@@ -358,7 +358,7 @@ class tri2d():
 
 
                 f.write('{} = Number of land boundaries\n'.format(-number_of_land_boundaries))
-                f.write('{} = Total number of open boundary nodes\n'.format(number_of_land_boundaries_nodes))
+                f.write('{} = Total number of land boundary nodes\n'.format(number_of_land_boundaries_nodes))
 
                 ik=1
                 for i in range(-1 , number_of_land_boundaries - 1, -1):
@@ -391,15 +391,18 @@ class tri2d():
             os.makedirs(path)
                
         # save bctides.in
-        nobs = [key for key in self.Dataset.keys() if 'open' in key]
+        bs = self.Dataset[['node','id','type']].to_dataframe()
+        # open boundaries
+        number_of_open_boundaries = bs.id.max()
+        number_of_open_boundaries_nodes=bs.loc[bs.id>0].shape[0]
         
         with open(path + 'bctides.in', 'w') as f:
             f.write('Header\n')
             f.write('{} {}\n'.format(0, 40.)) #  ntip tip_dp
             f.write('{}\n'.format(0)) #nbfr
-            f.write('{}\n'.format(len(nobs))) #number of open boundaries
-            for i in range(len(nobs)):
-                nnodes = self.Dataset[nobs[i]].dropna(dim='index').size
+            f.write('{}\n'.format(number_of_open_boundaries)) #number of open boundaries
+            for i in range(1, number_of_open_boundaries + 1):
+                nnodes = bs.loc[bs.id==i,'node'].shape[0]
                 f.write('{} {} {} {} {}\n'.format(nnodes,2,0,0,0)) # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
                 f.write('{}\n'.format(0)) # ethconst !constant elevation value for this segment    
        

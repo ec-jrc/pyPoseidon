@@ -769,6 +769,7 @@ def jigsaw_(df, bmindx, **kwargs):
 
     obns = [j for i in op for j in i]
     odf = pd.DataFrame({'node':obns,'type':0,'id':0},index=np.arange(len(obns)))
+    idx=1
     for l in range(len(op)):
         odf.loc[odf.node.isin(op[l]),'id'] = idx
         odf.loc[odf.node.isin(op[l]),'type'] = oattr.iloc[l].type
