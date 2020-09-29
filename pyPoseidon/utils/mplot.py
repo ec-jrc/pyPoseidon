@@ -9,6 +9,7 @@ Visualization module in 3D
 # See the Licence for the specific language governing permissions and limitations under the Licence. 
 
 from mayavi import mlab
+
 from mayavi.sources.builtin_surface import BuiltinSurface
 import xarray as xr
 import numpy as np
@@ -25,15 +26,15 @@ import  moviepy.editor as mpy
 
 
 
-@xr.register_dataset_accessor('pplot3')
+@xr.register_dataset_accessor('mplot')
 #@xr.register_dataarray_accessor('pplot')
 
-class pplot3(object):
+class mplot(object):
     
     def __init__(self, xarray_obj):
-        self._obj = xarray_obj    
+        self._obj = xarray_obj
+                 
         
-
     def globe(self,R, bcolor=(0.,0.,0.)):
     # We use a sphere Glyph, throught the points3d mlab function, rather than
     # building the mesh ourselves, because it gives a better transparent
@@ -286,7 +287,7 @@ class pplot3(object):
                     
         return
             
-        
+    @mlab.show    
     def grid(self,**kwargs):
                         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
@@ -297,30 +298,51 @@ class pplot3(object):
             pass
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-              
+        
+        dim = kwargs.get('dim','2D')
+        
         R = kwargs.get('R',1.)
         
-        px=np.cos(y/180*np.pi)*np.cos(x/180*np.pi)*R
-        py=np.cos(y/180*np.pi)*np.sin(x/180*np.pi)*R
-        pz=np.sin(y/180*np.pi)*R
         
-        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.,1.,1.))
+        if dim == '3D':
+              
+            px=np.cos(y/180*np.pi)*np.cos(x/180*np.pi)*R
+            py=np.cos(y/180*np.pi)*np.sin(x/180*np.pi)*R
+            pz=np.sin(y/180*np.pi)*R
+        
+        else:
+            
+            px = x
+            py = y 
+            pz = np.zeros(x.shape[0])
+        
+        mlab.figure(1, size=(3840/2, 2160/2), bgcolor=(0, 0, 0), fgcolor=(1.,1.,1.))
         mlab.clf()
-        self.globe(R - .002)
+        if dim == '3D': self.globe(R - .002)
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(px,py,pz,tri3, representation='wireframe', opacity=1.0)
         
         coast = kwargs.get('coastlines',None)
         
         if coast is not None :
-            src, lines = self.c3d(coast,R=R)
+            try:
+                del kwargs['coastlines']
+            except:
+                pass
+            
+            src, lines = self.c3d(coast,R=R,**kwargs)
             mlab.pipeline.surface(src, color=(1,0,0), line_width=10, opacity=0.8)
+        
+        
+        engine = mlab.get_engine()
+        scene = engine.scenes[0]
+        scene.scene.z_plus_view()
                                     
         mlab.show()
         return
                 
-
-    def c3d(self,coastlines,R=1):
+    @staticmethod
+    def c3d(coastlines,R=1,**kwargs):
         
         bo = coastlines.geometry.values
         
@@ -346,10 +368,18 @@ class pplot3(object):
         dff['z']=0
         dff.head()
         
-        # add 3D coordinates
-        dff['x']=np.cos(dff.lat/180*np.pi)*np.cos(dff.lon/180*np.pi)*R
-        dff['y']=np.cos(dff.lat/180*np.pi)*np.sin(dff.lon/180*np.pi)*R
-        dff['z']=np.sin(dff.lat/180*np.pi)*R
+        dim = kwargs.get('dim','2D')
+        
+        if dim == '3D':
+                
+            # add 3D coordinates
+            dff['x']=np.cos(dff.lat/180*np.pi)*np.cos(dff.lon/180*np.pi)*R
+            dff['y']=np.cos(dff.lat/180*np.pi)*np.sin(dff.lon/180*np.pi)*R
+            dff['z']=np.sin(dff.lat/180*np.pi)*R
+        
+        else:
+            
+            dff.columns = ['x','y','z']
         
         # We create a list of positions and connections, each describing a line.
         # We will collapse them in one array before plotting.

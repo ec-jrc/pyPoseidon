@@ -366,7 +366,7 @@ class pplot(object):
         ax.set_ylabel('Latitude (degrees)')
                 
         
-        return g #fig , ax
+        return g, fig , ax
     
     
     
