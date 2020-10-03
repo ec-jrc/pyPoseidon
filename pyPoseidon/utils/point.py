@@ -10,7 +10,7 @@ Point analysis module
 
 
 import numpy as np
-from pyPoseidon.utils.vis import *
+from pyPoseidon.utils.pplot import *
 from pyPoseidon.utils.obs import obs
 from pyPoseidon.grid import *
 import pyPoseidon.model as pmodel
