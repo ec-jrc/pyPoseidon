@@ -691,96 +691,91 @@ class schism():
             keys.append('core{}'.format(name.split('/')[-1].split('_')[-1]))
 
         # Parsing the files
-        l2g=[]
-        for i in range(len(gfiles)):
-            l2g.append(pd.read_csv(gfiles[i],header=None,delim_whitespace=True,engine='python'))
 
         # We read from the first file the header (it is the same for all)
-        header = l2g[0].iloc[0]
-        header.index = ['ns_global','ne_global','np_global','nvrt','nproc','ntracers','T','S','GEN','AGE','SED3D','EcoSim','ICM','CoSINE','Feco','TIMOR','FABM','DVD']
+        with open(gfiles[0],'r') as f:
+            header = pd.read_csv(f,header=None,nrows=1,delim_whitespace=True,names=['ns_global','ne_global','np_global','nvrt','nproc','ntracers','T','S','GEN','AGE','SED3D','EcoSim','ICM','CoSINE','Feco','TIMOR','FABM','DVD'])
 
         #get the number of elems from all files
         nels = []
-        for i in range(len(l2g)):
-            nels.append(int(l2g[i].iloc[2].dropna()[0]))
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                ne = pd.read_csv(f,skiprows=2, header=None, nrows = 1)
+                nels.append(ne.values.flatten()[0].astype(int))
 
-        frames = []
-        for i in range(len(l2g)):
-            df = l2g[i].iloc[3:nels[i]+3,l2g[i].columns[:2]].astype(int)
-            df = df.reset_index(drop=True)
-            frames.append(df)
+        #read and add them to pandas DataFrame 
+        frames=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                frames[i] = pd.read_csv(f,skiprows=3,header=None, nrows=nels[i], names=['local','global_n'], delim_whitespace=True)
 
         elems = pd.concat(frames,keys=keys)
 
-        elems.columns = ['local','global_n']
-
         #get the number of nodes from all files
-        nq= []
-        for i in range(len(l2g)):
-            nq.append(int(l2g[i].iloc[nels[i]+3].dropna()[0]))
+        nq = []
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                nn = pd.read_csv(f,skiprows=nels[i] + 3, header=None, nrows = 1)
+                nq.append(nn.values.flatten()[0].astype(int))
 
-        nframes = []
-        for i in range(len(l2g)):
-            df = l2g[i].iloc[nels[i]+4:nels[i]+4+nq[i],l2g[i].columns[:2]].astype(int)
-            df = df.reset_index(drop=True)
-            nframes.append(df)
-
+        #read and add them to pandas DataFrame
+        nframes=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                nframes[i] = pd.read_csv(f,skiprows=nels[i] + 4,header=None, nrows=nq[i], names=['local','global_n'], delim_whitespace=True)
+    
         nodes = pd.concat(nframes,keys=keys)
 
-        nodes.columns = ['local','global_n']
+        #get the number of edges
+        nw = []
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                nb = pd.read_csv(f,skiprows=nels[i] + nq[i] + 4, header=None, nrows = 1)
+                nw.append(nb.values.flatten()[0].astype(int))
 
-        #get the number of nodes from all files
-        nw= []
-        for i in range(len(l2g)):
-            j = nels[i]+4+nq[i]
-            nw.append(int(l2g[i].iloc[j].dropna()[0]))
-            
-        wframes = []
-        for i in range(len(l2g)):
-            j0 = nels[i]+5+nq[i]
-            j1 = j0+nw[i]
-            df = l2g[i].iloc[j0:j1,l2g[i].columns[:2]].astype(int)
-            df = df.reset_index(drop=True)
-            wframes.append(df)
 
+        #read and add them to pandas DataFrame
+        wframes=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                wframes[i] = pd.read_csv(f,skiprows=nels[i] + nq[i] + 5,header=None, nrows=nw[i], names=['local','global_n'], delim_whitespace=True)
+    
         re = pd.concat(wframes,keys=keys)
 
-        re.columns = ['local','global_n']
 
-        # Read secondary headers
-        h0 = l2g[0].iloc[nels[0] + nq[0] + nw[0] + 6].dropna()
-        h0.index = ['start_year','start_month','start_day','start_hour','utc_start']
+        #read secondary headers
+        with open(gfiles[0],'r') as f:
+            h0 = pd.read_csv(f,skiprows=nels[0] + nq[0] + nw[0] + 6, header=None, nrows = 1, delim_whitespace=True, names=['start_year','start_month','start_day','start_hour','utc_start'])
+        with open(gfiles[0],'r') as f:
+            h1 = pd.read_csv(f,skiprows=nels[0] + nq[0] + nw[0] + 7, header=None, nrows = 1, delim_whitespace=True, names = ['nrec','dtout','nspool','nvrt','kz','h0','h_s','h_c','theta_b','theta_f','ics'])
 
-        h1 = l2g[0].iloc[nels[0] + nq[0] + nw[0] + 7].dropna()
-        h1.index = ['nrec','dtout','nspool','nvrt','kz','h0','h_s','h_c','theta_b','theta_f','ics']
-        h1 = h1.apply(pd.to_numeric)
+        ztots = ['ztot_'+str(i) for i in range(1,h1.loc[:,'kz'].values[0]-1)]
+        sigmas = ['sigma_'+str(i) for i in range(h1.loc[:,'nvrt'].values[0] - h1.loc[:,'kz'].values[0] + 1) ]
 
-        ztots = ['ztot_'+str(i) for i in range(1,h1.kz.astype(int)-1)]
+        #read secondary header
+        with open(gfiles[0],'r') as f:
+            h2 = pd.read_csv(f,skiprows=nels[0] + nq[0] + nw[0] + 8, header=None, nrows = 1, delim_whitespace=True, names=ztots + sigmas)
 
-        sigmas = ['sigma_'+str(i) for i in range(h1.nvrt.astype(int) - h1.kz.astype(int) + 1) ]
 
-        h2 = l2g[0].iloc[nels[0] + nq[0] + nw[0] + 8].dropna()
-        h2.index = ztots + sigmas
 
         #combine headers
-        self.misc.update({'header' : pd.concat([h0, h1, h2])})
+        self.misc.update({'header' : pd.concat([h0, h1, h2], axis=1)})
 
-        #Read grid
-        gframes = []
-        for i in range(len(l2g)):
-            j0 = nels[i] + nq[i] + nw[i] + 10
-            j1 = j0+nq[i]
-            df = l2g[i].iloc[j0:j1,l2g[i].columns[:4]].astype(float)
-            df = df.reset_index(drop=True)
-            gframes.append(df)
-
+        #read lat/lon from all files
+        gframes=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                gframes[i] = pd.read_csv(f,skiprows=nels[i] + nq[i] + nw[i] + 10, header=None, nrows = nq[i], delim_whitespace=True, names=['lon','lat','depth','kbp00'])
+    
         grid = pd.concat(gframes,keys=keys)
 
-        grid.columns = ['lon','lat','depth','kbp00']
-
         #Droping duplicates
+        drops = nodes.reset_index()[nodes.reset_index().duplicated('global_n')].index.to_list()
         cnodes = nodes.global_n.drop_duplicates() # drop duplicate global nodes and store the values to an array
-        grid = grid.drop_duplicates() # keep only one of the duplicates (the first by default)
+
+        grid = grid.reset_index().drop(drops) # Use the mask from nodes to match grid
+        grid = grid.set_index(['level_0','level_1'])
+
         grid.index = grid.index.droplevel() # drop multi-index
         grid = grid.reset_index(drop=True) # reset index
         grid.index = cnodes.values - 1 # reindex based on the global index, -1 for the python convention
@@ -788,17 +783,12 @@ class schism():
         self.misc.update({'grd' : grd.reset_index(drop=True)})#reindex for final version
 
         #Read tessalation
-        eframes = []
-        for i in range(len(l2g)):
-            j0 = nels[i] + nq[i] + nw[i] + 10 + nq[i]
-            j1 = j0+nels[i]
-            df = l2g[i].iloc[j0:j1,l2g[i].columns[:4]].astype(int)
-            df = df.reset_index(drop=True)
-            eframes.append(df)
-
+        eframes=np.empty(len(gfiles),dtype=object)
+        for i in range(len(gfiles)):
+            with open(gfiles[i],'r') as f:
+                eframes[i] = pd.read_csv(f,skiprows=nels[i] + nq[i] + nw[i] + nq[i] + 10, header=None, nrows = nels[i], delim_whitespace=True, names=['type','a','b','c'])
+    
         tri = pd.concat(eframes,keys=keys)
-
-        tri.columns = ['type','a','b','c']
 
         # Replace local index with the global one 
         for key in keys:
@@ -1117,9 +1107,7 @@ class schism():
         
         header2 = self.misc['header'].apply(pd.to_numeric)
         nlist = ['start_year','start_month','start_day','start_hour','utc_start','dtout','nspool','nvrt','kz','ics']
-        ddf = pd.DataFrame(header2).T
-        ddf[nlist] = ddf[nlist].astype(int)
-        header2 = ddf
+        header2[nlist] = header2[nlist].astype(int)
         sigmas = [x for x  in header2.columns if 'sigma' in x]
         sigms = header2.loc[:,sigmas].values.flatten() # get sigmas
         iwet_dry = 0  # defined by the user
