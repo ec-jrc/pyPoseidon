@@ -182,12 +182,20 @@ class dcast():
 class scast():
     
     def __init__(self,**kwargs):
-               
+        
+        
         for attr, value in kwargs.items():
                 setattr(self, attr, value)
                    
-    def run(self,**kwargs):
+    def set(self,**kwargs):
         
+        if isinstance(self.model,str):
+            self.model = pyPoseidon.read_model(self.model)
+
+        for attr, value in self.model.__dict__.items():
+            if not hasattr(self, attr): setattr(self, attr, value)
+             
+        execute = get_value(self,kwargs,'execute', False)
         
         pwd = os.getcwd()
                       
@@ -195,207 +203,201 @@ class scast():
         files_sym = ['hgrid.gr3', 'hgrid.ll', 'manning.gr3', 'vgrid.in', 'drag.gr3', 'rough.gr3', 'station.in', 'windrot_geo2proj.gr3']
         station_files = ['/outputs/staout_1' , '/outputs/staout_2' , '/outputs/staout_3' , '/outputs/staout_4' , '/outputs/staout_5' , '/outputs/staout_6' , '/outputs/staout_7' , '/outputs/staout_8' , '/outputs/staout_9']
 
-                
-        prev=self.folders[0]
-        fpath = self.path+'/{}/'.format(prev)
-                    
 
-        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_source[1:],self.time_frame[1:]):
-            
-            ppath = self.path+'/{}/'.format(prev)
-            if not os.path.exists(ppath):
-                sys.stdout.write('Initial folder not present {}\n'.format(ppath)) 
-                sys.exit(1)
-            
-            prev = folder    
-            # create the folder/run path
+        self.origin=self.model.rpath
+        self.date0 = self.model.date
+                            
+        if not os.path.exists(self.origin):
+            sys.stdout.write('Initial folder not present {}\n'.format(self.origin)) 
+            sys.exit(1)
+        
+        ppath = self.ppath    
+        # create the folder/run path
+        rpath=self.cpath
 
-            rpath=self.path+'/{}/'.format(folder)   
+        if not os.path.exists(rpath):
+            os.makedirs(rpath)
 
-            if not os.path.exists(rpath):
-                os.makedirs(rpath)
+        copy2(ppath+self.tag+'_model.json',rpath) #copy the info file
 
-            copy2(ppath+self.tag+'_model.json',rpath) #copy the info file
-
-            # load model
-            with open(rpath+self.tag+'_model.json', 'rb') as f:
-                          info = pd.read_json(f,lines=True).T
-                          info[info.isnull().values] = None
-                          info = info.to_dict()[0]
-                          
-            
-            args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
-            for attr in list(args):
-                info[attr] = kwargs[attr]
-            
-            info['config_file'] = ppath + 'param.nml'
-                                        
-            #update the properties         
-              
-            info['date'] = self.date
-            info['start_date'] = date
-            info['time_frame'] = time_frame
-            info['end_date'] = date + pd.to_timedelta(time_frame)
-            info['meteo_source'] = meteo
-            info['rpath'] = rpath
+        # load model
+        with open(rpath+self.tag+'_model.json', 'rb') as f:
+                      info = pd.read_json(f,lines=True).T
+                      info[info.isnull().values] = None
+                      info = info.to_dict()[0]
+                      
+        
+        args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
+        for attr in list(args):
+            info[attr] = kwargs[attr]
+        
+        info['config_file'] = ppath + 'param.nml'
+                                    
+        #update the properties         
+          
+        info['start_date'] = self.date
+        info['time_frame'] = self.time_frame
+        info['end_date'] = self.date + pd.to_timedelta(self.time_frame)
+        info['meteo_source'] = self.meteo
+        info['rpath'] = rpath
 #            info['grid_file'] = ppath + '/hgrid.gr3'
-            
+        
 #            for attr, value in self.items():
 #                setattr(info, attr, value)
 
-            m=pmodel(**info)           
-            
-            # Grid         
-            m.grid=pgrid.grid(type='tri2d',**info)
-                 
-            # get lat/lon from file
-            if hasattr(self, 'grid_file'):
-                info.update({'lon_min' : m.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
-                info.update({'lon_max' : m.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
-                info.update({'lat_min' : m.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
-                info.update({'lat_max' : m.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
-                                                         
-            # copy/link necessary files
-            logger.debug('copy necessary files')
-            
-            for filename in files:
-                ipath = glob.glob(ppath+filename)
-                if ipath:
-                    try:
-                        copy2(ppath+filename,rpath+filename)
-                    except:
-                        dir_name ,file_name = os.path.split(filename)
-                        if not os.path.exists(rpath + dir_name):
-                            os.makedirs(rpath + dir_name)
-                        copy2(ppath+filename,rpath+filename)
-            logger.debug('.. done')
-
-            #copy the station files
-            logger.debug('copy station files')
-            for filename in station_files:
-                 ipath = glob.glob(ppath+filename)
-                 if ipath:
-                     try:
-                         copy2(ppath+filename,rpath+filename)
-                     except:
-                         dir_name ,file_name = os.path.split(filename)
-                         if not os.path.exists(rpath + dir_name):
-                             os.makedirs(rpath + dir_name)
-                         copy2(ppath+filename,rpath+filename)
-            logger.debug('.. done')
-
-
-            #symlink the station files
-            #logger.debug('symlink station files')
-            #for filename in station_files:
-
-            #   ipath = glob.glob(self.path+self.folders[0] + filename)
-            #   if ipath:
-
-            #        if not os.path.exists(rpath + '/outputs/'):
-            #            os.makedirs(rpath + '/outputs/')
-
-            #        try:
-            #            os.symlink(ipath[0],rpath + filename)
-            #        except OSError as e:
-            #            if e.errno == errno.EEXIST:
-            #                logger.warning('Restart link present\n')
-            #                logger.warning('overwriting\n')
-            #                os.remove(rpath + filename)
-            #                os.symlink(ipath[0],rpath + filename)
-            #logger.debug('.. done')
-
-            #symlink the big files
-            logger.debug('symlink model files')           
-            for filename in files_sym:
-                ipath = glob.glob(self.path+self.folders[0]+'/'+filename)
-                if ipath:
-                    try:
-                        os.symlink(ipath[0],rpath+filename)
-                    except OSError as e:
-                        if e.errno == errno.EEXIST:
-                            logger.warning('Restart link present\n')
-                            logger.warning('overwriting\n')
-                            os.remove(rpath+filename)
-                            os.symlink(ipath[0],rpath+filename)
-            logger.debug('.. done')
-            
-
-            # create restart file
-            logger.debug('create restart file')           
-            
-            #check for combine hotstart
-            hotout=int((date - self.date).total_seconds()/info['params']['core']['dt'])
-            logger.debug('hotout_it = {}'.format(hotout))    
-
-            resfile=glob.glob(ppath+'/outputs/hotstart_it={}.nc'.format(hotout))
-            if not resfile:
-                # load model model from ppath
-                with open(ppath+self.tag+'_model.json', 'rb') as f:
-                    ph = pd.read_json(f,lines=True).T
-                    ph[ph.isnull().values] = None
-                    ph = ph.to_dict()[0]
-                p = pmodel(**ph)
-                p.hotstart(it=hotout)  
-
-            
-            # link restart file
-            inresfile='/outputs/hotstart_it={}.nc'.format(hotout)
-            outresfile='/hotstart.nc'
-
-
-            logger.info('set restart\n')
-
-            try:
-                os.symlink(ppath+inresfile,rpath+outresfile)
-            except OSError as e:
-                if e.errno == errno.EEXIST:
-                    logger.warning('Restart link present\n')
-                    logger.warning('overwriting\n')
-                    os.remove(rpath+outresfile)
-                    os.symlink(ppath+inresfile,rpath+outresfile)
-                else:
-                    raise e            
-
-            #get new meteo 
-
-            logger.info('process meteo\n')
-
-            flag = get_value(self,kwargs,'update',[])
-            
-            check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_air_1.0001.nc']]
-
-            if (np.any(check)==False) or ('meteo' in flag):
-               
-                m.force(**info)
-                m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath, date=self.date)  #write u,v,p files 
+        m=pmodel(**info)           
         
-            else:
-                logger.warning('meteo files present\n')
-            
-            # modify param file
-            rnday_new = (date - self.date).total_seconds()/(3600*24.) + pd.to_timedelta(time_frame).total_seconds()/(3600*24.)
-            hotout_write = int(rnday_new * 24 * 3600 / info['params']['core']['dt'])
-            info['parameters'].update({'ihot': 2, 'rnday':rnday_new,  'start_hour':self.date.hour , 'start_day':self.date.day, 'start_month':self.date.month, 'start_year':self.date.year})
-            
-            m.config(output=True, **info)
-            
-            m.config_file = rpath + 'param.nml'
-                                              
-            os.chdir(rpath)
-            #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-            m.save()
-            
-            m.run()
-            
-            #cleanup
-#            os.remove(rpath+'hotstart.nc')
-            
-            # save compiled nc file
-            
-            #out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
-            
-            logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
+        # Grid         
+        m.grid=pgrid.grid(type='tri2d',**info)
+             
+        # get lat/lon from file
+        if hasattr(self, 'grid_file'):
+            info.update({'lon_min' : m.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
+            info.update({'lon_max' : m.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
+            info.update({'lat_min' : m.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
+            info.update({'lat_max' : m.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
+                                                     
+        # copy/link necessary files
+        logger.debug('copy necessary files')
+        
+        for filename in files:
+            ipath = glob.glob(ppath+filename)
+            if ipath:
+                try:
+                    copy2(ppath+filename,rpath+filename)
+                except:
+                    dir_name ,file_name = os.path.split(filename)
+                    if not os.path.exists(rpath + dir_name):
+                        os.makedirs(rpath + dir_name)
+                    copy2(ppath+filename,rpath+filename)
+        logger.debug('.. done')
 
-            os.chdir(pwd)
+        #copy the station files
+        logger.debug('copy station files')
+        for filename in station_files:
+             ipath = glob.glob(ppath+filename)
+             if ipath:
+                 try:
+                     copy2(ppath+filename,rpath+filename)
+                 except:
+                     dir_name ,file_name = os.path.split(filename)
+                     if not os.path.exists(rpath + dir_name):
+                         os.makedirs(rpath + dir_name)
+                     copy2(ppath+filename,rpath+filename)
+        logger.debug('.. done')
+
+
+        #symlink the station files
+        #logger.debug('symlink station files')
+        #for filename in station_files:
+
+        #   ipath = glob.glob(self.path+self.folders[0] + filename)
+        #   if ipath:
+
+        #        if not os.path.exists(rpath + '/outputs/'):
+        #            os.makedirs(rpath + '/outputs/')
+
+        #        try:
+        #            os.symlink(ipath[0],rpath + filename)
+        #        except OSError as e:
+        #            if e.errno == errno.EEXIST:
+        #                logger.warning('Restart link present\n')
+        #                logger.warning('overwriting\n')
+        #                os.remove(rpath + filename)
+        #                os.symlink(ipath[0],rpath + filename)
+        #logger.debug('.. done')
+
+        #symlink the big files
+        logger.debug('symlink model files')           
+        for filename in files_sym:
+            ipath = glob.glob(self.origin+filename)
+            if ipath:
+                try:
+                    os.symlink(ipath[0],rpath+filename)
+                except OSError as e:
+                    if e.errno == errno.EEXIST:
+                        logger.warning('Restart link present\n')
+                        logger.warning('overwriting\n')
+                        os.remove(rpath+filename)
+                        os.symlink(ipath[0],rpath+filename)
+        logger.debug('.. done')
+        
+
+        # create restart file
+        logger.debug('create restart file')           
+        
+        #check for combine hotstart
+        hotout=int((self.date - self.date0).total_seconds()/info['params']['core']['dt'])
+        logger.debug('hotout_it = {}'.format(hotout))    
+
+        resfile=glob.glob(ppath+'/outputs/hotstart_it={}.nc'.format(hotout))
+        if not resfile:
+            # load model model from ppath
+            with open(ppath+self.tag+'_model.json', 'rb') as f:
+                ph = pd.read_json(f,lines=True).T
+                ph[ph.isnull().values] = None
+                ph = ph.to_dict()[0]
+            p = pmodel(**ph)
+            p.hotstart(it=hotout)  
+
+        
+        # link restart file
+        inresfile='/outputs/hotstart_it={}.nc'.format(hotout)
+        outresfile='/hotstart.nc'
+
+
+        logger.info('set restart\n')
+
+        try:
+            os.symlink(ppath+inresfile,rpath+outresfile)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                logger.warning('Restart link present\n')
+                logger.warning('overwriting\n')
+                os.remove(rpath+outresfile)
+                os.symlink(ppath+inresfile,rpath+outresfile)
+            else:
+                raise e            
+
+        #get new meteo 
+
+        logger.info('process meteo\n')
+
+        flag = get_value(self,kwargs,'update',[])
+        
+        check=[os.path.exists(rpath+'sflux/'+ f) for f in ['sflux_air_1.0001.nc']]
+
+        if (np.any(check)==False) or ('meteo' in flag):
+           
+            m.force(**info)
+            m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath, date=self.date0)  #write u,v,p files 
+    
+        else:
+            logger.warning('meteo files present\n')
+        
+        # modify param file
+        rnday_new = (self.date - self.date0).total_seconds()/(3600*24.) + pd.to_timedelta(self.time_frame).total_seconds()/(3600*24.)
+        hotout_write = int(rnday_new * 24 * 3600 / info['params']['core']['dt'])
+        info['parameters'].update({'ihot': 2, 'rnday':rnday_new,  'start_hour':self.date0.hour , 'start_day':self.date0.day, 'start_month':self.date0.month, 'start_year':self.date0.year})
+        
+        m.config(output=True, **info)
+        
+        m.config_file = rpath + 'param.nml'
+                                          
+        os.chdir(rpath)
+        #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
+        m.save()
+        
+        if execute : m.run()
+        
+        #cleanup
+#            os.remove(rpath+'hotstart.nc')
+        
+        # save compiled nc file
+        
+        #out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
+        
+        logger.info('done for date :'+datetime.datetime.strftime(self.date,'%Y%m%d.%H'))
+
+        os.chdir(pwd)
             
