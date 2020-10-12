@@ -454,7 +454,7 @@ class tri2d():
         os.chmod(execf, mode)
 
             # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)#, bufsize=1)
             
         out, err = ex.communicate()[:]
         

@@ -582,7 +582,7 @@ def jigsaw_(df, bmindx, **kwargs):
     #--------------------------------- 
     
     #execute jigsaw
-    ex=subprocess.Popen(args=['jigsaw {}'.format(tag+'.jig')], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+    ex=subprocess.Popen(args=['jigsaw {}'.format(tag+'.jig')], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)#, bufsize=1)
         
     with open(calc_dir+'err.log', 'w') as f: 
       for line in iter(ex.stderr.readline,b''): 

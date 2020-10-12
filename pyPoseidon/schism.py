@@ -553,7 +553,7 @@ class schism():
         #--------------------------------------------------------------------- 
 
             # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        ex=subprocess.Popen(args=['./launchSchism.sh'], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)#, bufsize=1)
             
         with open(calc_dir+'err.log', 'w') as f: 
           for line in iter(ex.stderr.readline,b''): 

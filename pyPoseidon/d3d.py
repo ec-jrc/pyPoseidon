@@ -383,13 +383,13 @@ class d3d():
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(indx[it].astype(int)))
             
           if flip < 0 :
-              np.savetxt(pfid,np.flipud(pp[it,:,:]),fmt='%.3f')
-              np.savetxt(ufid,np.flipud(uu[it,:,:]),fmt='%.3f')
-              np.savetxt(vfid,np.flipud(vv[it,:,:]),fmt='%.3f')
+              np.savetxt(pfid,np.flipud(pp[it,:,:]),fmt='%.8f')
+              np.savetxt(ufid,np.flipud(uu[it,:,:]),fmt='%.8f')
+              np.savetxt(vfid,np.flipud(vv[it,:,:]),fmt='%.8f')
           else:
-              np.savetxt(pfid,pp[it,:,:],fmt='%.3f')
-              np.savetxt(ufid,uu[it,:,:],fmt='%.3f')
-              np.savetxt(vfid,vv[it,:,:],fmt='%.3f')
+              np.savetxt(pfid,pp[it,:,:],fmt='%.8f')
+              np.savetxt(ufid,uu[it,:,:],fmt='%.8f')
+              np.savetxt(vfid,vv[it,:,:],fmt='%.8f')
                            
           
          # close files
@@ -706,7 +706,7 @@ class d3d():
         #--------------------------------------------------------------------- 
                 
         # note that cwd is the folder where the executable is
-        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path,lib_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
+        ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path,lib_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)#, bufsize=1)
         
         
         with open(calc_dir+self.tag+'_run.log', 'w') as f: #save output
