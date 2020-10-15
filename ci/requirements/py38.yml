@@ -1,0 +1,29 @@
+name: pyPoseidon
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.8
+  - mayavi
+  - pyresample
+  - pydap
+  - dask
+  - pygeos>=0.6 
+  - geoviews
+  - geopandas
+  - rasterio
+  - jigsaw=0.9.11
+  - seaborn 
+  - hvplot
+  - descartes
+  - netCDF4
+  - cfgrib
+  - moviepy
+  - imageio-ffmpeg
+  - bump2version
+  - colorlog
+  - f90nml
+  - pytest
+  - pytest-cov
+  - ipympl
