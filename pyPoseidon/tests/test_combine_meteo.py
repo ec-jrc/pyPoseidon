@@ -21,4 +21,11 @@ def test_answer():
     #merge the single files
     joined = xr.concat([df0.Dataset.isel(time=slice(0,12)), df1.Dataset.isel(time=slice(0,12)), df2.Dataset.isel(time=slice(0,12)), df3.Dataset], dim='time')
 
+
+    df_ = pm.meteo(meteo_source=filenames, meteo_engine='cfgrib', meteo_combine_by='nested', meteo_merge='first', meteo_xr_kwargs = {'concat_dim' : 'step'}) # use combine
+
+    #merge the single files
+    joined_ = xr.concat([df0.Dataset.isel(time=slice(0,13)), df1.Dataset.isel(time=slice(1,13)), df2.Dataset.isel(time=slice(1,13)), df3.Dataset.isel(time=slice(1,None))], dim='time')
+
     assert joined.equals(df.Dataset) # compare
+    assert joined_.equals(df_.Dataset) # compare
