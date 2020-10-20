@@ -501,7 +501,7 @@ class schism():
                   times, datasets = zip(*self.meteo.Dataset.groupby('time.{}'.format(split_by)))
                   mpaths = ['sflux/sflux_air_1.{:04d}.nc'.format(t + 1) for t in np.arange(len(times))]
                   for das,mpath in list(zip(datasets,mpaths)):
-                      self.to_force(das,vars=['msl','u10','v10'],rpath=path, filename=mpath, **kwargs)
+                      self.to_force(das,vars=['msl','u10','v10'],rpath=path, filename=mpath, date=self.date, **kwargs)
               else:  
                   self.to_force(self.meteo.Dataset,vars=['msl','u10','v10'],rpath=path,**kwargs)                 
            except AttributeError as e:
