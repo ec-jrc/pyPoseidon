@@ -12,7 +12,7 @@ from . import DATA_DIR
 def schism(tmpdir,name):
     filename = (DATA_DIR / name).as_posix()
     #read meteo file
-    df = pmeteo.meteo(meteo_source=filename, engine='cfgrib')
+    df = pmeteo.meteo(meteo_source=filename, meteo_engine='cfgrib')
     df.Dataset = df.Dataset.sortby('latitude', ascending=True)
 
     rpath = str(tmpdir)+'/'
@@ -38,7 +38,7 @@ def schism(tmpdir,name):
 def d3d(tmpdir,name):
     filename = (DATA_DIR / name).as_posix()
     #read meteo file
-    df = pmeteo.meteo(meteo_source=filename, engine='cfgrib')
+    df = pmeteo.meteo(meteo_source=filename, meteo_engine='cfgrib')
 
     rpath = str(tmpdir)+'/'
     #output to uvp files

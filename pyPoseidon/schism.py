@@ -369,7 +369,7 @@ class schism():
         
         path = get_value(self,kwargs,'rpath','./') 
         flag = get_value(self,kwargs,'update',[])
-        split_by = get_value(self,kwargs,'split_by',None)
+        split_by = get_value(self,kwargs,'meteo_split_by',None)
         
         if not os.path.exists(path):
             os.makedirs(path)

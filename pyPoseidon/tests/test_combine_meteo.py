@@ -12,11 +12,11 @@ def test_answer():
     filenames = sorted(DATA_DIR.glob("uvp_*"))
 
     #read meteo files
-    df = pm.meteo(meteo_source=filenames, engine='cfgrib', combine_by='nested', merge=True, xr_kwargs = {'concat_dim' : 'step'}) # use combine
-    df0 = pm.meteo(meteo_source=[filenames[0]],engine='cfgrib') # each one seperately
-    df1 = pm.meteo(meteo_source=[filenames[1]],engine='cfgrib') # each one seperately
-    df2 = pm.meteo(meteo_source=[filenames[2]],engine='cfgrib') # each one seperately
-    df3 = pm.meteo(meteo_source=[filenames[3]],engine='cfgrib') # each one seperately
+    df = pm.meteo(meteo_source=filenames, meteo_engine='cfgrib', meteo_combine_by='nested', meteo_merge='last', meteo_xr_kwargs = {'concat_dim' : 'step'}) # use combine
+    df0 = pm.meteo(meteo_source=[filenames[0]],meteo_engine='cfgrib') # each one seperately
+    df1 = pm.meteo(meteo_source=[filenames[1]],meteo_engine='cfgrib') # each one seperately
+    df2 = pm.meteo(meteo_source=[filenames[2]],meteo_engine='cfgrib') # each one seperately
+    df3 = pm.meteo(meteo_source=[filenames[3]],meteo_engine='cfgrib') # each one seperately
 
     #merge the single files
     joined = xr.concat([df0.Dataset.isel(time=slice(0,12)), df1.Dataset.isel(time=slice(0,12)), df2.Dataset.isel(time=slice(0,12)), df3.Dataset], dim='time')

@@ -13,7 +13,7 @@ filename = (DATA_DIR / 'meteo.nc').as_posix()
 @pytest.mark.parametrize('name', [filename])
 def test_meteo(name):
     try:
-        d = pmeteo.meteo(filename, engine='netcdf')
+        d = pmeteo.meteo(filename, meteo_engine='netcdf')
         r = True
     except:
         r = False

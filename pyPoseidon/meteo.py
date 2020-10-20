@@ -121,7 +121,7 @@ def regrid(ds):
 
 class meteo:
 
-    def __init__(self, meteo_source=None, engine='cfgrib', **kwargs):
+    def __init__(self, meteo_source=None, meteo_engine='cfgrib', **kwargs):
 
         """Read meteo data from variable sources.
 
@@ -137,20 +137,20 @@ class meteo:
         retrieved : xarray DataSet
 
         """
-        if engine == 'cfgrib' :
+        if meteo_engine == 'cfgrib' :
                 self.Dataset = cfgrib(meteo_source, **kwargs)
-        elif engine == 'pynio' :
+        elif meteo_engine == 'pynio' :
                 self.Dataset = pynio(meteo_source, **kwargs)
-        elif engine == 'netcdf' :
+        elif meteo_engine == 'netcdf' :
                 self.Dataset = netcdf(meteo_source, **kwargs)
-        elif engine == 'url':
+        elif meteo_engine == 'url':
                 self.Dataset = from_url(**kwargs)
-        elif engine == 'passthrough':
+        elif meteo_engine == 'passthrough':
                 self.Dataset = meteo_source
 
         else:
 
-            logger.warning('Please define xarray engine for meteo ... exiting')
+            logger.warning('Please define a valid meteo engine for meteo ... exiting')
             sys.exit(1)
 
 
@@ -161,7 +161,7 @@ class meteo:
         s = getattr(model,solver) # get solver class
         var_list = kwargs.pop('vars', ['msl','u10','v10'])
         
-        split_by = get_value(self,kwargs,'split_by',None)
+        split_by = get_value(self,kwargs,'meteo_split_by',None)
         if split_by :
             times, datasets = zip(*self.Dataset.groupby('time.{}'.format(split_by)))
             mpaths = ['sflux/sflux_air_1.{:04d}.nc'.format(t + 1) for t in np.arange(len(times))]
@@ -171,10 +171,10 @@ class meteo:
             s.to_force(self.Dataset,vars=var_list, **kwargs)
 
 
-def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], merge=False, combine_forecast=False, combine_by='by_coords', **kwargs):
+def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, meteo_irange=[0,-1,1], meteo_merge=None, meteo_combine_by='by_coords', **kwargs):
 
-    backend_kwargs = kwargs.get('backend_kwargs', {'indexpath':''})
-    xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
+    backend_kwargs = kwargs.get('meteo_backend_kwargs', {'indexpath':''})
+    xr_kwargs = kwargs.get('meteo_xr_kwargs', {}) #{'concat_dim':'step'})
     minlon = lon_min
     maxlon = lon_max
 
@@ -194,7 +194,7 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
         except:
             pass
 
-    ft1, ft2, dft = irange
+    ft1, ft2, dft = meteo_irange
 
     ts = pd.to_datetime(start_date)
     te = pd.to_datetime(end_date)
@@ -203,7 +203,7 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
     logger.info('extracting meteo')
     #---------------------------------------------------------------------
 
-    data = xr.open_mfdataset(filenames, combine=combine_by, engine='cfgrib', backend_kwargs=backend_kwargs, **xr_kwargs)
+    data = xr.open_mfdataset(filenames, combine=meteo_combine_by, engine='cfgrib', backend_kwargs=backend_kwargs, **xr_kwargs)
 
     data = data.squeeze(drop=True)
     #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing> not efficient for output
@@ -216,27 +216,23 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
             data = data.rename({time_coord:'time'})
             data = data.assign_coords(time=data.valid_time)
 
-    if merge :
-        logger.info('merging meteo datasets')
-                
+    if meteo_merge == 'last':
+        logger.info('combining meteo by keeping the newest value')        
         mask = data.time.to_pandas().duplicated('last').values
         msl = data.msl[~mask]
         u10 = data.u10[~mask]
         v10 = data.v10[~mask]
         data = xr.merge([msl,u10,v10])
+    
+    elif meteo_merge == 'first':
+        logger.info('combining meteo by keeping the oldest value')
+        mask = data.time.to_pandas().duplicated('last').values
+        mask_ = np.array([mask[0]] + mask[:-1].tolist())
+        msl = data.msl[~mask_]
+        u10 = data.u10[~mask_]
+        v10 = data.v10[~mask_]
+        data = xr.merge([msl,u10,v10])
         
-    if combine_forecast :
-        logger.info('combining meteo datasets')
-        mask_ = pd.to_datetime(data.time.values)>=ts
-        data_ = data.sel(time=mask_)        
-        mask = data_.time.to_pandas().duplicated('last').values
-        idx = np.argwhere(mask==False)[0]
-        mask[idx]=np.invert(mask[idx])
-        mask[0]=np.invert(mask[0])
-        data_ = data_.sel(time=~mask)
-        data = data_[['msl','u10','v10']]
-
-
     if not lon_min : lon_min = data.longitude.data.min()
     if not lon_max : lon_max = data.longitude.data.max()
     if not lat_min : lat_min = data.latitude.data.min()
@@ -349,10 +345,10 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
 
 
 
-def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], merge=False, combine_forecast=False, combine_by='by_coords', **kwargs):
+def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, meteo_irange=[0,-1,1], meteo_merge=None, meteo_combine_by='by_coords', **kwargs):
 
-    backend_kwargs = kwargs.get('backend_kwargs', {})
-    xr_kwargs = kwargs.get('xr_kwargs', {}) #{'concat_dim':'step'})
+    backend_kwargs = kwargs.get('meteo_backend_kwargs', {})
+    xr_kwargs = kwargs.get('meteo_xr_kwargs', {}) #{'concat_dim':'step'})
     minlon = lon_min
     maxlon = lon_max
 
@@ -377,7 +373,7 @@ def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None
         except:
             pass
 
-    ft1, ft2, dft = irange
+    ft1, ft2, dft = meteo_irange
 
 
     ts = pd.to_datetime(start_date)
@@ -387,7 +383,7 @@ def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None
     logger.info('extracting meteo')
     #---------------------------------------------------------------------
 
-    data = xr.open_mfdataset(filenames, combine=combine_by, engine='pynio', backend_kwargs=backend_kwargs, **xr_kwargs)
+    data = xr.open_mfdataset(filenames, combine=meteo_combine_by, engine='pynio', backend_kwargs=backend_kwargs, **xr_kwargs)
 
     data = data.squeeze(drop=True)
 
@@ -634,14 +630,14 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
 
 
 
-def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, irange=[0,-1,1], combine_by='by_coords', **kwargs):
+def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, meteo_irange=[0,-1,1], meteo_combine_by='by_coords', **kwargs):
 
 
     #---------------------------------------------------------------------
     logger.info('extracting meteo\n')
     #---------------------------------------------------------------------
 
-    data = xr.open_mfdataset(filenames, combine=combine_by)
+    data = xr.open_mfdataset(filenames, combine=meteo_combine_by)
     
     #rename var/coords
     time_coord = [x for x in data.coords if 'time' in data[x].long_name.lower() ]
@@ -669,7 +665,7 @@ def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
     except:
         data = data.sel(time=slice(start_date,start_date + pd.to_timedelta(time_frame)))
 
-    s,f,i = irange
+    s,f,i = meteo_irange
     data = data.isel(time=slice(s,f,i))
     
     

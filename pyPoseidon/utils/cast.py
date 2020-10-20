@@ -370,7 +370,13 @@ class scast():
         if (np.any(check)==False) or ('meteo' in flag):
            
             m.force(**info)
-            m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath, date=self.date0)  #write u,v,p files 
+            if hasattr(self, 'meteo_split_by'):
+                times, datasets = zip(*m.meteo.Dataset.groupby('time.{}'.format(self.meteo_split_by)))
+                mpaths = ['sflux/sflux_air_1.{:04d}.nc'.format(t + 1) for t in np.arange(len(times))]
+                for das,mpath in list(zip(datasets,mpaths)):
+                    m.to_force(das,vars=['msl','u10','v10'],rpath=rpath, filename=mpath, date=self.date0)
+            else:  
+                m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath,date=self.date0)                 
     
         else:
             logger.warning('meteo files present\n')

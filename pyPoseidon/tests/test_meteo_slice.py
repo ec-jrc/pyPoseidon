@@ -15,8 +15,8 @@ filename = (DATA_DIR / 'meteo.nc').as_posix()
 @pytest.mark.parametrize('name', [filename])
 def test_meteo(tmpdir,name):
     rpath = str(tmpdir)+'/'
-    d = pmeteo.meteo(filename, engine='netcdf')
-    d.to_output(solver='schism',rpath=rpath,split_by='day')
+    d = pmeteo.meteo(filename, meteo_engine='netcdf')
+    d.to_output(solver='schism',rpath=rpath,meteo_split_by='day')
     d.to_output(solver='schism',rpath=rpath,filename='all.nc')
 
     # read schism meteo files
