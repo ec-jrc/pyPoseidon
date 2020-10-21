@@ -16,6 +16,7 @@ import glob
 import sys
 import os
 import time
+import dask
 import xarray as xr
 import pandas as pd
 import importlib
@@ -219,18 +220,20 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
     if meteo_merge == 'last':
         logger.info('combining meteo by keeping the newest value')        
         mask = data.time.to_pandas().duplicated('last').values
-        msl = data.msl[~mask]
-        u10 = data.u10[~mask]
-        v10 = data.v10[~mask]
+        with dask.config.set(**{'array.slicing.split_large_chunks': True}):
+            msl = data.msl[~mask]
+            u10 = data.u10[~mask]
+            v10 = data.v10[~mask]
         data = xr.merge([msl,u10,v10])
     
     elif meteo_merge == 'first':
         logger.info('combining meteo by keeping the oldest value')
         mask = data.time.to_pandas().duplicated('last').values
         mask_ = np.array([mask[0]] + mask[:-1].tolist())
-        msl = data.msl[~mask_]
-        u10 = data.u10[~mask_]
-        v10 = data.v10[~mask_]
+        with dask.config.set(**{'array.slicing.split_large_chunks': True}):
+            msl = data.msl[~mask_]
+            u10 = data.u10[~mask_]
+            v10 = data.v10[~mask_]
         data = xr.merge([msl,u10,v10])
         
     if not lon_min : lon_min = data.longitude.data.min()
