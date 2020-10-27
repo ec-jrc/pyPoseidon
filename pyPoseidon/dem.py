@@ -22,7 +22,7 @@ logger = logging.getLogger('pyPoseidon')
 class dem:
     def __init__(self, dem_source=None, **kwargs):
         if not dem_source : dem_source = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus'
-        self.Dataset = dem_(source = dem_source, **kwargs)
+        self.Dataset = dem_(source = dem_source, dem_xr_kwargs={'engine':'pydap'}, **kwargs)
         
         coastline = kwargs.get('coastlines', None) 
         if coastline is not None :
@@ -37,12 +37,14 @@ class dem:
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs):
     
     ncores = kwargs.get('ncores', 1)       
- 
+    
+    xr_kwargs = kwargs.get('dem_xr_kwargs', {}) 
+    
     #--------------------------------------------------------------------- 
     logger.info('extracting dem from {}\n'.format(source))
     #---------------------------------------------------------------------      
   
-    data = xr.open_dataset(source) 
+    data = xr.open_dataset(source, **xr_kwargs) 
     
     #rename vars,coords
     var = [keys for keys in data.data_vars]

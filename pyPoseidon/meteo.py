@@ -543,11 +543,12 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
     ts = pd.to_datetime(start_date)
     te = pd.to_datetime(end_date)
 
+    xr_kwargs = kwargs.get('meteo_xr_kwargs', {})
 
     if not url:
         for link in erddap():
             try:
-                data = xr.open_dataset(link)
+                data = xr.open_dataset(link, **xr_kwargs)
                 url = link
                 break
             except:
@@ -557,7 +558,7 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
     logger.info('extracting meteo from {}.html\n'.format(url))
     #---------------------------------------------------------------------
 
-    data = xr.open_dataset(url)
+    data = xr.open_dataset(url, **xr_kwargs)
 
     try:
         data = data.rename({'lon':'longitude','lat':'latitude'})
@@ -640,7 +641,9 @@ def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
     logger.info('extracting meteo\n')
     #---------------------------------------------------------------------
 
-    data = xr.open_mfdataset(filenames, combine=meteo_combine_by)
+    xr_kwargs = kwargs.get('meteo_xr_kwargs', {})
+
+    data = xr.open_mfdataset(filenames, combine=meteo_combine_by, **xr_kwargs)
     
     #rename var/coords
     time_coord = [x for x in data.coords if 'time' in data[x].long_name.lower() ]
