@@ -498,7 +498,7 @@ class pplot(object):
 
 
 #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
-        cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both',fraction=0.017, pad=0.04)
+        cbar = fig.colorbar(im,ticks=vrange,orientation='vertical',fraction=0.017, pad=0.04)
 #plt.colorbar()
 
         v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)

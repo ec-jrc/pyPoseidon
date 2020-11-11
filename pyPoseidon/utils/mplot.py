@@ -318,7 +318,9 @@ class mplot(object):
         
         mlab.figure(1, size=(3840/2, 2160/2), bgcolor=(0, 0, 0), fgcolor=(1.,1.,1.))
         mlab.clf()
-        if dim == '3D': self.globe(R - .002)
+        bcolor=kwargs.get('bcolor',(0.,0.,0.))
+        if dim == '3D': self.globe(R - .002, bcolor=bcolor)
+        
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(px,py,pz,tri3, representation='wireframe', opacity=1.0)
         
@@ -326,7 +328,7 @@ class mplot(object):
         
         if coast is not None :
             try:
-                del kwargs['coastlines']
+                del kwargs['coastlines','R']
             except:
                 pass
             
@@ -352,13 +354,18 @@ class mplot(object):
             lon=[]
             lat=[]
             try:
-                for x,y in bo[l].boundary.coords[:]: 
+                for x,y in bo[l].coords[:]: 
                     lon.append(x)
                     lat.append(y)
-            except:
-                for x,y in bo[l].boundary[0].coords[:]: 
-                    lon.append(x)
-                    lat.append(y)
+            except:    
+                try:
+                    for x,y in bo[l].boundary.coords[:]: 
+                        lon.append(x)
+                        lat.append(y)
+                except:
+                    for x,y in bo[l].boundary[0].coords[:]: 
+                        lon.append(x)
+                        lat.append(y)
 
         
             dic.update({'line{}'.format(l):{'lon':lon,'lat':lat}})
