@@ -370,9 +370,10 @@ def jdefault(**kwargs):
 
     else:
         block = world.cx[lon_min:lon_max,lat_min:lat_max]
-
         
-    g = block.buffer(.001).unary_union.symmetric_difference(grp) # get the dif from the world
+#    block = block.to_crs('epsg=3763').buffer(10).to_crs("EPSG:4326")
+        
+    g = block.unary_union.symmetric_difference(grp) # get the dif from the world
 
     try: # make geoDataFrame 
         t = gp.GeoDataFrame({'geometry':g})
