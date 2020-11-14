@@ -325,7 +325,7 @@ class tri2d():
         bs = self.Dataset[['node','id','type']].to_dataframe()
         
         # open boundaries
-        number_of_open_boundaries = bs.id.max()
+        number_of_open_boundaries = bs.id.max().astype(int)
         number_of_open_boundaries_nodes=bs.loc[bs.id>0].shape[0]
 
         if number_of_open_boundaries > 0:
@@ -350,7 +350,7 @@ class tri2d():
 
         # land boundaries                      
 
-        number_of_land_boundaries = bs.id.min()
+        number_of_land_boundaries = bs.id.min().astype(int)
         number_of_land_boundaries_nodes=bs.loc[bs.id<0].shape[0]
         
         if number_of_land_boundaries < 0:
@@ -364,7 +364,7 @@ class tri2d():
                 for i in range(-1 , number_of_land_boundaries - 1, -1):
                     dat_ = bs.loc[bs.id==i]
                     dat = dat_.node + 1 #fortran
-                    dat_t = dat_.type.iloc[0]
+                    dat_t = dat_.type.iloc[0].astype(int)
             
                     f.write('{} {} = Number of nodes for land boundary {}\n'.format(dat.size,dat_t,ik))
                     dat.to_csv(f,index=None,header=False)
@@ -393,7 +393,7 @@ class tri2d():
         # save bctides.in
         bs = self.Dataset[['node','id','type']].to_dataframe()
         # open boundaries
-        number_of_open_boundaries = bs.id.max()
+        number_of_open_boundaries = bs.id.max().astype(int)
         number_of_open_boundaries_nodes=bs.loc[bs.id>0].shape[0]
         
         with open(path + 'bctides.in', 'w') as f:
@@ -469,4 +469,5 @@ class tri2d():
             #--------------------------------------------------------------------- 
             logger.info('grid fails.. exiting \n')
             #--------------------------------------------------------------------- 
+            return str(out)
  
