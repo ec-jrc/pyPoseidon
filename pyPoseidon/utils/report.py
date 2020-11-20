@@ -95,39 +95,36 @@ def to_html(path='./',tag='schism'):
     tri = d.SCHISM_hgrid_face_nodes.values
 
     nodes = pd.DataFrame({'lon':x,'lat':y})
-    tria = pd.DataFrame(tri ,columns=['a','b','c'])
+    elems = pd.DataFrame(tri ,columns=['a','b','c'])
 
-    tria['ap'] = tria.apply(lambda x : nodes.loc[x.a,['lon','lat']].values,axis=1)
-    tria['bp'] = tria.apply(lambda x : nodes.loc[x.b,['lon','lat']].values,axis=1)
-    tria['cp'] = tria.apply(lambda x : nodes.loc[x.c,['lon','lat']].values,axis=1)
-
-    tria['geometry'] =  tria.apply(
-         lambda x : shapely.geometry.Polygon([x.ap,x.bp,x.cp]),axis=1)
-
-   
-    colormap = branca.colormap.LinearColormap(['green', 'yellow', 'red'], vmin=vmin.values, vmax=vmax.values)
-    colormap.caption = 'Elevation'
+    ap = nodes.loc[elems.a,['lon','lat']]
+    bp = nodes.loc[elems.b,['lon','lat']]
+    cp = nodes.loc[elems.c,['lon','lat']]
+    
+    elems['ap'] = ap.values.tolist()
+    elems['bp'] = bp.values.tolist()
+    elems['cp'] = cp.values.tolist()
+    
+    n=2
+    al = elems.ap + elems.bp + elems.cp + elems.ap
+    coords = [[l[i:i + n] for i in range(0, len(l), n)] for l in al]
+    elems['coordinates'] = coords
+    
+    elems['geometry'] = [ shapely.geometry.Polygon(x) for x in elems.coordinates.values]
       
-    # geopandas
-    gf_ = gp.GeoDataFrame(tria, crs={'init' :'epsg:4326'})    
-
-    gf_ = gf_.drop(['a','b','c','ap','bp','cp'], axis=1)
-    
-
-    
-    colormap = branca.colormap.LinearColormap(['green', 'yellow', 'red'], vmin=vmin.values, vmax=vmax.values)
-    colormap.caption = 'Elevation'
-
-
     # MAXH
     mh = d.elev.max('time').values
         
-    tria['value'] = tria.apply(lambda x : np.mean([mh[x.a],mh[x.b],mh[x.c]]),axis=1)
+    elems['max_elev'] = np.mean([mh[elems.a],mh[elems.b],mh[elems.c]], axis=0) 
+ 
+    colormap = branca.colormap.LinearColormap(['green', 'yellow', 'red'], vmin=mh.min(), vmax=mh.max())
+    colormap.caption = 'Elevation'
+ 
+    # geopandas
+    gf_ = gp.GeoDataFrame(elems)
+    gf_.crs='epsg:4326'   
 
-    gf_ = gp.GeoDataFrame(tria, crs={'init' :'epsg:4326'})    
-
-    gf_ = gf_.drop(['a','b','c','ap','bp','cp'], axis=1)
-
+    gf_ = gf_.drop(['a','b','c','ap','bp','cp','coordinates'], axis=1)
 
     maxh = folium.GeoJson(
     gf_,
@@ -165,8 +162,7 @@ def to_html(path='./',tag='schism'):
     mlat,mlon = points.mean(axis=0)
     
     tg = m.data.obs.data
-    tg.index.levels[1].name = 'date'
-    tg.index.levels[0].name = 'location'
+    tg = tg.rename_axis(index=['location','date'])
     tg = tg.drop(['Level m','Tide m'],axis=1)
     tg.columns=['height']
 
@@ -174,8 +170,7 @@ def to_html(path='./',tag='schism'):
     toponames = [x.strip(' ') for x in toponames]
     
     st = m.data.time_series.to_dataframe()
-    st.index.levels[1].name = 'date'
-    st.index.levels[0].name = 'location'
+    st = st.rename_axis(index=['location','date'])
     st.columns=['height']
     st.index = st.index.set_levels(m.data.obs.locations.Name.str.strip(' '), level=0)
     st = st.loc[toponames]    
@@ -212,7 +207,7 @@ def to_html(path='./',tag='schism'):
     Map.add_child(mc)
     Map.add_child(folium.map.LayerControl())
     Map.add_child(colormap)
-
+    Map.add_child(BindColormap(maxh, colormap))
 
     Map.save(path + 'report.html')
     
