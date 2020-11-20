@@ -62,7 +62,7 @@ def contour(grid_x,grid_y,z,t,**kwargs):
 
 
 #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
-    cbar = fig.colorbar(im,ticks=vrange,orientation='vertical', extend='both')#,fraction=0.046, pad=0.04)
+    cbar = fig.colorbar(im,ticks=vrange,orientation='vertical')#,fraction=0.046, pad=0.04)
 #plt.colorbar()
 
     v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
@@ -201,7 +201,7 @@ class pplot(object):
         ax.set_aspect('equal')
                 
         p = plt.tricontour(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)
-        cbar = fig.colorbar(p,ticks=vrange,orientation='vertical', extend='both')
+        cbar = fig.colorbar(p,ticks=vrange,orientation='vertical')
         if it:
     
             text = 'time={}'.format(t[it])
@@ -263,7 +263,7 @@ class pplot(object):
         
         
         p = ax.tricontourf(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)#, transform=ccrs.PlateCarree() )
-        cbar = fig.colorbar(p,ticks=vrange,orientation='vertical', extend='both')
+        cbar = fig.colorbar(p,ticks=vrange,orientation='vertical')
         if it :
                        
             text = 'time={}'.format(t[it])
