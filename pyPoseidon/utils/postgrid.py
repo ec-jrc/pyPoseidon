@@ -356,7 +356,7 @@ def check(g, shp, bad):
         qnodes = np.unique([elems.loc[x,['a','b','c']].values.astype(int) for x in invs])
         nnodes = pygeos.points(list(nodes.loc[qnodes].values))
         ntree = pygeos.STRtree(nnodes)
-        nels_ = pygeos.from_shapely(gw.loc[0].geometry.buffer(.001))
+        nels_ = pygeos.from_shapely(gw.loc[0].geometry.buffer(.00001))
         nevs = ntree.query(nels_, predicate='intersects').tolist()
         pns = qnodes[nevs]
         dpoints=[ x for x in qnodes if x not in pns]

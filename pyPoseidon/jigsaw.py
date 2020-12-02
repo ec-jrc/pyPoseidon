@@ -15,12 +15,14 @@ import xarray as xr
 import os
 import shapely
 import subprocess
+from tqdm import tqdm
 import sys
 
 from pyPoseidon.utils.stereo import to_lat_lon, to_stereo
 from pyPoseidon.utils.sort import *
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.hfun import *
+from pyPoseidon.utils.spline import *
 import logging        
         
 logger = logging.getLogger('pyPoseidon')
@@ -526,6 +528,23 @@ def jdefault(**kwargs):
     ndf['tag'] = ndf.tag.astype(int)
     df = pd.concat([final,ndf])
     
+    
+    even = kwargs.get('resample_coastlines',True)
+    
+    if even :
+        logger.debug('resample coastlines')
+        conts = np.unique(df.index[df.tag<0].get_level_values(0))
+        ## resample boundaries
+        ndfs={}
+        for contour in tqdm(conts):
+            di = spline(df.loc[contour,['lon','lat']])
+            di['z']=df.loc[contour].z.values[0]
+            di['tag']=df.loc[contour].tag.values[0].astype(int)
+            ndfs.update({contour:di})
+        
+        df_ = pd.concat(ndfs, axis=0)
+        df = pd.concat([df.loc[df.tag>0], df_])
+    
     return df, bmindx      
     
 def jigsaw_(df, bmindx, **kwargs):    
@@ -800,6 +819,12 @@ def jigsaw_(df, bmindx, **kwargs):
         ldf.loc[ldf.node.isin(lp[l]),'id'] = idx
         ldf.loc[ldf.node.isin(lp[l]),'type'] = lattr.iloc[l].type
         idx -= 1
+    
+    lk = -1
+    for k in range(-1,ldf.id.min()-1 , -1):
+        if not ldf.loc[ldf.id==k].empty : 
+            ldf.loc[ldf.id==k,'id'] = lk
+            lk -= 1    
         
     tbf = pd.concat([odf,ldf])
     tbf.index.name = 'bnodes'
