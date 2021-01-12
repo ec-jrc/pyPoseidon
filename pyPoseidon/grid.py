@@ -14,10 +14,12 @@ import xarray as xr
 import pandas as pd
 import sys
 from .jigsaw import *
+from .ugmsh import *
 import logging
 import f90nml
 import os
 import subprocess
+from pyPoseidon.utils.verify import *
 
 logger = logging.getLogger('pyPoseidon')
 
@@ -147,6 +149,12 @@ class tri2d():
         elif grid_generator == 'jigsaw':
     
             g = jigsaw(**kwargs) # create grid with JIGSAW
+    
+            self.Dataset = g
+            
+        elif grid_generator == 'gmsh':
+    
+            g = gmsh_(**kwargs) # create grid with JIGSAW
     
             self.Dataset = g
             
@@ -475,4 +483,12 @@ class tri2d():
             logger.info('grid fails.. exiting \n')
             #--------------------------------------------------------------------- 
             return str(out)
- 
+
+
+
+    def verify(self,coastline=None):      
+        
+        if shp:
+            verify(self,shp)
+        else:
+            logger.warning('No coastline given')
