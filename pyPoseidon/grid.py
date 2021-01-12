@@ -138,16 +138,21 @@ class tri2d():
     def __init__(self, **kwargs):
                     
         grid_file  = kwargs.get('grid_file', None)
+        grid_generator = kwargs.get('grid_generator', None)
                     
         if grid_file: 
               
             self.Dataset = self.read_file(grid_file)
         
-        else:
+        elif grid_generator == 'jigsaw':
     
             g = jigsaw(**kwargs) # create grid with JIGSAW
     
             self.Dataset = g
+            
+        else:
+            
+            self.Dataset = None
      
      
     @staticmethod
