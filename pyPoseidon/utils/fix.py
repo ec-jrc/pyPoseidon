@@ -12,7 +12,6 @@ import numpy as np
 import geopandas as gp
 import shapely 
 import pygeos
-from pyPoseidon.utils.bfs import *
 import pyresample
 import pandas as pd
 import xarray as xr

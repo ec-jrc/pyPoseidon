@@ -42,7 +42,7 @@ window4 = {
 
 
 
-cr = 'l'
+cr = 'i'
 coast = cf.NaturalEarthFeature(
     category='physical',
     name='land',
@@ -68,6 +68,7 @@ def test_elevation(tmpdir, dic):
 
     
 # Schism grid    
+#@pytest.mark.schism
 @pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
 def test_schism_grid(tmpdir, dic):
     
@@ -81,6 +82,7 @@ def test_schism_grid(tmpdir, dic):
     assert np.isnan(df.Dataset.fval.values).sum() == 0
     
 # D3D grid
+@pytest.mark.delft
 @pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
 def test_d3d_grid(tmpdir, dic):
     
