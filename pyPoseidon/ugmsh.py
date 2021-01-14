@@ -172,7 +172,7 @@ def gset(df,**kwargs):
     #Resample to equidistant points
     
     conts = np.unique(df.index[df.tag<0].get_level_values(0))
-    conts=conts[1:] #except the outer LineString
+    conts = [x for x in conts if x not in ['line0']]#except the outer LineString
     
     ibs=len(conts)
     
@@ -247,7 +247,11 @@ def make_gmsh(df, **kwargs):
     
 #    gmsh.option.setNumber("General.Terminal", 1)
     
-    ddf=df #gset(df,**kwargs)
+    interpolate = kwargs.get('interpolate', False)
+    if interpolate:
+        ddf=gset(df,**kwargs)
+    else:
+        ddf=df
     lc = kwargs.get('lc', .5)
     
     ddf['lc'] = lc
