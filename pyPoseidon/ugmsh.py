@@ -59,7 +59,7 @@ def read_gmsh(mesh,**kwargs):
         onodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"),tag=getattr(row, "tag"))
 
         db = pd.DataFrame({'node':onodes-1})
-        db['type']=1
+        db['type']=np.nan
         db['id']=getattr(row, "Index")+1
 
         bounds.append(db)
@@ -73,14 +73,21 @@ def read_gmsh(mesh,**kwargs):
 
         db = pd.DataFrame({'node':lnodes-1})
         db['type']=0
-        db['id']=getattr(row, "Index")+1
+        db['id']=-(getattr(row, "Index")+1)
 
         bounds.append(db)
         
+    if lbs.empty: #Store max index from land boundaries 
+        itag=0
+    else:
+        itag=lbs.tag.max()-1000
+
         
     #islands
     ibs=bgs.loc[bgs.tag>2000]
     ibs.reset_index(inplace=True,drop=True)
+    ibs.index=ibs.index + itag #set index
+    
     
     for row in ibs.itertuples(index=True, name='Pandas'):
 
@@ -95,14 +102,17 @@ def read_gmsh(mesh,**kwargs):
     
     bnodes.index.name='bnodes'
     
-    sproj = kwargs.get('global', False)
+    bnodes = bnodes.drop_duplicates('node')
+    
+    bnodes['id']=bnodes.id.astype(int)
+    
+    #check if global and reproject
+    sproj = kwargs.get('gglobal', False)
     if sproj : # convert to lat/lon
         xd,yd = to_lat_lon(nodes.x,nodes.y)
         nodes['x']=xd
         nodes['y']=yd
-    
-    bnodes = bnodes.drop_duplicates('node')
-    
+         
     grid = pd.DataFrame({'lon':nodes.x, 'lat':nodes.y})
     
     tri3 = tria.values
@@ -246,6 +256,10 @@ def make_gmsh(df, **kwargs):
     
     # save boundary configuration for Line0
     rb0=ddf.loc['line0'].copy()
+    
+    if not shapely.geometry.LinearRing(rb0[['lon','lat']].values).is_ccw:# check for clockwise orientation
+        rb0=ddf.loc['line0'].iloc[::-1].reset_index(drop=True)
+            
     rb0.index=rb0.index+1 # fix index
     rb0['bounds']=[[i,i+1] for i in rb0.index]
     rb0['bounds']=rb0.bounds.values.tolist()[:-1]+[[rb0.index[-1],1]] # fix last one
@@ -322,6 +336,9 @@ def make_gmsh(df, **kwargs):
     
     for contour in ddf.index.levels[0][1:]:
         rb=ddf.loc[contour].copy()
+        if not shapely.geometry.LinearRing(rb[['lon','lat']].values).is_ccw:# check for clockwise orientation
+            rb=ddf.loc[contour].iloc[::-1].reset_index(drop=True)
+        
         rb.index=rb.index+tag
         rb['bounds']=[[i,i+1] for i in rb.index]
         rb['bounds']=rb.bounds.values.tolist()[:-1]+[[rb.index[-1],rb.index[0]]] # fix last one

@@ -476,19 +476,22 @@ class tri2d():
             #--------------------------------------------------------------------- 
             logger.info('grid is validated for SCHISM\n')
             #--------------------------------------------------------------------- 
-
+            return True
         else:
             logger.debug(str(out))
             #--------------------------------------------------------------------- 
             logger.info('grid fails.. exiting \n')
             #--------------------------------------------------------------------- 
-            return str(out)
+            return False
 
 
 
-    def verify(self,coastline=None):      
+    def verify(self,**kwargs):      
         
-        if shp:
-            verify(self,shp)
+        shp = kwargs.get('coastlines',None) 
+        
+        if shp is not None:
+            r=verify(self,shp)
+            return r
         else:
-            logger.warning('No coastline given')
+            logger.warning('No coastlines provided')
