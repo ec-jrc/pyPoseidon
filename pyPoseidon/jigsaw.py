@@ -540,12 +540,16 @@ def to_dataset(bmindx, **kwargs):
     # Fix an issue with jumping identifiers
     
     nns = np.array([int(x.split('_')[-1]) for x in open_i])
-    if nns.max() != nns.size:
-        nns = np.arange(nns.size) + 1
-        open_i = ['open_boundary_{}'.format(x) for x in nns] 
-        lidx = dict(zip(openb.index.levels[0].to_list(), open_i))    
-        openb.rename(index=lidx, level=0, inplace=True)
-    
+    try:
+        if nns.max() != nns.size:
+            nns = np.arange(nns.size) + 1
+            open_i = ['open_boundary_{}'.format(x) for x in nns] 
+            lidx = dict(zip(openb.index.levels[0].to_list(), open_i))    
+            openb.rename(index=lidx, level=0, inplace=True)
+    except:
+        pass # continue is nns=[]
+        
+        
     #MAKE Dataset
     
     els = xr.DataArray(
