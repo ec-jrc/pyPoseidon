@@ -97,14 +97,19 @@ def read_gmsh(mesh,**kwargs):
         db['id']=-(getattr(row, "Index")+1)
 
         bounds.append(db)   
-        
-    bnodes=pd.concat(bounds).reset_index(drop=True)
     
-    bnodes.index.name='bnodes'
+    if bounds != []:    
+        bnodes=pd.concat(bounds).reset_index(drop=True)
     
-    bnodes = bnodes.drop_duplicates('node')
+        bnodes.index.name='bnodes'
     
-    bnodes['id']=bnodes.id.astype(int)
+        bnodes = bnodes.drop_duplicates('node')
+    
+        bnodes['id']=bnodes.id.astype(int)
+    
+    else:
+        bnodes=pd.DataFrame({})
+    
     
     #check if global and reproject
     sproj = kwargs.get('gglobal', False)
@@ -164,6 +169,8 @@ def gmsh_(**kwargs):
     
 def gset(df,**kwargs):
     
+    logger.info('interpolate coastal points')
+    
     lc = kwargs.get('lc', .5)
     
     df['lc'] = lc
@@ -192,6 +199,9 @@ def gset(df,**kwargs):
     df_['tag'] = df_.tag.values.astype(int)
     
     #Line0
+    
+    logger.info('set outermost boundary')
+    
     df0=df.loc['line0']
     
     mtag=df0.tag.min()
@@ -238,6 +248,8 @@ def gset(df,**kwargs):
     
     
 def make_gmsh(df, **kwargs):
+    
+    logger.info('create grid')
     
     model = gmsh.model
     factory = model.geo
@@ -312,7 +324,8 @@ def make_gmsh(df, **kwargs):
     land_lines = { your_key: blines[your_key] for your_key in [x for x in blines.keys() if x < 0] }
     open_lines = { your_key: blines[your_key] for your_key in [x for x in blines.keys() if x > 0] }
     
-    #Define geomerty for gmsh
+    logger.info('Define geometry')
+    
     loops=[]
     islands=[]
     all_lines=[]
@@ -334,11 +347,10 @@ def make_gmsh(df, **kwargs):
     loops.append(ltag)
     all_lines.append(lines)
 
-
     tag += 1
     ltag += 1
     
-    for contour in ddf.index.levels[0][1:]:
+    for contour in tqdm(ddf.index.levels[0][1:]):
         rb=ddf.loc[contour].copy()
         if not shapely.geometry.LinearRing(rb[['lon','lat']].values).is_ccw:# check for clockwise orientation
             rb=ddf.loc[contour].iloc[::-1].reset_index(drop=True)
@@ -370,6 +382,7 @@ def make_gmsh(df, **kwargs):
         ltag += 1
 
     factory.addPlaneSurface(loops)
+    logger.info('synchronize')
     factory.synchronize()
     
     ## Group open boundaries lines
@@ -399,8 +412,8 @@ def make_gmsh(df, **kwargs):
     model.mesh.field.setNumber(2, "InField", 1);
     model.mesh.field.setNumber(2, "SizeMin", .01);
     model.mesh.field.setNumber(2, "SizeMax", .1);
-    model.mesh.field.setNumber(2, "DistMin", .1);
-    model.mesh.field.setNumber(2, "DistMax", .5);
+    model.mesh.field.setNumber(2, "DistMin", .05);
+    model.mesh.field.setNumber(2, "DistMax", .2);
     
     model.mesh.field.setAsBackgroundMesh(2)
         
@@ -420,12 +433,15 @@ def make_gmsh(df, **kwargs):
     gmsh.option.setNumber('Mesh.MeshSizeFromPoints',0)
     gmsh.option.setNumber('Mesh.MeshSizeFromCurvature',0)            
     
+    logger.info('execute')
+    
     gmsh.model.mesh.generate(2)
     
     # ... and save it to disk
     rpath = kwargs.get('rpath', '.')
     
-    gmsh.option.setNumber("Mesh.SaveAll", 1)
+    logger.info('save mesh')
+#    gmsh.option.setNumber("Mesh.SaveAll", 1)
     gmsh.write(rpath + '/gmsh/mymesh.msh')
     
 #    gmsh.write('mymesh.vtk')

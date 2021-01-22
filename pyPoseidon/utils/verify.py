@@ -18,7 +18,7 @@ os.environ['PROJ_LIB']= os.pathsep + cpath +'/share/proj'
 import logging
 logger = logging.getLogger('pyPoseidon')
 
-def verify(g, shp):
+def verify(g, shp, thorough=False):
     #--------------------------------------------------------------------- 
     logger.info(' Verify grid against coastline\n')
     #--------------------------------------------------------------------- 
@@ -59,58 +59,69 @@ def verify(g, shp):
     logger.info('Number of nodes within the coastlines {}\n'.format(len(invs)))
     #--------------------------------------------------------------------- 
     
-    # ### Find invalid elements (that cross land)
-
-    # cells to polygons
-    ap = nodes.loc[elems.a]
-    bp = nodes.loc[elems.b]
-    cp = nodes.loc[elems.c]
-
-    elems['ap'] = ap.values.tolist()
-    elems['bp'] = bp.values.tolist()
-    elems['cp'] = cp.values.tolist()
-
-    n=2
-    al = elems.ap + elems.bp + elems.cp + elems.ap
-    coords = [[l[i:i + n] for i in range(0, len(l), n)] for l in al]
-    elems['coordinates'] = coords
-
-    jig = pygeos.polygons(coords)
-
-    jtree = pygeos.STRtree(jig)
-
-    jig_ = pygeos.set_operations.union_all(jig)
-
-    cross = pygeos.set_operations.intersection(jig_,cos_)
-
-    # #### convert to dataframe
-
-    fd = pd.DataFrame({'overlap':pygeos.to_wkt(cross)},index=[0])
-
-    fd['overlap'] = fd['overlap'].apply(shapely.wkt.loads)
-
-    gover = gp.GeoDataFrame(fd,geometry='overlap')
-
-    # #### Reject small injuctions
-    ipols = gover.explode().loc[0]
-
-    ipols.columns=['geometry']
-
-    mask = ipols.area.values == 0.
-
-
-    ipols = ipols[~mask].reset_index(drop=True)
-    ipols = gp.GeoDataFrame(ipols)
+    nps=len(invs)
     
-    #--------------------------------------------------------------------- 
-    logger.info('Number of elements intersecting the coastlines {}\n'.format(ipols.shape[0]))
-    #--------------------------------------------------------------------- 
+    if thorough :
+    
+        # ### Find invalid elements (that cross land)
 
-    if invs==[] and ipols.empty:
+        # cells to polygons
+        ap = nodes.loc[elems.a]
+        bp = nodes.loc[elems.b]
+        cp = nodes.loc[elems.c]
+
+        elems['ap'] = ap.values.tolist()
+        elems['bp'] = bp.values.tolist()
+        elems['cp'] = cp.values.tolist()
+
+        n=2
+        al = elems.ap + elems.bp + elems.cp + elems.ap
+        coords = [[l[i:i + n] for i in range(0, len(l), n)] for l in al]
+        elems['coordinates'] = coords
+
+        jig = pygeos.polygons(coords)
+
+        jtree = pygeos.STRtree(jig)
+
+        jig_ = pygeos.set_operations.union_all(jig)
+
+        cross = pygeos.set_operations.intersection(jig_,cos_)
+
+        # #### convert to dataframe
+
+        fd = pd.DataFrame({'overlap':pygeos.to_wkt(cross)},index=[0])
+
+        fd['overlap'] = fd['overlap'].apply(shapely.wkt.loads)
+
+        gover = gp.GeoDataFrame(fd,geometry='overlap')
+
+        # #### Reject small injuctions
+        ipols = gover.explode().loc[0]
+
+        ipols.columns=['geometry']
+
+        mask = ipols.area.values == 0.
+
+
+        ipols = ipols[~mask].reset_index(drop=True)
+        ipols = gp.GeoDataFrame(ipols)
+    
+        #--------------------------------------------------------------------- 
+        logger.info('Number of elements intersecting the coastlines {}\n'.format(ipols.shape[0]))
+        #--------------------------------------------------------------------- 
+
+        nels=ipols.shape[0]
+
+    if nps==0 and nels==0:
         #--------------------------------------------------------------------- 
         logger.info('Grid is verified against the coastline')
         #--------------------------------------------------------------------- 
         return True
+    elif nps==0 :
+        #--------------------------------------------------------------------- 
+        logger.info('Grid is node verified against the coastline')
+        #--------------------------------------------------------------------- 
+        return True        
     else:
         #--------------------------------------------------------------------- 
         logger.warning('Grid is not verified against the coastline')
