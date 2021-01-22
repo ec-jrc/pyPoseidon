@@ -413,7 +413,7 @@ def make_gmsh(df, **kwargs):
     model.mesh.field.setNumber(2, "SizeMin", .01);
     model.mesh.field.setNumber(2, "SizeMax", .1);
     model.mesh.field.setNumber(2, "DistMin", .05);
-    model.mesh.field.setNumber(2, "DistMax", .2);
+    model.mesh.field.setNumber(2, "DistMax", .1);
     
     model.mesh.field.setAsBackgroundMesh(2)
         

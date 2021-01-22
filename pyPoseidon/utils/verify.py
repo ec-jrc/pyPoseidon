@@ -61,6 +61,8 @@ def verify(g, shp, thorough=False):
     
     nps=len(invs)
     
+    nels=1
+    
     if thorough :
     
         # ### Find invalid elements (that cross land)
@@ -110,7 +112,7 @@ def verify(g, shp, thorough=False):
         logger.info('Number of elements intersecting the coastlines {}\n'.format(ipols.shape[0]))
         #--------------------------------------------------------------------- 
 
-        nels=ipols.shape[0]
+        nels=ipols.shape[0]        
 
     if nps==0 and nels==0:
         #--------------------------------------------------------------------- 
