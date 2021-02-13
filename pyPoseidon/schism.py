@@ -191,7 +191,7 @@ class schism():
             logger.info('output param.nml file ...\n')
             #---------------------------------------------------------------------             
             
-            path = get_value(self,kwargs,'rpath','./')
+            path = get_value(self,kwargs,'rpath','./schism/')
             self.params.write(path + 'param.nml',force=True)
 
 #============================================================================================        
@@ -203,7 +203,7 @@ class schism():
         
         kwargs.update({'meteo_source':meteo_source})
         
-        flag = get_value(self,kwargs,'update',[])
+        flag = get_value(self,kwargs,'update',['all'])
         
         z = {**self.__dict__, **kwargs} # merge self and possible kwargs
         
@@ -229,7 +229,7 @@ class schism():
         
         logger.info('writing meteo files ..\n')
                 
-        path = kwargs.get('rpath','./') 
+        path = kwargs.get('rpath','./schism/') 
                 
         [p,u,v] = kwargs.get('vars','[None,None,None]')                
         
@@ -317,7 +317,7 @@ class schism():
         
         kwargs.update({'dem_source':dpath})
                 
-        flag = get_value(self,kwargs,'update',[])
+        flag = get_value(self,kwargs,'update',['all'])
         # check if files exist
         if flag :
             if ('dem' in flag) | ('all' in flag) :
@@ -367,8 +367,8 @@ class schism():
 
     def output(self,**kwargs):      
         
-        path = get_value(self,kwargs,'rpath','./') 
-        flag = get_value(self,kwargs,'update',[])
+        path = get_value(self,kwargs,'rpath','./schism/') 
+        flag = get_value(self,kwargs,'update',['all'])
         split_by = get_value(self,kwargs,'meteo_split_by',None)
         
         if not os.path.exists(path):
@@ -509,7 +509,7 @@ class schism():
               pass
                               
         
-        calc_dir = get_value(self,kwargs,'rpath','./') 
+        calc_dir = get_value(self,kwargs,'rpath','./schism/') 
         
         try:
             bin_path = os.environ['SCHISM']
@@ -544,7 +544,7 @@ class schism():
                 
     def run(self,**kwargs):
         
-        calc_dir = get_value(self,kwargs,'rpath','./') 
+        calc_dir = get_value(self,kwargs,'rpath','./schism/') 
                                     
         ncores = get_value(self,kwargs,'ncores',1)
         
@@ -574,7 +574,7 @@ class schism():
                                   
     def save(self,**kwargs):
                
-         path = get_value(self,kwargs,'rpath','./')
+         path = get_value(self,kwargs,'rpath','./schism/')
         
          lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
          dic = {k: self.__dict__.get(k, None) for k in lista}
@@ -679,7 +679,7 @@ class schism():
 
     def global2local(self,**kwargs):
         
-        path = get_value(self,kwargs,'rpath','./') 
+        path = get_value(self,kwargs,'rpath','./schism/') 
                     
         #Read the global node index distribution to the cores
         gfiles = glob.glob(path+'outputs/local_to_global_*')
@@ -849,7 +849,7 @@ class schism():
     
     def hotstart(self, it=None, **kwargs):
         
-        path = get_value(self,kwargs,'rpath','./') 
+        path = get_value(self,kwargs,'rpath','./schism/') 
                           
         if not 'melems' in self.misc: self.global2local(**kwargs)
 
@@ -1000,7 +1000,7 @@ class schism():
     
     def read_vgrid(self,**kwargs):
         
-        path = get_value(self,kwargs,'rpath','./')
+        path = get_value(self,kwargs,'rpath','./schism/')
         
         vgrid = pd.read_csv(path + 'vgrid.in', header=None)
         
@@ -1039,7 +1039,7 @@ class schism():
         
     def results(self,**kwargs):
         
-        path = get_value(self,kwargs,'rpath','./') 
+        path = get_value(self,kwargs,'rpath','./schism/') 
         
         if len(self.misc) == 0: 
             logger.info('retrieving index references ... \n')
@@ -1270,7 +1270,7 @@ class schism():
         
     def set_obs(self,**kwargs):
         
-        path = get_value(self,kwargs,'rpath','./') 
+        path = get_value(self,kwargs,'rpath','./schism/') 
         nspool_sta = get_value(self,kwargs,'nspool_sta',1)
         tg_database = get_value(self,kwargs,'tide_gauges',None) # TODO
         coastal_monitoring = get_value(self,kwargs,'coastal_monitoring',False)
