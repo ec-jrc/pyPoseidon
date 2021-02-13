@@ -1,5 +1,5 @@
 """
-Visualization module
+Visualization module based on matplotlib
 
 """
 # Copyright 2018 European Union
@@ -152,7 +152,7 @@ class pplot(object):
         self._obj = xarray_obj    
         
  
-    def contour(self,**kwargs):        
+    def contour(self, it=None, **kwargs):        
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -162,9 +162,7 @@ class pplot(object):
             pass
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-                     
-        it = kwargs.get('it', None)
-        
+                             
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
                 
@@ -213,7 +211,7 @@ class pplot(object):
                 
         return p#, ax   
     
-    def contourf(self,**kwargs):
+    def contourf(self, it=None, **kwargs):
                 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -222,9 +220,7 @@ class pplot(object):
         except:
             pass
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-        
-        it = kwargs.get('it', None)
-        
+                
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
                 
@@ -276,7 +272,7 @@ class pplot(object):
         return p #fig, ax   
             
     
-    def quiver(self,**kwargs):
+    def quiver(self, it=None, **kwargs):
                 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
