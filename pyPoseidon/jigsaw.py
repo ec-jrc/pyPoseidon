@@ -104,7 +104,7 @@ def jigsaw(**kwargs):
     
     if isinstance(geometry,dict): 
              
-        df , bmindx = tag(**kwargs)
+        df , bmindx = tag_(**kwargs)
         
         gr = jigsaw_(df, bmindx, **kwargs)       
         

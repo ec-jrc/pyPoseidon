@@ -6,7 +6,7 @@ import shapely
         
 logger = logging.getLogger('pyPoseidon')
 
-def tag(**kwargs):
+def tag_(**kwargs):
         
     world = kwargs.get('coastlines',None)
     
