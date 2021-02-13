@@ -28,8 +28,6 @@ logger = logging.getLogger('pyPoseidon')
 def erddap():
 
     links = [
-            'http://oos.soest.hawaii.edu/erddap/griddap/NCEP_Global_Best',
-            'https://cidportal.jrc.ec.europa.eu/services/erddap/griddap/NCEP_Global_Best',
             'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best',
              ]
     return links
@@ -543,7 +541,7 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
     ts = pd.to_datetime(start_date)
     te = pd.to_datetime(end_date)
 
-    xr_kwargs = kwargs.get('meteo_xr_kwargs', {})
+    xr_kwargs = kwargs.get('meteo_xr_kwargs', {'engine':'pydap'})
 
     if not url:
         for link in erddap():
