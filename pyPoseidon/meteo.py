@@ -120,7 +120,7 @@ def regrid(ds):
 
 class meteo:
 
-    def __init__(self, meteo_source=None, meteo_engine='cfgrib', **kwargs):
+    def __init__(self, meteo_source=None, meteo_engine=None, **kwargs):
 
         """Read meteo data from variable sources.
 
@@ -142,16 +142,15 @@ class meteo:
                 self.Dataset = pynio(meteo_source, **kwargs)
         elif meteo_engine == 'netcdf' :
                 self.Dataset = netcdf(meteo_source, **kwargs)
-        elif meteo_engine == 'url':
-                self.Dataset = from_url(**kwargs)
+        elif meteo_engine == 'empty':
+                self.Dataset = None
         elif meteo_engine == 'passthrough':
                 self.Dataset = meteo_source
 
         else:
 
-            logger.warning('Please define a valid meteo engine for meteo ... exiting')
-            sys.exit(1)
-
+            self.Dataset = from_url(**kwargs)
+            logger.warning('Proceeding with default option')
 
     def to_output(self,solver=None, **kwargs):
 

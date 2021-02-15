@@ -20,6 +20,9 @@ import f90nml
 import os
 import subprocess
 from pyPoseidon.utils.verify import *
+import multiprocessing
+
+NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 logger = logging.getLogger('pyPoseidon')
 
@@ -140,17 +143,11 @@ class tri2d():
     def __init__(self, **kwargs):
                     
         grid_file  = kwargs.get('grid_file', None)
-        grid_generator = kwargs.get('grid_generator', None)
+        grid_generator = kwargs.get('grid_generator', 'jigsaw')
                     
         if grid_file: 
               
             self.Dataset = self.read_file(grid_file)
-        
-        elif grid_generator == 'jigsaw':
-    
-            g = jigsaw(**kwargs) # create grid with JIGSAW
-    
-            self.Dataset = g
             
         elif grid_generator == 'gmsh':
     
@@ -158,9 +155,17 @@ class tri2d():
     
             self.Dataset = g
             
+        elif grid_generator == 'jigsaw':
+            
+            g = jigsaw(**kwargs) # create grid with JIGSAW
+    
+            self.Dataset = g
+            
         else:
             
             self.Dataset = None
+            
+            
      
      
     @staticmethod
@@ -451,7 +456,7 @@ class tri2d():
             #------------------------------------------------------------------------------
             bin_path = 'schism'
               
-        ncores = 1
+        ncores = NCORES
         calc_dir = path
                             
             
