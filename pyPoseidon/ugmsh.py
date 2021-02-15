@@ -34,6 +34,8 @@ def read_gmsh(mesh,**kwargs):
 
     gmsh.open(mesh)
     
+    logger.info('Analyze grid')
+        
     nodeTags, coord, parametricCoord = gmsh.model.mesh.getNodes()
     
     nodes = pd.DataFrame(coord.reshape(-1,3),columns=['x','y','z'])
@@ -53,6 +55,8 @@ def read_gmsh(mesh,**kwargs):
     bgs=pd.DataFrame(bgs[:-1],columns=['dim','tag'])
     
     #open boundaries
+    logger.info('open boundaries')
+    
     obs=bgs.loc[bgs.tag<1000] 
     
     for row in obs.itertuples(index=True, name='Pandas'):
@@ -63,8 +67,11 @@ def read_gmsh(mesh,**kwargs):
         db['id']=getattr(row, "Index")+1
 
         bounds.append(db)
+    
         
-    #land boundaries type     
+    #land boundaries type  
+    logger.info('land boundaries')
+       
     lbs=bgs.loc[(bgs.tag>1000)&(bgs.tag<2000)]
     lbs.reset_index(inplace=True,drop=True)
 
@@ -84,6 +91,9 @@ def read_gmsh(mesh,**kwargs):
 
         
     #islands
+    logger.info('islands')
+    
+    
     ibs=bgs.loc[bgs.tag>2000]
     ibs.reset_index(inplace=True,drop=True)
     ibs.index=ibs.index + itag #set index
@@ -122,6 +132,8 @@ def read_gmsh(mesh,**kwargs):
     
     tri3 = tria.values
     
+    logger.info('Finalize Dataset')
+    
     ## make dataset
     els = xr.DataArray(
           tri3,
@@ -135,7 +147,7 @@ def read_gmsh(mesh,**kwargs):
 
     gr = xr.merge([nod,els,dep,bnodes.to_xarray()])
     
-    gmsh.finalize()
+    gmsh.finalize() 
     
     return gr
              
@@ -157,7 +169,7 @@ def gmsh_(**kwargs):
         if not os.path.exists(gpath):
                 os.makedirs(gpath)
                       
-        df , bmindx = tag(**kwargs)
+        df , bmindx = tag_(**kwargs)
         
         make_gmsh(df, **kwargs)       
     
@@ -412,22 +424,20 @@ def make_gmsh(df, **kwargs):
     model.mesh.field.setNumber(2, "InField", 1);
     model.mesh.field.setNumber(2, "SizeMin", .01);
     model.mesh.field.setNumber(2, "SizeMax", .1);
-    model.mesh.field.setNumber(2, "DistMin", .05);
+    model.mesh.field.setNumber(2, "DistMin", .01);
     model.mesh.field.setNumber(2, "DistMax", .1);
+#    model.mesh.field.setNumber(2, "StopAtDistMax", 1);
     
-    model.mesh.field.setAsBackgroundMesh(2)
-        
     # Merge a post-processing view containing the target anisotropic mesh sizes
 #    gmsh.merge('iceland.pos')
 
-    # Apply the view as the current background mesh
-#    bg_field = gmsh.model.mesh.field.add("PostView")
-#    gmsh.model.mesh.field.setAsBackgroundMesh(bg_field)
+#    model.mesh.field.add("PostView", 3)
+#    model.mesh.field.setNumber(3, "ViewIndex", 0)
 
-    # Use bamg
-#    gmsh.option.setNumber("Mesh.SmoothRatio", 3)
-#    gmsh.option.setNumber("Mesh.AnisoMax", 1000)
-#    gmsh.option.setNumber("Mesh.Algorithm", 7)
+#    model.mesh.field.add("Min", 4)
+#    model.mesh.field.setNumbers(4, "FieldsList", [2,3])
+
+    model.mesh.field.setAsBackgroundMesh(2)
 
     gmsh.option.setNumber('Mesh.MeshSizeExtendFromBoundary',0)
     gmsh.option.setNumber('Mesh.MeshSizeFromPoints',0)
