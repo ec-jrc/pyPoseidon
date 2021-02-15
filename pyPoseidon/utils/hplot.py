@@ -21,7 +21,6 @@ import cartopy.feature as cfeature
 import xarray as xr
 import pandas as pd
 import panel as pn
-from hvplot import pandas,xarray
 gv.extension('bokeh')
 
 import sys
