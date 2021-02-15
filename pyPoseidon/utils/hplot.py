@@ -37,7 +37,7 @@ class hplot(object):
         self._obj = xarray_obj    
         
      
-    def contourf(self, it=None,**kwargs):
+    def contourf(self, var='depth', it=None, **kwargs):
                 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -47,7 +47,6 @@ class hplot(object):
             pass
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         
-        var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
         
         nodes = pd.DataFrame({'longitude':x,'latitude':y, '{}'.format(var):z})
@@ -72,7 +71,7 @@ class hplot(object):
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         
-        opts.defaults(opts.WMTS(width=1200, height=800))
+        opts.defaults(opts.WMTS(width=800, height=400))
         tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
         
         nodes = pd.DataFrame({'longitude':x,'latitude':y})
@@ -91,7 +90,7 @@ class hplot(object):
         return 
                 
  
-    def frames(self,**kwargs):
+    def frames(self,var='depth',**kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -103,7 +102,6 @@ class hplot(object):
         
         times=kwargs.get('times',self._obj.time.values)
         
-        var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[0,:].flatten())
         
         nodes = pd.DataFrame({'longitude':x,'latitude':y, '{}'.format(var):z})
@@ -122,7 +120,7 @@ class hplot(object):
 
         meshes = hv.DynamicMap(time_mesh, kdims=['Time']).redim.values(Time=times)
         
-        imesh = rasterize(meshes, aggregator='mean').opts(cmap='viridis', colorbar=True)
+        imesh = rasterize(meshes, aggregator='mean').opts(cmap='viridis', colorbar=True, padding=.1, tools=['hover'])
         
         return hv.output(tiles*imesh, holomap='scrubber', fps=1)
         

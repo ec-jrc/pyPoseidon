@@ -11,6 +11,7 @@ Data analysis module
 import numpy as np
 import os
 from pyPoseidon.utils.pplot import *
+from pyPoseidon.utils.hplot import *
 from pyPoseidon.utils.obs import obs
 from pyPoseidon.grid import *
 import pyPoseidon.model as pm
@@ -40,7 +41,7 @@ class d3d():
         
     def __init__(self,**kwargs):
         
-        rpath = kwargs.get('rpath','./')
+        rpath = kwargs.get('rpath','./d3d/')
         
         folders = kwargs.get('folders',None)  #[os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
         
@@ -147,7 +148,7 @@ class schism():
             
     def __init__(self,**kwargs):     
                 
-        rpath = kwargs.get('rpath','./')
+        rpath = kwargs.get('rpath','./schism/')
         
         folders = kwargs.get('folders',None)  #[os.path.join(os.path.abspath(loc),name) for name in os.listdir(loc) if os.path.isdir(os.path.join(loc,name))]
         
@@ -209,7 +210,7 @@ class schism():
         
         dstamp = kwargs.get('dstamp', info['date'])
         try: 
-            p.get_obs(dstamp=dstamp)
+            p.get_station_data(dstamp=dstamp)
             self.time_series = p.time_series
         except:
             logger.info('no station data loaded')     
