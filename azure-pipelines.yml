@@ -31,6 +31,3 @@ jobs:
   steps:
   - template: ci/azure/unit-tests.yml
 
-
-  - script: pip install gmsh
-    displayName: 'Install gmsh'
