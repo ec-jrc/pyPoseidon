@@ -283,9 +283,7 @@ class pplot(object):
         
         
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-                        
-        it = kwargs.get('it', None)
-        
+                                
         var = kwargs.get('var','dahv')
         u = kwargs.get('u',self._obj[var].values[it,:,0].flatten())
         v = kwargs.get('v',self._obj[var].values[it,:,1].flatten())
