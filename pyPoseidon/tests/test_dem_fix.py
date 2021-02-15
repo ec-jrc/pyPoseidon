@@ -42,14 +42,14 @@ window4 = {
 
 
 
-cr = 'i'
+cr = 'l'
 coast = cf.NaturalEarthFeature(
     category='physical',
     name='land',
     scale='{}m'.format({'l':110, 'i':50, 'h':10}[cr]))
 
 
-natural_earth = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
+natural_earth = gp.GeoDataFrame(geometry = [x.buffer(.001) for x in coast.geometries()])
 
 coast = cf.GSHHSFeature(
     scale='auto', #'coarse', 'low', 'intermediate', 'high, or 'full'
@@ -68,7 +68,7 @@ def test_elevation(tmpdir, dic):
 
     
 # Schism grid    
-#@pytest.mark.schism
+@pytest.mark.schism
 @pytest.mark.parametrize('dic', [ window1 , window2, window3, window4])
 def test_schism_grid(tmpdir, dic):
     

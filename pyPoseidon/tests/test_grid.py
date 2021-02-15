@@ -6,7 +6,7 @@ import geopandas as gp
 import cartopy.feature as cf
 
 
-cr='l'
+cr='i'
 coast = cf.NaturalEarthFeature(
     category='physical',
     name='land',
