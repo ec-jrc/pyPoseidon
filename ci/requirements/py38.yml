@@ -13,7 +13,7 @@ dependencies:
   - geoviews
   - geopandas
   - rasterio
-  - jigsaw=0.9.11
+  - jigsaw=0.9.12
   - seaborn 
   - hvplot
   - descartes
@@ -27,3 +27,6 @@ dependencies:
   - pytest
   - pytest-cov
   - ipympl
+  - pip
+  - pip:
+    - gmsh
