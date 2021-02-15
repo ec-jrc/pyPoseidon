@@ -15,7 +15,9 @@ import sys
 import importlib
 from pyPoseidon.utils.fix import fix
 import logging
+import multiprocessing
 
+NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 logger = logging.getLogger('pyPoseidon')
 
@@ -38,7 +40,7 @@ class dem:
       
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs):
     
-    ncores = kwargs.get('ncores', 1)       
+    ncores = kwargs.get('ncores', NCORES)       
     
     xr_kwargs = kwargs.get('dem_xr_kwargs', {}) 
     

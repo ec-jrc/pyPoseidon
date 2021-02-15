@@ -6,6 +6,9 @@ import pandas as pd
 import datetime
 import os
 import numpy as np
+import multiprocessing
+
+NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 from . import DATA_DIR
 
@@ -30,7 +33,7 @@ case={'solver':'schism',
      'meteo_merge': 'last', #combine meteo
      'meteo_combine_by':'nested',
      'meteo_xr_kwargs': {'concat_dim':'step'},
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':.5, 'nhot':1, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
@@ -49,7 +52,7 @@ check={'solver':'schism',
      'meteo_merge': 'last', #combine meteo
      'meteo_combine_by':'nested',
      'meteo_xr_kwargs': {'concat_dim':'step'},
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':1.5, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }

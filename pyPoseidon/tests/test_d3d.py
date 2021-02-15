@@ -2,6 +2,9 @@ import pytest
 import pyPoseidon
 from pyPoseidon.utils import data
 import os
+import multiprocessing
+
+NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 from . import DATA_DIR
 
@@ -13,7 +16,7 @@ case1={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 
      'resolution':0.2, #grid resoltuion
      'map_step':20, # step for output of map field in d3d
      'restart_step':60, # when to output restart file
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'meteo_source' : [(DATA_DIR / 'uvp_2018100100.grib').as_posix()],
      'dem_source' : (DATA_DIR / 'dem.nc').as_posix(),
      'engine':'cfgrib',

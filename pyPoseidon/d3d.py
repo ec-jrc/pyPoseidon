@@ -34,6 +34,9 @@ import logging
 
 logger = logging.getLogger('pyPoseidon')
 
+import multiprocessing
+NCORES = max(1, multiprocessing.cpu_count() - 1)
+
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
 DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
@@ -209,7 +212,7 @@ class d3d():
         
         if output: 
             #save mdf 
-            path = get_value(self,kwargs,'rpath','./') 
+            path = get_value(self,kwargs,'rpath','./d3d/') 
             self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
             
 
@@ -307,7 +310,7 @@ class d3d():
          
         logger.info('writing meteo files ..\n')
                 
-        path = kwargs.get('rpath','./') 
+        path = kwargs.get('rpath','./d3d/') 
         
         [p,u,v] = kwargs.get('vars','[None,None,None]')                
         
@@ -440,7 +443,7 @@ class d3d():
     def to_dep(dr, dry_mask=True, **kwargs):
         #save dem
         logger.info('writing dem file ..\n')
-        path = kwargs.get('rpath','./') 
+        path = kwargs.get('rpath','./d3d/') 
              
         flag = kwargs.get('update',None)
         tag = kwargs.get('tag','d3d')
@@ -683,7 +686,7 @@ class d3d():
             
     def run(self,**kwargs):
         
-        calc_dir = get_value(self,kwargs,'rpath','./') 
+        calc_dir = get_value(self,kwargs,'rpath','./d3d/') 
         
         try:
             bin_path = os.environ['D3D']
@@ -697,7 +700,7 @@ class d3d():
 
 
                     
-        ncores = get_value(self,kwargs,'ncores',1)
+        ncores = get_value(self,kwargs,'ncores',NCORES)
                         
         argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
         
@@ -755,7 +758,7 @@ class d3d():
             
     def save(self,**kwargs):
                
-         path = get_value(self,kwargs,'rpath','./')
+         path = get_value(self,kwargs,'rpath','./d3d/')
         
          lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
          dic = {k: self.__dict__.get(k, None) for k in lista}
@@ -788,7 +791,7 @@ class d3d():
     
     def output(self,**kwargs):      
         
-        path = get_value(self,kwargs,'rpath','./') 
+        path = get_value(self,kwargs,'rpath','./d3d/') 
         slevel = get_value(self,kwargs,'slevel',0.) 
         flag = get_value(self,kwargs,'update',[])
         
@@ -851,7 +854,7 @@ class d3d():
             
         
         
-        calc_dir = get_value(self,kwargs,'rpath','./') 
+        calc_dir = get_value(self,kwargs,'rpath','./d3d/') 
                         
         try:
             bin_path = os.environ['D3D']
@@ -875,7 +878,7 @@ class d3d():
             #--------------------------------------------------------------------- 
               
             
-        ncores = get_value(self,kwargs,'ncores',1)
+        ncores = get_value(self,kwargs,'ncores',NCORES)
                                 
         if not os.path.exists( calc_dir+self.tag+'_hydro.xml') :
             

@@ -1,6 +1,9 @@
 import pytest
 import pyPoseidon
 import os
+import multiprocessing
+
+NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 from . import DATA_DIR
 
@@ -19,7 +22,7 @@ case1={'solver':'schism',
      'meteo_source' : [(DATA_DIR / 'erai.grib').as_posix()], #meteo file
      'meteo_engine':'cfgrib',
      'dem_source' : DEM_FILE,
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
@@ -34,7 +37,7 @@ case2={'solver':'schism',
      'dem_source' : DEM_FILE,
      'meteo_source' : [(DATA_DIR / 'erai.grib').as_posix()], #meteo file
      'meteo_engine':'cfgrib',
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
@@ -50,7 +53,7 @@ case3={'solver':'schism',
      'meteo_source' : [(DATA_DIR / 'era5.grib').as_posix()], #meteo file
      'meteo_engine':'cfgrib',
      'dem_source' : DEM_FILE,
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }

@@ -6,6 +6,9 @@ import pandas as pd
 import datetime
 import os
 import numpy as np
+import multiprocessing
+
+NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 from . import DATA_DIR
 
@@ -21,7 +24,7 @@ case1={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 
      'resolution':0.1, #grid resoltuion
      'map_step':60, # step for output of map field in d3d
      'restart_step':720, # when to output restart file
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'meteo_source' : GRIB_FILES_1,
      'engine':'cfgrib',
      'combine_forecast' : True,
@@ -38,7 +41,7 @@ case2={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 
      'resolution':0.1, #grid resoltuion
      'map_step':60, # step for output of map field in d3d
      'restart_step':720, # when to output restart file
-     'ncores': 4 , #number of cores
+     'ncores': NCORES , #number of cores
      'dem_source' : DEM_FILE,
      'meteo_source' : GRIB_FILES_2,
      'engine':'cfgrib',
