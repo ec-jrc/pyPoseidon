@@ -44,10 +44,18 @@ from pyPoseidon.utils.data import data
 import logging
 logger = logging.getLogger('pyPoseidon')
 
+import multiprocessing
+NCORES = max(1, multiprocessing.cpu_count() - 1)
+
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
 DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
 TEST_DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/tests/data/'
+# add conda path to PATH
+cpath = pyPoseidon.__path__[0].split('/lib/')[0]
+os.environ['PATH'] += os.pathsep + cpath + '/bin'
+
+
         
 class schism():
      
@@ -451,23 +459,23 @@ class schism():
                 logger.info('Keeping manning file ..\n')
         
         
-        if hasattr(self, 'manning') :
-            nn = self.grid.Dataset.nSCHISM_hgrid_node.size
-            n3e = self.grid.Dataset.nSCHISM_hgrid_face.size
+        manning = get_value(self,kwargs,'manning',.12)
+        nn = self.grid.Dataset.nSCHISM_hgrid_node.size
+        n3e = self.grid.Dataset.nSCHISM_hgrid_face.size
+    
+        with open(manfile,'w') as f:
+            f.write('\t 0 \n')
+            f.write('\t {} {}\n'.format(n3e,nn))
+            
+        df = self.grid.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
+            
+        df['man'] = manning
         
-            with open(manfile,'w') as f:
-                f.write('\t 0 \n')
-                f.write('\t {} {}\n'.format(n3e,nn))
-                
-            df = self.grid.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
-                
-            df['man'] = self.manning
+        df.index = np.arange(1, len(df) + 1)
             
-            df.index = np.arange(1, len(df) + 1)
-                
-            df.to_csv(manfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','man'] )
-            
-            logger.info('Manning file created..\n')
+        df.to_csv(manfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','man'] )
+        
+        logger.info('Manning file created..\n')
                 
         
         # windrot_geo2proj
@@ -479,20 +487,21 @@ class schism():
             if self.windrot_file != windfile :
                 logger.info('Keeping windrot_geo2proj file ..\n')
 
-        if hasattr(self, 'windrot') :
-            with open(windfile,'w') as f:
-                f.write('\t 0 \n')
-                f.write('\t {} {}\n'.format(n3e,nn))
-                    
-            df = self.grid.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
-               
-            df['windrot'] = self.windrot
-            
-            df.index = np.arange(1, len(df) + 1)
-        
-            df.to_csv(windfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','windrot'] )
+        windrot = get_value(self,kwargs,'windrot',0.00001)
+
+        with open(windfile,'w') as f:
+            f.write('\t 0 \n')
+            f.write('\t {} {}\n'.format(n3e,nn))
                 
-            logger.info('Windrot_geo2proj file created..\n')
+        df = self.grid.Dataset[['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','depth']].to_dataframe()
+           
+        df['windrot'] = windrot
+        
+        df.index = np.arange(1, len(df) + 1)
+    
+        df.to_csv(windfile,index=True, sep='\t', header=None,mode='a', float_format='%.10f',columns=['SCHISM_hgrid_node_x','SCHISM_hgrid_node_y','windrot'] )
+            
+        logger.info('Windrot_geo2proj file created..\n')
             
         #save meteo
         if hasattr(self, 'atm') :
@@ -522,7 +531,7 @@ class schism():
             #------------------------------------------------------------------------------
             bin_path = 'schism'
               
-        ncores = get_value(self,kwargs,'ncores',1)
+        ncores = get_value(self,kwargs,'ncores',NCORES)
                             
             
         with open(calc_dir + 'launchSchism.sh', 'w') as f:
@@ -546,7 +555,7 @@ class schism():
         
         calc_dir = get_value(self,kwargs,'rpath','./schism/') 
                                     
-        ncores = get_value(self,kwargs,'ncores',1)
+        ncores = get_value(self,kwargs,'ncores',NCORES)
         
         #--------------------------------------------------------------------- 
         logger.info('executing model\n')
@@ -1345,15 +1354,17 @@ class schism():
             f.write('{}\n'.format(stations.shape[0]))
             stations.loc[:,['SCHISM_hgrid_node_x',	'SCHISM_hgrid_node_y',	'z']].to_csv(f, header=None, sep=' ')
     
-    def get_obs(self,**kwargs):
+    def get_station_data(self,**kwargs):
         
+        path = get_value(self,kwargs,'rpath','./schism/')
+            
         # locate the station files
-        sfiles = glob.glob(self.rpath + 'outputs/staout_*')
+        sfiles = glob.glob(path + 'outputs/staout_*')
         sfiles.sort()
 
         try:
             # get the station flags
-            flags = pd.read_csv(self.rpath + 'station.in', header=None,nrows=1,delim_whitespace=True).T
+            flags = pd.read_csv(path + 'station.in', header=None,nrows=1,delim_whitespace=True).T
             flags.columns = ['flag']
             flags['variable'] = ['elev', 'air_pressure', 'windx', 'windy', 'T', 'S', 'u', 'v', 'w']
         
@@ -1390,5 +1401,4 @@ class schism():
         dic.update(kwargs)
         
         self.data = data(**dic)
-        
-                
+                        
