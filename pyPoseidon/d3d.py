@@ -39,7 +39,12 @@ NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
+DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'  
+
+# add conda path to PATH
+cpath = pyPoseidon.__path__[0].split('/lib/')[0]
+os.environ['PATH'] += os.pathsep + cpath + '/bin'
+  
 
 # strings to be used 
 le=['A','B']
@@ -698,6 +703,12 @@ class d3d():
         except:
             lib_path = get_value(self,kwargs,'lpath', None)
 
+        if bin_path is None:
+            #------------------------------------------------------------------------------ 
+            logger.warning('D3D executable path (epath) not given -> using default \n')
+            #------------------------------------------------------------------------------
+            bin_path = os.pathsep + cpath
+            lib_path = bin_path
 
                     
         ncores = get_value(self,kwargs,'ncores',NCORES)

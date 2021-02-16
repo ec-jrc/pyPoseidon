@@ -9,15 +9,15 @@ if [ $# -gt 2 ]; then
        LD3D="$4"
 fi
 
-if [ -z $D3D ];then
-   echo 'no executable'
-   exit 1 
-fi
+#if [ -z $D3D ];then
+#   echo 'no executable'
+#   exit 1 
+#fi
 
     #
     # Set the directory containing delftflow.exe here
     #
-exedir=$D3D/flow2d3d/bin
+exedir=$D3D/bin
 libdir=$LD3D/lib
  
     #
@@ -26,6 +26,7 @@ libdir=$LD3D/lib
 
     # Set some (environment) parameters
 export LD_LIBRARY_PATH=$exedir:$libdir:$LD_LIBRARY_PATH 
+export PATH=$execdir:$PATH
 
     # Run
-mpiexec -np $ncores $exedir/d_hydro.exe $argfile
+mpiexec -np $ncores d_hydro $argfile
