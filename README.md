@@ -10,6 +10,9 @@ This is a development project utilising multiple solvers (currently DELFT3D & SC
 
 `conda install -c gbrey pyPoseidon`
 
+Afterwards, for now, one needs to install gmsh manually with
+
+`pip install gmsh`
 
 ### Prerequisities
 

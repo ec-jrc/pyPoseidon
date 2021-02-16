@@ -149,8 +149,9 @@ class meteo:
 
         else:
 
-            self.Dataset = from_url(**kwargs)
             logger.warning('Proceeding with default option')
+            self.Dataset = from_url(**kwargs)
+            
 
     def to_output(self,solver=None, **kwargs):
 
