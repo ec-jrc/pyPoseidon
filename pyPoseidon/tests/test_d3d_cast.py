@@ -26,7 +26,7 @@ case1={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 
      'restart_step':720, # when to output restart file
      'ncores': NCORES , #number of cores
      'meteo_source' : GRIB_FILES_1,
-     'engine':'cfgrib',
+     'meteo_engine':'cfgrib',
      'combine_forecast' : True,
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},
@@ -44,7 +44,7 @@ case2={'geometry':{'lon_min' : -30,'lon_max' : -10.,'lat_min' : 60.,'lat_max' : 
      'ncores': NCORES , #number of cores
      'dem_source' : DEM_FILE,
      'meteo_source' : GRIB_FILES_2,
-     'engine':'cfgrib',
+     'meteo_engine':'cfgrib',
      'combine_forecast' : True,
      'combine_by':'nested',
      'xr_kwargs': {'concat_dim':'step'},
