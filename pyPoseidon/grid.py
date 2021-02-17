@@ -174,7 +174,9 @@ class tri2d():
         logger.info('read grid file {}'.format(hgrid))
                 
         #read file
-        df = pd.read_csv(hgrid, header=0, names=['data'], index_col=None, low_memory=False)
+        df = pd.read_csv(hgrid, header=0, low_memory=False)
+        df = df.dropna(axis=1)
+        df.columns=['data']
         
         #extract number of elements, number of nodes
         ni,nj = df.iloc[0].str.split()[0]
@@ -201,6 +203,7 @@ class tri2d():
         e = pd.DataFrame(df.loc[nj+1:nj+ni,'data'].str.split().values.tolist())
         e = e.drop(e.columns[0], axis=1)
         e = e.apply(pd.to_numeric)
+        e = e.dropna(axis=1)
      #   e.reset_index(inplace=True, drop=True)
         e.columns = ['nv','a','b','c']
         e.loc[:,['a','b','c']] = e.loc[:,['a','b','c']] - 1 # convert to python (index starts from 0)
