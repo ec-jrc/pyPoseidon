@@ -636,6 +636,11 @@ class schism():
         self.rpath = rfolder
         s = glob.glob(rfolder + '/param.nml')
         mfiles = glob.glob(rfolder + '/sflux/*.nc')
+        mfiles.sort()
+        
+        mrange = kwargs.get('mrange', [0,-1])
+        
+        mfiles=mfiles[mrange[0]:mrange[1]]
         
         hfile = rfolder + '/hgrid.gr3' # Grid
         self.params = f90nml.read(s[0])
@@ -668,21 +673,27 @@ class schism():
         load_meteo=get_value(self,kwargs,'load_meteo',False)
         
         #meteo 
-        ma = []
-        for ifile in mfiles:
-            g = xr.open_dataset(ifile)
-            ts = '-'.join(g.time.attrs['base_date'].astype(str)[:3])
-            time_r = pd.to_datetime(ts) 
-            times = time_r + pd.to_timedelta(g.time.values,unit='D').round('H')
-            g = g.assign_coords({'time':times})
-            ma.append(g)
-        
         if load_meteo is True:
+
             try:
-                self.meteo = xr.merge(ma)
+                self.meteo = xr.open_mfdataset(mfiles)
             except:
-                logger.warning('Loading meteo failed')
-                pass
+
+                ma = []
+                for ifile in mfiles:
+                    g = xr.open_dataset(ifile)
+                    ts = '-'.join(g.time.attrs['base_date'].astype(str)[:3])
+                    time_r = pd.to_datetime(ts) 
+                    try :
+                        times = time_r + pd.to_timedelta(g.time.values,unit='D').round('H')
+                        g = g.assign_coords({'time':times})
+                        ma.append(g)
+                    except:
+                        logger.warning('Loading meteo failed')
+                        break
+                if ma:
+                    self.meteo = xr.merge(ma)
+
         else:
             logger.warning('No meteo loaded')
 
@@ -1011,17 +1022,22 @@ class schism():
         
         path = get_value(self,kwargs,'rpath','./schism/')
         
-        vgrid = pd.read_csv(path + 'vgrid.in', header=None)
+        vgrid = pd.read_csv(path + 'vgrid.in', header=None, index_col=False, engine='python', delimiter='!')
         
-        self.misc.update({'ivcor' : vgrid.iloc[0].astype(int).values[0]})
+        try:
+            vgrid = vgrid.drop(1,axis=1)
+        except:
+            pass
+        
+        self.misc.update({'ivcor' : int(vgrid.iloc[0][0])})
     
-        [Nz, kz, hs] = vgrid.iloc[1].str.split(' ')[0]
+        [Nz, kz, hs] = vgrid.iloc[1].str.split()[0]
         
         self.misc.update({'Nz' : int(Nz)})
         self.misc.update({'kz' : int(kz)})
         self.misc.update({'hs' : float(hs)})
         
-        zlevels = vgrid.iloc[3:3+self.misc['kz'],0].str.split(' ', n = 2, expand = True)
+        zlevels = vgrid.iloc[3:3+self.misc['kz'],0].str.split(n = 2, expand = True)
         zlevels.columns = ['level_index','z-coordinates']
         zlevels.set_index('level_index', inplace=True)
 
@@ -1029,7 +1045,7 @@ class schism():
         
         constants_index = 3+self.misc['kz']+1
 
-        [h_c, theta_b, theta_f] = vgrid.iloc[constants_index].str.split(' ')[0]
+        [h_c, theta_b, theta_f] = vgrid.iloc[constants_index].str.split()[0]
         self.misc.update({'h_c' : float(h_c)})
         self.misc.update({'theta_b' : float(theta_b)})
         self.misc.update({'theta_f' : float(theta_f)})
@@ -1038,7 +1054,7 @@ class schism():
         sl_index0 = constants_index+1
         sl_index1 = sl_index0 + self.misc['Nz'] - self.misc['kz'] + 1
         
-        slevels = vgrid.iloc[sl_index0:sl_index1,0].str.split(' ', n = 2, expand = True)
+        slevels = vgrid.iloc[sl_index0:sl_index1,0].str.split(n = 2, expand = True)
         slevels.columns = ['level_index','s-coordinates']
         slevels.set_index('level_index', inplace=True)
 
