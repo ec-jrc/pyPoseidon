@@ -51,7 +51,10 @@ class hplot(object):
         nodes = pd.DataFrame({'longitude':x,'latitude':y, '{}'.format(var):z})
         elems  = pd.DataFrame(tri3, columns=['a', 'b', 'c'])
                     
-        opts.defaults(opts.WMTS(width=800, height=400))
+        width = kwargs.get('width', 800)
+        height = kwargs.get('height', 600)        
+        opts.defaults(opts.WMTS(width=width, height=height))
+
         tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
 
         points = gv.operation.project_points(gv.Points(nodes, vdims=['{}'.format(var)]))
@@ -70,7 +73,10 @@ class hplot(object):
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
         
-        opts.defaults(opts.WMTS(width=800, height=400))
+        width = kwargs.get('width', 800)
+        height = kwargs.get('height', 600)        
+        opts.defaults(opts.WMTS(width=width, height=height))
+        
         tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
         
         nodes = pd.DataFrame({'longitude':x,'latitude':y})
@@ -106,7 +112,10 @@ class hplot(object):
         nodes = pd.DataFrame({'longitude':x,'latitude':y, '{}'.format(var):z})
         elems  = pd.DataFrame(tri3, columns=['a', 'b', 'c'])
                     
-        opts.defaults(opts.WMTS(width=800, height=400))
+        width = kwargs.get('width', 800)
+        height = kwargs.get('height', 600)        
+        opts.defaults(opts.WMTS(width=width, height=height))
+
         tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
 
         points = gv.operation.project_points(gv.Points(nodes, vdims=['{}'.format(var)]))
