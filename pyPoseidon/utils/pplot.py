@@ -29,57 +29,140 @@ matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['animation.embed_limit'] = '200.'
 plt.style.use(['dark_background'])
-         
-def contour(grid_x,grid_y,z,t,**kwargs):
-    fig, ax = plt.subplots(figsize=(12,8)) 
-    vmin = kwargs.get('vmin', z.min())
-    vmax = kwargs.get('vmax', z.max())
+
+@xr.register_dataset_accessor('gplot')
+class gplot(object):
     
-    nv = kwargs.get('nv', 10)
-    
-    title = kwargs.get('title', None)
+    def __init__(self, xarray_obj):
+        self._obj = xarray_obj    
         
-    vrange=np.linspace(vmin,vmax,nv,endpoint=True)
-    ## CHOOSE YOUR PROJECTION
- #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
-    ax = plt.axes(projection=ccrs.PlateCarree())
-    # Limit the extent of the map to a small longitude/latitude range.
 
-    ax.set_aspect('equal')
-    ims = []
-    for i in range(len(t)):
-        im = ax.contourf(grid_x, grid_y, z[i,:,:], vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
-#        im = ax.contourf(x,y,z[i,:,:],v,vmin=v1,vmax=v2,latlon=True)
-        add_arts = im.collections
-        text = 'time={}'.format(t[i])
-        #te = ax.text(90, 90, text)
-        an = ax.annotate(text, xy=(0.05, 1.05), xycoords='axes fraction')
-        ims.append(add_arts + [an])
-    if title : ax.set_title(title) 
-    #ax.set_global()
-    ax.coastlines('50m')
-    #ax.set_extent([grid_x.min(), grid_x.max(), grid_y.min(), grid_y.max()])
+         
+    def contourf(self,x=None,y=None,z=None,tname='time',**kwargs):
+        fig, ax = plt.subplots(figsize=(12,8))
+        
+        if len(self._obj[x].shape) > 2:
+            grid_x = self._obj[x].values[0,:,:]
+            grid_y= self._obj[y].values[0,:,:]
+        else:
+            grid_x = self._obj[x].values
+            grid_y = self._obj[y].values
+        
+        
+        z_ = self._obj[z].values
+        t = self._obj[tname].values
+        
+        vmin = kwargs.get('vmin', z_.min())
+        vmax = kwargs.get('vmax', z_.max())
+    
+        nv = kwargs.get('nv', 10)
+    
+        title = kwargs.get('title', None)
+        
+        vrange=np.linspace(vmin,vmax,nv,endpoint=True)
+        ## CHOOSE YOUR PROJECTION
+     #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        # Limit the extent of the map to a small longitude/latitude range.
+
+        ax.set_aspect('equal')
+        ims = []
+        for i in range(len(t)):
+            im = ax.contourf(grid_x, grid_y, z_[i,:,:], vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+    #        im = ax.contourf(x,y,z[i,:,:],v,vmin=v1,vmax=v2,latlon=True)
+            add_arts = im.collections
+            text = 'time={}'.format(t[i])
+            #te = ax.text(90, 90, text)
+            an = ax.annotate(text, xy=(0.05, 1.05), xycoords='axes fraction')
+            ims.append(add_arts + [an])
+        if title : ax.set_title(title) 
+        #ax.set_global()
+        ax.coastlines('50m')
+        #ax.set_extent([grid_x.min(), grid_x.max(), grid_y.min(), grid_y.max()])
 
 
-#cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
-    cbar = fig.colorbar(im,ticks=vrange,orientation='vertical')#,fraction=0.046, pad=0.04)
-#plt.colorbar()
+    #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])    
+        cbar = fig.colorbar(im,ticks=vrange,orientation='vertical')#,fraction=0.046, pad=0.04)
+    #plt.colorbar()
 
-    v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
+        v = animation.ArtistAnimation(fig, ims, interval=200, blit=False,repeat=False)
   
-    plt.close()
+        plt.close()
   
-    return v
+        return v
 
 
-def update_quiver(num, Q, U, V, step):
-    """updates the horizontal and vertical vector components by a
-    fixed increment on each frame
-    """
+    def update_quiver(num, Q, U, V, step):
+        """updates the horizontal and vertical vector components by a
+        fixed increment on each frame
+        """
 
-    Q.set_UVC(U[num,::step,::step],V[num,::step,::step])
+        Q.set_UVC(U[num,::step,::step],V[num,::step,::step])
 
-    return Q,
+        return Q,
+
+    
+    def quiver(self,x=None,y=None,z=None,tname='time',**kwargs):
+    
+        U = self._obj[z].values[:,:,:,0]
+        V = self._obj[z].values[:,:,:,1]
+        
+        if len(self._obj[x].shape) > 2:
+            X = self._obj[x].values[0,:,:]
+            Y = self._obj[y].values[0,:,:]
+        else:
+            X = self._obj[x].values
+            Y = self._obj[y].values
+        
+        fig = plt.figure(figsize=(12,8))
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        crs = ccrs.PlateCarree()
+        ax.set_aspect('equal')
+
+        land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',
+                                            edgecolor='face',
+                                            facecolor=cfeature.COLORS['land'],zorder=0)
+
+        sea_50m = cfeature.NaturalEarthFeature('physical', 'ocean', '50m',
+                                                edgecolor='face',
+                                                facecolor=cfeature.COLORS['water'], zorder=0)
+
+        title = kwargs.get('title', None)
+
+        ax.coastlines('50m')
+        ax.add_feature(land_50m)
+        ax.add_feature(sea_50m)
+
+        scale = kwargs.get('scale', 1.) # change accordingly to fit your needs
+        step = kwargs.get('step', 1) # change accordingly to fit your needs
+
+        Q = ax.quiver(X[::step,::step], Y[::step,::step], U[0,::step,::step], V[0,::step,::step], pivot='mid', color='k', angles='xy', scale_units='xy', scale = scale, transform=crs)
+
+        ax.set_xlim(X.min(), X.max())
+        ax.set_ylim(Y.min(), Y.max())
+        ax.set_title(title) 
+        #ax.set_global()
+
+        plt.close()
+        # you need to set blit=False, or the first set of arrows never gets
+        # cleared on subsequent frames
+        v = animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
+                                    blit=False, repeat=False)#, interval=1)    
+    
+        return v
+    
+ 
+def to_html5(fname, mimetype):
+     """Load the video in the file `fname`, with given mimetype, and display as HTML5 video.
+     """
+     from IPython.display import HTML
+     import base64
+     video = open(fname, "rb").read()
+     video_encoded = base64.b64encode(video)
+     video_tag = '<video controls alt="test" src="data:video/{0};base64,{1}">'.format(mimetype, video_encoded.decode('ascii'))
+     return HTML(data=video_tag)
+
+
 
 def update_qframes(num, Q, U, V):
     """updates the horizontal and vertical vector components by a
@@ -90,58 +173,6 @@ def update_qframes(num, Q, U, V):
 
     return Q,
     
-    
-    
-def quiver(X,Y,U,V,t,**kwargs):
-    
-    fig = plt.figure(figsize=(12,8))
-    ax = plt.axes(projection=ccrs.PlateCarree())
-    crs = ccrs.PlateCarree()
-    ax.set_aspect('equal')
-
-    land_50m = cfeature.NaturalEarthFeature('physical', 'land', '50m',
-                                        edgecolor='face',
-                                        facecolor=cfeature.COLORS['land'],zorder=0)
-
-    sea_50m = cfeature.NaturalEarthFeature('physical', 'ocean', '50m',
-                                            edgecolor='face',
-                                            facecolor=cfeature.COLORS['water'], zorder=0)
-
-    title = kwargs.get('title', None)
-
-    ax.coastlines('50m')
-    ax.add_feature(land_50m)
-    ax.add_feature(sea_50m)
-
-    scale = kwargs.get('scale', 1.) # change accordingly to fit your needs
-    step = kwargs.get('step', 1) # change accordingly to fit your needs
-
-    Q = ax.quiver(X[::step,::step], Y[::step,::step], U[0,::step,::step], V[0,::step,::step], pivot='mid', color='k', angles='xy', scale_units='xy', scale = scale, transform=crs)
-
-    ax.set_xlim(X.min(), X.max())
-    ax.set_ylim(Y.min(), Y.max())
-    ax.set_title(title) 
-    #ax.set_global()
-
-    plt.close()
-    # you need to set blit=False, or the first set of arrows never gets
-    # cleared on subsequent frames
-    v = animation.FuncAnimation(fig, update_quiver, fargs=(Q, U, V, step), frames = range(0,np.size(t)),
-                                blit=False, repeat=False)#, interval=1)    
-    
-    return v
-    
- 
-def video(fname, mimetype):
-     """Load the video in the file `fname`, with given mimetype, and display as HTML5 video.
-     """
-     from IPython.display import HTML
-     import base64
-     video = open(fname, "rb").read()
-     video_encoded = base64.b64encode(video)
-     video_tag = '<video controls alt="test" src="data:video/{0};base64,{1}">'.format(mimetype, video_encoded.decode('ascii'))
-     return HTML(data=video_tag)
-
 
 @xr.register_dataset_accessor('pplot')
 #@xr.register_dataarray_accessor('pplot')
