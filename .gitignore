@@ -84,3 +84,5 @@ github.token
 .direnv/
 .envrc
 venv/
+
+conda.recipe/
