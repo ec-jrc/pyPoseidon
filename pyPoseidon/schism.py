@@ -27,6 +27,7 @@ import cartopy.feature as cf
 import geopandas as gp
 import f90nml
 import errno
+from tqdm import tqdm
 
 #local modules
 import pyPoseidon
@@ -604,7 +605,10 @@ class schism():
          if isinstance(meteo,np.str):
              dic.update({'meteo':meteo})
          elif isinstance(meteo,pmeteo.meteo):
-             dic.update({'meteo':meteo.Dataset.attrs})
+            try:
+                dic.update({'meteo':[meteo.Dataset.attrs]})
+            except:
+                dic.update({'meteo':[x.attrs for x in meteo.Dataset]})
 
          coast=self.__dict__.get('coast_resolution', None)
          coastline=self.__dict__.get('coastlines', None)
@@ -625,22 +629,57 @@ class schism():
          
     def execute(self,**kwargs):
         
-        self.create(**kwargs)
-        self.output(**kwargs)
-        if self.monitor : self.set_obs() 
-        self.save(**kwargs)
-        self.run(**kwargs)
+        flag = get_value(self,kwargs,'update',['all'])
+        if flag:
+            self.create(**kwargs)
+            self.output(**kwargs)
+            if self.monitor : self.set_obs() 
+            self.save(**kwargs)
+            self.run(**kwargs)
+            
+        else:
+            
+            self.save(**kwargs)
+            
+            calc_dir = get_value(self,kwargs,'rpath','./schism/') 
+        
+            try:
+                bin_path = os.environ['SCHISM']
+            except:
+                bin_path = get_value(self,kwargs,'epath', None)
+                                
+            if bin_path is None:
+                #------------------------------------------------------------------------------ 
+                logger.warning('Schism executable path (epath) not given -> using default \n')
+                #------------------------------------------------------------------------------
+                bin_path = 'schism'
+              
+            ncores = get_value(self,kwargs,'ncores',NCORES)
+                                      
+            with open(calc_dir + 'launchSchism.sh', 'w') as f:
+                f.write('exec={}\n'.format(bin_path))
+                f.write('mkdir outputs\n')
+                f.write('mpirun -N {} $exec\n'.format(ncores))   
                  
+              #make the script executable
+            execf = calc_dir+'launchSchism.sh'
+            mode = os.stat(execf).st_mode
+            mode |= (mode & 0o444) >> 2    # copy R bits to X
+            os.chmod(execf, mode)
+            
+            self.run(**kwargs)
+                          
     def read_folder(self, rfolder,**kwargs):
         
         self.rpath = rfolder
         s = glob.glob(rfolder + '/param.nml')
-        mfiles = glob.glob(rfolder + '/sflux/*.nc')
-        mfiles.sort()
+        mfiles1 = glob.glob(rfolder + '/sflux/*_1*.nc')
+        mfiles1.sort()
+        #check for 2nd meteo
+        mfiles2 = glob.glob(rfolder + '/sflux/*_2*.nc')
+        mfiles2.sort()
         
-        mrange = kwargs.get('mrange', [0,-1])
-        
-        mfiles=mfiles[mrange[0]:mrange[1]]
+        mfiles={'1':mfiles1, '2':mfiles2}
         
         hfile = rfolder + '/hgrid.gr3' # Grid
         self.params = f90nml.read(s[0])
@@ -676,23 +715,33 @@ class schism():
         if load_meteo is True:
 
             try:
-                self.meteo = xr.open_mfdataset(mfiles)
+                pm=[]
+                for key, val in mfiles.items():
+                    msource = xr.open_mfdataset(val)
+                    pm.append(msource)
+                self.meteo = pmeteo.meteo(meteo_source=pm, meteo_engine='passthrough')
+                
             except:
-
-                ma = []
-                for ifile in mfiles:
-                    g = xr.open_dataset(ifile)
-                    ts = '-'.join(g.time.attrs['base_date'].astype(str)[:3])
-                    time_r = pd.to_datetime(ts) 
-                    try :
-                        times = time_r + pd.to_timedelta(g.time.values,unit='D').round('H')
-                        g = g.assign_coords({'time':times})
-                        ma.append(g)
-                    except:
-                        logger.warning('Loading meteo failed')
-                        break
-                if ma:
-                    self.meteo = xr.merge(ma)
+                pm=[]
+                for key, val in mfiles.items():
+                    ma = []
+                
+                    for ifile in mfiles:
+                        g = xr.open_dataset(ifile)
+                        ts = '-'.join(g.time.attrs['base_date'].astype(str)[:3])
+                        time_r = pd.to_datetime(ts) 
+                        try :
+                            times = time_r + pd.to_timedelta(g.time.values,unit='D').round('H')
+                            g = g.assign_coords({'time':times})
+                            ma.append(g)
+                        except:
+                            logger.warning('Loading meteo failed')
+                            break
+                    if ma:
+                        msource = xr.merge(ma)
+                        pm.append(msource)
+                        
+                self.meteo = pmeteo.meteo(meteo_source=pm, meteo_engine='passthrough')
 
         else:
             logger.warning('No meteo loaded')
@@ -806,7 +855,7 @@ class schism():
         eframes=np.empty(len(gfiles),dtype=object)
         for i in range(len(gfiles)):
             with open(gfiles[i],'r') as f:
-                eframes[i] = pd.read_csv(f,skiprows=nels[i] + nq[i] + nw[i] + nq[i] + 10, header=None, nrows = nels[i], delim_whitespace=True, names=['type','a','b','c'])
+                eframes[i] = pd.read_csv(f,skiprows=nels[i] + nq[i] + nw[i] + nq[i] + 10, header=None, nrows = nels[i], delim_whitespace=True, names=['type','a','b','c','d'])
     
         tri = pd.concat(eframes,keys=keys)
 
@@ -816,16 +865,14 @@ class schism():
             nod = nod.set_index('local') # reset the index using the local values (in essense set the index to start from 1...)
             tri.loc[key,'ga'] = nod.reindex(tri.loc[key,'a'].values).values
             tri.loc[key,'gb'] = nod.reindex(tri.loc[key,'b'].values).values
-            tri.loc[key,'gc'] = nod.reindex(tri.loc[key,'c'].values).values 
+            tri.loc[key,'gc'] = nod.reindex(tri.loc[key,'c'].values).values
+            tri.loc[key,'gd'] = nod.reindex(tri.loc[key,'d'].values).values 
         
-        tri.loc[:,'ga'] = tri.loc[:,'ga'].values.astype(int) # make integer
-        tri.loc[:,'gb'] = tri.loc[:,'gb'].values.astype(int) # make integer
-        tri.loc[:,'gc'] = tri.loc[:,'gc'].values.astype(int) # make integer
-        
-        tri = tri.drop(['a','b','c'],axis=1) #drop local references
+
+        tri = tri.drop(['a','b','c','d'],axis=1) #drop local references
 
         #sort
-        gt3 = tri.loc[:,['ga','gb','gc']].copy() # make a copy
+        gt3 = tri.loc[:,['type', 'ga','gb','gc','gd']].copy() # make a copy
         gt3.index = gt3.index.droplevel() # drop multi-index
         gt3 = gt3.reset_index(drop=True)
         # Now we need to put them in order based on the global index in elems
@@ -833,7 +880,7 @@ class schism():
         gt3 = gt3.sort_index() #sort them
         
         #add nan column in place of the fourth node. NOTE:  This needs to be tested for quadrilaterals
-        gt3['gd']=np.nan
+#        gt3['gd']=np.nan
         
         gt3 = gt3.reset_index() # reset to add more columns without problems
         
@@ -849,13 +896,28 @@ class schism():
         gt3['xc'] =  gt3[['x1', 'x2', 'x3']].mean(axis=1) #mean lon of the element
         gt3['yc'] =  gt3[['y1', 'y2', 'y3']].mean(axis=1)
 
+        # take care of quads
+        gt3['x4'] = np.nan
+        gt3['y4'] = np.nan
+        
+        ide = gt3.loc[gt3.type==4].index.values # get the index of finite values
+        
+        gt3.loc[ide,'x4'] = grd.loc[gt3.loc[ide,'gd'].values - 1,'lon'].values
+        gt3.loc[ide,'y4'] = grd.loc[gt3.loc[ide,'gd'].values - 1,'lat'].values
+
+        gt3.loc[ide, 'xc'] =  gt3[['x1', 'x2', 'x3', 'x4']].mean(axis=1) #mean lon of the element
+        gt3.loc[ide, 'yc'] =  gt3[['y1', 'y2', 'y3', 'y4']].mean(axis=1)
+
         ## min kbe
+        gt3['kbe4']=np.nan # for quads
+        
         gt3['kbe1'] = grd.loc[gt3['ga'] - 1,'kbp00'].values
         gt3['kbe2'] = grd.loc[gt3['gb'] - 1,'kbp00'].values
         gt3['kbe3'] = grd.loc[gt3['gc'] - 1,'kbp00'].values
-        #gt3['kbe4'] = grd.loc[gt3['gd'],'kbp00'].values
+        gt3.loc[ide, 'kbe4'] = grd.loc[gt3.loc[ide,'gd'].values - 1,'kbp00'].values
 
         gt3['kbe'] = gt3[['kbe1', 'kbe2', 'kbe3']].min(axis=1)
+        gt3.loc[ide, 'kbe'] = gt3[['kbe1', 'kbe2', 'kbe3', 'kbe4']].min(axis=1)
         
         self.misc.update({'gt3' : gt3.set_index('index')}) # set index back 
         
@@ -971,6 +1033,9 @@ class schism():
             elif 'nSCHISM_hgrid_node' in tfs[0][key].dims : 
                 r = self.combine_(key,tfs,self.misc['mnodes'],'nSCHISM_hgrid_node')
                 node.append(r)
+            elif 'nSCHISM_hgrid_edge' in tfs[0][key].dims : 
+                r = self.combine_(key,tfs,self.misc['msides'],'nSCHISM_hgrid_edge')
+                node.append(r)
             elif len(tfs[0][key].dims) == 1:
                 single.append(tfs[0][key])
 
@@ -1014,11 +1079,13 @@ class schism():
                 # If the tuple is not in the set append it in REVERSED order.
                 seen.add(tup[::-1])
                 # If you also want to remove normal duplicates uncomment the next line
-                # seen.add(tup)
+                #seen.add(tup)
                 yield item
     
     
     def read_vgrid(self,**kwargs):
+        
+        logger.info('Read vgrid.in\n')
         
         path = get_value(self,kwargs,'rpath','./schism/')
         
@@ -1082,7 +1149,7 @@ class schism():
         xnodes = xnodes.drop_vars('nSCHISM_hgrid_node')
 
         # element based variables
-        gt34 = gt3.loc[:,['ga','gb','gc']].values # SCHISM_hgrid_face_nodes
+        gt34 = gt3.loc[:,['ga','gb','gc','gd']].values # SCHISM_hgrid_face_nodes
         xelems = xr.Dataset({
                          u'SCHISM_hgrid_face_nodes' : ([u'nSCHISM_hgrid_face', u'nMaxSCHISM_hgrid_face_nodes'], gt34 - 1),  #-> start index = 0 
                          u'SCHISM_hgrid_face_x' : ([u'nSCHISM_hgrid_face'], gt3.loc[:,'xc'].values),
@@ -1093,10 +1160,16 @@ class schism():
         
         # edge based variables
         sides=[]
-        for [ga,gb,gc] in gt3.loc[:,['ga','gb','gc']].values:
-            sides.append([gb,gc])
-            sides.append([gc,ga])
-            sides.append([ga,gb])
+        for [etype,ga,gb,gc,gd] in gt3.loc[:,['type','ga','gb','gc','gd']].values:
+            if etype == 3:
+                sides.append([gb,gc])
+                sides.append([gc,ga])
+                sides.append([ga,gb])        
+            elif etype == 4:
+                sides.append([gb,gc])
+                sides.append([gc,gd])
+                sides.append([gd,ga])
+                sides.append([ga,gb])
 
         #removing duplicates
         sides = list(self.remove_reversed_duplicates(sides))    
@@ -1125,6 +1198,7 @@ class schism():
                          u'SCHISM_hgrid_edge_x' : ([u'nSCHISM_hgrid_edge'], ed['xc'].values),
                          u'SCHISM_hgrid_edge_y' : ([u'nSCHISM_hgrid_edge'], ed['yc'].values ),
                          u'edge_bottom_index' : ([u'nSCHISM_hgrid_edge'], ed.kbs.values)})                 
+
 
         logger.info('done with side based variables \n')
 
@@ -1182,9 +1256,9 @@ class schism():
         
         self.read_vgrid() # read grid attributes
         
-        
+        logger.info('Write combined NetCDF files \n')
 #        total_xdat = []
-        for val in irange:
+        for val in tqdm(irange):
             hfiles=glob.glob(path+'outputs/schout_*_{}.nc'.format(val))
             hfiles.sort()
             
@@ -1239,13 +1313,13 @@ class schism():
 
             xc.SCHISM_hgrid_edge_nodes.attrs = {'long_name' : 'Map every edge to the two nodes that it connects', 'cf_role' : 'edge_node_connectivity' , 'start_index' : 0}
 
-            xc.SCHISM_hgrid_edge_x.attrs = {'long_name' : 'x_coordinate of 2D mesh edge' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+            xc.SCHISM_hgrid_edge_x.attrs = {'long_name' : 'x_coordinate of 2D mesh edge' , 'standard_name' : lon_coord_standard_name, 'units' : x_units, 'mesh' : 'SCHISM_hgrid'}
 
-            xc.SCHISM_hgrid_edge_y.attrs = {'long_name' : 'y_coordinate of 2D mesh edge' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+            xc.SCHISM_hgrid_edge_y.attrs = {'long_name' : 'y_coordinate of 2D mesh edge' , 'standard_name' : lat_coord_standard_name, 'units' : y_units, 'mesh' : 'SCHISM_hgrid'}
 
-            xc.SCHISM_hgrid_face_x.attrs = {'long_name' : 'x_coordinate of 2D mesh face' , 'standard_name' : lon_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+            xc.SCHISM_hgrid_face_x.attrs = {'long_name' : 'x_coordinate of 2D mesh face' , 'standard_name' : lon_coord_standard_name, 'units' : x_units, 'mesh' : 'SCHISM_hgrid'}
 
-            xc.SCHISM_hgrid_face_y.attrs = {'long_name' : 'y_coordinate of 2D mesh face' , 'standard_name' : lat_coord_standard_name, 'units' : 'm', 'mesh' : 'SCHISM_hgrid'}
+            xc.SCHISM_hgrid_face_y.attrs = {'long_name' : 'y_coordinate of 2D mesh face' , 'standard_name' : lat_coord_standard_name, 'units' : y_units, 'mesh' : 'SCHISM_hgrid'}
 
             xc.SCHISM_hgrid.attrs = {'long_name' : 'Topology data of 2d unstructured mesh',
                                        'topology_dimension' : 2,
