@@ -43,7 +43,9 @@ or
 if you are using a local installation of the solvers please specify the PATH to the executables in your system such as 
 
 `export D3D = '/path_to_folder_bin/lnx64/flow2d3d/'`
+
 `export LD3D = '/path_to_folder_bin/lnx64/flow2d3d/'`
+
 `export SCHISM = '/path_to_schism_executable'`
 
 
