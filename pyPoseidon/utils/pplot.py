@@ -17,6 +17,7 @@ import cartopy.feature as cfeature
 import xarray as xr
 import geopandas as gp
 import shapely
+from pyPoseidon.utils.quads2tr import quads_to_tris
 
 import sys
 import os
@@ -28,7 +29,7 @@ from matplotlib import animation
 matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['animation.embed_limit'] = '200.'
-plt.style.use(['dark_background'])
+#plt.style.use(['dark_background'])
 
 @xr.register_dataset_accessor('gplot')
 class gplot(object):
@@ -36,7 +37,6 @@ class gplot(object):
     def __init__(self, xarray_obj):
         self._obj = xarray_obj    
         
-
          
     def contourf(self,x=None,y=None,z=None,tname='time',**kwargs):
         fig, ax = plt.subplots(figsize=(12,8))
@@ -192,11 +192,18 @@ class pplot(object):
         except:
             pass
         
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
                              
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
-                
+        
+        # sort out quads
+        mask = np.isnan(tes)[:,3]      
+        tr3 = tes[mask][:,:3]
+        tr3_ = quads_to_tris(tes[~mask])
+        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        
+               
         fig, ax = plt.subplots(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
         vmax = kwargs.get('vmax', z.max())
@@ -211,6 +218,7 @@ class pplot(object):
     #   ax = plt.axes(projection=ccrs.PlateCarree())
     #   ax.background_patch.set_facecolor('k')
         
+        
         ax = plt.axes()                       
         
         
@@ -221,7 +229,7 @@ class pplot(object):
             z = z.filled(fill_value=-99999)
         
         
-        for val in ['x','y','t','it','vmin','vmax','title','nv','tri3', 'mask','xy','z', 'var']:
+        for val in ['x','y','t','it','vmin','vmax','title','nv','tes', 'mask','xy','z', 'var']:
             try:
                 del kwargs[val]
             except:
@@ -250,7 +258,15 @@ class pplot(object):
             t = kwargs.get('t',self._obj.time.values)
         except:
             pass
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
+        
+        # sort out quads
+        mask = np.isnan(tes)[:,3]      
+        tr3 = tes[mask][:,:3]
+        tr3_ = quads_to_tris(tes[~mask])
+        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        
+        
                 
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
@@ -280,7 +296,7 @@ class pplot(object):
         
         xy=kwargs.get('xy',(.3,1.05))
         
-        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tri3', 'mask','xy','var','figure']:
+        for val in ['x','y','t','it','z','vmin','vmax','title','nv','tes', 'mask','xy','var','figure']:
             try:
                 del kwargs[val]
             except:
@@ -311,10 +327,7 @@ class pplot(object):
             t = kwargs.get('t',self._obj.time.values)
         except:
             pass
-        
-        
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
-                                
+                                        
         var = kwargs.get('var','dahv')
         u = kwargs.get('u',self._obj[var].values[it,:,0].flatten())
         v = kwargs.get('v',self._obj[var].values[it,:,1].flatten())
@@ -342,7 +355,7 @@ class pplot(object):
             v = v.filled(fill_value=-99999)    
             u = u.filled(fill_value=-99999)
         
-        for val in ['x','y','t','it','u','v','title','tri3', 'xy', 'scale','mask','color','var']:
+        for val in ['x','y','t','it','u','v','title','tes', 'xy', 'scale','mask','color','var']:
             try:
                 del kwargs[val]
             except:
@@ -368,9 +381,15 @@ class pplot(object):
         
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
         
-        for val in ['x','y','tri3']:
+        # sort out quads
+        mask = np.isnan(tes)[:,3]      
+        tri3 = tes[mask][:,:3].astype(int).tolist()
+        quads = tes[~mask].astype(int).tolist()
+            
+        
+        for val in ['x','y','tes']:
             try:
                 del kwargs[val]
             except:
@@ -385,13 +404,21 @@ class pplot(object):
                
         g = plt.triplot(x,y,tri3,'go-', **kwargs)#, lw=.5, markersize=5)#, transform=ccrs.PlateCarree() )
         
+        lw = kwargs.get('lw',plt.rcParams['lines.linewidth'])
+        #https://stackoverflow.com/questions/52202014/how-can-i-plot-2d-fem-results-using-matplotlib
+        for element in quads:
+            x_ = [x[element[i]] for i in range(len(element))]
+            y_ = [y[element[i]] for i in range(len(element))]       
+            plt.fill(x_, y_, edgecolor='green', fill=False, lw = lw)
+        
+        
         title = kwargs.get('title', 'Grid plot')
         ax.set_title(title, pad=30)
         ax.set_xlabel('Longitude (degrees)')
         ax.set_ylabel('Latitude (degrees)')
                 
         
-        return g, fig , ax
+        return g
     
     
     
@@ -460,7 +487,14 @@ class pplot(object):
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         t = kwargs.get('t',self._obj.time.values)
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
+        
+        # sort out quads
+        mask = np.isnan(tes)[:,3]      
+        tr3 = tes[mask][:,:3]
+        tr3_ = quads_to_tris(tes[~mask])
+        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        
     
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values)

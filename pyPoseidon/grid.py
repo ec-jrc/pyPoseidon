@@ -203,17 +203,19 @@ class tri2d():
         e = pd.DataFrame(df.loc[nj+1:nj+ni,'data'].str.split().values.tolist())
         e = e.drop(e.columns[0], axis=1)
         e = e.apply(pd.to_numeric)
-        e = e.dropna(axis=1)
-     #   e.reset_index(inplace=True, drop=True)
-        e.columns = ['nv','a','b','c']
-        e.loc[:,['a','b','c']] = e.loc[:,['a','b','c']] - 1 # convert to python (index starts from 0)
+
+        ncolumns = e.loc[:,e.columns[0]].max()
         
-#        if e.nv.max() < 4:
-#            e['d']=0
-        
+        if ncolumns == 3:
+            e.columns = ['nv','a','b','c']
+        else:
+            e.columns = ['nv','a','b','c', 'd']
+    
+        e.loc[:,e.columns[1:]]  = e.loc[:,e.columns[1:]].values - 1 # convert to python (index starts from 0)
+                
         #create xarray of tessellation
         els = xr.DataArray(
-              e.loc[:,['a','b','c']].values,
+              e.loc[:,e.columns[1:]].values,
               dims=['nSCHISM_hgrid_face', 'nMaxSCHISM_hgrid_face_nodes'], name='SCHISM_hgrid_face_nodes'
               )
                   
