@@ -198,11 +198,13 @@ class pplot(object):
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
         
         # sort out quads
-        mask = np.isnan(tes)[:,3]      
-        tr3 = tes[mask][:,:3]
-        tr3_ = quads_to_tris(tes[~mask])
-        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
-        
+        try:
+            mask = np.isnan(tes)[:,3]      
+            tr3 = tes[mask][:,:3]
+            tr3_ = quads_to_tris(tes[~mask])
+            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        except:
+            tri3 = tes.astype(int)
                
         fig, ax = plt.subplots(figsize=(12,8)) 
         vmin = kwargs.get('vmin', z.min())
@@ -261,11 +263,13 @@ class pplot(object):
         tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
         
         # sort out quads
-        mask = np.isnan(tes)[:,3]      
-        tr3 = tes[mask][:,:3]
-        tr3_ = quads_to_tris(tes[~mask])
-        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
-        
+        try:
+            mask = np.isnan(tes)[:,3]      
+            tr3 = tes[mask][:,:3]
+            tr3_ = quads_to_tris(tes[~mask])
+            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        except:
+            tri3 = tes.astype(int)
         
                 
         var = kwargs.get('var','depth')
@@ -384,10 +388,13 @@ class pplot(object):
         tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
         
         # sort out quads
-        mask = np.isnan(tes)[:,3]      
-        tri3 = tes[mask][:,:3].astype(int).tolist()
-        quads = tes[~mask].astype(int).tolist()
-            
+        try:
+            mask = np.isnan(tes)[:,3]      
+            tri3 = tes[mask][:,:3].astype(int).tolist()
+            quads = tes[~mask].astype(int).tolist()
+        except:
+            tri3 = tes.astype(int)
+            quads = []
         
         for val in ['x','y','tes']:
             try:
@@ -490,11 +497,13 @@ class pplot(object):
         tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
         
         # sort out quads
-        mask = np.isnan(tes)[:,3]      
-        tr3 = tes[mask][:,:3]
-        tr3_ = quads_to_tris(tes[~mask])
-        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
-        
+        try:
+            mask = np.isnan(tes)[:,3]      
+            tr3 = tes[mask][:,:3]
+            tr3_ = quads_to_tris(tes[~mask])
+            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        except:
+            tri3 = tes.astype(int)
     
         var = kwargs.get('var','depth')
         z = kwargs.get('z',self._obj[var].values)

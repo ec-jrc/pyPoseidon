@@ -49,10 +49,13 @@ class hplot(object):
         tes = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
         
         # sort out quads
-        mask = np.isnan(tes)[:,3]      
-        tr3 = tes[mask][:,:3]
-        tr3_ = quads_to_tris(tes[~mask])
-        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        try:
+            mask = np.isnan(tes)[:,3]      
+            tr3 = tes[mask][:,:3]
+            tr3_ = quads_to_tris(tes[~mask])
+            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        except:
+            tri3 = tes.astype(int)
                
         z = kwargs.get('z',self._obj[var].values[it,:].flatten())
         
@@ -95,12 +98,14 @@ class hplot(object):
         
         tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
         
-        nodes = pd.DataFrame({'longitude':x,'latitude':y})        
-        elems  = pd.DataFrame(tes, columns=['a', 'b', 'c', 'd'])
+        nodes = pd.DataFrame({'longitude':x,'latitude':y})
 
         points = gv.operation.project_points(gv.Points(nodes))
         
-        if elems.d.is_unique :
+        
+        if tes.shape[1] == 3 :
+        
+            elems  = pd.DataFrame(tes, columns=['a', 'b', 'c'])
             
             trimesh=gv.TriMesh((elems, points)).edgepaths
             
@@ -109,6 +114,8 @@ class hplot(object):
             
         else: # there are quads
         
+            elems  = pd.DataFrame(tes, columns=['a', 'b', 'c', 'd'])
+            
             quads = elems.loc[~elems.d.isna()].copy()
             quads = quads.reset_index(drop=True)
             ap = nodes.loc[quads.a,['longitude','latitude']]
@@ -149,10 +156,13 @@ class hplot(object):
         tes = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
         
         # sort out quads
-        mask = np.isnan(tes)[:,3]      
-        tr3 = tes[mask][:,:3]
-        tr3_ = quads_to_tris(tes[~mask])
-        tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        try:
+            mask = np.isnan(tes)[:,3]      
+            tr3 = tes[mask][:,:3]
+            tr3_ = quads_to_tris(tes[~mask])
+            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+        except:
+            tri3 = tes.astype(int)
         
         times=kwargs.get('times',self._obj.time.values)
         

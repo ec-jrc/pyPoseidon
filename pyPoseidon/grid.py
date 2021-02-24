@@ -209,7 +209,7 @@ class tri2d():
         if ncolumns == 3:
             e.columns = ['nv','a','b','c']
         else:
-            e.columns = ['nv','a','b','c', 'd']
+            e.columns = ['nv','a','b','c','d']
     
         e.loc[:,e.columns[1:]]  = e.loc[:,e.columns[1:]].values - 1 # convert to python (index starts from 0)
                 
