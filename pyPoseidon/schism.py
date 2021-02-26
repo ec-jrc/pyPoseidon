@@ -184,7 +184,7 @@ class schism():
             params = unml(params, dic)
         
         #test rnday
-        if np.float(params['CORE']['rnday']) * 24 * 3600 > (self.end_date - self.start_date).total_seconds():
+        if float(params['CORE']['rnday']) * 24 * 3600 > (self.end_date - self.start_date).total_seconds():
             #--------------------------------------------------------------------- 
             logger.warning('rnday larger than simulation range\n')
             logger.warning('rnday={} while simulation time is {}\n'.format(params['core']['rnday'],(self.end_date - self.start_date).total_seconds()/(3600*24.)))
@@ -590,7 +590,7 @@ class schism():
          dic = {k: self.__dict__.get(k, None) for k in lista}
 
          grid=self.__dict__.get('grid', None)
-         if isinstance(grid,np.str):
+         if isinstance(grid,str):
              dic.update({'grid':grid})
          else:
              dic.update({'grid':grid.__class__.__name__})
@@ -602,7 +602,7 @@ class schism():
              dic.update({'dem': dem.Dataset.elevation.attrs})
 
          meteo=self.__dict__.get('meteo', None)
-         if isinstance(meteo,np.str):
+         if isinstance(meteo,str):
              dic.update({'meteo':meteo})
          elif isinstance(meteo,pmeteo.meteo):
             try:

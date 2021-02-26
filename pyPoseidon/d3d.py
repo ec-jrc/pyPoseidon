@@ -506,7 +506,7 @@ class d3d():
         z['lats'] = self.grid.Dataset.lats[:,0]
         
         try:
-            ba = -self.dem.Dataset.ival.astype(np.float)
+            ba = -self.dem.Dataset.ival.astype(float)
       # ba[ba<0]=np.nan
             z['dem']=ba
             z['cn']=10
@@ -775,19 +775,19 @@ class d3d():
          dic = {k: self.__dict__.get(k, None) for k in lista}
 
          grid=self.__dict__.get('grid', None)
-         if isinstance(grid,np.str):
+         if isinstance(grid,str):
              dic.update({'grid':grid})
          else:
              dic.update({'grid':grid.__class__.__name__})
          
          dem=self.__dict__.get('dem', None)
-         if isinstance(dem,np.str):
+         if isinstance(dem,str):
              dic.update({'dem':dem})
          elif isinstance(dem,pdem.dem):
              dic.update({'dem': dem.Dataset.elevation.attrs})
 
          meteo=self.__dict__.get('meteo', None)
-         if isinstance(meteo,np.str):
+         if isinstance(meteo,str):
              dic.update({'meteo':meteo})
          elif isinstance(meteo,pmeteo.meteo):
              dic.update({'meteo':meteo.Dataset.attrs})
