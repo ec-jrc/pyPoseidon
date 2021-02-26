@@ -1,0 +1,81 @@
+---
+
+name: "Test pyPoseidon with conda and a nested venv"
+
+on:
+  - "push"
+
+jobs:
+  ci:
+    name: "CI setup"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          #- 3.6
+          #- 3.7
+          - 3.8
+        os:
+          - "ubuntu-18.04"
+          #- "macos-latest"
+          #- "windows-latest"
+
+    runs-on: "${{ matrix.os }}"
+
+    # use bash everywhere
+    # (conda requirement: https://github.com/conda-incubator/setup-miniconda/tree/77b16ed746da28724c61e1f1ad23395a4b695ef5#important)
+    defaults:
+      run:
+        shell: "bash -l {0}"
+
+    steps:
+      - name: "Checkout code"
+        uses: "actions/checkout@v2"
+
+      - name: "Cache conda"
+        uses: "actions/cache@v1"
+        env:
+          # Increase this value to reset cache if env.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: "~/conda_pkgs_dir"
+          key: "${{ matrix.os }}-conda-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles('env.yml') }}"
+
+      - name: "Cache poetry"
+        uses: "actions/cache@v1"
+        env:
+          # Increase this value to reset cache if env.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: "~/.cache/pypoetry"
+          key: "${{ matrix.os }}-poetry-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles('pyproject.toml') }}"
+
+
+      - name: "Setup conda"
+        uses: "conda-incubator/setup-miniconda@v2"
+        with:
+          activate-environment: "poseidon"
+          environment-file: "env.yml"
+          python-version: "${{ matrix.python-version }}"
+          allow-softlinks: true
+          channel-priority: "strict"
+          show-channel-urls: true
+          use-only-tar-bz2: true
+
+      - name: "Setup poetry"
+        run: |
+          pip install --user pipx
+          pipx install poetry
+
+      - name: "Run conda info"
+        run: |
+          conda info
+
+      - name: "Install python dependencies"
+        run: "poetry install"
+
+      - name: "Run tests"
+        #run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1 pytest -vlx --ff -p no:warnings -n 8"
+        run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1  python -m pyPoseidon.tests --runschism"
+
