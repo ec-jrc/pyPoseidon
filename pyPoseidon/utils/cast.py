@@ -40,143 +40,157 @@ class dcast():
         for attr, value in kwargs.items():
                 setattr(self, attr, value)
                                    
-    def run(self,**kwargs):
+    def set(self,**kwargs):
         
+        
+        if isinstance(self.model,str):
+            self.model = pyPoseidon.read_model(self.model)
+
+        for attr, value in self.model.__dict__.items():
+            if not hasattr(self, attr): setattr(self, attr, value)
+
+        execute = get_value(self,kwargs,'execute', False)
+
         pwd = os.getcwd()
                       
         files=[self.tag+'_hydro.xml',self.tag+'.enc',self.tag+'.obs', self.tag+'.bnd', self.tag+'.bca','run_flow2d3d.sh']
         files_sym=[self.tag+'.grd',self.tag+'.dep']
         
+        self.origin=self.model.rpath
+        self.date0 = self.model.date
+
+        if not os.path.exists(self.origin):
+            sys.stdout.write('Initial folder not present {}\n'.format(self.origin))
+            sys.exit(1)
+
+        ppath = self.ppath
                 
-        prev=self.folders[0]
-        fpath = self.path+'/{}/'.format(prev)
-        
-        cf = [glob.glob(self.path+'/'+prev+'/'+e) for e in files]
+        cf = [glob.glob(ppath+'/'+e) for e in files]
         cfiles = [item.split('/')[-1] for sublist in cf for item in sublist]
                     
-        for date,folder,meteo,time_frame in zip(self.dates[1:],self.folders[1:],self.meteo_source[1:],self.time_frame[1:]):
-            
-            ppath = self.path+'/{}/'.format(prev)
-            if not os.path.exists(ppath):
-                sys.stdout.write('Initial folder not present {}\n'.format(ppath)) 
-                sys.exit(1)
-            
-            prev = folder    
-            # create the folder/run path
+        # create the folder/run path
 
-            rpath=self.path+'/{}/'.format(folder)   
+        rpath=self.cpath   
 
-            if not os.path.exists(rpath):
-                os.makedirs(rpath)
+        if not os.path.exists(rpath):
+            os.makedirs(rpath)
 
-            copy2(ppath+self.tag+'_model.json',rpath) #copy the info file
+        copy2(ppath+self.tag+'_model.json',rpath) #copy the info file
 
-            # load model
-            with open(rpath+self.tag+'_model.json', 'rb') as f:
-                          info = pd.read_json(f,lines=True).T
-                          info[info.isnull().values] = None
-                          info = info.to_dict()[0]
-                          
-            
-            args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
-            for attr in list(args):
-                info[attr] = kwargs[attr]
-            
-            #update the properties   
-            info['date'] = date
-            info['start_date'] = date
-            info['time_frame'] = time_frame
-            info['meteo_source'] = meteo
-            info['rpath'] = rpath
-            if self.restart_step:
-                info['restart_step'] = self.restart_step
-            
+        # load model
+        with open(rpath+self.tag+'_model.json', 'rb') as f:
+                      info = pd.read_json(f,lines=True).T
+                      info[info.isnull().values] = None
+                      info = info.to_dict()[0]
+                      
+        
+        args = set(kwargs.keys()).intersection(info.keys()) # modify dic with kwargs
+        for attr in list(args):
+            info[attr] = kwargs[attr]
+        
+        #update the properties   
+        info['date'] = self.date
+        info['start_date'] = self.date
+        info['time_frame'] = self.time_frame
+        info['meteo_source'] = self.meteo
+        info['rpath'] = rpath
+        if self.restart_step:
+            info['restart_step'] = self.restart_step
+        
 #            for attr, value in self.items():
 #                setattr(info, attr, value)
-            m=pmodel(**info)
-                                                         
-            # copy/link necessary files
+        m=pmodel(**info)
+                                                     
+        # copy/link necessary files    
+        logger.debug('copy necessary files')
 
-            for filename in cfiles:
-                 copy2(ppath+filename,rpath+filename)
-                 logger.debug('copy {} to {}'.format(ppath+filename,rpath+filename))
-        #     if os.path.exists(rpath+filename)==False: 
-        #        os.symlink(fpath+filename,rpath+filename)
-        
-        
-            #symlink the big files
-            for filename in files_sym:
-                ipath = glob.glob(self.path+'/'+self.folders[0]+'/'+filename)[0]
+        for filename in cfiles:
+            ipath = glob.glob(ppath+filename)
+            if ipath:
                 try:
-                    os.symlink(os.path.realpath(ipath),rpath+filename)
-                    logger.debug('symlink {} to {}'.format(os.path.realpath(ipath),rpath+filename))
+                    copy2(ppath+filename,rpath+filename)
+                except:
+                    dir_name ,file_name = os.path.split(filename)
+                    if not os.path.exists(rpath + dir_name):
+                        os.makedirs(rpath + dir_name)
+                    copy2(ppath+filename,rpath+filename)
+        logger.debug('.. done')
+    
+    
+        #symlink the big files
+        logger.debug('symlink model files')
+        for filename in files_sym:
+            ipath = glob.glob(self.origin+filename)
+            if ipath:
+                try:
+                    os.symlink(ipath[0],rpath+filename)
                 except OSError as e:
-                  if e.errno == errno.EEXIST:
-                      logger.warning('symlink for file {} present\n'.format(filename))
-                      logger.info('overwriting\n')
-                      os.remove(rpath+filename)
-                      os.symlink(ipath,rpath+filename)
+                    if e.errno == errno.EEXIST:
+                        logger.warning('Restart link present\n')
+                        logger.warning('overwriting\n')
+                        os.remove(rpath+filename)
+                        os.symlink(ipath[0],rpath+filename)
+        logger.debug('.. done')
+        
+        copy2(ppath+m.tag+'.mdf',rpath) #copy the mdf file
             
-            copy2(ppath+m.tag+'.mdf',rpath) #copy the mdf file
-                
-            # copy restart file
+        # copy restart file
 
-            inresfile='tri-rst.'+m.tag+'.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
+        inresfile='tri-rst.'+m.tag+'.'+datetime.datetime.strftime(self.date,'%Y%m%d.%H%M%M')
 
-            outresfile='restart.'+datetime.datetime.strftime(date,'%Y%m%d.%H%M%M')
+        outresfile='restart.'+datetime.datetime.strftime(self.date,'%Y%m%d.%H%M%M')
 
-          #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
-            try:
+      #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
+        try:
+          os.symlink(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile)
+          logger.debug('symlink {} to {}'.format(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile))
+        except OSError as e:
+          if e.errno == errno.EEXIST:
+              logger.warning('Restart symlink present\n')
+              logger.warning('overwriting\n')
+              os.remove(rpath+'tri-rst.'+outresfile)
               os.symlink(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile)
-              logger.debug('symlink {} to {}'.format(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile))
-            except OSError as e:
-              if e.errno == errno.EEXIST:
-                  logger.warning('Restart symlink present\n')
-                  logger.warning('overwriting\n')
-                  os.remove(rpath+'tri-rst.'+outresfile)
-                  os.symlink(ppath+'/'+inresfile,rpath+'tri-rst.'+outresfile)
-              else:
-                  raise e            
+          else:
+              raise e            
 
-            #get new meteo 
+        #get new meteo 
 
-            logger.info('process meteo\n')
+        logger.info('process meteo\n')
 
-            flag = get_value(self,kwargs,'update',[])
-            
-#            check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]
+        flag = get_value(self,kwargs,'update',['meteo'])
+        
+        check=[os.path.exists(rpath+f) for f in ['u.amu','v.amv','p.amp']]
 
-#            if (np.any(check)==False) or ('meteo' in flag):
-               
+        if (np.any(check)==False) or ('meteo' in flag):
+           
             m.force()
             m.to_force(m.meteo.Dataset,vars=['msl','u10','v10'],rpath=rpath)  #write u,v,p files 
+
+        else:
+            logger.info('meteo files present\n')
         
-#            else:
-#                logger.info('meteo files present\n')
-            
-            # modify mdf file
-            m.config(config_file = ppath+m.tag+'.mdf', config={'Restid':outresfile}, output=True)
-                                              
-            # run case
-            logger.info('executing\n')
-         
-            os.chdir(rpath)
-            #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
-            m.save()
-            
-            m.run()
-            
-            #cleanup
-            os.remove(rpath+'tri-rst.'+outresfile)
-            
-            # save compiled nc file
-            
-            #out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
-            
-            logger.info('done for date :'+datetime.datetime.strftime(date,'%Y%m%d.%H'))
+        # modify mdf file
+        m.config(config_file = ppath+m.tag+'.mdf', config={'Restid':outresfile}, output=True)
+        
+        m.config_file = rpath + m.tag + '.mdf'
+                                          
+        os.chdir(rpath)
+        #subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
+        m.save()
+        
+        if execute : m.run()
+        
+        #cleanup
+        os.remove(rpath+'tri-rst.'+outresfile)
+        
+        # save compiled nc file
+        
+        #out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
+        
+        logger.info('done for date :'+datetime.datetime.strftime(self.date,'%Y%m%d.%H'))
 
 
-            os.chdir(pwd)
+        os.chdir(pwd)
             
             
 class scast():
