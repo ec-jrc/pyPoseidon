@@ -596,7 +596,7 @@ class schism():
              dic.update({'grid':grid.__class__.__name__})
          
          dem=self.__dict__.get('dem', None)
-         if isinstance(dem,np.str):
+         if isinstance(dem, str):
              dic.update({'dem':dem})
          elif isinstance(dem,pdem.dem):
              dic.update({'dem': dem.Dataset.elevation.attrs})
