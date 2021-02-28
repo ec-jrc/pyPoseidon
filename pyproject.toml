@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "pyposeidon"
+version = "0.1.0"
+description = ""
+authors = ["Panos Mavrogiorgos <pmav99@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "^1.20.1"
+rasterio = "^1.2.0"
+matplotlib = "^3.3.4"
+seaborn = "^0.11.1"
+dask = "^2021.2.0"
+xarray = "^0.16.2"
+geopandas = "^0.8.2"
+tqdm = "^4.58.0"
+pyresample = "^1.17.0"
+pygeos = "^0.9"
+gmsh = "^4.7.1"
+f90nml = "^1.2"
+Cartopy = "^0.18.0"
+requests = "^2.25.1"
+holoviews = "^1.14.1"
+geoviews = "^1.8.1"
+datashader = "^0.12.0"
+hvplot = "^0.7.0"
+netCDF4 = "^1.5.6"
+colorlog = "^4.7.2"
+cfgrib = "^0.9.8"
+eccodes = "^1.1.0"
+Shapely = "^1.7.1"
+folium = "^0.12.1"
+scipy = "^1.6.1"
+panel = "^0.10.3"
+moviepy = "^1.0.3"
+branca = "^0.4.2"
+altair = "^4.1.0"
+ipython = "^7.20.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.2"
+pytest-cov = "^2.11.1"
+pytest-xdist = "^2.2.1"
+bump2version = "^1.0.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
