@@ -140,20 +140,25 @@ def jigsaw(**kwargs):
         
             if hfun == 'auto':
         
-                dem = pdem.dem(**geometry, dem_source = TEST_DATA_PATH + 'dem.nc')
+                try:
+        
+                    dem = pdem.dem(**geometry)
                 
-                res_min = kwargs.get('resolution_min',.01) 
-                res_max = kwargs.get('resolution_max',.5)
-                dhdx = kwargs.get('dhdx',.15)
+                    res_min = kwargs.get('resolution_min',.01) 
+                    res_max = kwargs.get('resolution_max',.5)
+                    dhdx = kwargs.get('dhdx',.15)
         
-                w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
-                if not os.path.exists(self.rpath): # check if run folder exists
-                    os.makedirs(self.rpath)
+                    w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
+                    if not os.path.exists(self.rpath): # check if run folder exists
+                        os.makedirs(self.rpath)
         
-                w.to_netcdf(self.rpath + 'hfun.nc') # save hfun
+                    w.to_netcdf(self.rpath + 'hfun.nc') # save hfun
         
-                kwargs.update({'hfun':self.rpath + 'hfun.nc'})
+                    kwargs.update({'hfun':self.rpath + 'hfun.nc'})
             
+                except:
+                    
+                    logger.warning('hfun failed... continuing without background mesh size')
         
             df = jcustom(**kwargs)
         
