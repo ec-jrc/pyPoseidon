@@ -79,13 +79,13 @@ def d3d(tmpdir):
         names = ['uvp_'+ datetime.datetime.strftime(x, '%Y%m%d%H') + '.grib' for x in dr]
         dur = [ (DATA_DIR / name).as_posix() for name in names ]
         meteo.append(dur)
-        
-        
+
+
     #set cast
     for l in range(len(rpaths)-1):
         h = cast.cast(solver='d3d',model=b,ppath=rpaths[l],cpath=rpaths[l+1],meteo=meteo[l+1], date=date_list[l+1])
         h.set(execute=True) # execute
-    
+
     # Run check case - Total duration
     check.update({'rpath':rpath+'check/'}) # use tmpdir for running the model
     c = pyPoseidon.model(**check)
@@ -107,6 +107,6 @@ def d3d(tmpdir):
     return test
 
 
-#@pytest.mark.delft
+@pytest.mark.delft
 def test_answer(tmpdir):
     assert d3d(tmpdir) == True
