@@ -14,7 +14,7 @@ examples/test
 pyPoseidon/tests/jigsaw/*
 
 # the local Notebook folder
-Notebooks/* 
+Notebooks/*
 
 # .coverage files
 .coverage
@@ -83,6 +83,9 @@ github.token
 # direnv
 .direnv/
 .envrc
+
 venv/
+.venv/
+
 
 conda.recipe/
