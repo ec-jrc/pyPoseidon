@@ -56,9 +56,9 @@ jobs:
       - name: "Install python dependencies"
         run: |
             # force use of conda by masking pyproject.toml       
-            "mv pyproject.toml pyproject.toml_"
-            "python -m pip install --no-deps -e ."
-            "mv pyproject.toml_ pyproject.toml"
+            mv pyproject.toml pyproject.toml_
+            python -m pip install --no-deps -e .
+            mv pyproject.toml_ pyproject.toml"
 
 
       - name: "Run tests"
