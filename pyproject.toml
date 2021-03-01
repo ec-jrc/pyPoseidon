@@ -29,12 +29,10 @@ colorlog = "^4.7.2"
 cfgrib = "^0.9.8"
 eccodes = "^1.1.0"
 Shapely = "^1.7.1"
-folium = "^0.12.1"
 scipy = "^1.6.1"
 panel = "^0.10.3"
 moviepy = "^1.0.3"
 branca = "^0.4.2"
-altair = "^4.1.0"
 ipython = "^7.20.0"
 
 [tool.poetry.dev-dependencies]
