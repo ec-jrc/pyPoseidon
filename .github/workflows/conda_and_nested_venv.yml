@@ -72,5 +72,7 @@ jobs:
         run: "poetry install"
 
       - name: "Run tests"
-        #run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1 pytest -vlx --ff -p no:warnings -n 8"
-        run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1  pytest --runschism --rundelft"
+        run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1 pytest --runschism --rundelft"
+
+      - name: "Run slow tests"
+        run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1 pytest --runslow -k global"
