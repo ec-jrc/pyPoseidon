@@ -30,15 +30,15 @@ You can also install the solvers easily with conda
 
 There are several sets of tests. You can run pyPoseidon unitests with 
 
-`pytest --pyargs pyPoseidon`
+`pytest`
 
-In order to test also the solver integration use 
+In order to test also the solver integration use
 
-`python -m pyPoseidon.tests --runschism`
+`pytest --runschism`
 
 or
 
-`python -m pyPoseidon.tests --rundelft`
+`python --rundelft`
 
 if you are using a local installation of the solvers please specify the PATH to the executables in your system such as 
 
