@@ -46,3 +46,17 @@ bump2version = "^1.0.1"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra --verbose --showlocals --tb=short --cov=pyPoseidon --cov-report term-missing"
+testpaths = [
+    "tests",
+]
+filterwarnings = [
+    'ignore:`np.*` is a deprecated alias for .* `np.*`.*:DeprecationWarning',
+]
+markers = [
+    "schism: mark a test as a Schism based test",
+    "delft: mark a test as a Delft3D based test",
+]
