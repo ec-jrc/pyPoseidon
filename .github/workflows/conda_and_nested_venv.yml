@@ -49,7 +49,7 @@ jobs:
           CACHE_NUMBER: 0
         with:
           path: "~/.cache/pypoetry"
-          key: "${{ matrix.os }}-poetry-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles('pyproject.toml') }}"
+          key: "${{ matrix.os }}-poetry-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles('poetry.lock') }}"
 
 
       - name: "Setup conda"
