@@ -34,6 +34,7 @@ panel = "^0.10.3"
 moviepy = "^1.0.3"
 branca = "^0.4.2"
 ipython = "^7.20.0"
+llvmlite = "0.34.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
