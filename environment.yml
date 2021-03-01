@@ -2,6 +2,7 @@ name: pyPoseidon
 
 channels:
   - conda-forge
+  - gbrey
 
 dependencies:
   - python=3.8
@@ -27,6 +28,8 @@ dependencies:
   - pytest
   - pytest-cov
   - ipympl
+  - pschism
+  - delft3d4
   - pip
   - pip:
     - gmsh
