@@ -1,6 +1,6 @@
 ---
 
-name: "Test pyPoseidon with conda and a nested venv"
+name: "Tests"
 
 on:
   - "push"
@@ -68,14 +68,9 @@ jobs:
           pip install --user pipx
           pipx install poetry
 
-      - name: "Run conda info"
-        run: |
-          conda info
-
       - name: "Install python dependencies"
         run: "poetry install"
 
       - name: "Run tests"
         #run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1 pytest -vlx --ff -p no:warnings -n 8"
         run: "CFGRIB_USE_EXTERNAL_ECCODES_BINDINGS=1  python -m pyPoseidon.tests --runschism"
-
