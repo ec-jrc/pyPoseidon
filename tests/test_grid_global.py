@@ -22,14 +22,14 @@ coast = cf.GSHHSFeature(
     scale='auto',
     levels = [1])
 
-GSHHS = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
+GSHHS = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize('coast', ne[0:1])
 
 def test_answer(tmpdir, coast):
-    
+
     df = pg.grid(type='tri2d',geometry='global', coastlines=coast, rpath = str(tmpdir)+'/')
 
     check = np.isnan(df.Dataset.depth.values).sum() == 0

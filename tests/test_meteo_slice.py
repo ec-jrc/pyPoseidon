@@ -26,7 +26,7 @@ def test_meteo(tmpdir,name):
     for ifile in files:
         g = xr.open_dataset(ifile)
         ts = '-'.join(g.time.attrs['base_date'].astype(str)[:3])
-        time_r = pd.to_datetime(ts) 
+        time_r = pd.to_datetime(ts)
         times = time_r + pd.to_timedelta(g.time.values,unit='D').round('H')
         g = g.assign_coords({'time':times})
         ma.append(g)
@@ -38,7 +38,7 @@ def test_meteo(tmpdir,name):
     tlist = tlist/pd.to_timedelta('1D')
 
     b = b.assign_coords({'time':tlist})
-    
+
     al = xr.open_dataset(rpath + 'all.nc')
-    
+
     assert b.equals(al)

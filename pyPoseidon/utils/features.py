@@ -19,7 +19,7 @@ def create_geojson_features(gf, time):
             'id': idx,
             'type': 'Feature',
             'geometry': {
-                'type':'Polygon', 
+                'type':'Polygon',
                 'coordinates':[[row['ap'].tolist(),row['bp'].tolist(),row['cp'].tolist()]]
             },
             'properties': {
@@ -61,20 +61,20 @@ def create_features(path='./',tag='schism'):
     tria['geometry'] =  tria.apply(
          lambda x : shapely.geometry.Polygon([x.ap,x.bp,x.cp]),axis=1)
 
-   
+
     colormap = branca.colormap.LinearColormap(['green', 'yellow', 'red'], vmin=vmin.values, vmax=vmax.values)
     colormap.caption = 'Elevation'
-      
+
     # geopandas
-    gf_ = gp.GeoDataFrame(tria, crs={'init' :'epsg:4326'})    
+    gf_ = gp.GeoDataFrame(tria, crs={'init' :'epsg:4326'})
 
     gf_ = gf_.drop(['a','b','c','ap','bp','cp'], axis=1)
-    
+
 
     ## All frames
     fs=[]
     for l in range(d.time.shape[0]):
-        fr = d.elev.isel(time=l)  
+        fr = d.elev.isel(time=l)
         a = fr.sel(nSCHISM_hgrid_node=tria.a.to_list()).values
         b = fr.sel(nSCHISM_hgrid_node=tria.b.to_list()).values
         c = fr.sel(nSCHISM_hgrid_node=tria.c.to_list()).values
@@ -86,14 +86,14 @@ def create_features(path='./',tag='schism'):
 
     if not os.path.exists(path+'server'):
         os.makedirs(path+'server')
-    
+
 
     json.dump( tf, open(path + 'server/anim.json','w'))
-    
+
     gf_.to_file(path + 'server/grid.geojson', driver='GeoJSON')
-    
+
 
     logger.info('... saved')
-    
+
     return
-    
+

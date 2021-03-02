@@ -39,7 +39,7 @@ case={'solver':'schism',
      'update':['all'], #update only meteo, keep dem
      'parameters':{'dt':400, 'rnday':.5, 'nhot':1, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
     }
-    
+
 
 #define in a dictionary the properties of the model..
 check={'solver':'schism',
@@ -83,7 +83,7 @@ def schism(tmpdir):
         prev_date = prev_date.strftime(format='%Y-%m-%d %H:%M:%S')
         dr = pd.date_range(prev_date, date, freq='12H')
         names = ['uvp_'+ datetime.datetime.strftime(x, '%Y%m%d%H') + '.grib' for x in dr]
-        dur = [ (DATA_DIR / name).as_posix() for name in names ] 
+        dur = [ (DATA_DIR / name).as_posix() for name in names ]
         meteo.append(dur)
 
     #set cast
@@ -112,7 +112,7 @@ def schism(tmpdir):
     meteo = xr.combine_by_coords([w1,w2,w3,w4],combine_attrs='override')
     #saving
     check.update({'meteo_source' : meteo})
-    
+
     c = pyPoseidon.model(**check)
 
     c.execute()
@@ -123,7 +123,7 @@ def schism(tmpdir):
     total = data.data(folders=[rpath+'check/'],solver='schism')
 
     r = output.Dataset.isel(time=slice(0,36))
-    
+
 
     rb = []
     for var in total.Dataset.data_vars:

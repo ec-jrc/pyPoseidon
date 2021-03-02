@@ -13,13 +13,13 @@ coast = cf.NaturalEarthFeature(
     scale='{}m'.format({'l':110, 'i':50, 'h':10}[cr]))
 
 
-natural_earth = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
+natural_earth = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
 
 coast = cf.GSHHSFeature(
     scale='auto',
     levels = [1])
 
-GSHHS = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])    
+GSHHS = gp.GeoDataFrame(geometry = [x for x in coast.geometries()])
 
 
 
@@ -35,7 +35,7 @@ window1={'lon_min':175., # lat/lon window
      'lon_max':184.,
      'lat_min':-21.5,
      'lat_max':-14.5}
-     
+
 window2 = {
      'lon_min' : -20.,
      'lon_max' : -10.,
@@ -46,7 +46,7 @@ window3={'lon_min':175.-360., # lat/lon window
      'lon_max':184.-360.,
      'lat_min':-21.5,
      'lat_max':-14.5}
-     
+
 window4 = {
     'lon_min' : -25.,
     'lon_max' : -10.,
@@ -57,8 +57,8 @@ window4 = {
 @pytest.mark.parametrize('coast', [ natural_earth, GSHHS ])
 
 def test_answer(tmpdir, window, coast):
-    
+
     df = pg.grid(type='tri2d',geometry=window, coastlines=coast, rpath = str(tmpdir)+'/')
-    
+
     check = np.isnan(df.Dataset.depth.values).sum() == 0
     assert check == True

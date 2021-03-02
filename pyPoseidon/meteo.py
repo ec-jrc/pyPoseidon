@@ -151,7 +151,7 @@ class meteo:
 
             logger.warning('Proceeding with default option')
             self.Dataset = from_url(**kwargs)
-            
+
 
     def to_output(self,solver=None, **kwargs):
 
@@ -159,14 +159,14 @@ class meteo:
 
         s = getattr(model,solver) # get solver class
         var_list = kwargs.pop('vars', ['msl','u10','v10'])
-        
+
         split_by = get_value(self,kwargs,'meteo_split_by',None)
         if split_by :
             times, datasets = zip(*self.Dataset.groupby('time.{}'.format(split_by)))
             mpaths = ['sflux/sflux_air_1.{:04d}.nc'.format(t + 1) for t in np.arange(len(times))]
             for das,mpath in list(zip(datasets,mpaths)):
                 s.to_force(das,vars=var_list, filename=mpath, **kwargs)
-        else:  
+        else:
             s.to_force(self.Dataset,vars=var_list, **kwargs)
 
 
@@ -216,14 +216,14 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
             data = data.assign_coords(time=data.valid_time)
 
     if meteo_merge == 'last':
-        logger.info('combining meteo by keeping the newest value')        
+        logger.info('combining meteo by keeping the newest value')
         mask = data.time.to_pandas().duplicated('last').values
         with dask.config.set(**{'array.slicing.split_large_chunks': True}):
             msl = data.msl[~mask]
             u10 = data.u10[~mask]
             v10 = data.v10[~mask]
         data = xr.merge([msl,u10,v10])
-    
+
     elif meteo_merge == 'first':
         logger.info('combining meteo by keeping the oldest value')
         mask = data.time.to_pandas().duplicated('last').values
@@ -233,7 +233,7 @@ def cfgrib(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
             u10 = data.u10[~mask_]
             v10 = data.v10[~mask_]
         data = xr.merge([msl,u10,v10])
-        
+
     if not lon_min : lon_min = data.longitude.data.min()
     if not lon_max : lon_max = data.longitude.data.max()
     if not lat_min : lat_min = data.latitude.data.min()
@@ -598,7 +598,7 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
           .sel(time=tslice)
           )
       sh = sh.assign_coords({'longitude':sh.longitude.values - 360.})
-      
+
 
       sh1 = (
           data[['prmslmsl','ugrd10m', 'vgrd10m']]
@@ -642,7 +642,7 @@ def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
     xr_kwargs = kwargs.get('meteo_xr_kwargs', {})
 
     data = xr.open_mfdataset(filenames, combine=meteo_combine_by, **xr_kwargs)
-    
+
     #rename var/coords
     time_coord = [x for x in data.coords if 'time' in data[x].long_name.lower() ]
     lon_coord = [x for x in data.coords if 'longitude' in data[x].long_name.lower() ]
@@ -654,16 +654,16 @@ def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
             sn.update({x:data[x].standard_name.lower()})
         except:
             sn.update({x:data[x].long_name.lower()})
-            
+
     msl_ = [x for (x,v) in sn.items() if 'pressure' in v ]
     u10_ = [x for (x,v) in sn.items() if ('u wind' in v) | ('u-component' in v)]
     v10_ = [x for (x,v) in sn.items() if ('v wind' in v) | ('v-component' in v)]
-    
+
     data = data.rename({msl_[0]:'msl',u10_[0]:'u10',v10_[0]:'v10',lon_coord[0]:'longitude',lat_coord[0]:'latitude'})
-    
-    
+
+
     data = data.sel(longitude=slice(lon_min,lon_max)).sel(latitude=slice(lat_min,lat_max))
-    
+
     try:
         data = data.sel(time=slice(start_date,end_date))
     except:
@@ -671,10 +671,10 @@ def netcdf(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=Non
 
     s,f,i = meteo_irange
     data = data.isel(time=slice(s,f,i))
-    
-    
+
+
     return data
-    
+
     #---------------------------------------------------------------------
     logger.info('meteo done\n')
     #---------------------------------------------------------------------

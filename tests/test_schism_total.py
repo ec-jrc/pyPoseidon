@@ -19,7 +19,7 @@ case1={'lon_min':175., # lat/lon window
      'lon_max':184.,
      'lat_min':-21.5,
      'lat_max':-14.5}
-     
+
 case2 = {
      'lon_min' : -20.,
      'lon_max' : -10.,
@@ -30,7 +30,7 @@ case3={'lon_min':175.-360., # lat/lon window
      'lon_max':184.-360.,
      'lat_min':-21.5,
      'lat_max':-14.5}
-     
+
 case4 = {
     'lon_min' : -25.,
     'lon_max' : -10.,
@@ -54,7 +54,7 @@ def schism(tmpdir,case):
          'update':['all'], #update only meteo, keep dem
          'parameters':{'dt':400, 'rnday':0.3, 'nhot':0, 'ihot':0,'nspool':9, 'ihfskip':36, 'nhot_write':108 }
         }
-        
+
     rpath = str(tmpdir)+'/'
     dic.update({'rpath':rpath}) # use tmpdir for running the model
 

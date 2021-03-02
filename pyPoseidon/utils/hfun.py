@@ -28,11 +28,11 @@ def MakeFacesVectorized1(Nr,Nc):
 
 
 def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
-    
-      
+
+
     X, Y = np.meshgrid(data.longitude.values,data.latitude.values)
     V = data.values
-    
+
     #scale
     hmin = resolution_min                       # min. H(X) [deg.]
     hmax = resolution_max                       # max. H(X)
@@ -42,17 +42,17 @@ def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dh
     hfun =  np.sqrt(-V)/.5 # scale with sqrt(H)
     hfun[hfun < hmin] = hmin
     hfun[hfun > hmax] = hmax
-    
-#    subspace = kwargs.get('subspace', None) 
-    
+
+#    subspace = kwargs.get('subspace', None)
+
 #    if subspace is not None:
 #        mask = ...
-#        hfun[mask] = 
-    
+#        hfun[mask] =
+
     hfun = hfun.flatten() # make it 1-d
-    
+
     hfun = hfun.reshape(hfun.shape[0],-1) #convert it to the appropriate format for LIMHFN2 below
-    
+
     #triangulate
     points = np.column_stack([X.flatten(),Y.flatten()])
     tria = MakeFacesVectorized1(V.shape[0],V.shape[1])
@@ -61,26 +61,26 @@ def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dh
 #    tri3 = triang.triangles
     edges = triang.edges
     #edge lengths
-    ptdiff = lambda p: (p[0][0]-p[1][0], p[0][1]-p[1][1]) 
-    diffs = map(ptdiff , points[edges]) 
+    ptdiff = lambda p: (p[0][0]-p[1][0], p[0][1]-p[1][1])
+    diffs = map(ptdiff , points[edges])
     elen = [math.hypot(d1,d2) for d1,d2 in diffs]
-     
+
     [fun,flag] = limgrad2(edges,elen,hfun,dhdx,imax)
 
     cfun = fun.flatten().reshape(X.shape).T
 
     ##OUTPUT
-    
+
     dh = xr.Dataset({'z': (['longitude', 'latitude'], cfun)},
                 coords={'longitude': ('longitude', data.longitude.values),
                         'latitude': ('latitude', data.latitude.values)})
-    
-    
+
+
     return dh
-             
+
 
 def to_hfun_mesh(dh,fhfun):
-    
+
     dps = dh[['u','v','z','h']].to_dataframe()
     tria3 = dh.tria.to_pandas()
 
@@ -97,7 +97,7 @@ def to_hfun_mesh(dh,fhfun):
         f.write('VALUE={};1\n'.format(dps.shape[0]))
         dps[['h']].to_csv(f, index=False, header=0)
 
-    
+
     with open(fhfun, 'a') as f:
         f.write('TRIA3={}\n'.format(tria3.shape[0]))
         tria3.to_csv(f, index=False, header=0, sep=';')
@@ -106,41 +106,41 @@ def to_hfun_mesh(dh,fhfun):
 
 def to_hfun_grid(dh,fhfun):
         # write hfun file
-        
+
         # write header
         with open(fhfun,'w') as f:
             f.write('#{}; created by pyPoseidon\n'.format(pyPoseidon.__version__))
             f.write('MSHID=3;EUCLIDEAN-GRID\n')
             f.write('NDIMS=2\n')
             f.write('COORD=1;{}\n'.format(dh.longitude.size))
-        
+
         with open(fhfun, 'a') as f:
             np.savetxt(f, dh.longitude.values)
-        
+
         with open(fhfun, 'a') as f:
             f.write('COORD=2;{}\n'.format(dh.latitude.size))
-        
+
         with open(fhfun, 'a') as f:
             np.savetxt(f, dh.latitude.values)
-    
+
         with open(fhfun, 'a') as f:
             f.write('VALUE={};1\n'.format(dh.z.size))
-    
+
         with open(fhfun, 'a') as f:
             np.savetxt(f, dh.z.values.flatten())
 
 
 
 def hfun_(coastlines,res=.1, R=1.):
-     
+
     amask = (coastlines.bounds.miny < coastlines.bounds.miny.min() + .1)
     anta = coastlines[amask]
     anta = anta.reset_index(drop=True)
-    
+
     ### convert to stereo
     try:
         ant = pd.DataFrame(anta.boundary.values[0].coords[:], columns=['lon','lat'])
-    except: 
+    except:
         ant = pd.DataFrame(anta.boundary.explode().values[0].coords[:], columns=['lon','lat']) # convert boundary values to pandas
 
     d1 = ant.where(ant.lon==ant.lon.max()).dropna().index[1:] # get artificial boundaries as -180/180
@@ -157,17 +157,17 @@ def hfun_(coastlines,res=.1, R=1.):
     # create simple grid
     d1 = np.linspace(an.bounds.minx,an.bounds.maxx,100)
     d2 = np.linspace(an.bounds.miny,an.bounds.maxy,100)
-    
+
     ui, vi = np.meshgrid(d1,d2)
     # Use Matplotlib for triangulation
     triang = matplotlib.tri.Triangulation(ui.flatten(), vi.flatten())
     tri = triang.triangles
-    
-    
+
+
     #stereo->2D scale
     ci=4*R**2/(ui**2+vi**2+4*R**2)
     ci
-    
+
     # create weight field
     points = np.column_stack([ui.flatten(),vi.flatten()])
     dps = pd.DataFrame(points,columns=['u','v'])
@@ -180,7 +180,7 @@ def hfun_(coastlines,res=.1, R=1.):
     p1 = dps.to_xarray()
     p1 = p1.rename({'index':'nodes'})
     p1 = p1.assign({'tria':(['elem','n'], tria3.values)})
-    
+
     return p1
-    
-    
+
+

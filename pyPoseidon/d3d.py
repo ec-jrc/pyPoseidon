@@ -1,12 +1,12 @@
 """
 Main d3d module of pyPoseidon. It controls the creation, output & execution of a complete simulation based on DELFT3D
-               
+
 """
 # Copyright 2018 European Union
 # This file is part of pyPoseidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
-# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-# See the Licence for the specific language governing permissions and limitations under the Licence. 
+# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and limitations under the Licence.
 
 import os
 import datetime
@@ -39,45 +39,45 @@ NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 #retrieve the module path
 #DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'  
+DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
 
 # add conda path to PATH
 cpath = pyPoseidon.__path__[0].split('/lib/')[0]
 os.environ['PATH'] += os.pathsep + cpath + '/bin'
-  
 
-# strings to be used 
+
+# strings to be used
 le=['A','B']
 
 nm = ['Z', 'A']
 
 
 class d3d():
-        
+
     def __init__(self,**kwargs):
-                
+
         self.geometry = kwargs.get('geometry', None)
-        
+
         if self.geometry:
-                
-            if isinstance(self.geometry,dict): 
+
+            if isinstance(self.geometry,dict):
                 self.lon_min = self.geometry['lon_min']
                 self.lon_max = self.geometry['lon_max']
                 self.lat_min = self.geometry['lat_min']
                 self.lat_max = self.geometry['lat_max']
             elif isinstance(self.geometry,str):
-                  
+
                 try:
                     geo = gp.GeoDataFrame.from_file(self.geometry)
                 except:
                     logger.error('geometry argument not a valid geopandas file')
                     sys.exit(1)
-            
+
                 self.lon_min, self.lat_min, self.lon_max, self.lat_max = geo.total_bounds
-               
+
         start_date = kwargs.get('start_date', None)
         self.start_date = pd.to_datetime(start_date)
-        
+
         if 'time_frame' in kwargs:
             time_frame = kwargs.get('time_frame', None)
             self.end_date = self.start_date + pd.to_timedelta(time_frame)
@@ -85,16 +85,16 @@ class d3d():
         elif 'end_date' in kwargs:
             end_date = kwargs.get('end_date', None)
             self.end_date = pd.to_datetime(end_date)
-            self.time_frame = self.end_date - self.start_date            
-        
+            self.time_frame = self.end_date - self.start_date
+
         if not hasattr(self, 'date'): self.date = self.start_date
-        
-        if not hasattr(self, 'end_date'): 
-            #--------------------------------------------------------------------- 
+
+        if not hasattr(self, 'end_date'):
+            #---------------------------------------------------------------------
             logger.warning('model not set properly, No end_date\n')
-            #--------------------------------------------------------------------- 
-            
-        
+            #---------------------------------------------------------------------
+
+
         self.tag = kwargs.get('tag', 'd3d')
         self.resolution = kwargs.get('resolution', None)
         self.irange = kwargs.get('irange', [0,-1,1])
@@ -102,83 +102,83 @@ class d3d():
         self.atm = kwargs.get('atm', True)
         self.ofilename = kwargs.get('ofilename', None)
 
-        self.solver = self.__class__.__name__    
-        
+        self.solver = self.__class__.__name__
+
         try:
             self.epath = os.environ['D3D']
         except:
             self.epath = kwargs.get('epath', None)
-        
 
-                                             
+
+
         for attr, value in kwargs.items():
                 if not hasattr(self, attr): setattr(self, attr, value)
-                
-#============================================================================================        
+
+#============================================================================================
 # CONFIG
 #============================================================================================
-    def config(self,**kwargs):  
-        
+    def config(self,**kwargs):
+
         mdf_file = kwargs.get('config_file', None)
-        dic = get_value(self,kwargs,'parameters',None)  
+        dic = get_value(self,kwargs,'parameters',None)
 
         if mdf_file :
             self.mdf = pd.read_csv(mdf_file,sep='=')
         else:
             self.mdf = pd.read_csv(DATA_PATH+'default.mdf',sep='=')
-        
+
         self.mdf = self.mdf.set_index(self.mdf.columns[0]) # set index
-        
-        
+
+
         mdfidx = self.mdf.index.str.strip() # store the stripped names
-            
+
         #define grid file
         self.mdf.loc[self.mdf.index.str.contains('Filcco')]='#{}#'.format(self.tag+'.grd')
-  
+
         #define enc file
         self.mdf.loc[self.mdf.index.str.contains('Filgrd')]='#{}#'.format(self.tag+'.enc')
-  
+
         #define dep file
         self.mdf.loc[self.mdf.index.str.contains('Fildep')]='#{}#'.format(self.tag+'.dep')
-  
+
         #define obs file
         if self.ofilename :
-            self.mdf.loc[self.mdf.index.str.contains('Filsta')]='#{}#'.format(self.tag+'.obs') 
+            self.mdf.loc[self.mdf.index.str.contains('Filsta')]='#{}#'.format(self.tag+'.obs')
         else:
             self.mdf.loc[self.mdf.index.str.contains('Filsta')]='##'
-   
+
         # adjust ni,nj
         nj, ni = self.nj, self.ni
         self.mdf.loc[self.mdf.index.str.contains('MNKmax')]='{} {} {}'.format(ni+1,nj+1,1)  # add one like ddb
-  
+
         # adjust iteration date
         self.mdf.loc[self.mdf.index.str.contains('Itdate')]='#{}#'.format(self.date.strftime(format='%Y-%m-%d'))
-  
+
         #set time unit
         self.mdf.loc[self.mdf.index.str.contains('Tunit')]='#M#'
 
         #adjust iteration start
-        Tstart = self.start_date.hour*60            
+        Tstart = self.start_date.hour*60
         self.mdf.loc[self.mdf.index.str.contains('Tstart')]=Tstart
-  
+
         #adjust iteration stop
         Tstop = Tstart + int(pd.to_timedelta(self.time_frame).total_seconds()/60)
         self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
-    
+
         #adjust time for output
         mstep = get_value(self,kwargs,'map_step',0)
         hstep = get_value(self,kwargs,'his_step',0)
         pstep = get_value(self,kwargs,'pp_step',0)
         rstep = get_value(self,kwargs,'restart_step',0)
-                                               
+
         if rstep == -1: # save a restart file at the end
-            rstep = Tstop                          
-        
+            rstep = Tstop
+
         self.mdf.loc[self.mdf.index.str.contains('Flmap')]='{:d} {:d} {:d}'.format(Tstart,mstep,Tstop)
         self.mdf.loc[self.mdf.index.str.contains('Flhis')]='{:d} {:d} {:d}'.format(Tstart,hstep,Tstop)
         self.mdf.loc[self.mdf.index.str.contains('Flpp')]='{:d} {:d} {:d}'.format(Tstart,pstep,Tstop)
         self.mdf.loc[self.mdf.index.str.contains('Flrst')]=rstep
-  
+
         #time interval to smooth the hydrodynamic boundary conditions
         self.mdf.loc[self.mdf.index.str.contains('Tlfsmo')]=0.
 
@@ -192,60 +192,60 @@ class d3d():
  #           inp['Tidfor']=[['M2','S2','N2','K2'], \
  #                       ['K1','O1','P1','Q1'], \
  #                         ['-----------']]
- 
+
           # specify ini file
         # if 'Filic' not in order: order.append('Filic')
         # inp['Filic']=basename+'.ini'
 
           # netCDF output
-        if not 'FlNcdf' in mdfidx: 
+        if not 'FlNcdf' in mdfidx:
             self.mdf.reindex(self.mdf.index.values.tolist()+['FlNcdf '])
-            
+
         self.mdf.loc['FlNcdf '] = '#map his#'
 
-        other = kwargs.get('config', None) 
+        other = kwargs.get('config', None)
         if other:
         # Check for any other mdf variable in input
             for key,val in other.items():
-                if key in mdfidx: 
+                if key in mdfidx:
                     self.mdf.loc[self.mdf.index.str.contains(key)] = val
                 else:
                     self.mdf.loc[key] = val
-        
-        
-        output = kwargs.get('output', False)
-        
-        if output: 
-            #save mdf 
-            path = get_value(self,kwargs,'rpath','./d3d/') 
-            self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
-            
 
-#============================================================================================        
+
+        output = kwargs.get('output', False)
+
+        if output:
+            #save mdf
+            path = get_value(self,kwargs,'rpath','./d3d/')
+            self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
+
+
+#============================================================================================
 # METEO
 #============================================================================================
 
     def force(self,**kwargs):
-                         
-        meteo_source =  get_value(self,kwargs,'meteo_source',None) 
-        
+
+        meteo_source =  get_value(self,kwargs,'meteo_source',None)
+
         kwargs.update({'meteo_source':meteo_source})
 
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
-        
+
         z = {**self.__dict__, **kwargs} # merge self and possible kwargs
-        
-        if flag :     
-            if ('meteo' in flag) | ('all' in flag): 
-                self.meteo = pmeteo.meteo(**z)        
+
+        if flag :
+            if ('meteo' in flag) | ('all' in flag):
+                self.meteo = pmeteo.meteo(**z)
             else:
                 logger.info('skipping meteo files ..\n')
         else:
             self.meteo = pmeteo.meteo(**z)
 
 
-    @staticmethod 
+    @staticmethod
     def from_force(filename=None, name=None):
 
         df = pd.read_csv(filename,header=0, names=['data'], index_col=None, low_memory=False)
@@ -260,7 +260,7 @@ class d3d():
         attrs = dict(zip(d1.key, d1.value)) # create dict
         for key in ['n_cols','n_rows','n_quantity']: # str -> int
             attrs[key] = int(attrs[key])
-    
+
         for key in ['x_llcenter','dx','y_llcenter','dy','NODATA_value']:
             attrs[key] = float(attrs[key])
 
@@ -304,36 +304,36 @@ class d3d():
                              coords={'time': d2.time, 'latitude':lat, 'longitude':lon}, name=name)
 
         da.attrs = attrs
-                
+
         return da
 
 
 
 
-    @staticmethod 
+    @staticmethod
     def to_force(ar,**kwargs):
-         
+
         logger.info('writing meteo files ..\n')
-                
-        path = kwargs.get('rpath','./d3d/') 
-        
-        [p,u,v] = kwargs.get('vars','[None,None,None]')                
-        
+
+        path = kwargs.get('rpath','./d3d/')
+
+        [p,u,v] = kwargs.get('vars','[None,None,None]')
+
         curvi = kwargs.get('curvi', False)
-        
+
         flip = np.diff(ar.latitude.values)[0]
-       
+
         dlat=np.abs(flip)
         dlon=np.diff(ar.longitude.values)[0]
         lat0=ar.latitude.data.min()
-        lon0=ar.longitude.data.min() 
-        
+        lon0=ar.longitude.data.min()
+
         nodata=-9999.000
-        
+
         pp = ar[p].fillna(nodata).values
         uu = ar[u].fillna(nodata).values
         vv = ar[v].fillna(nodata).values
-        
+
 
         if not os.path.exists(path):
            os.makedirs(path)
@@ -381,15 +381,15 @@ class d3d():
         pfid.write('unit1            = Pa\n')
 
         time0=pd.to_datetime('2000-01-01 00:00:00')
-    
+
        # write time blocks
         indx = ar.time.values - time0.to_datetime64()
         indx = indx.astype('timedelta64[m]')/60
-                 
-        for it in range(indx.size): # nt + 0 hour    
+
+        for it in range(indx.size): # nt + 0 hour
           for f in fi:
              f.write('TIME = {} hours since 2000-01-01 00:00:00 +00:00\n'.format(indx[it].astype(int)))
-            
+
           if flip < 0 :
               np.savetxt(pfid,np.flipud(pp[it,:,:]),fmt='%.8f')
               np.savetxt(ufid,np.flipud(uu[it,:,:]),fmt='%.8f')
@@ -398,37 +398,37 @@ class d3d():
               np.savetxt(pfid,pp[it,:,:],fmt='%.8f')
               np.savetxt(ufid,uu[it,:,:],fmt='%.8f')
               np.savetxt(vfid,vv[it,:,:],fmt='%.8f')
-                           
-          
+
+
          # close files
         for f in fi:
            f.close()
-    
 
 
-#============================================================================================        
+
+#============================================================================================
 # DEM
-#============================================================================================       
-    @staticmethod 
+#============================================================================================
+    @staticmethod
     def from_dep(filename,**kwargs):
-        
+
         rdem = np.loadtxt(filename)
-        
+
         dr = xr.DataArray(rdem[:-1,:-1], name='ival', dims=['k','l'])
-        
+
         return dr
-                 
-        
+
+
     def bath(self,**kwargs):
-        
+
         kwargs['grid_x'] = self.grid.Dataset.lons.values
         kwargs['grid_y'] = self.grid.Dataset.lats.values
-        
-        dpath =  get_value(self,kwargs,'dem',None)        
-        
+
+        dpath =  get_value(self,kwargs,'dem',None)
+
         kwargs.update({'dem':dpath})
-        
-       
+
+
         flag = get_value(self,kwargs,'update',[])
         # check if files exist
         if flag :
@@ -439,38 +439,38 @@ class d3d():
                 logger.info('reading local dem file ..\n')
                 dem_source = z['rpath']+self.tag+'.dep'
                 rdem = from_dep(dem_source)
-                                
+
         else:
             kwargs.update({'lon_min': self.lon_min, 'lat_min': self.lat_min, 'lon_max':self.lon_max, 'lat_max': self.lat_max})
             self.dem = pdem.dem(**kwargs)
 
-    @staticmethod 
+    @staticmethod
     def to_dep(dr, dry_mask=True, **kwargs):
         #save dem
         logger.info('writing dem file ..\n')
-        path = kwargs.get('rpath','./d3d/') 
-             
+        path = kwargs.get('rpath','./d3d/')
+
         flag = kwargs.get('update',None)
         tag = kwargs.get('tag','d3d')
-        
-        
+
+
         try:
             try :
                 bat = -dr.fval.values.astype(float) #reverse for the hydro run/use the adjusted values
        #     mask = bat==999999
-            except AttributeError:    
+            except AttributeError:
                 bat = -dr.ival.values.astype(float) #reverse for the hydro run/revert to interpolated values
-                     
+
             nj,ni = bat.shape
-            
+
             if dry_mask:
-            
+
                 mask = ~np.isnan(bat) # mask out potential nan points
                 mask[mask] = np.less(bat[mask] , 0) # get mask for dry points
 
                 bat[mask]=np.nan #mask dry points
-            
-        # append the line/column of nodata 
+
+        # append the line/column of nodata
             nodata=np.empty(ni)
             nodata.fill(np.nan)
             bat1=np.vstack((bat,nodata))
@@ -479,11 +479,11 @@ class d3d():
             bat2=np.hstack((bat1,nodata))
 
             bat2[np.isnan(bat2)] = -999.
-                        
+
         except AttributeError:
             logger.warning('problem with dem Dataset ..')
-            
-        # Write bathymetry file    
+
+        # Write bathymetry file
         if flag :
             if ('all' in flag) or ('dem' in flag) :
                  np.savetxt(path+tag+'.dep',bat2)
@@ -491,46 +491,46 @@ class d3d():
                 logger.info('keeping dem file ..\n')
         else:
             np.savetxt(path+tag+'.dep',bat2)
-                 
 
-#============================================================================================        
+
+#============================================================================================
 # BOUNDARY CONDITIONS TODO
 #============================================================================================
-                
-        
+
+
     def bc(self,**kwargs):
         #define boundaries
-        z = self.__dict__.copy()        
-        
+        z = self.__dict__.copy()
+
         z['lons'] = self.grid.Dataset.lons[0,:]
         z['lats'] = self.grid.Dataset.lats[:,0]
-        
+
         try:
             ba = -self.dem.Dataset.ival.astype(float)
       # ba[ba<0]=np.nan
             z['dem']=ba
             z['cn']=10
-        
-            z.update(kwargs) 
-                
+
+            z.update(kwargs)
+
             self.bound = box(**z)
-        
+
         except:
             logger.info('boundary files not set..\n')
-            
+
 
 
     def to_bnd(self):
         #save bnd
             with open(path+self.tag+'.bnd', 'w') as f:
-        
+
                 dd = OrderedDict([('North',self.bound.North),('South',self.bound.South),('West',self.bound.West),('East',self.bound.East)])
-    
+
             #    for key,val in self.bound.__dict__.items():
-                for i, (key, val) in enumerate(dd.items()): # to match deltares 
-            
+                for i, (key, val) in enumerate(dd.items()): # to match deltares
+
                     idx=1
-                    for k1,k2 in val:           
+                    for k1,k2 in val:
                         bname=key+str(idx)
                         f.write('{0:<10s}{1:>12s}{2:>2s}{3:>6d}{4:>6d}{5:>6d}{6:>6d}   0.0000000e+00 {7:<s}{8:<g}A {9:<s}{10:<g}B\n'.format(bname,nm[0],nm[1],k1[0]+1,k1[1]+1,k2[0]+1,k2[1]+1,key,idx,key,idx)) # fortran index ??
                         idx+=1
@@ -539,14 +539,14 @@ class d3d():
     def to_bca(self):
         #save bca
             with open(path+self.tag+'.bca', 'w') as f:
-            
+
                  dd = OrderedDict([('North',self.tide.North),('South',self.tide.South),('West',self.tide.West),('East',self.tide.East)])
-            
+
             #     for key,val in self.tide.__dict__.items():
-                 for i, (key, val) in enumerate(dd.items()): # to match deltares 
-                     
+                 for i, (key, val) in enumerate(dd.items()): # to match deltares
+
                      idx=1
-                     if val: 
+                     if val:
                         l = np.arange(val.ampl.shape[0])+idx
                         nl = [x for pair in zip(l,l) for x in pair]
                         sl = val.ampl.shape[0]*le
@@ -554,46 +554,46 @@ class d3d():
                              f.write('{}{}{}\n'.format(key,t1,t2))
                              for a,b,c in zip(val.constituents,amp.flatten(),phase.flatten()):
                                  f.write('{0:<3s}        {1:<.7e}   {2:<.7e}\n'.format(a,b,c))
-                        
+
 
     def tidebc(self,**kwargs):
-    
+
         self.tide = tide()
         for key,val in self.bound.__dict__.items():
-        
+
         # compute tide constituents
             tval = []
-            if len(val) > 0. :                   
+            if len(val) > 0. :
                 blons=[]
                 blats=[]
                 for l1,l2 in val:
-                    blons.append(self.grid.Dataset.lons[l1[1]-1,l1[0]-1])   
+                    blons.append(self.grid.Dataset.lons[l1[1]-1,l1[0]-1])
                     blats.append(self.grid.Dataset.lats[l1[1]-1,l1[0]-1])
-                    blons.append(self.grid.Dataset.lons[l2[1]-1,l2[0]-1])   
+                    blons.append(self.grid.Dataset.lons[l2[1]-1,l2[0]-1])
                     blats.append(self.grid.Dataset.lats[l2[1]-1,l2[0]-1])
-                       
+
                 blons = np.array(blons)#.ravel().reshape(-1,2)[:,0]
-                blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1] 
+                blats =  np.array(blats)#.ravel().reshape(-1,2)[:,1]
             #                  print(bound,blons,blats)
-                             
+
                 tval = tide(tmodel=self.tmodel, tpath=self.tpath, blons=blons,blats=blats)
-                    
-            setattr(self.tide, key, tval)        
-                                               
-    
-    @staticmethod 
+
+            setattr(self.tide, key, tval)
+
+
+    @staticmethod
     def to_obs(self,**kwargs):
         #save obs
-        
+
         ofilename = get_value(self,kwargs,'ofilename',None)
-        flag = get_value(self,kwargs,'update',[]) 
+        flag = get_value(self,kwargs,'update',[])
 
         if ofilename:
 
             obs_points = pd.read_csv(ofilename,delimiter='\t',header=None,names=['index','Name','lat','lon'])
             obs_points = obs_points.set_index('index',drop=True).reset_index(drop=True) #reset index if any
 
-            obs_points = obs_points[(obs_points.lon.between(self.grid.Dataset.lons.values.min(),self.grid.Dataset.lons.values.max())) 
+            obs_points = obs_points[(obs_points.lon.between(self.grid.Dataset.lons.values.min(),self.grid.Dataset.lons.values.max()))
                                     & (obs_points.lat.between(self.grid.Dataset.lats.values.min(),self.grid.Dataset.lats.values.max()))]
 
             obs_points.reset_index(inplace=True,drop=True)
@@ -601,13 +601,13 @@ class d3d():
             try :
                  bat = -self.dem.Dataset.fval.values.astype(float) #reverse for the hydro run/use the adjusted values
             #     mask = bat==999999
-            except AttributeError:    
+            except AttributeError:
                  bat = -self.dem.Dataset.ival.values.astype(float) #reverse for the hydro run/revert to interpolated values
 
             b=np.ma.masked_array(bat,np.isnan(bat)) # mask land
 
             i_indx, j_indx = self.vpoints(self.grid.Dataset,obs_points,b,**kwargs)
-    
+
             obs_points['i']=i_indx
             obs_points['j']=j_indx
 
@@ -619,7 +619,7 @@ class d3d():
             obs['i']=obs['i'].values.astype(int)
             obs['j']=obs['j'].values.astype(int)
             obs['new_lat']=self.grid.Dataset.y[obs.i.values].values #Valid point
-            obs['new_lon']=self.grid.Dataset.x[obs.j.values].values 
+            obs['new_lon']=self.grid.Dataset.x[obs.j.values].values
 
             self.obs = obs #store it
 
@@ -636,8 +636,8 @@ class d3d():
 
                 # Add one in the indices due to python/fortran convention
                 try:
-                    with open(self.rpath+'{}.obs'.format(self.tag),'w') as f: 
-                        for l in range(obs.shape[0]): 
+                    with open(self.rpath+'{}.obs'.format(self.tag),'w') as f:
+                        for l in range(obs.shape[0]):
                             f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
                 except: #TODO
                     pass
@@ -646,53 +646,53 @@ class d3d():
             try:
             # Add one in the indices due to python/fortran convention
                 with open(self.rpath+'{}.obs'.format(self.tag),'w') as f:
-                    for l in range(obs.shape[0]): 
+                    for l in range(obs.shape[0]):
                         f.write('{0:<{3}}{1:>{3}}{2:>{3}}\n'.format(obs.Name[l][:20],obs.j[l]+1,obs.i[l]+1,wsize))
             except:
                 pass
 
-    
-#============================================================================================        
+
+#============================================================================================
 # EXECUTION
 #============================================================================================
     def create(self,**kwargs):
 
         if not kwargs : kwargs = self.__dict__.copy()
-                                         
-        # Grid         
+
+        # Grid
         self.grid=pgrid.grid(type='r2d',**kwargs)
-                 
+
         # set lat/lon from file
         if hasattr(self, 'grid_file'):
             kwargs.update({'lon_min' : self.grid.Dataset.x.values.min()})
             kwargs.update({'lon_max' : self.grid.Dataset.x.values.max()})
             kwargs.update({'lat_min' : self.grid.Dataset.y.values.min()})
             kwargs.update({'lat_max' : self.grid.Dataset.y.values.max()})
-            
+
         nj, ni  = self.grid.Dataset.lons.shape
         self.nj, self.ni  = nj, ni
-        
-        kwargs.update({'ni':ni, 'nj':nj})                         
-        
+
+        kwargs.update({'ni':ni, 'nj':nj})
+
         # get bathymetry
         self.bath(**kwargs)
 
         # get boundaries
         self.bc()
-                
+
         #get meteo
         if self.atm :  self.force(**kwargs)
-        
+
         #get tide
         if self.tide : self.tidebc()
-        
+
         self.config(**kwargs)
-     
-            
+
+
     def run(self,**kwargs):
-        
-        calc_dir = get_value(self,kwargs,'rpath','./d3d/') 
-        
+
+        calc_dir = get_value(self,kwargs,'rpath','./d3d/')
+
         try:
             bin_path = os.environ['D3D']
         except:
@@ -704,31 +704,31 @@ class d3d():
             lib_path = get_value(self,kwargs,'lpath', None)
 
         if bin_path is None:
-            #------------------------------------------------------------------------------ 
+            #------------------------------------------------------------------------------
             logger.warning('D3D executable path (epath) not given -> using default \n')
             #------------------------------------------------------------------------------
             bin_path = os.pathsep + cpath
             lib_path = bin_path
 
-                    
+
         ncores = get_value(self,kwargs,'ncores',NCORES)
-                        
+
         argfile = get_value(self,kwargs,'argfile',self.tag+'_hydro.xml')
-        
-        #--------------------------------------------------------------------- 
+
+        #---------------------------------------------------------------------
         logger.info('executing model\n')
-        #--------------------------------------------------------------------- 
-                
+        #---------------------------------------------------------------------
+
         # note that cwd is the folder where the executable is
         ex=subprocess.Popen(args=['./run_flow2d3d.sh {} {} {}'.format(argfile,ncores,bin_path,lib_path)], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)#, bufsize=1)
-        
-        
+
+
         with open(calc_dir+self.tag+'_run.log', 'w') as f: #save output
-            
-            for line in iter(ex.stdout.readline,b''): 
-                f.write(line.decode(sys.stdout.encoding))   
+
+            for line in iter(ex.stdout.readline,b''):
+                f.write(line.decode(sys.stdout.encoding))
                 logger.info(line.decode(sys.stdout.encoding))
-            
+
             for line in iter(ex.stderr.readline,b''):
                 logger.info(line.decode(sys.stdout.encoding))
                 tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
@@ -736,41 +736,41 @@ class d3d():
                     biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
                     with open(biggest, "r") as f1:
                         for line in f1:
-                            f.write(line.decode(sys.stdout.encoding))   
+                            f.write(line.decode(sys.stdout.encoding))
                 except:
                     pass
-                            
-      #cleanup  
+
+      #cleanup
         tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*')
         biggest = max(tempfiles, key=(lambda tf: os.path.getsize(tf)))
-        with open(calc_dir+self.tag+'_run.log', 'a') as f: #save diagnosis 
+        with open(calc_dir+self.tag+'_run.log', 'a') as f: #save diagnosis
             with open(biggest, "r") as f1:
                 for line in f1:
-                    f.write(line)   
-            
-        
-      
+                    f.write(line)
+
+
+
         tempfiles = glob.glob(calc_dir+'/tri-diag.'+ self.tag+'-*') + glob.glob(calc_dir+'/TMP_*')
-                                
+
         for filename in tempfiles:
             try:
                 os.remove(filename)
             except OSError:
                 pass
 
-        ex.stdout.close()  
-        ex.stderr.close() 
+        ex.stdout.close()
+        ex.stderr.close()
 
-         
-        #--------------------------------------------------------------------- 
+
+        #---------------------------------------------------------------------
         logger.info('FINISHED\n')
-        #--------------------------------------------------------------------- 
-         
-            
+        #---------------------------------------------------------------------
+
+
     def save(self,**kwargs):
-               
+
          path = get_value(self,kwargs,'rpath','./d3d/')
-        
+
          lista = [key for key, value in self.__dict__.items() if key not in ['meteo','dem','grid']]
          dic = {k: self.__dict__.get(k, None) for k in lista}
 
@@ -779,7 +779,7 @@ class d3d():
              dic.update({'grid':grid})
          else:
              dic.update({'grid':grid.__class__.__name__})
-         
+
          dem=self.__dict__.get('dem', None)
          if isinstance(dem,str):
              dic.update({'dem':dem})
@@ -793,27 +793,27 @@ class d3d():
              dic.update({'meteo':meteo.Dataset.attrs})
 
          dic['version']=pyPoseidon.__version__
-                                          
+
          for attr, value in dic.items():
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()
-             if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()          
+             if isinstance(value, pd.Timedelta) : dic[attr]=dic[attr].isoformat()
              if isinstance(value, pd.DataFrame) : dic[attr]=dic[attr].to_dict()
-         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)      
-    
-    def output(self,**kwargs):      
-        
-        path = get_value(self,kwargs,'rpath','./d3d/') 
-        slevel = get_value(self,kwargs,'slevel',0.) 
+         json.dump(dic,open(path+self.tag+'_model.json','w'),default = myconverter)
+
+    def output(self,**kwargs):
+
+        path = get_value(self,kwargs,'rpath','./d3d/')
+        slevel = get_value(self,kwargs,'slevel',0.)
         flag = get_value(self,kwargs,'update',[])
-        
+
         nj, ni = self.grid.Dataset.lons.shape
-        
+
         if not os.path.exists(path):
             os.makedirs(path)
-        
-        #save mdf 
+
+        #save mdf
         self.mdf.to_csv(path+self.tag+'.mdf',sep='=')
-        
+
         # save grid file
         if flag:
             if ('all' in flag) | ('grid' in flag ) :
@@ -823,26 +823,26 @@ class d3d():
                 logger.info('skipping grid file ..\n')
         else:
             self.grid.to_file(filename = path+self.tag+'.grd')
-                
-        
+
+
         # save bathymetry file
-        self.to_dep(self.dem.Dataset,rpath=path, tag=self.tag, update=flag) 
-        
-        #save meteo        
+        self.to_dep(self.dem.Dataset,rpath=path, tag=self.tag, update=flag)
+
+        #save meteo
         if self.atm:
             try:
                 self.to_force(self.meteo.Dataset,vars=['msl','u10','v10'],rpath=path,**kwargs)
             except AttributeError as e:
-                logger.warning('no meteo data available.. no update..\n')                
+                logger.warning('no meteo data available.. no update..\n')
                 pass
 
-        
-        #save obs file     
+
+        #save obs file
         self.to_obs(self,**kwargs)
-        
+
         #save enc file
         if flag :
-        
+
             if ('all' in flag) | ('model' in flag) :
             #save enc
             #write enc out
@@ -852,9 +852,9 @@ class d3d():
                     f.write('{:>5}{:>5}\n'.format(1,nj+1))
                     f.write('{:>5}{:>5}\n'.format(1,1))
                     f.write('{:>5}{:>5}\n'.format(ni+1,1))
-                
+
         else:
-            
+
             #write enc out
             with open(path+self.tag+'.enc','w') as f:
                 f.write('{:>5}{:>5}\n'.format(ni+1,1))  # add one like ddb
@@ -862,68 +862,68 @@ class d3d():
                 f.write('{:>5}{:>5}\n'.format(1,nj+1))
                 f.write('{:>5}{:>5}\n'.format(1,1))
                 f.write('{:>5}{:>5}\n'.format(ni+1,1))
-            
-        
-        
-        calc_dir = get_value(self,kwargs,'rpath','./d3d/') 
-                        
+
+
+
+        calc_dir = get_value(self,kwargs,'rpath','./d3d/')
+
         try:
             bin_path = os.environ['D3D']
         except:
             bin_path = get_value(self,kwargs,'epath', None)
-         
+
         try:
             lib_path = os.environ['LD3D']
         except:
             lib_path = get_value(self,kwargs,'lpath', None)
 
-        
+
         if bin_path is None:
-            #--------------------------------------------------------------------- 
+            #---------------------------------------------------------------------
             logger.warning('D3D executable path (epath) not given\n')
-            #--------------------------------------------------------------------- 
-        
+            #---------------------------------------------------------------------
+
         if lib_path is None:
-            #--------------------------------------------------------------------- 
+            #---------------------------------------------------------------------
             logger.warning('D3D libraries path (lpath) not given\n')
-            #--------------------------------------------------------------------- 
-              
-            
+            #---------------------------------------------------------------------
+
+
         ncores = get_value(self,kwargs,'ncores',NCORES)
-                                
+
         if not os.path.exists( calc_dir+self.tag+'_hydro.xml') :
-            
+
           # edit and save config file
-          copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+self.tag+'_hydro.xml')          
+          copy2(DATA_PATH + 'config_d_hydro.xml',calc_dir+self.tag+'_hydro.xml')
 
         xml=md.parse(calc_dir+self.tag+'_hydro.xml')
 
         xml.getElementsByTagName('mdfFile')[0].firstChild.replaceWholeText(self.tag+'.mdf')
- 
-    
+
+
         with open(calc_dir+self.tag+'_hydro.xml','w') as f:
             xml.writexml(f)
 
         if not os.path.exists(calc_dir+'run_flow2d3d.sh') :
 
           copy2(DATA_PATH + 'run_flow2d3d.sh',calc_dir+'run_flow2d3d.sh')
-        
+
           #make the script executable
           execf = calc_dir+'run_flow2d3d.sh'
           mode = os.stat(execf).st_mode
           mode |= (mode & 0o444) >> 2    # copy R bits to X
           os.chmod(execf, mode)
-        
-        
-        
-        #--------------------------------------------------------------------- 
+
+
+
+        #---------------------------------------------------------------------
         logger.info('output done\n')
-        #--------------------------------------------------------------------- 
-    
-            
+        #---------------------------------------------------------------------
+
+
     @staticmethod
     def vpoints(grid,obs_points,bat,**kwargs):
-        
+
         idx=[]
         jdx=[]
         for m in range(obs_points.shape[0]):
@@ -932,20 +932,20 @@ class d3d():
             j = np.abs(grid.x.values-nearest.x.values).argmin()
             i = np.abs(grid.y.values-nearest.y.values).argmin()
             if bat[i,j] :
-                idx.append(i) 
+                idx.append(i)
                 jdx.append(j)
             else:
                 bnear=bat[i-5:i+6,j-5:j+6] # near by grid nodes
-        
+
                 rlon = grid.lons[i-5:i+6,j-5:j+6]-lon
                 rlat = grid.lats[i-5:i+6,j-5:j+6]-lat
                 rad = np.sqrt(rlon**2+rlat**2) # radial distance from the obs point
-        
+
                 rmask = rad.values[bnear.mask==False] #mask the distance array with the valid mask from dem
-                
+
                 rmask.sort() # sort to start close and move further away
                 if rmask.size > 0 :
-                    
+
                     for r in rmask: # Find the closest valid point
                         [[k,l]] = np.argwhere(rad.values==r)
                         if bnear[k-1:k+1,l-1:l+1].mask.sum() == 0:
@@ -953,16 +953,16 @@ class d3d():
 
                     xv = rad[k,l].x.values #lat, lon of valid point
                     yv = rad[k,l].y.values
-        
+
                     #final i,j
                     j = np.abs(grid.x.values-xv).argmin()
                     i = np.abs(grid.y.values-yv).argmin()
 
-                    idx.append(i) 
-                    jdx.append(j) 
-          
+                    idx.append(i)
+                    jdx.append(j)
+
                 else:
-            
+
                     idx.append(np.nan)
                     jdx.append(np.nan)
 
@@ -970,37 +970,37 @@ class d3d():
 
 
     def execute(self,**kwargs):
-        
+
         self.create(**kwargs)
-        self.output(**kwargs) 
+        self.output(**kwargs)
         self.save(**kwargs)
         self.run(**kwargs)
 
     def read_folder(self, rfolder,**kwargs):
-    
+
         gfile = glob.glob(rfolder + '/*.grd') # Grid
         dfile = glob.glob(rfolder + '/*.dep') # bathymetry
         u = glob.glob(rfolder + '/*.amu') # meteo
-        v = glob.glob(rfolder + '/*.amv') 
-        p = glob.glob(rfolder + '/*.amp') 
-    
+        v = glob.glob(rfolder + '/*.amv')
+        p = glob.glob(rfolder + '/*.amp')
+
         #config
         self.mdf = pd.read_csv(d[0],sep='=')
         self.mdf = self.mdf.set_index(self.mdf.columns[0]) # set index
         #grid
         self.grid = pgrid.grid('r2d',grid_file=gfile[0])
         #bath
-        self.dem.Dataset = d3d.from_dep(dfile[0])                     
+        self.dem.Dataset = d3d.from_dep(dfile[0])
         #meteo
         mf=[]
-        mf.append(d3d.from_force(u[0],'u10')) 
-        mf.append(d3d.from_force(v[0],'v10')) 
-        mf.append(d3d.from_force(p[0],'msl'))            
-        self.meteo.Dataset = xr.merge(mf)           
-                                                    
+        mf.append(d3d.from_force(u[0],'u10'))
+        mf.append(d3d.from_force(v[0],'v10'))
+        mf.append(d3d.from_force(p[0],'msl'))
+        self.meteo.Dataset = xr.merge(mf)
+
         #---------------------------------------------------------------------
-        logger.exception('folder incomplete. Abort\n') 
+        logger.exception('folder incomplete. Abort\n')
         sys.exit(1)
-        #--------------------------------------------------------------------- 
-        
+        #---------------------------------------------------------------------
+
 

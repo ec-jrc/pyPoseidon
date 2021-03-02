@@ -13,7 +13,7 @@ def clockwiseangle_and_distance(point,origin,refvec):
     dotprod  = normalized[0]*refvec[0] + normalized[1]*refvec[1]     # x1*x2 + y1*y2
     diffprod = refvec[1]*normalized[0] - refvec[0]*normalized[1]     # x1*y2 - y1*x2
     angle = math.atan2(diffprod, dotprod)
-    # Negative angles represent counter-clockwise angles so we need to subtract them 
+    # Negative angles represent counter-clockwise angles so we need to subtract them
     # from 2*pi (360 degrees)
     if angle < 0:
         return 2*math.pi+angle, lenvector

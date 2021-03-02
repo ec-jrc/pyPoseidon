@@ -12,29 +12,29 @@ logger = logging.getLogger('pyPoseidon')
 
 
 def get_seam(x,y,z,tri3,**kwargs):
-            
+
     if z==None : z = 1.
-    
+
     gr = pd.DataFrame({'lon':x, 'lat':y, 'z':z})
     tf = gr[(gr.lon<-90) | (gr.lon>90.) | (gr.lat > 80)]
-    
+
     elems = pd.DataFrame(tri3, columns=['a','b','c'])
     bes = elems[(elems.a.isin(tf.index.values)) & (elems.b.isin(tf.index.values)) & (elems.c.isin(tf.index.values))]
-    
+
     qq = bes.copy()
     qq['ap'] = qq.apply(lambda x : tf.loc[x.a,['lon','lat']].values,axis=1)
     qq['bp'] = qq.apply(lambda x : tf.loc[x.b,['lon','lat']].values,axis=1)
     qq['cp'] = qq.apply(lambda x : tf.loc[x.c,['lon','lat']].values,axis=1)
     qq['geometry'] =  qq.apply(
              lambda x : shapely.geometry.Polygon([x.ap,x.bp,x.cp]),axis=1)
-    
+
     ge=gp.GeoDataFrame(qq.geometry)
     gemask = ge.geometry.bounds.diff(axis=1,periods=2).maxx>300 # Avoid seam for the 2D graph
-    
+
     mels = qq[gemask]
-    
-    
-    adv = 0 
+
+
+    adv = 0
     p1=[]
     p2 = []
     for indx,vals in mels.iterrows():
@@ -46,17 +46,17 @@ def get_seam(x,y,z,tri3,**kwargs):
             lons = [x - 360. if x > 0. else x for x in pol.boundary.xy[0]]
         else:
             lons = [x + 360. if x < 0. else x for x in pol.boundary.xy[0]]
-    
+
         nns = list(zip(lons, list(pol.boundary.xy[1]))) #points of recasted element
 
-        npol = shapely.geometry.LineString(nns) # make a geometrical object (triangle) out of the nodes above 
+        npol = shapely.geometry.LineString(nns) # make a geometrical object (triangle) out of the nodes above
 
         # create a meridian line
         if incl < 0.:
             l = shapely.geometry.LineString([[-180.,-90.],[-180.,90.]])
         else:
             l = shapely.geometry.LineString([[180.,-90.],[180.,90.]])
-    
+
         cp = npol.intersection(l) # find the intersection with the element
 
         try:
@@ -67,7 +67,7 @@ def get_seam(x,y,z,tri3,**kwargs):
         de = pd.DataFrame(cpp + nns[:-1], columns = ['lon','lat'])
 
         de = de.drop_duplicates().reset_index(drop=True)
-   
+
         points = shapely.geometry.MultiPoint(nns[:-1]+cpp)
 
         triangles = triangulate(points)
@@ -77,13 +77,13 @@ def get_seam(x,y,z,tri3,**kwargs):
             blon = [ x for (x,y) in list(triangle.exterior.coords)]
             blat = [ y for (x,y) in list(triangle.exterior.coords)]
             tes.append(de[(de['lon'].isin(blon)) & (de['lat'].isin(blat))].index.values)
-    
+
         nels = pd.DataFrame(tes, columns=['a','b','c'])
 
-        if cpp : 
+        if cpp :
             de = de.append(de.loc[:1],ignore_index=True) # replicate the meridian cross points
             de.lon[-2:] *= -1
-    
+
 
         if de[de.lon > 180.].size>0:
             ids = de[de.lon > 180.].index.values # problematic nodes
@@ -91,7 +91,7 @@ def get_seam(x,y,z,tri3,**kwargs):
         elif de[de.lon < -180.].size>0:
             ids = de[de.lon < -180.].index.values # problematic nodes
             de.loc[de.lon < -180., 'lon'] += 360.
-    
+
         p1.append(de)
 
 
@@ -104,22 +104,22 @@ def get_seam(x,y,z,tri3,**kwargs):
             des.loc[des.c == 0, 'c'] = de.index[-2]
             des.loc[des.c == 1, 'c'] = de.index[-1]
             nels.loc[des.index] = des
-    
+
 
         nels = nels + adv # reindex to global index
 
         p2.append(nels)
-    
+
         adv = nels.values.max() + 1
 
     ng = pd.concat(p1)
     ng['z'] = 1 ## ADJUST
-    
+
     ng.reset_index(inplace=True,drop=True)
-    
+
     nge = pd.concat(p2)
     nge.reset_index(inplace=True,drop=True)
-    
+
     si = gr.index[-1]
     ## drop the problematic elements
     ges = elems.drop(qq[gemask].index)
@@ -131,7 +131,7 @@ def get_seam(x,y,z,tri3,**kwargs):
     ges = ges.append(nges)
     ges.reset_index(inplace=True, drop=True)
     mes.reset_index(inplace=True, drop=True)
-    
+
     xx = mes.lon.values
     yy = mes.lat.values
     return xx,yy,ges.values
@@ -139,32 +139,32 @@ def get_seam(x,y,z,tri3,**kwargs):
 
 
 def to_2d(files=None, var=None, grid=None, **kwargs):
-    
+
     out = xr.open_mfdataset(files,combine='by_coords',concat_dim='time', data_vars='minimal')
-    
+
     x = out.SCHISM_hgrid_node_x[:].values
     y = out.SCHISM_hgrid_node_y[:].values
     tri3 = out.SCHISM_hgrid_face_nodes.values[:,:3].astype(int)
-    
+
     if grid is not None:
         [xn,yn,tri3n] = grid
     else:
         xn,yn,tri3n = get_seam(x,y,None,tri3)
-    
+
     save = kwargs.get('save',True)
-    
-    if save is True: 
+
+    if save is True:
         logger.info('saving conversion to 2d attrs')
         np.save('to2d',[xn,yn,tri3n])
-        
+
     nps = xn.shape[0] - x.shape[0] # number of extra nodes
     xi = xn[-nps:].copy() # lat/lon of extra nodes
     yi = yn[-nps:].copy()
-    
+
     # reposition to avoid -180/180 boundary
     pxi = reposition(xi)
     pyi = yi
-    
+
     a = pxi.min()
     b = pxi.max() - 360
 
@@ -184,7 +184,7 @@ def to_2d(files=None, var=None, grid=None, **kwargs):
         z_ = pyresample.kd_tree.resample_nearest(orig,zm,targ,radius_of_influence=100000,fill_value=0)
         e = np.concatenate((z, z_))
         xelev.append(e)
-        
+
     # create xarray
     xe = xr.Dataset({var : (['time', 'nSCHISM_hgrid_node'], xelev),
                 'SCHISM_hgrid_node_x' :(['nSCHISM_hgrid_node'], xn),
@@ -194,13 +194,13 @@ def to_2d(files=None, var=None, grid=None, **kwargs):
                     coords={'time': ('time', out.time.values)})
 
     return xe
-    
-    
+
+
 def reposition(px):
-    
+
     px[px<0] = px[px<0] + 360.
-    
+
     return px
-    
-    
-    
+
+
+

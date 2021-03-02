@@ -84,7 +84,7 @@ def schism(tmpdir):
         end_date = end_date.strftime(format='%Y-%m-%d %H:%M:%S')
         dr = pd.date_range(date, end_date, freq='12H')
         names = ['uvp_'+ datetime.datetime.strftime(x, '%Y%m%d%H') + '.grib' for x in dr]
-        dur = [ (DATA_DIR / name).as_posix() for name in names ] 
+        dur = [ (DATA_DIR / name).as_posix() for name in names ]
         meteo.append(dur)
 
     #set cast

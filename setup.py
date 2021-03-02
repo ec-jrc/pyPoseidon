@@ -41,8 +41,8 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.9'
         ]
 
-DESCRIPTION = ''          
-    
+DESCRIPTION = ''
+
 LONG_DESCRIPTION = ''
 
 PYTHON_REQUIRES = ''
@@ -54,9 +54,9 @@ SETUP_REQUIRES = ''
 
 TESTS_REQUIRE = ['pytest >= 3.6']
 
-URL = ''  
- 
-   
+URL = ''
+
+
 setup(name=DISTNAME,
       version=VERSION,
       license=LICENSE,

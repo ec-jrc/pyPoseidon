@@ -5,8 +5,8 @@ Jigsaw module
 # Copyright 2018 European Union
 # This file is part of pyPoseidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
-# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-# See the Licence for the specific language governing permissions and limitations under the Licence. 
+# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and limitations under the Licence.
 
 import pandas as pd
 import numpy as np
@@ -24,17 +24,17 @@ import pyPoseidon.dem as pdem
 from pyPoseidon.utils.hfun import *
 from pyPoseidon.utils.spline import *
 from pyPoseidon.utils.tag import *
-import logging        
-        
+import logging
+
 logger = logging.getLogger('pyPoseidon')
 
 
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'    
+DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
 TEST_DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/tests/data/'
 
 
 def geo(df, path='.', tag='jigsaw'):
-    
+
     fgeo = path + tag+'-geo.msh'
     # write header
     with open(fgeo,'w') as f:
@@ -42,7 +42,7 @@ def geo(df, path='.', tag='jigsaw'):
         f.write('MSHID=2;EUCLIDEAN-MESH\n')
         f.write('NDIMS=2\n')
         f.write('POINT={}\n'.format(df.shape[0]))
-    
+
     #write lines
     with open(fgeo, 'a') as f:
         for line in df.index.levels[0]:
@@ -62,21 +62,21 @@ def geo(df, path='.', tag='jigsaw'):
         dout = dline.reset_index().loc[:,['index','ie','tag']]
 
         dout['tag1'] = dline.loc[dline.ie.values,'tag'].values.astype(int)
-        dout['que'] = np.where(((dout['tag'] != dout['tag1']) & (dout['tag'] > 0)) , dout['tag1'], dout['tag'])    
+        dout['que'] = np.where(((dout['tag'] != dout['tag1']) & (dout['tag'] > 0)) , dout['tag1'], dout['tag'])
         dout = dout.reset_index().loc[:,['index','ie','que']]
-        edges = edges.append(dout)        
-        
+        edges = edges.append(dout)
+
     # write header
     with open(fgeo,'a') as f:
         f.write('EDGE2={}\n'.format(edges.shape[0]))
-    
+
     with open(fgeo, 'a') as f:
         edges.to_csv(f, index=False, header=0, sep=';')
-        
+
 
 
 def read_msh(fmsh):
-    
+
     grid = pd.read_csv(fmsh, header=0, names=['data'], index_col=None, low_memory=False)
     npoints = int(grid.loc[2].str.split('=')[0][1])
 
@@ -91,111 +91,111 @@ def read_msh(fmsh):
     tria = pd.DataFrame(grid.loc[i3 + 1 : i3 + ntria + 1 ,'data'].str.split(';').values.tolist(),columns=['a','b','c','d'])
 
     return [nodes,edges,tria]
-    
-    
-            
+
+
+
 
 def jigsaw(**kwargs):
-     
-    
+
+
     logger.info('Creating grid with JIGSAW\n')
-       
+
     geometry = kwargs.get('geometry', None)
-    
-    if isinstance(geometry,dict): 
-             
+
+    if isinstance(geometry,dict):
+
         df , bmindx = tag_(**kwargs)
-        
-        gr = jigsaw_(df, bmindx, **kwargs)       
-        
+
+        gr = jigsaw_(df, bmindx, **kwargs)
+
     elif isinstance(geometry,str):
-        
+
         if geometry=='global':
-                 
+
             hfun0 = hfun_(kwargs.get('coastlines',None),kwargs.get('res',.1), kwargs.get('R',1.))
-            
-            kwargs.update({'hfun':hfun0}) 
-            
+
+            kwargs.update({'hfun':hfun0})
+
             df = sgl(**kwargs)
-            
+
             bmindx = df.tag.min()
-            
-            gr = jigsaw_(df, bmindx, **kwargs)   
-            
-            
+
+            gr = jigsaw_(df, bmindx, **kwargs)
+
+
             convert = kwargs.get('to_lat_lon',True)
-            
+
             if convert :
                 # convert to lat/lon
-                u, v = gr.SCHISM_hgrid_node_x.values, gr.SCHISM_hgrid_node_y.values 
-            
+                u, v = gr.SCHISM_hgrid_node_x.values, gr.SCHISM_hgrid_node_y.values
+
                 rlon, rlat = to_lat_lon(u,v,R=kwargs.get('R',1.))
-            
+
                 gr['SCHISM_hgrid_node_x'].values = rlon
                 gr['SCHISM_hgrid_node_y'].values = rlat
-                       
+
         else:
-            
+
             hfun = kwargs.get('hfun', None)
-        
+
             if hfun == 'auto':
-        
+
                 try:
-        
+
                     dem = pdem.dem(**geometry)
-                
-                    res_min = kwargs.get('resolution_min',.01) 
+
+                    res_min = kwargs.get('resolution_min',.01)
                     res_max = kwargs.get('resolution_max',.5)
                     dhdx = kwargs.get('dhdx',.15)
-        
+
                     w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
                     if not os.path.exists(self.rpath): # check if run folder exists
                         os.makedirs(self.rpath)
-        
+
                     w.to_netcdf(self.rpath + 'hfun.nc') # save hfun
-        
+
                     kwargs.update({'hfun':self.rpath + 'hfun.nc'})
-            
+
                 except:
-                    
+
                     logger.warning('hfun failed... continuing without background mesh size')
-        
+
             df = jcustom(**kwargs)
-        
+
             bmindx = df.tag.min()
-        
+
             gr = jigsaw_(df, bmindx, **kwargs)
-          
-    
+
+
     return gr
 
 
 def sgl(**kwargs):
-    
+
     try:
         geo = gp.GeoDataFrame.from_file(kwargs.get('coastlines',None))
     except:
         logger.warning('coastlines is not a file, trying with geopandas Dataset')
         try:
             geo = kwargs.get('coastlines',None)
-        except:    
+        except:
             logger.error('coastlines argument not valid ')
             sys.exit(1)
-    
+
         # Manage coastlines
         logger.info('preparing coastlines')
         #Kaspian Sea, if present
         kasp = ((geo.bounds.miny > 36.) & (geo.bounds.maxy < 48.) & (geo.bounds.maxx < 55.) & (geo.bounds.minx > 45.))
         geo = geo.drop(geo.loc[kasp].index)
-    
+
         #ANTARTICA
         anta_mask = (geo.bounds.miny < geo.bounds.miny.min() + .1) # indentify antartica
         anta = geo.loc[anta_mask]
         indx = anta.index # keep index
-    
+
         try:
             anta = pd.DataFrame(anta.boundary.values[0].coords[:], columns=['lon','lat'])
-        except: 
+        except:
             anta = pd.DataFrame(anta.boundary.explode()[0].coords[:], columns=['lon','lat']) # convert boundary values to pandas
         d1 = anta.where(anta.lon==anta.lon.max()).dropna().index[1:] # get artificial boundaries as -180/180
         d2 = anta.where(anta.lon==anta.lon.min()).dropna().index[1:]
@@ -204,21 +204,21 @@ def sgl(**kwargs):
         anta = anta.drop(d3)
         an = gp.GeoDataFrame({'geometry' : [shapely.geometry.LineString(anta.values)], 'length':shapely.geometry.LineString(anta.values).length }, index=indx) # put together a LineString
         geo.loc[indx] = shapely.geometry.LineString(anta.values) # put it back to geo
-    
+
         # International Meridian
         m1 = geo[geo.bounds.minx == -180.].index
         m2 = geo[geo.bounds.maxx == 180.].index
         mm = np.concatenate((m1, m2)) # join them
         mm = [j for j in mm if j!=indx] # subtract antartica
-    
+
         # convert to u,v (stereographic coordinates)
         for idx, poly in geo.iterrows():
             geo.loc[idx,'geometry'] = shapely.ops.transform(lambda x,y,z=None: to_stereo(x,y, R=kwargs.get('R',1.)), poly.geometry)
-    
+
         w = geo.drop(indx) # get all polygons
         ww = w.loc[mm] # join the split polygons
         gw = gp.GeoDataFrame(geometry = list(ww.buffer(.0001).unary_union)) # merge the polygons that are split (around -180/180)
-    
+
         w = w.drop(mm)
         # Check antartica LineString
         if not geo.iloc[indx].geometry.values[0].is_ring:
@@ -226,14 +226,14 @@ def sgl(**kwargs):
             ca['geometry'] = shapely.geometry.LineString(ca.geometry.values[0])
         else:
             ca = geo.loc[indx]
-    
-        # PUT ALL TOGETHER    
-        geo = pd.concat([w, gw, ca], ignore_index=True).reset_index(drop=True)        
-    
+
+        # PUT ALL TOGETHER
+        geo = pd.concat([w, gw, ca], ignore_index=True).reset_index(drop=True)
+
     logger.info('storing boundaries')
-    
+
     geo['tag'] = - (geo.index + 1)
-    
+
     idx=0
     dic={}
     for i, line  in geo.iloc[:-1].iterrows():
@@ -251,7 +251,7 @@ def sgl(**kwargs):
                 lat.append(y)
             dic.update({'line{}'.format(idx):{'lon':lon,'lat':lat,'tag':line.tag}})
             idx += 1
-            
+
     for i, line  in geo.iloc[-1:].iterrows():
         lon=[]
         lat=[]
@@ -294,12 +294,12 @@ def jcustom(**kwargs):
         idx += 1
 
     dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
-    
+
     df = pd.concat(dict_of_df, axis=0)
-    
+
     df['z']=0
     df = df.drop_duplicates() # drop the repeat value on closed boundaries
-    
+
     out_b = []
     for line in df.index.levels[0]:
         out_b.append(shapely.geometry.LineString(df.loc[line,['lon','lat']].values))
@@ -316,41 +316,41 @@ def jcustom(**kwargs):
     final = df2.sort_index()
     final = pd.concat([final],keys=['line0'])
 
-    
+
     return final
 
-    
-def jigsaw_(df, bmindx, **kwargs):    
-    
+
+def jigsaw_(df, bmindx, **kwargs):
+
     logger.info('Creating JIGSAW files\n')
-    
+
     tag = kwargs.get('tag', 'jigsaw')
     rpath = kwargs.get('rpath', '.')
-    
-    
+
+
     if not os.path.exists(rpath):
             os.makedirs(rpath)
-    
+
     path = rpath+'/jigsaw/'
     if not os.path.exists(path):
         os.makedirs(path)
-    
-    
+
+
     geo(df,path=path,tag=tag)
-          
+
     hfun = kwargs.get('hfun', None)
-    
+
     if hfun is not None:
 
         if isinstance(hfun,str):
             dh = xr.open_dataset(hfun)
-            to_hfun_grid(dh,path + tag+'-hfun.msh')   # write hfun file  
+            to_hfun_grid(dh,path + tag+'-hfun.msh')   # write hfun file
         else:
-            to_hfun_mesh(hfun,path + tag+'-hfun.msh') 
-    
+            to_hfun_mesh(hfun,path + tag+'-hfun.msh')
+
     # write jig file
     fjig = path + '/' + tag+'.jig'
-    
+
     with open(fjig,'w') as f:
         f.write('GEOM_FILE ={}\n'.format(tag+'-geo.msh'))
         f.write('MESH_FILE ={}\n'.format(tag+'.msh'))
@@ -365,60 +365,60 @@ def jigsaw_(df, bmindx, **kwargs):
         f.write('MESH_RAD2 = 1\n')
         f.write('GEOM_FEAT = TRUE\n')
         f.write('VERBOSITY = 2')
-    
-    
-    
+
+
+
     calc_dir = rpath+'/jigsaw/'
-    
+
     execute = kwargs.get('execute_jigsaw', True)
-    
+
     if execute:
-    
-        #---------------------------------     
+
+        #---------------------------------
         logger.info('executing jigsaw\n')
-        #--------------------------------- 
-    
+        #---------------------------------
+
         #execute jigsaw
         ex=subprocess.Popen(args=['jigsaw {}'.format(tag+'.jig')], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)#, bufsize=1)
-        
-        with open(calc_dir+'err.log', 'w') as f: 
-          for line in iter(ex.stderr.readline,b''): 
-            f.write(line.decode(sys.stdout.encoding))   
-    #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stderr.close()            
 
-        with open(calc_dir+'run.log', 'w') as f: 
-          for line in iter(ex.stdout.readline,b''): 
-            f.write(line.decode(sys.stdout.encoding))   
+        with open(calc_dir+'err.log', 'w') as f:
+          for line in iter(ex.stderr.readline,b''):
+            f.write(line.decode(sys.stdout.encoding))
     #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stdout.close()         
-    
-        #--------------------------------- 
+        ex.stderr.close()
+
+        with open(calc_dir+'run.log', 'w') as f:
+          for line in iter(ex.stdout.readline,b''):
+            f.write(line.decode(sys.stdout.encoding))
+    #        logger.info(line.decode(sys.stdout.encoding))
+        ex.stdout.close()
+
+        #---------------------------------
         logger.info('Jigsaw FINISHED\n')
         #---------------------------------
-   
+
         gr = to_dataset(bmindx, **kwargs)
-   
+
         logger.info('..done creating mesh\n')
-    
+
         return gr
-   
-   
-   
+
+
+
 def to_dataset(bmindx, **kwargs):
 
     logger.info('..reading mesh\n')
 
     tag = kwargs.get('tag', 'jigsaw')
     rpath = kwargs.get('rpath', '.')
-    
+
     [nodes,edges,tria] = read_msh(rpath+'/jigsaw/'+ tag + '.msh')
-    
+
     nodes = nodes.apply(pd.to_numeric)
     tria = tria.apply(pd.to_numeric)
     edges = edges.apply(pd.to_numeric)
-    
-    # Look for hanging nodes 
+
+    # Look for hanging nodes
     tri3 = tria.values[:,:3]
     q = np.unique(tri3.flatten()) # all the unique nodes in elements
 
@@ -427,7 +427,7 @@ def to_dataset(bmindx, **kwargs):
     dq.sort()
     nodes = nodes.drop(dq) # drop nodes
     nodes = nodes.rename_axis('tag').reset_index() # reset index
-    
+
     ### Re-index tessalation
 
     A, idxA = np.unique(nodes['tag'], return_inverse=True)
@@ -440,7 +440,7 @@ def to_dataset(bmindx, **kwargs):
     B, idxB = np.unique(tria['c'], return_inverse=True)
     IDX = np.in1d(A,B)
     tria['c'] = idxA[IDX][idxB]
-    
+
     # Drop invalid edges
     drop_e = edges.loc[edges.e1.isin(dq) | edges.e2.isin(dq)].index
     edges = edges.drop(drop_e).reset_index(drop=True)
@@ -454,11 +454,11 @@ def to_dataset(bmindx, **kwargs):
     edges['e2'] = idxA[IDX][idxB]
     #clean up
     nodes = nodes.drop('tag',axis=1)
-   
-       
+
+
     # Boundaries
-    
-    # LAND Boundaries (negative tag)    
+
+    # LAND Boundaries (negative tag)
     ib = 1
     ib_ = 1
     isl = []
@@ -466,7 +466,7 @@ def to_dataset(bmindx, **kwargs):
         bb = np.unique(edges.loc[edges.e3 == ik,['e1','e2']].values.flatten())
         bf = pd.concat([nodes.loc[bb]])
         bf['idx'] = bb
-        if ik >= bmindx: 
+        if ik >= bmindx:
             flag = 0
             bf['indx'] = 'land_boundary_{}_{}'.format(ib,flag)
             c1=True
@@ -480,13 +480,13 @@ def to_dataset(bmindx, **kwargs):
         bf['flag'] = flag
         bf = bf.reset_index().set_index(['indx','index'])
         bf.index.names=['','']
-        
+
         if not bf.empty:
             isl.append(bf)
             if c1 is True : ib += 1
             if c2 is True : ib_ += 1
 
-    if isl :   
+    if isl :
 
         landb = pd.concat(isl)
 
@@ -495,11 +495,11 @@ def to_dataset(bmindx, **kwargs):
     else:
 
         land_i = []
-        
 
-        
+
+
     # WATER Boundaries (positive tag)
-    
+
     wb = 1
     wbs = []
     for ik in range(1,edges.e3.max()+1):
@@ -509,15 +509,15 @@ def to_dataset(bmindx, **kwargs):
 
         wbs.append(bf)
         wb += 1
-    
-    if wbs:   
-         
+
+    if wbs:
+
         openb = pd.concat(wbs)
-        
-        open_i = sorted(openb.index.levels[0], key=lambda x: int(x.split('_')[2]))    
-    
-        if openb.index.levels[0].shape[0] == 1: # sort the nodes if open box 
-    
+
+        open_i = sorted(openb.index.levels[0], key=lambda x: int(x.split('_')[2]))
+
+        if openb.index.levels[0].shape[0] == 1: # sort the nodes if open box
+
             pts = openb[['lon','lat']].values
 
             origin = [openb.mean()['lon'], openb.mean()['lat']]
@@ -527,36 +527,36 @@ def to_dataset(bmindx, **kwargs):
             sps = sorted(pts, key=lambda po: clockwiseangle_and_distance(po, origin, refvec))
 
             sps = np.array(sps)
-    
+
             # reorder openb
             fs = [tuple(lst) for lst in sps]
             ss = [tuple(lst) for lst in pts]
-    
+
             index_dict = dict((value, idx) for idx,value in enumerate(ss))
             idx = [index_dict[x] for x in fs]
-    
+
             openb = openb.iloc[idx]
-    
+
     else:
-        
+
         open_i = []
-        
-        
+
+
     # Fix an issue with jumping identifiers
-    
+
     nns = np.array([int(x.split('_')[-1]) for x in open_i])
     try:
         if nns.max() != nns.size:
             nns = np.arange(nns.size) + 1
-            open_i = ['open_boundary_{}'.format(x) for x in nns] 
-            lidx = dict(zip(openb.index.levels[0].to_list(), open_i))    
+            open_i = ['open_boundary_{}'.format(x) for x in nns]
+            lidx = dict(zip(openb.index.levels[0].to_list(), open_i))
             openb.rename(index=lidx, level=0, inplace=True)
     except:
         pass # continue is nns=[]
-        
-        
+
+
     #MAKE Dataset
-    
+
     els = xr.DataArray(
           tria.loc[:,['a','b','c']].values,
           dims=['nSCHISM_hgrid_face', 'nMaxSCHISM_hgrid_face_nodes'], name='SCHISM_hgrid_face_nodes'
@@ -600,33 +600,33 @@ def to_dataset(bmindx, **kwargs):
         nlp.append(landb.loc[line,'idx'].size)
         itype.append(landb.loc[line,'flag'].values[0])
         l_label.append(line)
-    
+
     lattr = pd.DataFrame({'label':l_label,'nps':nlp})
     lattr['type'] = itype
     lattr.set_index('label', inplace=True, drop=True)
 
     lbns = [j for i in lp for j in i]
     ldf = pd.DataFrame({'node':lbns,'type':1,'id':0},index=np.arange(len(lbns)))
-    
+
     idx=-1
     for l in range(len(lp)):
         ldf.loc[ldf.node.isin(lp[l]),'id'] = idx
         ldf.loc[ldf.node.isin(lp[l]),'type'] = lattr.iloc[l].type
         idx -= 1
-    
-    if not ldf.empty:    
+
+    if not ldf.empty:
         lk = -1
         for k in range(-1,ldf.id.min()-1 , -1):
-            if not ldf.loc[ldf.id==k].empty : 
+            if not ldf.loc[ldf.id==k].empty :
                 ldf.loc[ldf.id==k,'id'] = lk
-                lk -= 1    
-        
+                lk -= 1
+
     tbf = pd.concat([odf,ldf])
     tbf.index.name = 'bnodes'
-        
+
 
     gr = xr.merge([nod,dep,els,tbf.to_xarray()]) # total
-    
+
     return gr
-    
-    
+
+

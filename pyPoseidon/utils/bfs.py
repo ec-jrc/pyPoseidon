@@ -5,18 +5,18 @@ Utility functions
 # Copyright 2018 European Union
 # This file is part of pyPoseidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
-# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-# See the Licence for the specific language governing permissions and limitations under the Licence. 
+# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and limitations under the Licence.
 
 
 from collections import deque
 
 class Solution(object):
-    
+
     def append_if(self, queue, x, y, island_counter):
-        
-        b = [[0, 1], [1, 0]], [[0, 1], [-1, 0]], [[0, -1], [1, 0]], [[0, -1], [-1, 0]]    
-        
+
+        b = [[0, 1], [1, 0]], [[0, 1], [-1, 0]], [[0, -1], [1, 0]], [[0, -1], [-1, 0]]
+
         """Append to the queue only if in bounds of the grid and the cell value is 1."""
         if 0 <= x < len(self.grid) and 0 <= y < len(self.grid[0]):
             if self.grid[x][y] == '1':
@@ -27,7 +27,7 @@ class Solution(object):
                             queue.append((x, y))
                             break
                     except:pass
-                
+
 
     def mark_neighbors(self, row, col, island_counter):
         """Mark all the cells in the current island with value = 2. Breadth-first search."""
@@ -48,7 +48,7 @@ class Solution(object):
             self.append_if(queue, x - 1, y + 1, island_counter)
 
 
-            
+
     def numIslands(self, grid):
         """
         :type grid: List[List[str]]

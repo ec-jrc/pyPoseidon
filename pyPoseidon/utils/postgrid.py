@@ -18,23 +18,23 @@ os.environ['PROJ_LIB']= os.pathsep + cpath +'/share/proj'
 
 def nreduce(dnodes,delems,grid,elems,tag='tag'):
 
-    
-    
+
+
    ### Drop nodes
 
     grid = grid.drop(dnodes) # drop nodes
     grid = grid.rename_axis(tag).reset_index()
 
-   ### drop elements 
+   ### drop elements
     dropels = np.unique(delems)
 
 
 
     elems= elems.drop(dropels)
-    elems.reset_index(inplace=True, drop=True)    
+    elems.reset_index(inplace=True, drop=True)
 
     ### Re-index
-    
+
     A, idxA = np.unique(grid[tag], return_inverse=True)
     B, idxB = np.unique(elems['a'], return_inverse=True)
     IDX = np.in1d(A,B)
@@ -45,12 +45,12 @@ def nreduce(dnodes,delems,grid,elems,tag='tag'):
     B, idxB = np.unique(elems['c'], return_inverse=True)
     IDX = np.in1d(A,B)
     elems['c'] = idxA[IDX][idxB]
-       
-    
+
+
     return grid, elems
 
 def drop(nodes,elems,bnodes,dq):
-    
+
     nodes = nodes.drop(dq) # drop nodes
     nodes = nodes.rename_axis('tag').reset_index() # reset index
 
@@ -77,12 +77,12 @@ def drop(nodes,elems,bnodes,dq):
     bnodes.index.name = 'bnodes'
 
     nodes = nodes.drop('tag',axis=1)
-    
+
     return nodes,elems,bnodes
 
 
 def check(g, shp, bad):
-    
+
     # ## Read Grid
 #    g = pg.grid(type='tri2d',grid_file='/eos/jeodpp/data/projects/FLOODS-COAST/floods-coast/OPER/grids/eur_fixed.gr3')
 
@@ -108,7 +108,7 @@ def check(g, shp, bad):
     bnodes = g.Dataset[['node','id','type']].to_dataframe()
 
     # drop bad
-    dpoints = [bad] 
+    dpoints = [bad]
     # get corresponding elements
     ma = elems.a.isin(dpoints)
     mb = elems.b.isin(dpoints)
@@ -149,8 +149,8 @@ def check(g, shp, bad):
 
     #remove
     nodes,elems = nreduce(dpoints,dropels,nodes,elems)
-    
-    
+
+
     bnodes = bnodes.drop(bnodes.loc[bnodes.node.isin(dpoints)].index)
     sg = nodes.reset_index().set_index('tag')
     idx = bnodes.node.values,'index'
@@ -162,13 +162,13 @@ def check(g, shp, bad):
     bnodes.index.name = 'bnodes'
 
     bnodes = bnodes.drop_duplicates('node')
-    
+
     nodes = nodes.drop('tag',axis=1)
-    
-    
+
+
     # #### Check for hanging nodes
 
-    # Look for hanging nodes 
+    # Look for hanging nodes
     tri3 = elems.values[:,:3]
     q = np.unique(tri3.flatten()) # all the unique nodes in elements
 
@@ -251,7 +251,7 @@ def check(g, shp, bad):
             ci = jtree.query(con, predicate='intersects').tolist()
             if not ci: continue
             delems=elems.loc[ci].index.values
-            dnodes=np.unique(elems.loc[ci,['a','b','c']].values.flatten()) 
+            dnodes=np.unique(elems.loc[ci,['a','b','c']].values.flatten())
         #    print (ci, dnodes, delems)
 
 
@@ -259,7 +259,7 @@ def check(g, shp, bad):
             itree = pygeos.STRtree(inp)
             ipoints = itree.query(cos_, predicate='contains').tolist()
             ipoints = nodes.loc[dnodes].index[ipoints].values
-    
+
             #find elements that use these points
             ma = elems.a.isin(ipoints)
             mb = elems.b.isin(ipoints)
@@ -273,12 +273,12 @@ def check(g, shp, bad):
             dropels = np.unique(dropels)
 
             dds = np.unique(np.concatenate((delems,dropels),axis=0))
-    
+
             #get all nodes
             dns = np.unique(elems.loc[dds,['a','b','c']].values.flatten())
             #get boundary nodes
             ibs=[x for x in dns if x not in ipoints]
-    
+
 
         #    print (ipoints, ibs)
 
@@ -298,12 +298,12 @@ def check(g, shp, bad):
                 ibs=pd.DataFrame({'node':ibs,'type':1,'id':maxb},index=np.arange(len(ibs)))
 
             bnodes = pd.concat([bnodes,ibs],ignore_index=True)
-    
+
             bnodes = bnodes.drop_duplicates()
 
             nodes,elems = nreduce(ipoints,dds,nodes,elems)
-    
-    
+
+
             # Renumber boundary nodes
             if ipoints.size > 0 :
                 bnodes = bnodes.drop(bnodes.loc[bnodes.node.isin(ipoints)].index)
@@ -318,7 +318,7 @@ def check(g, shp, bad):
 
     # #### Check for hanging nodes
 
-    # Look for hanging nodes 
+    # Look for hanging nodes
     tri3 = elems.values[:,:3]
     q = np.unique(tri3.flatten()) # all the unique nodes in elements
 
@@ -328,7 +328,7 @@ def check(g, shp, bad):
 
     if len(dq)>0:
         nodes,elems,bnodes = drop(nodes,elems,bnodes,dq)
-    
+
 
     # Get the largest continous area
     jels = pygeos.polygons(elems.coordinates.values.tolist())
@@ -343,16 +343,16 @@ def check(g, shp, bad):
     gw['length']=gw['geometry'][:].length
     gw = gw.sort_values(by='length', ascending=0) #optional
     gw = gw.reset_index(drop=True)
-    
+
     # indentify the elements of the large polygon
     cgw = pygeos.from_shapely(gw.loc[1:].geometry)
     cgw_ = pygeos.set_operations.union_all(cgw)
     jtree_ = pygeos.STRtree(jels)
     invs = jtree_.query(cgw_, predicate='intersects').tolist()
-    
+
     if len(invs)>0:
     #Sort the elements (some shouldn't be there)
-    
+
         qnodes = np.unique([elems.loc[x,['a','b','c']].values.astype(int) for x in invs])
         nnodes = pygeos.points(list(nodes.loc[qnodes].values))
         ntree = pygeos.STRtree(nnodes)
@@ -360,7 +360,7 @@ def check(g, shp, bad):
         nevs = ntree.query(nels_, predicate='intersects').tolist()
         pns = qnodes[nevs]
         dpoints=[ x for x in qnodes if x not in pns]
-    
+
         #find elements that use these points
         ma = elems.a.isin(dpoints)
         mb = elems.b.isin(dpoints)
@@ -372,10 +372,10 @@ def check(g, shp, bad):
         dropels = list(np.hstack([ids1,ids2,ids3])) #these are the elements to be dropped - the ones which have dropped nodes
 
         dropels = np.unique(dropels)
-    
+
         #Remove the invalid elements
         nodes,elems = nreduce(dpoints,dropels,nodes,elems)
-    
+
         #reindex boundary nodes
         bnodes = bnodes.drop(bnodes.loc[bnodes.node.isin(dpoints)].index)
         sg = nodes.reset_index().set_index('tag')
@@ -388,9 +388,9 @@ def check(g, shp, bad):
         bnodes.index.name = 'bnodes'
 
         nodes = nodes.drop('tag',axis=1)
-    
-        
-    # Look for hanging nodes 
+
+
+    # Look for hanging nodes
     tri3 = elems.values[:,:3]
     q = np.unique(tri3.flatten()) # all the unique nodes in elements
 
@@ -400,17 +400,17 @@ def check(g, shp, bad):
 
     if len(dq)>0:
         nodes,elems,bnodes = drop(nodes,elems,bnodes,dq)
-    
+
     # check if empty boundary
-    
+
     lk = -1
     for k in range(-1,bnodes.id.min().astype(int)-1 , -1):
-        if not bnodes.loc[bnodes.id==k].empty : 
+        if not bnodes.loc[bnodes.id==k].empty :
             bnodes.loc[bnodes.id==k,'id'] = lk
             lk -= 1
-    
+
     bnodes = bnodes.drop_duplicates('node')
-    
+
 
     # ### create the new dataset
 
@@ -426,6 +426,6 @@ def check(g, shp, bad):
 
 
     ngr = xr.merge([nod,depx,elsx, bnodes.to_xarray()]) # total
-    
+
     return ngr
 

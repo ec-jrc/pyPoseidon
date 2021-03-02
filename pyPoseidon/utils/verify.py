@@ -19,10 +19,10 @@ import logging
 logger = logging.getLogger('pyPoseidon')
 
 def verify(g, shp, thorough=False):
-    #--------------------------------------------------------------------- 
+    #---------------------------------------------------------------------
     logger.info(' Verify grid against coastline\n')
-    #--------------------------------------------------------------------- 
-    
+    #---------------------------------------------------------------------
+
     lon_min = g.Dataset.SCHISM_hgrid_node_x.values.min()
     lon_max = g.Dataset.SCHISM_hgrid_node_x.values.max()
     lat_min = g.Dataset.SCHISM_hgrid_node_y.values.min()
@@ -54,17 +54,17 @@ def verify(g, shp, thorough=False):
     gtree = pygeos.STRtree(gps)
 
     invs = gtree.query(cos_, predicate='contains').tolist()
-    
-    #--------------------------------------------------------------------- 
+
+    #---------------------------------------------------------------------
     logger.info('Number of nodes within the coastlines {}\n'.format(len(invs)))
-    #--------------------------------------------------------------------- 
-    
+    #---------------------------------------------------------------------
+
     nps=len(invs)
-    
+
     nels=1
-    
+
     if thorough :
-    
+
         # ### Find invalid elements (that cross land)
 
         # cells to polygons
@@ -107,28 +107,28 @@ def verify(g, shp, thorough=False):
 
         ipols = ipols[~mask].reset_index(drop=True)
         ipols = gp.GeoDataFrame(ipols)
-    
-        #--------------------------------------------------------------------- 
-        logger.info('Number of elements intersecting the coastlines {}\n'.format(ipols.shape[0]))
-        #--------------------------------------------------------------------- 
 
-        nels=ipols.shape[0]        
+        #---------------------------------------------------------------------
+        logger.info('Number of elements intersecting the coastlines {}\n'.format(ipols.shape[0]))
+        #---------------------------------------------------------------------
+
+        nels=ipols.shape[0]
 
     if nps==0 and nels==0:
-        #--------------------------------------------------------------------- 
+        #---------------------------------------------------------------------
         logger.info('Grid is verified against the coastline')
-        #--------------------------------------------------------------------- 
+        #---------------------------------------------------------------------
         return True
     elif nps==0 :
-        #--------------------------------------------------------------------- 
+        #---------------------------------------------------------------------
         logger.info('Grid is node verified against the coastline')
-        #--------------------------------------------------------------------- 
-        return True        
+        #---------------------------------------------------------------------
+        return True
     else:
-        #--------------------------------------------------------------------- 
+        #---------------------------------------------------------------------
         logger.warning('Grid is not verified against the coastline')
-        #--------------------------------------------------------------------- 
+        #---------------------------------------------------------------------
         return False
-        
-        
-        
+
+
+
