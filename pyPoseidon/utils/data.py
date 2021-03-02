@@ -10,8 +10,6 @@ Data analysis module
 
 import numpy as np
 import os
-from pyPoseidon.utils.pplot import *
-from pyPoseidon.utils.hplot import *
 from pyPoseidon.utils.obs import obs
 from pyPoseidon.grid import *
 import pyPoseidon.model as pm
