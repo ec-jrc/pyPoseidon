@@ -5,7 +5,8 @@ channels:
   - gbrey
 
 dependencies:
-  - pyPoseidon
+  - python=3.8
+  - pyPoseidon=0.4.1
   - pschism
   - delft3d4
   - xorg-libxcursor
