@@ -21,14 +21,14 @@ DELFT3D needs to be compiled for your system. You can download it from http://os
 SCHISM needs to be compiled for your system. You can download it from  http://columbia.vims.edu/schism/tags/. See http://ccrm.vims.edu/schismweb/ for more info.
 
 
-You can also install the solvers easily with conda  
+You can also install the solvers easily with conda
 
 `conda install -c gbrey pschism delft3d4`
 
 
 ## Tests
 
-There are several sets of tests. You can run pyPoseidon unitests with 
+There are several sets of tests. You can run pyPoseidon unitests with
 
 `pytest`
 
@@ -40,7 +40,7 @@ or
 
 `python --rundelft`
 
-if you are using a local installation of the solvers please specify the PATH to the executables in your system such as 
+if you are using a local installation of the solvers please specify the PATH to the executables in your system such as
 
 `export D3D = '/path_to_folder_bin/lnx64/flow2d3d/'`
 
@@ -48,6 +48,12 @@ if you are using a local installation of the solvers please specify the PATH to 
 
 `export SCHISM = '/path_to_schism_executable'`
 
+## docs
+
+```
+mkdocs build
+mkdocs serve
+```
 
 ## License
-* The project is released under the EUPL v1.2 license. 
+* The project is released under the EUPL v1.2 license.
