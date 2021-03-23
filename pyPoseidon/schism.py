@@ -61,6 +61,40 @@ os.environ['PATH'] += os.pathsep + cpath + '/bin'
 class schism():
 
     def __init__(self,**kwargs):
+        """
+        Create a Schism solver
+
+        !!! danger ""
+            Due to a limitation of the Library rendering the docstrings, all arguments are marked
+            as `required`, nevertheless they are all `Optional`.
+
+        Args:
+            rfolder (str): The path to a directory containing the results of a Model solved by Schism.
+            global_grid (str):
+            geometry (Union[dict, str]): A dictionary containing the the bounding box of the region
+                you want to solve or a shapefile.
+            load_grid (bool): Flag indicating whether to load the grid or not. Defaults to `False`.
+            load_meteo (bool): Flag indicating whether to load the meteo data or not. Defauls to
+                `False`.
+            coastlines (Union[str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile which
+                describes the coastlines.
+            coast_resolution (str): If no coastlines have been provided, then Cartopy's
+                `NaturalEarthFeatures` are being used.  The resolution of the coastlines can be
+                controlled with this parameter.  Valid values are: `{"l", "i", "h"}` corresponding to
+                resolutions of `{110, 50, 10}` meters respectively. Defaults to `i`.
+            tag: (str): The solver's "tag". Defaults to `"schism"`. **Do we need this?**
+            tide: (str): Flag indicating whether to load "tide". Defaults to `False`.
+            atm (bool): The solver's atm. Defaults to `True`.
+            monitor (bool: The solver's monitor. Defaults to `False`.
+            epath (str): The path to the schism executable. If the `SCHISM` env variable has been
+                set, then it overrides the value passed as the parameter.
+            start_date (str): The date from which the analysis should start. It should be a string parseable
+                by `pd.to_datetime()`.
+            end_date (str): The date at which the analysis should end. It should be a string parseable by
+                `pd.to_datetime()`.
+            time_frame (str): The duration of the analysis. It should be a string parseable by
+                `pd.to_datetime()`.
+        """
 
         rfolder = kwargs.get('rfolder', None)
         if rfolder:
@@ -549,7 +583,6 @@ class schism():
         #---------------------------------------------------------------------
         logger.info('output done\n')
         #---------------------------------------------------------------------
-
 
 
     def run(self,**kwargs):

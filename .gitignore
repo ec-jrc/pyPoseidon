@@ -91,3 +91,6 @@ venv/
 conda.recipe/
 
 tests/data/*
+
+# mkdocs
+site/
