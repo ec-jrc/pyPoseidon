@@ -53,7 +53,10 @@ class hplot(object):
             mask = np.isnan(tes)[:,3]
             tr3 = tes[mask][:,:3]
             tr3_ = quads_to_tris(tes[~mask])
-            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            if tr3_ :
+                tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            else:
+                tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
 
@@ -167,7 +170,10 @@ class hplot(object):
             mask = np.isnan(tes)[:,3]
             tr3 = tes[mask][:,:3]
             tr3_ = quads_to_tris(tes[~mask])
-            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            if tr3_ :
+                tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            else:
+                tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
 
