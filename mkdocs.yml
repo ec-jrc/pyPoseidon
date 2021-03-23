@@ -1,0 +1,24 @@
+---
+
+site_name: "pyPoseidon docs"
+use_directory_urls: false
+
+theme:
+  name: "material"
+
+nav:
+  - "Home": "00_index.md"
+  - "Installation": "10_installation.md"
+  - "API": "50_API.md"
+
+markdown_extensions:
+  - "admonition"
+  - "codehilite"
+  - "pymdownx.tilde"
+  - "pymdownx.superfences"
+  - toc:
+      permalink: true
+
+plugins:
+  - "search"
+  - "mkdocstrings":
