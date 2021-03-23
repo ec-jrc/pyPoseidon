@@ -10,12 +10,12 @@ dependencies:
   - pyresample
   - pydap
   - dask
-  - pygeos>=0.6 
+  - pygeos>=0.6
   - geoviews
   - geopandas
   - rasterio
   - jigsaw=0.9.12
-  - seaborn 
+  - seaborn
   - hvplot
   - descartes
   - netCDF4
@@ -28,6 +28,7 @@ dependencies:
   - pytest
   - pytest-cov
   - ipympl
+  - zarr
   - pschism
   - delft3d4
   - pip
