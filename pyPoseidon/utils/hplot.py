@@ -38,7 +38,7 @@ class hplot(object):
         self._obj = xarray_obj
 
 
-    def contourf(self, var='depth', it=None, **kwargs):
+    def contourf(self, var='depth', it=None, tiles=False, **kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -66,13 +66,16 @@ class hplot(object):
         height = kwargs.get('height', 600)
         opts.defaults(opts.WMTS(width=width, height=height))
 
-        tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
+        tile = gv.WMTS('https://b.tile.openstreetmap.org/{Z}/{X}/{Y}.png')
 
         points = gv.operation.project_points(gv.Points(nodes, vdims=['{}'.format(var)]))
 
         trimesh = gv.TriMesh((elems, points))
-        return tiles * rasterize(trimesh, aggregator='mean').opts(colorbar=True, cmap='Viridis', padding=.1, tools=['hover'])
-
+        
+        if tiles:
+            return tile * rasterize(trimesh, aggregator='mean').opts(colorbar=True, cmap='Viridis', padding=.1, tools=['hover'])
+        else:
+            return rasterize(trimesh, aggregator='mean').opts(colorbar=True, cmap='Viridis', padding=.1, tools=['hover'],width=width,height=height)
 
     def meteo(self,**kwargs):
 
@@ -86,7 +89,7 @@ class hplot(object):
 
         return
 
-    def grid(self, **kwargs):
+    def grid(self, tiles=False, **kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -96,12 +99,11 @@ class hplot(object):
         height = kwargs.get('height', 600)
         opts.defaults(opts.WMTS(width=width, height=height))
 
-        tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
+        tile = gv.WMTS('https://b.tile.openstreetmap.org/{Z}/{X}/{Y}.png')
 
         nodes = pd.DataFrame({'longitude':x,'latitude':y})
 
         points = gv.operation.project_points(gv.Points(nodes))
-
 
         if tes.shape[1] == 3 :
 
@@ -109,7 +111,10 @@ class hplot(object):
 
             trimesh=gv.TriMesh((elems, points)).edgepaths
 
-            return tiles * datashade(trimesh, precompute=True, cmap=['black'])
+            if tiles:
+                return tile * datashade(trimesh, precompute=True, cmap=['black'])
+            else:
+                return datashade(trimesh, precompute=True, cmap=['green']).opts(width=width,height=height)
 
 
         else: # there are quads
@@ -133,10 +138,12 @@ class hplot(object):
 
             trimesh=gv.TriMesh((triangles, points)).edgepaths
 
-            g1 = tiles * datashade(trimesh, precompute=True, cmap=['black'])
+            g1 = datashade(trimesh, precompute=True, cmap=['black'])
 
-
-            return g1 * q
+            if tiles : 
+                return tile * g1 * q
+            else:
+                return g1 * q
 
 
     def qframes(self,**kwargs):
@@ -145,7 +152,7 @@ class hplot(object):
         return
 
 
-    def frames(self,var='depth',**kwargs):
+    def frames(self,var='depth', tiles=False, **kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -178,7 +185,7 @@ class hplot(object):
         height = kwargs.get('height', 600)
         opts.defaults(opts.WMTS(width=width, height=height))
 
-        tiles = gv.WMTS('https://maps.wikimedia.org/osm-intl/{Z}/{X}/{Y}@2x.png')
+        tile = gv.WMTS('https://b.tile.openstreetmap.org/{Z}/{X}/{Y}.png')
 
         points = gv.operation.project_points(gv.Points(nodes, vdims=['{}'.format(var)]))
 
@@ -192,7 +199,10 @@ class hplot(object):
 
         imesh = rasterize(meshes, aggregator='mean').opts(cmap='viridis', colorbar=True, padding=.1, tools=['hover'], clim=(zmin, zmax))
 
-        return hv.output(tiles*imesh, holomap='scrubber', fps=1)
+        if tiles:
+            return hv.output(tile*imesh, holomap='scrubber', fps=1)
+        else:
+            return hv.output(imesh.opts(width=width,height=height), holomap='scrubber', fps=1)
 
 
 
