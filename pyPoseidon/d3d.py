@@ -22,6 +22,7 @@ import pandas as pd
 import glob
 from shutil import copyfile
 import xarray as xr
+import geopandas as gp
 
 #local modules
 import pyPoseidon
