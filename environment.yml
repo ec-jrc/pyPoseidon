@@ -15,7 +15,6 @@ dependencies:
   - geopandas
   - rasterio
   - jigsaw=0.9.12
-  - seaborn
   - hvplot
   - descartes
   - netCDF4
