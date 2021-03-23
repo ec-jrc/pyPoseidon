@@ -184,9 +184,6 @@ def sgl(**kwargs):
 
         # Manage coastlines
         logger.info('preparing coastlines')
-        #Kaspian Sea, if present
-        kasp = ((geo.bounds.miny > 36.) & (geo.bounds.maxy < 48.) & (geo.bounds.maxx < 55.) & (geo.bounds.minx > 45.))
-        geo = geo.drop(geo.loc[kasp].index)
 
         #ANTARTICA
         anta_mask = (geo.bounds.miny < geo.bounds.miny.min() + .1) # indentify antartica
