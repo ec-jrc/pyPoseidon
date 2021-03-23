@@ -202,7 +202,10 @@ class pplot(object):
             mask = np.isnan(tes)[:,3]
             tr3 = tes[mask][:,:3]
             tr3_ = quads_to_tris(tes[~mask])
-            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            if tr3_ :
+                tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            else:
+                tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
 
@@ -267,7 +270,10 @@ class pplot(object):
             mask = np.isnan(tes)[:,3]
             tr3 = tes[mask][:,:3]
             tr3_ = quads_to_tris(tes[~mask])
-            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            if tr3_ :
+                tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            else:
+                tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
 
@@ -323,7 +329,7 @@ class pplot(object):
         return p #fig, ax
 
 
-    def quiver(self, it=None, **kwargs):
+    def quiver(self, it=None, u=None, v=None, title=None, scale=.1, color='k', **kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -332,15 +338,8 @@ class pplot(object):
         except:
             pass
 
-        var = kwargs.get('var','dahv')
-        u = kwargs.get('u',self._obj[var].values[it,:,0].flatten())
-        v = kwargs.get('v',self._obj[var].values[it,:,1].flatten())
-
-        scale = kwargs.get('scale', .1)
-        color = kwargs.get('color', 'white')
-
         fig = plt.figure(figsize=(12,8))
-        title = kwargs.get('title', 'vector plot for {}'.format(var))
+        title = kwargs.get('title', 'vector plot for {}'.format(title))
         xy=kwargs.get('xy',(0.05, -.1))
 
        ## CHOOSE YOUR PROJECTION
@@ -429,7 +428,7 @@ class pplot(object):
 
 
 
-    def qframes(self,**kwargs):
+    def qframes(self, u=None, v=None, color='k', **kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -438,14 +437,7 @@ class pplot(object):
         cr = kwargs.get('coastlines', None)
         c_attrs = kwargs.get('coastlines_attrs', {})
 
-        var = kwargs.get('var','dahv')
-        u = kwargs.get('u',self._obj[var].values[:,:,0])
-        v = kwargs.get('v',self._obj[var].values[:,:,1])
-
         t = kwargs.get('t',self._obj.time.values)
-
-        color = kwargs.get('color', 'white')
-
 
 #        ax = plt.axes(projection=ccrs.PlateCarree())
       #  ax.set_extent([x.min(), x.max(), y.min(), y.max()])
@@ -501,7 +493,10 @@ class pplot(object):
             mask = np.isnan(tes)[:,3]
             tr3 = tes[mask][:,:3]
             tr3_ = quads_to_tris(tes[~mask])
-            tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            if tr3_ :
+                tri3 = np.append(tr3,tr3_,axis=0).astype(int)
+            else:
+                tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
 
