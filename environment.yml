@@ -30,6 +30,11 @@ dependencies:
   - zarr
   - pschism
   - delft3d4
+  - mkdocs
+  - mkdocs-material
+  - pymdown-extensions
+  - mkdocstrings
+  - black
   - pip
   - pip:
     - gmsh
