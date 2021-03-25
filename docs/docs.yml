@@ -1,20 +1,37 @@
-name: poseidon
+name: pp-docs
+
 channels:
   - conda-forge
-  - gbrey
-  - defaults
+
 dependencies:
-  - pip
-  - geos
   - python=3.8
-  - proj < 8
-  - gdal=3.2.1
-  - jigsaw=0.9.12
-  - libglu
-  - xorg-libxcursor
-  - xorg-libxft
-  - xorg-libxinerama
-  - fltk
-  - eccodes
+  - mayavi
+  - pyresample
+  - pydap
+  - dask
+  - pygeos>=0.6
+  - geoviews
+  - geopandas
+  - rasterio
+  - hvplot
+  - descartes
+  - netCDF4
+  - cfgrib
+  - moviepy
+  - imageio-ffmpeg
+  - bump2version
+  - colorlog
+  - f90nml
+  - pytest
+  - pytest-cov
+  - ipympl
+  - zarr
+  - pip
+  - mkdocs
+  - mkdocs-material
+  - pymdown-extensions
+  - mkdocstrings
+  - black
   - pip:
+    - gmsh
     - -e ..
