@@ -1,39 +1,18 @@
-name: pyPoseidon
-
+name: poseidon
 channels:
   - conda-forge
   - gbrey
-
+  - defaults
 dependencies:
-  - python=3.8
-  - mayavi
-  - pyresample
-  - pydap
-  - dask
-  - pygeos>=0.6
-  - geoviews
-  - geopandas
-  - rasterio
-  - jigsaw=0.9.12
-  - hvplot
-  - descartes
-  - netCDF4
-  - cfgrib
-  - moviepy
-  - imageio-ffmpeg
-  - bump2version
-  - colorlog
-  - f90nml
-  - pytest
-  - pytest-cov
-  - ipympl
-  - zarr
-  - mkdocs
-  - mkdocs-material
-  - pymdown-extensions
-  - mkdocstrings
-  - black
   - pip
-  - pip:
-    - gmsh
-    - -e ../
+  - geos
+  - python=3.8
+  - proj < 8
+  - gdal=3.2.1
+  - jigsaw=0.9.12
+  - libglu
+  - xorg-libxcursor
+  - xorg-libxft
+  - xorg-libxinerama
+  - fltk
+  - eccodes
