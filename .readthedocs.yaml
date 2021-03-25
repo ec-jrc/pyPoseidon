@@ -9,5 +9,10 @@ mkdocs:
   configuration: mkdocs.yml
   fail_on_warning: false
 
-conda:
-  environment: docs/docs.yml
+python:
+  version: 3.8
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
