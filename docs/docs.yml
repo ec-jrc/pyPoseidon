@@ -16,3 +16,5 @@ dependencies:
   - xorg-libxinerama
   - fltk
   - eccodes
+  - pip:
+    - -e ../
