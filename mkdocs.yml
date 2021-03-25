@@ -7,9 +7,11 @@ theme:
   name: "material"
 
 nav:
-  - "Home": "00_index.md"
-  - "Installation": "10_installation.md"
-  - "API": "50_API.md"
+  - Overview : "index.md"
+  - Installation : "10_installation.md"
+  - Usage : "20_usage.md"
+  - API : "50_API.md"
+  - References : "90_references.md"
 
 markdown_extensions:
   - "admonition"
