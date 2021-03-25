@@ -17,4 +17,4 @@ dependencies:
   - fltk
   - eccodes
   - pip:
-    - -e ../
+    - -e ..
