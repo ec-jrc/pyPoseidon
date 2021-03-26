@@ -1,0 +1,22 @@
+name: poseidon
+channels:
+  - conda-forge
+  - gbrey
+  - defaults
+dependencies:
+  - pip
+  - geos
+  - python=3.8
+  - proj < 8
+  - gdal=3.2.1
+  - jigsaw=0.9.12
+  - libglu
+  - xorg-libxcursor
+  - xorg-libxft
+  - xorg-libxinerama
+  - fltk
+  - eccodes
+  - delft3d4
+  - pschism
+  - pip:
+    - -r file:requirements.txt
