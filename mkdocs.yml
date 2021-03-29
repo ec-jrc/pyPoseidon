@@ -1,7 +1,8 @@
 ---
 
-site_name: "pyPoseidon docs"
+site_name: "pyPoseidon"
 use_directory_urls: false
+repo_url: "https://github.com/brey/pyPoseidon"
 
 theme:
   name: "material"
@@ -9,9 +10,9 @@ theme:
 nav:
   - Overview : "index.md"
   - Installation : "10_installation.md"
-  - Usage : "20_usage.md"
+  - Structure : "20_structure.md"
+  - User Guide : "30_usage.md"
   - API : "50_API.md"
-  - References : "90_references.md"
 
 markdown_extensions:
   - "admonition"
