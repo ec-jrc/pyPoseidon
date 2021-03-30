@@ -342,7 +342,9 @@ class schism():
         if not os.path.exists(path+'sflux'):
             os.makedirs(path+'sflux')
 
-        filename = kwargs.get('filename','sflux/sflux_air_1.0001.nc')
+        m_index = kwargs.get('m_index',1)
+        
+        filename = kwargs.get('filename','sflux/sflux_air_{}.0001.nc'.format(m_index))
 
         sout.to_netcdf(path+filename)
 
@@ -539,11 +541,13 @@ class schism():
         logger.info('Windrot_geo2proj file created..\n')
 
         #save meteo
+        m_index = get_value(self,kwargs,'m_index',1)
+        
         if hasattr(self, 'atm') :
            try:
               if split_by :
                   times, datasets = zip(*self.meteo.Dataset.groupby('time.{}'.format(split_by)))
-                  mpaths = ['sflux/sflux_air_1.{:04d}.nc'.format(t + 1) for t in np.arange(len(times))]
+                  mpaths = ['sflux/sflux_air_{}.{:04d}.nc'.format(m_index, t + 1) for t in np.arange(len(times))]
                   for das,mpath in list(zip(datasets,mpaths)):
                       self.to_force(das,vars=['msl','u10','v10'],rpath=path, filename=mpath, date=self.date, **kwargs)
               else:

@@ -29,7 +29,6 @@ from matplotlib import animation
 matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['animation.embed_limit'] = '200.'
-#plt.style.use(['dark_background'])
 
 @xr.register_dataset_accessor('gplot')
 class gplot(object):
@@ -39,6 +38,11 @@ class gplot(object):
 
 
     def contourf(self,x=None,y=None,z=None,tname='time',**kwargs):
+        
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
+        
         fig, ax = plt.subplots(figsize=(12,8))
 
         if len(self._obj[x].shape) > 2:
@@ -103,6 +107,10 @@ class gplot(object):
 
 
     def quiver(self,x=None,y=None,z=None,tname='time',**kwargs):
+        
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
 
         U = self._obj[z].values[:,:,:,0]
         V = self._obj[z].values[:,:,:,1]
@@ -185,6 +193,10 @@ class pplot(object):
 
     def contour(self, it=None, **kwargs):
 
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
+
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         try:
@@ -256,6 +268,10 @@ class pplot(object):
         return p#, ax
 
     def contourf(self, it=None, **kwargs):
+
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -329,7 +345,11 @@ class pplot(object):
         return p #fig, ax
 
 
-    def quiver(self, it=None, u=None, v=None, title=None, scale=.1, color='k', **kwargs):
+    def quiver(self, it=None, u=None, v=None, title=None, **kwargs):
+
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -382,6 +402,10 @@ class pplot(object):
 
     def grid(self, **kwargs):
 
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
+
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
@@ -429,6 +453,10 @@ class pplot(object):
 
 
     def qframes(self, u=None, v=None, color='k', **kwargs):
+
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -479,6 +507,10 @@ class pplot(object):
 
 
     def frames(self,**kwargs):
+
+        #set plt style 
+        plt_style = kwargs.get('plt_style', None)
+        if plt_style : plt.style.use(plt_style)
 
         cr = kwargs.get('coastlines', None)
         c_attrs = kwargs.get('coastlines_attrs', {})

@@ -159,11 +159,13 @@ class meteo:
 
         s = getattr(model,solver) # get solver class
         var_list = kwargs.pop('vars', ['msl','u10','v10'])
+        
+        m_index = get_value(self,kwargs,'m_index',1)
 
         split_by = get_value(self,kwargs,'meteo_split_by',None)
         if split_by :
             times, datasets = zip(*self.Dataset.groupby('time.{}'.format(split_by)))
-            mpaths = ['sflux/sflux_air_1.{:04d}.nc'.format(t + 1) for t in np.arange(len(times))]
+            mpaths = ['sflux/sflux_air_{}.{:04d}.nc'.format(m_index, t + 1) for t in np.arange(len(times))]
             for das,mpath in list(zip(datasets,mpaths)):
                 s.to_force(das,vars=var_list, filename=mpath, **kwargs)
         else:
@@ -522,10 +524,13 @@ def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None
 
 def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, **kwargs):
 
-    try:
-        start_date = pd.to_datetime(start_date)
-    except:
-        pass
+    if start_date:
+        try:
+            start_date = pd.to_datetime(start_date)
+        except:
+            pass
+    else:
+        start_date = pd.to_datetime(datetime.datetime.today())
 
     if time_frame:
         try:
@@ -568,6 +573,10 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
 
     lon0 = lon0 - 360. if lon0 > data.longitude.max() else lon0
     lon1 = lon1 - 360. if lon1 > data.longitude.max() else lon1
+
+    # adjust te if value is None
+    
+    if not te: te = pd.to_datetime(data.time.max().values)
 
     if ts < data.time.min().values :
       ld = pd.to_datetime(data.time.min().values).strftime(format='%Y-%m-%d %H:%M:%S')
