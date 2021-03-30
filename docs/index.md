@@ -3,7 +3,7 @@ pyPoseidon
 
 <style>body {text-align: justify}</style>
 
-Hydrodynamic simulations within the context of geoflows are very cumbersome. The process can be split into 3 stages. 
+Hydrodynamic simulations within the context of geoflows are very cumbersome. The process can be split into three stages. 
 
 The pre-processing stage where the necessary input is prepared. This includes input data conversion, parameter setting and grid generation. The latter usually requires a manual process using dedicated software.
 
@@ -30,9 +30,9 @@ pyPoseidon strives to provide:
 
 Currently 2 numerical solvers are supported. 
 
-- *Delft3D* which uses a structured grid. For more info see http://oss.deltares.nl/web/delft3d/source-code.
+- *Delft3D* which uses a structured grid. For more info see [here](http://oss.deltares.nl/web/delft3d/source-code).
 
-- *SCHISM* which relies on an unstructured grid. For more info see http://ccrm.vims.edu/schismweb/. 
+- *SCHISM* which relies on an unstructured grid. For more info see [here](http://ccrm.vims.edu/schismweb/). 
 
 # Documentation
 
