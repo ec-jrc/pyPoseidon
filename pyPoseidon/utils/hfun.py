@@ -40,9 +40,11 @@ def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dh
     V[V>0] = 0 #normalize to only negative values
 
     hfun =  np.sqrt(-V)/.5 # scale with sqrt(H)
-    hfun[hfun < hmin] = hmin
-    hfun[hfun > hmax] = hmax
 
+    #adjust scale            
+    a2 = (hfun - hfun.min()) / (hfun.max() - hfun.min())    
+    hfun = hmin + a2 * (hmax - hmin)
+    
 #    subspace = kwargs.get('subspace', None)
 
 #    if subspace is not None:
