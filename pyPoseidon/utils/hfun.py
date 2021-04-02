@@ -27,7 +27,7 @@ def MakeFacesVectorized1(Nr,Nc):
     return out
 
 
-def hfun(data, path='.', tag='jigsaw', resolution_min=.05, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
+def hfun(data, path='.', tag='jigsaw', resolution_min=.01, resolution_max=.5, dhdx=.15, imax=100, **kwargs):
 
 
     X, Y = np.meshgrid(data.longitude.values,data.latitude.values)
