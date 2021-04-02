@@ -9,6 +9,8 @@
 
 # the local test folder
 examples/test
+examples/bgmesh
+examples/gmsh
 
 # the local jigsaw folder
 pyPoseidon/tests/jigsaw/*
