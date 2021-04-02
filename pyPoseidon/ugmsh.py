@@ -20,6 +20,8 @@ import gmsh
 from pyPoseidon.utils.tag import *
 from pyPoseidon.utils.spline import *
 from pyPoseidon.utils.stereo import to_lat_lon
+from pyPoseidon.utils.pos import *
+import pyPoseidon.dem as pdem
 
 import logging
 logger = logging.getLogger('pyPoseidon')
@@ -259,6 +261,45 @@ def gset(df,**kwargs):
     return ddf
 
 
+def make_bgmesh(dem, res_min, res_max):
+    
+
+    #scale bathymetry
+    try:
+        b = dem.adjusted.to_dataframe()
+    except:
+        b = dem.elevation.to_dataframe()
+    
+    b.columns=['z']
+        
+    b[b.z>=-10] = -1.e-4 #normalize to only negative values
+
+    b.z = np.sqrt(-b.z) / .5 # scale
+    
+    #adjust scale
+        
+    bg = b.z.values
+    
+    a2 = (bg - bg.min()) / (bg.max() - bg.min())
+    
+    d2 = res_min + a2 * (res_max - res_min)
+    
+    b['d2'] = d2
+    
+    nodes = b.reset_index()
+    
+    nodes['z']=0
+    
+    x = dem.longitude.values
+    y = dem.latitude.values
+    
+    quad=MakeFacesVectorized(y.shape[0],x.shape[0]) # get element structure from array
+    elems=pd.DataFrame(quad,columns=['a','b','c','d'])
+    
+    df = to_df(elems,nodes)
+    
+    return df
+
 def make_gmsh(df, **kwargs):
 
     logger.info('create grid')
@@ -420,24 +461,67 @@ def make_gmsh(df, **kwargs):
     model.mesh.field.add("Distance", 1)
     model.mesh.field.setNumbers(1, "CurvesList", lists)
 
+
+    SizeMin = kwargs.get("SizeMin",.1)
+    SizeMax = kwargs.get("SizeMax",.5)
+    DistMin = kwargs.get("DistMin",.01)
+    DistMax = kwargs.get("DistMax",.2)
+    
+
     model.mesh.field.add("Threshold", 2);
     model.mesh.field.setNumber(2, "InField", 1);
-    model.mesh.field.setNumber(2, "SizeMin", .01);
-    model.mesh.field.setNumber(2, "SizeMax", .1);
-    model.mesh.field.setNumber(2, "DistMin", .01);
-    model.mesh.field.setNumber(2, "DistMax", .1);
-#    model.mesh.field.setNumber(2, "StopAtDistMax", 1);
+    model.mesh.field.setNumber(2, "SizeMin", SizeMin);
+    model.mesh.field.setNumber(2, "SizeMax", SizeMax);
+    model.mesh.field.setNumber(2, "DistMin", DistMin);
+    model.mesh.field.setNumber(2, "DistMax", DistMax);
+    
+    
+    # Set bgmesh
+    bgmesh = kwargs.get('bgmesh', None)
+    
+    if bgmesh == 'auto':
+        
+        try:
 
-    # Merge a post-processing view containing the target anisotropic mesh sizes
-#    gmsh.merge('iceland.pos')
+            logger.info('Read DEM')
+            dem = pdem.dem(**kwargs)
 
-#    model.mesh.field.add("PostView", 3)
-#    model.mesh.field.setNumber(3, "ViewIndex", 0)
+            res_min = kwargs.get('resolution_min',.01)
+            res_max = kwargs.get('resolution_max',.5)
+        
+            logger.info('Evaluate bgmesh')
+            w = make_bgmesh(dem.Dataset,res_min, res_max)
+        
+            path = kwargs.get('rpath','.')
+        
+            if not os.path.exists(path): # check if run folder exists
+                os.makedirs(path)
+        
+            logger.info('Save bgmesh to {}/bgmesh/bgmesh.pos'.format(path))
+            
+            fpos = path + '/bgmesh/bgmesh.pos'   
+            to_sq(w,fpos) # save bgmesh
+            
+            kwargs.update({'bgmesh':fpos})
+            
+            model.mesh.field.setNumber(2, "StopAtDistMax", 1);
 
-#    model.mesh.field.add("Min", 4)
-#    model.mesh.field.setNumbers(4, "FieldsList", [2,3])
+            # Merge a post-processing view containing the target anisotropic mesh sizes
+            gmsh.merge(fpos)
 
-    model.mesh.field.setAsBackgroundMesh(2)
+            model.mesh.field.add("PostView", 3)
+            model.mesh.field.setNumber(3, "ViewIndex", 0)
+            
+            model.mesh.field.add("Min", 4)
+            model.mesh.field.setNumbers(4, "FieldsList", [2,3])
+                    
+            model.mesh.field.setAsBackgroundMesh(4)
+            
+        except:
+
+            logger.warning('bgmesh failed... continuing without background mesh size')
+
+            model.mesh.field.setAsBackgroundMesh(2)
 
     gmsh.option.setNumber('Mesh.MeshSizeExtendFromBoundary',0)
     gmsh.option.setNumber('Mesh.MeshSizeFromPoints',0)
