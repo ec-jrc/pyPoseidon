@@ -461,7 +461,7 @@ class tri2d():
             #------------------------------------------------------------------------------
             bin_path = 'schism'
 
-        ncores = NCORES
+        ncores = 1
         calc_dir = path
 
 
