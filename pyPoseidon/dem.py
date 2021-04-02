@@ -23,6 +23,12 @@ logger = logging.getLogger('pyPoseidon')
 
 class dem:
     def __init__(self, dem_source=None, **kwargs):
+        
+        # integrate geometry attribute.
+        geometry = kwargs.get('geometry', None)        
+        if geometry:           
+            kwargs.update(**geometry)
+        
         if not dem_source :
             dem_source = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus'
             kwargs.update({'dem_xr_kwargs':{'engine':'pydap'}})

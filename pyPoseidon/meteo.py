@@ -136,6 +136,12 @@ class meteo:
         retrieved : xarray DataSet
 
         """
+        
+        # integrate geometry attribute.
+        geometry = kwargs.get('geometry', None)        
+        if geometry:           
+            kwargs.update(**geometry)
+        
         if meteo_engine == 'cfgrib' :
                 self.Dataset = cfgrib(meteo_source, **kwargs)
         elif meteo_engine == 'pynio' :
@@ -524,24 +530,15 @@ def pynio(filenames=None, lon_min=None, lon_max=None, lat_min=None, lat_max=None
 
 def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None, start_date=None, end_date=None, time_frame=None, **kwargs):
 
-    if start_date:
-        try:
-            start_date = pd.to_datetime(start_date)
-        except:
-            pass
-    else:
+    if not start_date:
         start_date = pd.to_datetime(datetime.datetime.today())
-
-    if time_frame:
-        try:
-            end_date = start_date + pd.to_timedelta(time_frame)
-        except:
-            pass
     else:
-        try:
-            end_date = pd.to_datetime(end_date)
-        except:
-            pass
+        start_date = pd.to_datetime(start_date)
+        
+    if time_frame:        
+        end_date = start_date + pd.to_timedelta(time_frame)       
+    elif end_date: 
+        end_date = pd.to_datetime(end_date)
 
     ts = pd.to_datetime(start_date)
     te = pd.to_datetime(end_date)
