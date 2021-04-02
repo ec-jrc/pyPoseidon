@@ -101,6 +101,38 @@ def jigsaw(**kwargs):
     logger.info('Creating grid with JIGSAW\n')
 
     geometry = kwargs.get('geometry', None)
+       
+    # Set bgmesh
+    bgmesh = kwargs.get('bgmesh', None)
+    
+    if bgmesh == 'auto':
+
+        try:
+
+            logger.info('Read DEM')
+            dem = pdem.dem(**kwargs)
+
+            res_min = kwargs.get('resolution_min',.01)
+            res_max = kwargs.get('resolution_max',.5)
+            dhdx = kwargs.get('dhdx',.15)
+            
+            logger.info('Evaluate bgmesh')
+            w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
+            
+            path = kwargs.get('rpath','./bgmesh/')
+            
+            if not os.path.exists(path): # check if run folder exists
+                os.makedirs(path)
+            
+            logger.info('Save bgmesh to {}bgmesh.nc'.format(path))
+            w.to_netcdf(path + 'bgmesh.nc') # save bgmesh
+
+            kwargs.update({'bgmesh':path + 'bgmesh.nc'})
+
+        except:
+
+            logger.warning('bgmesh failed... continuing without background mesh size')
+    
 
     if isinstance(geometry,dict):
 
@@ -112,9 +144,9 @@ def jigsaw(**kwargs):
 
         if geometry=='global':
 
-            hfun0 = hfun_(kwargs.get('coastlines',None),kwargs.get('res',.1), kwargs.get('R',1.))
+            bgmesh = hfun_(kwargs.get('coastlines',None),kwargs.get('res',.1), kwargs.get('R',1.))
 
-            kwargs.update({'hfun':hfun0})
+            kwargs.update({'bgmesh':bgmesh})
 
             df = sgl(**kwargs)
 
@@ -135,30 +167,6 @@ def jigsaw(**kwargs):
                 gr['SCHISM_hgrid_node_y'].values = rlat
 
         else:
-
-            hfun = kwargs.get('hfun', None)
-
-            if hfun == 'auto':
-
-                try:
-
-                    dem = pdem.dem(**geometry)
-
-                    res_min = kwargs.get('resolution_min',.01)
-                    res_max = kwargs.get('resolution_max',.5)
-                    dhdx = kwargs.get('dhdx',.15)
-
-                    w = hfun(dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx) # resolution in lat/lon degrees
-                    if not os.path.exists(self.rpath): # check if run folder exists
-                        os.makedirs(self.rpath)
-
-                    w.to_netcdf(self.rpath + 'hfun.nc') # save hfun
-
-                    kwargs.update({'hfun':self.rpath + 'hfun.nc'})
-
-                except:
-
-                    logger.warning('hfun failed... continuing without background mesh size')
 
             df = jcustom(**kwargs)
 
@@ -335,15 +343,15 @@ def jigsaw_(df, bmindx, **kwargs):
 
     geo(df,path=path,tag=tag)
 
-    hfun = kwargs.get('hfun', None)
+    bgmesh = kwargs.get('bgmesh', None)
 
-    if hfun is not None:
+    if bgmesh is not None:
 
-        if isinstance(hfun,str):
-            dh = xr.open_dataset(hfun)
-            to_hfun_grid(dh,path + tag+'-hfun.msh')   # write hfun file
+        if isinstance(bgmesh,str):
+            dh = xr.open_dataset(bgmesh)
+            to_hfun_grid(dh,path + tag+'-hfun.msh')   # write bgmesh file
         else:
-            to_hfun_mesh(hfun,path + tag+'-hfun.msh')
+            to_hfun_mesh(bgmesh,path + tag+'-hfun.msh')
 
     # write jig file
     fjig = path + '/' + tag+'.jig'
@@ -351,7 +359,7 @@ def jigsaw_(df, bmindx, **kwargs):
     with open(fjig,'w') as f:
         f.write('GEOM_FILE ={}\n'.format(tag+'-geo.msh'))
         f.write('MESH_FILE ={}\n'.format(tag+'.msh'))
-        if hfun : f.write('HFUN_FILE ={}\n'.format(tag+'-hfun.msh'))
+        if bgmesh : f.write('HFUN_FILE ={}\n'.format(tag+'-hfun.msh'))
         f.write('HFUN_SCAL = ABSOLUTE\n')
         f.write('HFUN_HMAX = Inf\n')
         f.write('HFUN_HMIN = 0.0\n')
