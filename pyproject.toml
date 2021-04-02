@@ -33,7 +33,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.7, <3.10"
 numpy = "^1.20.1"
 rasterio = "^1.2.0"
 matplotlib = "^3.3.4"
@@ -62,7 +62,7 @@ panel = "^0.10.3"
 moviepy = "^1.0.3"
 branca = "^0.4.2"
 ipython = "^7.20.0"
-llvmlite = "^0.34.0"
+llvmlite = "^0.36.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
