@@ -25,12 +25,13 @@ import logging
 
 logger = logging.getLogger('pyPoseidon')
 
-def erddap():
+def get_url(start_date):
 
-    links = [
-            'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NCEP_Global_Best',
-             ]
-    return links
+    start_date = start_date - pd.DateOffset(days=1)
+    r = [0,6,12,18]
+    h = np.argmin([n for n in [start_date.hour-x for x in r]  if n>0])
+    url = 'https://nomads.ncep.noaa.gov/dods/gfs_0p25_1hr/gfs{}/gfs_0p25_1hr_{:0>2d}z'.format(start_date.strftime('%Y%m%d'),r[h])
+    return url
 
 
 def reduced_gg(dc):
@@ -546,16 +547,10 @@ def from_url(url = None, lon_min=None, lon_max=None, lat_min=None, lat_max=None,
     xr_kwargs = kwargs.get('meteo_xr_kwargs', {'engine':'pydap'})
 
     if not url:
-        for link in erddap():
-            try:
-                data = xr.open_dataset(link, **xr_kwargs)
-                url = link
-                break
-            except:
-                continue
+        url = get_url(ts)
 
     #---------------------------------------------------------------------
-    logger.info('extracting meteo from {}.html\n'.format(url))
+    logger.info('extracting meteo from {}\n'.format(url))
     #---------------------------------------------------------------------
 
     data = xr.open_dataset(url, **xr_kwargs)
