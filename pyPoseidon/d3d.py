@@ -31,6 +31,7 @@ import pyPoseidon.meteo as pmeteo
 import pyPoseidon.dem as pdem
 from pyPoseidon.utils.get_value import get_value
 from pyPoseidon.utils.converter import myconverter
+from pyPoseidon.utils.data import data
 import logging
 
 logger = logging.getLogger('pyPoseidon')
@@ -97,7 +98,7 @@ class d3d():
 
 
         self.tag = kwargs.get('tag', 'd3d')
-        self.resolution = kwargs.get('resolution', None)
+        self.resolution = kwargs.get('resolution', .1)
         self.irange = kwargs.get('irange', [0,-1,1])
         self.tide = kwargs.get('tide', False)
         self.atm = kwargs.get('atm', True)
@@ -167,7 +168,7 @@ class d3d():
         self.mdf.loc[self.mdf.index.str.contains('Tstop')]=Tstop
 
         #adjust time for output
-        mstep = get_value(self,kwargs,'map_step',0)
+        mstep = get_value(self,kwargs,'map_step',60)
         hstep = get_value(self,kwargs,'his_step',0)
         pstep = get_value(self,kwargs,'pp_step',0)
         rstep = get_value(self,kwargs,'restart_step',0)
@@ -728,7 +729,7 @@ class d3d():
 
             for line in iter(ex.stdout.readline,b''):
                 f.write(line.decode(sys.stdout.encoding))
-                logger.info(line.decode(sys.stdout.encoding))
+#                logger.info(line.decode(sys.stdout.encoding))
 
             for line in iter(ex.stderr.readline,b''):
                 logger.info(line.decode(sys.stdout.encoding))
@@ -1005,3 +1006,10 @@ class d3d():
         #---------------------------------------------------------------------
 
 
+    def get_data(self,**kwargs):
+
+        dic = self.__dict__
+
+        dic.update(kwargs)
+
+        self.data = data(**dic)
