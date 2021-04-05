@@ -3,6 +3,7 @@ import numpy as np
 import geopandas as gp
 import logging
 import shapely
+import sys
 
 logger = logging.getLogger('pyPoseidon')
 

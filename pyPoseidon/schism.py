@@ -304,8 +304,8 @@ class schism():
                           'lat':(['nx_grid','ny_grid'], yy)},
                      coords={'time':tlist})
 
-        sout.attrs={'description' : 'Schism forsing',
-            'history' :'JRC Ispra European Commission',
+        sout.attrs={'description' : 'Schism meteo data',
+            'history' :'pyPoseidon',
             'source' : 'netCDF4 python module'}
 
         sout.time.attrs={   'long_name':      'Time',
