@@ -8,11 +8,11 @@
 *.idx
 
 # the local test folder
-examples/test
-examples/bgmesh
-examples/gmsh
-examples/jigsaw
-examples/data
+Tutorial/test
+Tutorial/bgmesh
+Tutorial/gmsh
+Tutorial/jigsaw
+Tutorial/data
 
 # the local jigsaw folder
 pyPoseidon/tests/jigsaw/*
