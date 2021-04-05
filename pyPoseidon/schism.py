@@ -717,6 +717,8 @@ class schism():
         mfiles2.sort()
 
         mfiles={'1':mfiles1, '2':mfiles2}
+        
+        mfiles = {k: v for k, v in mfiles.items() if v} # remove empty keys, e.g. no mfiles2
 
         hfile = rfolder + '/hgrid.gr3' # Grid
         self.params = f90nml.read(s[0])
@@ -750,12 +752,13 @@ class schism():
 
         #meteo
         if load_meteo is True:
-
+            
             try:
                 pm=[]
                 for key, val in mfiles.items():
                     msource = xr.open_mfdataset(val)
                     pm.append(msource)
+                if len(pm) == 1: pm = pm[0]
                 self.meteo = pmeteo.meteo(meteo_source=pm, meteo_engine='passthrough')
 
             except:
@@ -777,6 +780,8 @@ class schism():
                     if ma:
                         msource = xr.merge(ma)
                         pm.append(msource)
+                        
+                if len(pm) == 1: pm = pm[0]
 
                 self.meteo = pmeteo.meteo(meteo_source=pm, meteo_engine='passthrough')
 
