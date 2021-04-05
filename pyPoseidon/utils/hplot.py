@@ -24,6 +24,7 @@ import panel as pn
 from hvplot import xarray
 from pyPoseidon.utils.quads2tr import quads_to_tris
 gv.extension('bokeh')
+hv.output(widget_location='bottom')
 
 import sys
 import os

@@ -30,19 +30,23 @@ matplotlib.rc('animation',html='html5')
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['animation.embed_limit'] = '200.'
 
+def __init__(dark_background=False):
+    
+    #set plt style 
+    if dark_background : plt.style.use('dark_background')
+    
+
+
 @xr.register_dataset_accessor('gplot')
 class gplot(object):
 
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
+        
 
 
-    def contourf(self,x=None,y=None,z=None,tname='time',**kwargs):
-        
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
-        
+    def contourf(self,x=None,y=None,z=None,tname='time', **kwargs):
+               
         fig, ax = plt.subplots(figsize=(12,8))
 
         if len(self._obj[x].shape) > 2:
@@ -106,12 +110,8 @@ class gplot(object):
         return Q,
 
 
-    def quiver(self,x=None,y=None,z=None,tname='time',**kwargs):
+    def quiver(self,x=None,y=None,z=None,tname='time', **kwargs):
         
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
-
         U = self._obj[z].values[:,:,:,0]
         V = self._obj[z].values[:,:,:,1]
 
@@ -190,12 +190,7 @@ class pplot(object):
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
-
     def contour(self, it=None, **kwargs):
-
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -269,10 +264,6 @@ class pplot(object):
 
     def contourf(self, it=None, **kwargs):
 
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
-
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         try:
@@ -345,11 +336,7 @@ class pplot(object):
         return p #fig, ax
 
 
-    def quiver(self, it=None, u=None, v=None, title=None, **kwargs):
-
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
+    def quiver(self, it=None, u=None, v=None, title=None, scale=0.1, color = 'k', **kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
@@ -402,10 +389,6 @@ class pplot(object):
 
     def grid(self, **kwargs):
 
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
-
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
         tes = kwargs.get('tes',self._obj.SCHISM_hgrid_face_nodes.values[:,:4])
@@ -452,15 +435,10 @@ class pplot(object):
 
 
 
-    def qframes(self, u=None, v=None, color='k', **kwargs):
-
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
+    def qframes(self, u=None, v=None, scale=.01, color='k', **kwargs):
 
         x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
-
 
         cr = kwargs.get('coastlines', None)
         c_attrs = kwargs.get('coastlines_attrs', {})
@@ -478,7 +456,6 @@ class pplot(object):
 
         title = kwargs.get('title', None)
 
-        scale = kwargs.get('scale', 1.) # change accordingly to fit your needs
         step = kwargs.get('step', 1) # change accordingly to fit your needs
 
         Q = ax.quiver(x, y, u[0,:], v[0,:], pivot='mid', color=color, angles='xy', scale_units='xy', scale = scale)
@@ -506,11 +483,7 @@ class pplot(object):
         return v
 
 
-    def frames(self,**kwargs):
-
-        #set plt style 
-        plt_style = kwargs.get('plt_style', None)
-        if plt_style : plt.style.use(plt_style)
+    def frames(self, **kwargs):
 
         cr = kwargs.get('coastlines', None)
         c_attrs = kwargs.get('coastlines_attrs', {})
