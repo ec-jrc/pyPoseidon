@@ -523,6 +523,10 @@ def make_gmsh(df, **kwargs):
 
             model.mesh.field.setAsBackgroundMesh(2)
 
+    else:
+        
+       model.mesh.field.setAsBackgroundMesh(2)         
+
     gmsh.option.setNumber('Mesh.MeshSizeExtendFromBoundary',0)
     gmsh.option.setNumber('Mesh.MeshSizeFromPoints',0)
     gmsh.option.setNumber('Mesh.MeshSizeFromCurvature',0)
