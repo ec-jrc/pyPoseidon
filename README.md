@@ -14,6 +14,8 @@ Afterwards, for now, one needs to install gmsh manually with
 
 `pip install gmsh`
 
+**Note**: Due to an upstream issue, *pydap* needs to be installed manually. See *environment.yml* for info.
+
 ### Prerequisities
 
 DELFT3D needs to be compiled for your system. You can download it from http://oss.deltares.nl/web/delft3d/source-code. See Wiki for more details.
