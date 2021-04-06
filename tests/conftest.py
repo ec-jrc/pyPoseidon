@@ -54,24 +54,15 @@ def save_as(url: str, path: pathlib.Path) -> None:
 
 
 TEST_DATA = {
-    DATA_DIR / "coast.cpg" : "https://www.dropbox.com/s/16841w9qpe07ulu/coast.cpg?dl=1",
-    DATA_DIR / "coast.dbf" : "https://www.dropbox.com/s/m7ucjmg4l5b2gfl/coast.dbf?dl=1",
-    DATA_DIR / "coast.prj" : "https://www.dropbox.com/s/dco2c8ifz5riahn/coast.prj?dl=1",
-    DATA_DIR / "coast.shp" : "https://www.dropbox.com/s/dco2c8ifz5riahn/coast.prj?dl=1",
-    DATA_DIR / "coast.shx" : "https://www.dropbox.com/s/695oekw7aebx73f/coast.shx?dl=1",
     DATA_DIR / "dem.nc" : "https://www.dropbox.com/s/l16crheqc9d89gy/dem.nc?dl=1",
     DATA_DIR / "era5.grib" : "https://www.dropbox.com/s/mo8z8mv8k9kqj91/era5.grib?dl=1",
     DATA_DIR / "erai.grib" : "https://www.dropbox.com/s/d56ctpo7nfptc1b/erai.grib?dl=1",
     DATA_DIR / "hgrid.gr3" : "https://www.dropbox.com/s/73f1q13istbmacb/hgrid.gr3?dl=1",
     DATA_DIR / "meteo.nc" : "https://www.dropbox.com/s/1kqt8732a284tbk/meteo.nc?dl=1",
-    DATA_DIR / "param.in" : "https://www.dropbox.com/s/vf5mn7o7bv7yb5g/param.in?dl=1",
     DATA_DIR / "uvp_2018100100.grib" : "https://www.dropbox.com/s/jhf117jf9t2os8u/uvp_2018100100.grib?dl=1",
     DATA_DIR / "uvp_2018100112.grib" : "https://www.dropbox.com/s/6y57hg119cpd6gx/uvp_2018100112.grib?dl=1",
     DATA_DIR / "uvp_2018100200.grib" : "https://www.dropbox.com/s/7uejb2061k19zsf/uvp_2018100200.grib?dl=1",
     DATA_DIR / "uvp_2018100212.grib" : "https://www.dropbox.com/s/nidbkobti83urzw/uvp_2018100212.grib?dl=1",
-    DATA_DIR / "rotated" / "E_JRC0000lf0000000020180101" : "https://www.dropbox.com/s/hs9wby5g939fqkn/E_JRC0000lf0000000020180101?dl=1",
-    DATA_DIR / "rotated" / "E_JRC0000lf0001000020180101" : "https://www.dropbox.com/s/k3720x20hn9qw5b/E_JRC0000lf0001000020180101?dl=1",
-    DATA_DIR / "rotated" / "E_JRC0000lf0002000020180101" : "https://www.dropbox.com/s/ta7yblif0n0vcsi/E_JRC0000lf0002000020180101?dl=1",
 }
 
 
