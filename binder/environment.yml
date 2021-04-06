@@ -13,6 +13,9 @@ dependencies:
   - xorg-libxft
   - xorg-libxinerama
   - fltk
+  - nodejs
+  - ipympl
+  - pyviz_comms
   - pip
   - pip:
     - gmsh
