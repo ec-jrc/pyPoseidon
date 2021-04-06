@@ -86,8 +86,11 @@ class hplot(object):
         m = self._obj.set_coords(['lon','lat'])
         m['lon'] = m['lon'].isel(time=1, drop=True)
         m['lat'] = m['lat'].isel(time=1, drop=True)
-
-        return m.prmsl.hvplot.quadmesh(x='lon',y='lat',geo=True,  widget_location='bottom', datashade=True, tiles=True)
+        
+        width = kwargs.get('width', 800)
+        height = kwargs.get('height', 600)
+        
+        return m.prmsl.hvplot.quadmesh(x='lon',y='lat',geo=True,  widget_location='bottom', datashade=True, tiles=True, width=width,height=height)
 
     def quiver(self,**kwargs):
 
