@@ -1,7 +1,7 @@
 Framework for Sea Level Hydrodynamic simulations
 ================================================
 
-[![Documentation Status](https://readthedocs.org/projects/pyposeidon/badge/?version=latest)](https://pyposeidon.readthedocs.io/en/latest/?badge=latest) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/brey/pyPoseidon) ![CI](https://github.com/brey/pyPoseidon/actions/workflows/conda_and_nested_venv.yml/badge.svg) ![CI](https://github.com/brey/pyPoseidon/actions/workflows/conda.yml/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/pyposeidon/badge/?version=latest)](https://pyposeidon.readthedocs.io/en/latest/?badge=latest) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/brey/pyPoseidon) ![CI](https://github.com/brey/pyPoseidon/actions/workflows/conda_and_nested_venv.yml/badge.svg) ![CI](https://github.com/brey/pyPoseidon/actions/workflows/conda.yml/badge.svg) [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/brey/pyPoseidon/master?urlpath=%2Flab)
 
 This is a development project utilising multiple solvers (currently DELFT3D & SCHISM) for simulating sea level height (currently only storm surge). The purpose is to create a simple, portable and transparent way of setting up, running and analysing hydrodynamic computations through python scripts and Jupyter Notebooks (http://jupyter.org). See Notebooks in examples/ for relevant prototypes.
 

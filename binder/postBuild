@@ -1,5 +1,14 @@
 #!/bin/bash
 
 # Install a JupyterLab extension for demonstration purposes
-jupyter labextension install @pyviz/jupyterlab_pyviz
-jupyter labextension install @jupyter-widgets/jupyterlab-manager jupyter-matplotlib
+#jupyter labextension install @pyviz/jupyterlab_pyviz
+#jupyter labextension install @jupyter-widgets/jupyterlab-manager jupyter-matplotlib
+
+cd Tutorial
+
+curl -L url https://www.dropbox.com/sh/nd2b012wrpt6qnq/AAAD7aA_qXztUhlT39YK2yBua?dl=1 > data.zip
+
+unzip data.zip -d data/
+
+rm data.zip
+
