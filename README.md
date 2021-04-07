@@ -5,7 +5,7 @@ Framework for Sea Level Hydrodynamic simulations
 
 This is a development project utilising multiple solvers (currently DELFT3D & SCHISM) for simulating sea level height (currently only storm surge). The purpose is to create a simple, portable and transparent way of setting up, running and analysing hydrodynamic computations through python scripts and Jupyter Notebooks (http://jupyter.org). See Notebooks in examples/ for relevant prototypes.
 
-## Instalation
+## Installation
 
 
 `conda install -c gbrey pyPoseidon`
