@@ -47,7 +47,7 @@ class gplot(object):
 
     def contourf(self,x=None,y=None,z=None,tname='time', **kwargs):
                
-        fig, ax = plt.subplots(figsize=(12,8))
+        fig = plt.figure(figsize=(12,8))
 
         if len(self._obj[x].shape) > 2:
             grid_x = self._obj[x].values[0,:,:]
@@ -55,7 +55,6 @@ class gplot(object):
         else:
             grid_x = self._obj[x].values
             grid_y = self._obj[y].values
-
 
         z_ = self._obj[z].values
         t = self._obj[tname].values
@@ -86,8 +85,8 @@ class gplot(object):
         if title : ax.set_title(title)
         #ax.set_global()
         ax.coastlines('50m')
-        #ax.set_extent([grid_x.min(), grid_x.max(), grid_y.min(), grid_y.max()])
-
+        ax.set_extent([grid_x.min(), grid_x.max(), grid_y.min(), grid_y.max()])
+        ax.gridlines(draw_labels=True)
 
     #cbar_ax = fig.add_axes([0.05, 0.05, 0.85, 0.05])
         cbar = fig.colorbar(im,ticks=vrange,orientation='vertical')#,fraction=0.046, pad=0.04)
