@@ -12,5 +12,6 @@ rm data.zip
 
 wget https://github.com/SciTools/cartopy/raw/master/tools/feature_download.py
 python feature_download.py physical
+python feature_download.py cultural
 
 rm feature_download.py

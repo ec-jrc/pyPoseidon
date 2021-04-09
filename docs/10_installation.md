@@ -29,11 +29,11 @@ Then
 
 You could also use conda for the above system dependencies by creating a dedicated env with 
 
-`conda create -n Thalassa pip python=3.8 geos gdal=3.2.1 proj=7 poetry`
+`conda create -n pyPoseidon pip python=3.8 geos gdal=3.2.1 proj=7 poetry`
 
 Afterwards, activate the new conda environment, create a virtualenv and install the dependencies using poetry:
 
-`conda activate Thalassa`
+`conda activate pyPoseidon`
 
 `python3 -m venv .venv`
 
