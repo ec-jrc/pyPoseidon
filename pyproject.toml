@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "pyPoseidon"
-version = "0.4.1"
+version = "0.4.2"
 description = "Framework for Sea Level Hydrodynamic simulations"
 authors = [
-    "George Breyiannis <brey@github>",
-    "Panos Mavrogiorgos <pmav99@github>"
+    "George Breyiannis <breyiannis@gmail.com>",
+    "Panos Mavrogiorgos <pmav99@gmail.com>"
 ]
 readme = "README.md"
 homepage = "https://github.com/brey/pyPoseidon"
@@ -23,7 +23,6 @@ classifiers = [
     'License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)',
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
-    #'Operating System :: OS Independent',
     "Programming Language :: Python :: 3",
     'Topic :: Scientific/Engineering :: Atmospheric Science',
     "Topic :: Scientific/Engineering :: GIS",
@@ -32,8 +31,12 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 
+packages = [
+    { include = "pyPoseidon" },
+]
+
 [tool.poetry.dependencies]
-python = ">=3.7, <3.10"
+python = ">=3.7, <3.9"
 numpy = "^1.20.1"
 rasterio = "^1.2.0"
 matplotlib = "^3.3.4"

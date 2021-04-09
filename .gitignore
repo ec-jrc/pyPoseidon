@@ -21,7 +21,7 @@ pyPoseidon/tests/jigsaw/*
 Notebooks/*
 
 # .coverage files
-.coverage
+.coverage*
 
 # dotx files
 *.dotx

@@ -47,7 +47,7 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
     ncores = kwargs.get('ncores', NCORES)
     
-    xk = {'engine':'pydap'} if source.split('.')[-1] != 'nc' else {}
+    xk = {'engine':'pydap'} if str(source).split('.')[-1] != 'nc' else {}
 
     xr_kwargs = kwargs.get('dem_xr_kwargs', xk)
 
