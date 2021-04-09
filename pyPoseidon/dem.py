@@ -30,8 +30,7 @@ class dem:
             kwargs.update(**geometry)
         
         if not dem_source :
-            dem_source = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm15plus'
-            kwargs.update({'dem_xr_kwargs':{'engine':'pydap'}})
+            dem_source = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus'
         self.Dataset = dem_(source = dem_source, **kwargs)
 
         coastline = kwargs.get('coastlines', None)
@@ -47,8 +46,10 @@ class dem:
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs):
 
     ncores = kwargs.get('ncores', NCORES)
+    
+    xk = {'engine':'pydap'} if source.split('.')[-1] != 'nc' else {}
 
-    xr_kwargs = kwargs.get('dem_xr_kwargs', {})
+    xr_kwargs = kwargs.get('dem_xr_kwargs', xk)
 
     #---------------------------------------------------------------------
     logger.info('extracting dem from {}\n'.format(source))
@@ -64,23 +65,27 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
     data = data.rename({var[0] : 'elevation', lat[0] : 'latitude', lon[0] : 'longitude'})
 
     #recenter the window
+    if data.longitude.max()-data.longitude.min() > 359.:
 
-    lon0 = lon_min + 360. if lon_min < -180 else lon_min
-    lon1 = lon_max + 360. if lon_max < -180 else lon_max
+        lon0 = lon_min + 360. if lon_min < data.longitude.min() else lon_min
+        lon1 = lon_max + 360. if lon_max < data.longitude.min() else lon_max
 
-    lon0 = lon0 - 360. if lon0 > 180 else lon0
-    lon1 = lon1 - 360. if lon1 > 180 else lon1
+        lon0 = lon0 - 360. if lon0 > data.longitude.max() else lon0
+        lon1 = lon1 - 360. if lon1 > data.longitude.max() else lon1
+        
+    else:
+        
+        lon0 = lon_min
+        lon1 = lon_max
 
-#   TODO check this for regional files
     if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()):
         logger.warning('Lon must be within {} and {}'.format(data.longitude.min().values,data.longitude.max().values))
         logger.warning('compensating if global dataset available')
 
-#        sys.exit()
     if (lat_min < data.latitude.min()) or (lat_max > data.latitude.max()):
         logger.warning('Lat must be within {} and {}'.format(data.latitude.min().values,data.latitude.max().values))
         logger.warning('compensating if global dataset available')
-#        sys.exit()
+
 
     #get idx
     i0=np.abs(data.longitude.data-lon0).argmin()
