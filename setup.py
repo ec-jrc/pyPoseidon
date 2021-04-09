@@ -71,4 +71,4 @@ setup(name=DISTNAME,
       tests_require=TESTS_REQUIRE,
       url=URL,
       packages=find_packages(),
-      package_data={'pyPoseidon': ['misc/*','tests/data/*']})
+      package_data={'pyPoseidon': ['misc/*']})
