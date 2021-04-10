@@ -54,7 +54,8 @@ jobs:
           use-only-tar-bz2: true
 
       - name: "Run tests"
-        run: "pytest --runschism"
+        run: "pytest"
+       #run: "pytest --runschism"
 
       #- name: "Run slow tests"
         #run: "pytest --runslow -k global"
