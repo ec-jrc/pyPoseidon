@@ -14,13 +14,17 @@ import xarray as xr
 import pandas as pd
 import sys
 from .jigsaw import *
-from .ugmsh import *
 import logging
 import f90nml
 import os
 import subprocess
 from pyposeidon.utils.verify import *
 import multiprocessing
+
+try:
+    from .ugmsh import *
+except 
+    pass
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 

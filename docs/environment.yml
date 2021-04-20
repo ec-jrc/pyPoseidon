@@ -1,7 +1,7 @@
 name: poseidon
 channels:
   - conda-forge
-  - gbrey
+# - gbrey
   - defaults
 dependencies:
   - pip
@@ -10,13 +10,13 @@ dependencies:
   - proj < 8
   - gdal=3.2.1
   - jigsaw=0.9.12
-  - libglu
-  - xorg-libxcursor
-  - xorg-libxft
-  - xorg-libxinerama
-  - fltk
+# - libglu
+# - xorg-libxcursor
+# - xorg-libxft
+# - xorg-libxinerama
+# - fltk
   - eccodes
-  - delft3d4
-  - pschism
+# - delft3d4
+# - pschism
   - pip:
     - -r file:requirements.txt
