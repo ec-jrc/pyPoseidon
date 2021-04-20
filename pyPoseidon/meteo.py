@@ -5,7 +5,7 @@ Meteo module. Pre-processing the weather forcing component.
 """
 
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -20,10 +20,10 @@ import dask
 import xarray as xr
 import pandas as pd
 import importlib
-from pyPoseidon.utils.get_value import get_value
+from pyposeidon.utils.get_value import get_value
 import logging
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 def get_url(start_date):
 
@@ -162,7 +162,7 @@ class meteo:
 
     def to_output(self,solver=None, **kwargs):
 
-        model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+        model=importlib.import_module('pyposeidon.model') #load pyposeidon model class
 
         s = getattr(model,solver) # get solver class
         var_list = kwargs.pop('vars', ['msl','u10','v10'])

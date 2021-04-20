@@ -1,5 +1,5 @@
 # Create geojon features for animations
-import pyPoseidon
+import pyposeidon
 import pandas as pd
 import geopandas as gp
 import numpy as np
@@ -9,7 +9,7 @@ import os
 import json
 import logging
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 def create_geojson_features(gf, time):
 #    print('> Creating GeoJSON features...')
@@ -39,7 +39,7 @@ def create_geojson_features(gf, time):
 def create_features(path='./',tag='schism'):
 
     logger.info('create geojson file for elevation')
-    m = pyPoseidon.read_model(path + tag +'_model.json')
+    m = pyposeidon.read_model(path + tag +'_model.json')
     m.get_data()
 
     d = m.data.Dataset

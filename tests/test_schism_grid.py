@@ -1,4 +1,4 @@
-import pyPoseidon.grid as pgrid
+import pyposeidon.grid as pgrid
 import pytest
 import os
 

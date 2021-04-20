@@ -3,7 +3,7 @@ Observations management module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon, a software written by George Breyiannis (JRC E.1)
+# This file is part of pyposeidon, a software written by George Breyiannis (JRC E.1)
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -14,16 +14,16 @@ from dateutil.parser import parse
 import numpy as np
 import pandas as pd
 import pkg_resources
-import pyPoseidon
+import pyposeidon
 import os
 import sys
 import logging
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 
-#DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
+#DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
+DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/misc/'
 
 
 class obs:

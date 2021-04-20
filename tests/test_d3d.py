@@ -1,6 +1,6 @@
 import pytest
-import pyPoseidon
-from pyPoseidon.utils import data
+import pyposeidon
+from pyposeidon.utils import data
 import os
 import multiprocessing
 
@@ -28,12 +28,12 @@ def d3d(tmpdir,dic):
     #initialize a model
     rpath = str(tmpdir)+'/'
     dic.update({'rpath':rpath}) # use tmpdir for running the model
-    b = pyPoseidon.model(**dic)
+    b = pyposeidon.model(**dic)
 
     try:
         b.execute()
         out = data.data(**dic)
-        a = pyPoseidon.read_model(rpath+'d3d_model.json') # read model
+        a = pyposeidon.read_model(rpath+'d3d_model.json') # read model
         a.execute()
         out = data.data(**dic)
         return True

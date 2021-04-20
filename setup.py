@@ -11,7 +11,7 @@ def readme():
 
 # copy structure from xarray/xarray-extras setup
 
-DISTNAME = 'pyPoseidon'
+DISTNAME = 'pyposeidon'
 
 ISRELEASED = False
 VERSION = '0.4.2'
@@ -23,7 +23,7 @@ LICENSE = 'EUPL 1.2'
 
 AUTHOR = 'George Breyiannis'
 
-AUTHOR_EMAIL = 'pyPoseidon@gmail.com'
+AUTHOR_EMAIL = 'breyiannis@gmail.com'
 
 
 CLASSIFIERS = [
@@ -71,4 +71,4 @@ setup(name=DISTNAME,
       tests_require=TESTS_REQUIRE,
       url=URL,
       packages=find_packages(),
-      package_data={'pyPoseidon': ['misc/*']})
+      package_data={'pyposeidon': ['misc/*']})

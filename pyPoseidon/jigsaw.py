@@ -3,7 +3,7 @@ Jigsaw module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -18,19 +18,19 @@ import subprocess
 from tqdm import tqdm
 import sys
 
-from pyPoseidon.utils.stereo import to_lat_lon, to_stereo
-from pyPoseidon.utils.sort import *
-import pyPoseidon.dem as pdem
-from pyPoseidon.utils.hfun import *
-from pyPoseidon.utils.spline import *
-from pyPoseidon.utils.tag import *
+from pyposeidon.utils.stereo import to_lat_lon, to_stereo
+from pyposeidon.utils.sort import *
+import pyposeidon.dem as pdem
+from pyposeidon.utils.hfun import *
+from pyposeidon.utils.spline import *
+from pyposeidon.utils.tag import *
 import logging
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
-TEST_DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/tests/data/'
+DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/misc/'
+TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/tests/data/'
 
 
 def geo(df, path='.', tag='jigsaw'):
@@ -38,7 +38,7 @@ def geo(df, path='.', tag='jigsaw'):
     fgeo = path + tag+'-geo.msh'
     # write header
     with open(fgeo,'w') as f:
-        f.write('#{}; created by pyPoseidon\n'.format(tag +'-geo.msh'))
+        f.write('#{}; created by pyposeidon\n'.format(tag +'-geo.msh'))
         f.write('MSHID=2;EUCLIDEAN-MESH\n')
         f.write('NDIMS=2\n')
         f.write('POINT={}\n'.format(df.shape[0]))

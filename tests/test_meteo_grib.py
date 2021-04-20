@@ -1,5 +1,5 @@
-import pyPoseidon.meteo as pmeteo
-import pyPoseidon.model as pmodel
+import pyposeidon.meteo as pmeteo
+import pyposeidon.model as pmodel
 import pytest
 import xarray as xr
 import os

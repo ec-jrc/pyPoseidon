@@ -1,9 +1,9 @@
 """
-Schism model of pyPoseidon. It controls the creation, output & execution of a complete simulation based on schism
+Schism model of pyposeidon. It controls the creation, output & execution of a complete simulation based on schism
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -30,30 +30,30 @@ import errno
 from tqdm import tqdm
 
 #local modules
-import pyPoseidon
-import pyPoseidon.grid as pgrid
-import pyPoseidon.meteo as pmeteo
-import pyPoseidon.dem as pdem
-from pyPoseidon.utils.get_value import get_value
-from pyPoseidon.utils.converter import myconverter
-from pyPoseidon.utils import obs
-from pyPoseidon.utils.cpoint import closest_node
-from pyPoseidon.utils.hfun import hfun
-from pyPoseidon.utils.unml import unml
-from pyPoseidon.utils.data import data
+import pyposeidon
+import pyposeidon.grid as pgrid
+import pyposeidon.meteo as pmeteo
+import pyposeidon.dem as pdem
+from pyposeidon.utils.get_value import get_value
+from pyposeidon.utils.converter import myconverter
+from pyposeidon.utils import obs
+from pyposeidon.utils.cpoint import closest_node
+from pyposeidon.utils.hfun import hfun
+from pyposeidon.utils.unml import unml
+from pyposeidon.utils.data import data
 
 import logging
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 import multiprocessing
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 #retrieve the module path
-#DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
-TEST_DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/tests/data/'
+#DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
+DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/misc/'
+TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/tests/data/'
 # add conda path to PATH
-cpath = pyPoseidon.__path__[0].split('/lib/')[0]
+cpath = pyposeidon.__path__[0].split('/lib/')[0]
 os.environ['PATH'] += os.pathsep + cpath + '/bin'
 
 
@@ -305,7 +305,7 @@ class schism():
                      coords={'time':tlist})
 
         sout.attrs={'description' : 'Schism meteo data',
-            'history' :'pyPoseidon',
+            'history' :'pyposeidon',
             'source' : 'netCDF4 python module'}
 
         sout.time.attrs={   'long_name':      'Time',
@@ -654,7 +654,7 @@ class schism():
          elif isinstance(coastline,gp.GeoDataFrame):  # TODO
              dic.update({'coastlines':None})
 
-         dic['version']=pyPoseidon.__version__
+         dic['version']=pyposeidon.__version__
 
          for attr, value in dic.items():
              if isinstance(value, datetime.datetime) : dic[attr]=value.isoformat()
@@ -1400,7 +1400,7 @@ class schism():
             # Dataset Attrs
 
             xc.attrs = {'Conventions': 'CF-1.0, UGRID-1.0', 'title': 'SCHISM Model output', 'source': 'SCHISM model output version v10', 'references': 'http://ccrm.vims.edu/schismweb/',
-                         'history': 'created by pyPoseidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
+                         'history': 'created by pyposeidon', 'comment': 'SCHISM Model output', 'type': 'SCHISM Model output', 'VisIT_plugin': 'https://schism.water.ca.gov/library/-/document_library/view/3476283' }
 
 
             xc.to_netcdf(path+'outputs/schout_{}.nc'.format(val))

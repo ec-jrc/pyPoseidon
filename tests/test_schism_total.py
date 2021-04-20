@@ -1,5 +1,5 @@
 import pytest
-import pyPoseidon
+import pyposeidon
 import os
 import multiprocessing
 
@@ -58,7 +58,7 @@ def schism(tmpdir,case):
     rpath = str(tmpdir)+'/'
     dic.update({'rpath':rpath}) # use tmpdir for running the model
 
-    b = pyPoseidon.model(**dic)
+    b = pyposeidon.model(**dic)
 
     try:
         b.execute()

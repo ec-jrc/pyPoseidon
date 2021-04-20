@@ -3,7 +3,7 @@ Simulation management module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon, a software written by George Breyiannis (JRC E.1)
+# This file is part of pyposeidon, a software written by George Breyiannis (JRC E.1)
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -15,15 +15,15 @@ import sys
 import os, errno
 from shutil import copy2
 import glob
-import pyPoseidon.model as pmodel
-import pyPoseidon.grid as pgrid
-from pyPoseidon.utils.get_value import get_value
+import pyposeidon.model as pmodel
+import pyposeidon.grid as pgrid
+from pyposeidon.utils.get_value import get_value
 import pandas as pd
-#from pyPoseidon.utils import data
+#from pyposeidon.utils import data
 import subprocess
 import logging
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 
 def cast(solver=None,**kwargs):
@@ -44,7 +44,7 @@ class dcast():
 
 
         if isinstance(self.model,str):
-            self.model = pyPoseidon.read_model(self.model)
+            self.model = pyposeidon.read_model(self.model)
 
         for attr, value in self.model.__dict__.items():
             if not hasattr(self, attr): setattr(self, attr, value)
@@ -204,7 +204,7 @@ class scast():
     def set(self,**kwargs):
 
         if isinstance(self.model,str):
-            self.model = pyPoseidon.read_model(self.model)
+            self.model = pyposeidon.read_model(self.model)
 
         for attr, value in self.model.__dict__.items():
             if not hasattr(self, attr): setattr(self, attr, value)

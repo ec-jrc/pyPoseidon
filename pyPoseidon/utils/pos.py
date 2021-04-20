@@ -114,7 +114,7 @@ def to_sq(df,fpos):
     with open(fpos,'w') as f:
         f.write('//*********************************************************************\n')
         f.write('// *\n')
-        f.write('// *  pyPoseidon\n')
+        f.write('// *  pyposeidon\n')
         f.write('// *\n') 
         f.write('// *  Scalar 2D post-processing view\n')
         f.write('// *\n')

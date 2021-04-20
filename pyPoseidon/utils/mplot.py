@@ -3,7 +3,7 @@ Visualization module in 3D
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -241,7 +241,7 @@ class mplot(object):
 
         date = mlab.text(.8,.9,time[0],color=(1,1,1), width=.2)
 
-        label = mlab.text(.9,.03,'pyPoseidon',color=(0,.2,1), width=.05)
+        label = mlab.text(.9,.03,'pyposeidon',color=(0,.2,1), width=.05)
 
         distance = kwargs.get('distance',4)
 

@@ -1,5 +1,5 @@
-import pyPoseidon.dem as pdem
-import pyPoseidon.grid as pg
+import pyposeidon.dem as pdem
+import pyposeidon.grid as pg
 import pytest
 import numpy as np
 import os

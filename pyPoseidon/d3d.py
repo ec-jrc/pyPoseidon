@@ -1,9 +1,9 @@
 """
-Main d3d module of pyPoseidon. It controls the creation, output & execution of a complete simulation based on DELFT3D
+Main d3d module of pyposeidon. It controls the creation, output & execution of a complete simulation based on DELFT3D
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -25,26 +25,26 @@ import xarray as xr
 import geopandas as gp
 
 #local modules
-import pyPoseidon
-import pyPoseidon.grid as pgrid
-import pyPoseidon.meteo as pmeteo
-import pyPoseidon.dem as pdem
-from pyPoseidon.utils.get_value import get_value
-from pyPoseidon.utils.converter import myconverter
-from pyPoseidon.utils.data import data
+import pyposeidon
+import pyposeidon.grid as pgrid
+import pyposeidon.meteo as pmeteo
+import pyposeidon.dem as pdem
+from pyposeidon.utils.get_value import get_value
+from pyposeidon.utils.converter import myconverter
+from pyposeidon.utils.data import data
 import logging
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 import multiprocessing
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 #retrieve the module path
-#DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
+#DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
+DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/misc/'
 
 # add conda path to PATH
-cpath = pyPoseidon.__path__[0].split('/lib/')[0]
+cpath = pyposeidon.__path__[0].split('/lib/')[0]
 os.environ['PATH'] += os.pathsep + cpath + '/bin'
 
 
@@ -794,7 +794,7 @@ class d3d():
          elif isinstance(meteo,pmeteo.meteo):
              dic.update({'meteo':meteo.Dataset.attrs})
 
-         dic['version']=pyPoseidon.__version__
+         dic['version']=pyposeidon.__version__
 
          for attr, value in dic.items():
              if isinstance(value, datetime.datetime) : dic[attr]=dic[attr].isoformat()

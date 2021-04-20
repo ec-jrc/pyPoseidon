@@ -1,4 +1,4 @@
-import pyPoseidon.meteo as pmeteo
+import pyposeidon.meteo as pmeteo
 import pytest
 import xarray as xr
 import os

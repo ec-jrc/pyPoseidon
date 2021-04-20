@@ -1,7 +1,7 @@
 import pytest
-import pyPoseidon
-from pyPoseidon.utils import cast, data
-import pyPoseidon.meteo as pm
+import pyposeidon
+from pyposeidon.utils import cast, data
+import pyposeidon.meteo as pm
 import json
 import pandas as pd
 import datetime
@@ -63,7 +63,7 @@ def schism(tmpdir):
     rpath = str(tmpdir)+'/schism/'
     case.update({'rpath':rpath+'20181001.00/'}) # use tmpdir for running the model
 
-    b = pyPoseidon.model(**case)
+    b = pyposeidon.model(**case)
 
     b.execute()
 
@@ -113,7 +113,7 @@ def schism(tmpdir):
     #saving
     check.update({'meteo_source' : meteo})
 
-    c = pyPoseidon.model(**check)
+    c = pyposeidon.model(**check)
 
     c.execute()
 

@@ -3,7 +3,7 @@ Visualization module based on matplotlib
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -17,7 +17,7 @@ import cartopy.feature as cfeature
 import xarray as xr
 import geopandas as gp
 import shapely
-from pyPoseidon.utils.quads2tr import quads_to_tris
+from pyposeidon.utils.quads2tr import quads_to_tris
 
 import sys
 import os

@@ -1,4 +1,4 @@
-import pyPoseidon.dem as pdem
+import pyposeidon.dem as pdem
 import numpy as np
 import pytest
 

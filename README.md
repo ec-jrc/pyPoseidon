@@ -8,7 +8,7 @@ This is a development project utilising multiple solvers (currently DELFT3D & SC
 ## Installation
 
 
-`conda install -c gbrey pyPoseidon`
+`conda install -c gbrey pyposeidon`
 
 Afterwards, for now, one needs to install gmsh manually with
 

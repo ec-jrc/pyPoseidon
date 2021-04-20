@@ -3,21 +3,21 @@ Point analysis module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 
 
 import numpy as np
-from pyPoseidon.utils.pplot import *
-from pyPoseidon.utils.obs import obs
-from pyPoseidon.grid import *
-import pyPoseidon.model as pmodel
+from pyposeidon.utils.pplot import *
+from pyposeidon.utils.obs import obs
+from pyposeidon.grid import *
+import pyposeidon.model as pmodel
 import pyresample
 import pandas as pd
 import datetime
-from pyPoseidon.utils.get_value import get_value
+from pyposeidon.utils.get_value import get_value
 import holoviews as hv
 import geoviews as gv
 from cartopy import crs

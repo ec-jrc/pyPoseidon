@@ -3,7 +3,7 @@ Dem module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -13,13 +13,13 @@ import pyresample
 import xarray as xr
 import sys
 import importlib
-from pyPoseidon.utils.fix import fix
+from pyposeidon.utils.fix import fix
 import logging
 import multiprocessing
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 class dem:
     def __init__(self, dem_source=None, **kwargs):
@@ -208,7 +208,7 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
 def to_output(dataset=None,solver=None, **kwargs):
 
-    model=importlib.import_module('pyPoseidon.model') #load pyPoseidon model class
+    model=importlib.import_module('pyposeidon.model') #load pyposeidon model class
 
     s = getattr(model,solver) # get solver class
 

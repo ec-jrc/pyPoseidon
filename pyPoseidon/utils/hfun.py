@@ -5,8 +5,8 @@ import numpy as np
 import xarray as xr
 from .limgrad import *
 import matplotlib
-from pyPoseidon.utils.stereo import to_lat_lon, to_stereo
-import pyPoseidon
+from pyposeidon.utils.stereo import to_lat_lon, to_stereo
+import pyposeidon
 import math
 
 #https://stackoverflow.com/questions/44934631/making-grid-triangular-mesh-quickly-with-numpy
@@ -87,7 +87,7 @@ def to_hfun_mesh(dh,fhfun):
     tria3 = dh.tria.to_pandas()
 
     with open(fhfun,'w') as f:
-        f.write('#{}; created by pyPoseidon\n'.format(pyPoseidon.__version__))
+        f.write('#{}; created by pyposeidon\n'.format(pyposeidon.__version__))
         f.write('MSHID=3;EUCLIDEAN-MESH\n')
         f.write('NDIMS=2\n')
         f.write('POINT={}\n'.format(dps.shape[0]))
@@ -111,7 +111,7 @@ def to_hfun_grid(dh,fhfun):
 
         # write header
         with open(fhfun,'w') as f:
-            f.write('#{}; created by pyPoseidon\n'.format(pyPoseidon.__version__))
+            f.write('#{}; created by pyposeidon\n'.format(pyposeidon.__version__))
             f.write('MSHID=3;EUCLIDEAN-GRID\n')
             f.write('NDIMS=2\n')
             f.write('COORD=1;{}\n'.format(dh.longitude.size))

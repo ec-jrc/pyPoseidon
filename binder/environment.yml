@@ -1,4 +1,4 @@
-name: pyPoseidon
+name: pyposeidon
 
 channels:
   - conda-forge
@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   - python=3.8
-  - pyPoseidon=0.4.2
+  - pyposeidon=0.4.2
   - pschism
   - delft3d4
   - xorg-libxcursor

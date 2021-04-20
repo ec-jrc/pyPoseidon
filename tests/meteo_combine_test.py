@@ -2,7 +2,7 @@ import pathlib
 
 from typing import List
 
-import pyPoseidon.meteo as pm
+import pyposeidon.meteo as pm
 import pytest
 import xarray as xr
 

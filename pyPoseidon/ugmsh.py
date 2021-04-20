@@ -3,7 +3,7 @@ gmsh module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -17,14 +17,14 @@ from tqdm import tqdm
 import sys
 import gmsh
 
-from pyPoseidon.utils.tag import *
-from pyPoseidon.utils.spline import *
-from pyPoseidon.utils.stereo import to_lat_lon
-from pyPoseidon.utils.pos import *
-import pyPoseidon.dem as pdem
+from pyposeidon.utils.tag import *
+from pyposeidon.utils.spline import *
+from pyposeidon.utils.stereo import to_lat_lon
+from pyposeidon.utils.pos import *
+import pyposeidon.dem as pdem
 
 import logging
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 
 def read_gmsh(mesh,**kwargs):

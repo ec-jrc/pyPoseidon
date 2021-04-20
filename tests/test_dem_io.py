@@ -1,6 +1,6 @@
-import pyPoseidon.dem as pdem
-import pyPoseidon.model as pmodel
-import pyPoseidon.grid as pgrid
+import pyposeidon.dem as pdem
+import pyposeidon.model as pmodel
+import pyposeidon.grid as pgrid
 
 
 import pytest

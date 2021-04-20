@@ -1,11 +1,11 @@
 """
-Main model module of pyPoseidon. It controls the creation, output & execution of a complete simulation based on different hydrological models
+Main model module of pyposeidon. It controls the creation, output & execution of a complete simulation based on different hydrological models
 
 Currently supported : DELFT3D , SCHISM
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -28,12 +28,12 @@ import xarray as xr
 #local modules
 from .d3d import *
 from .schism import *
-from pyPoseidon.bnd import *
-import pyPoseidon
-import pyPoseidon.grid as pgrid
-import pyPoseidon.meteo as pmeteo
-import pyPoseidon.dem as pdem
-from pyPoseidon.utils.get_value import get_value
+from pyposeidon.bnd import *
+import pyposeidon
+import pyposeidon.grid as pgrid
+import pyposeidon.meteo as pmeteo
+import pyposeidon.dem as pdem
+from pyposeidon.utils.get_value import get_value
 import logging
 import logging.config
 import colorlog
@@ -58,7 +58,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.FileHandler',
             'formatter': 'verbose',
-            'filename': 'pyPoseidon.log'
+            'filename': 'pyposeidon.log'
         }
     ,
         'console':{
@@ -68,7 +68,7 @@ LOGGING = {
         }
     },
     'loggers': {
-        'pyPoseidon': {
+        'pyposeidon': {
             'handlers':['file','console'],
             'propagate': True,
             'level':'DEBUG',
@@ -79,8 +79,8 @@ LOGGING = {
 logging.config.dictConfig(LOGGING)
 
 #retrieve the module path
-#DATA_PATH = pkg_resources.resource_filename('pyPoseidon', 'misc')
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
+#DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
+DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/misc/'
 
 # strings to be used
 le=['A','B']
@@ -102,7 +102,7 @@ def model(solver=None, atm=True, tide=False, **kwargs):
 
     Example:
 
-    model = pyPoseidon.model(solver='d3d)
+    model = pyposeidon.model(solver='d3d)
 
     """
 

@@ -1,5 +1,5 @@
 import pytest
-import pyPoseidon
+import pyposeidon
 import os
 import multiprocessing
 
@@ -63,12 +63,12 @@ def schism(tmpdir,dic):
     rpath = str(tmpdir)+'/'
     dic.update({'rpath':rpath}) # use tmpdir for running the model
 
-    b = pyPoseidon.model(**dic)
+    b = pyposeidon.model(**dic)
 
     try:
         b.execute()
         b.results()
-        a = pyPoseidon.read_model(rpath+'test_model.json') # read model
+        a = pyposeidon.read_model(rpath+'test_model.json') # read model
         a.execute()
         a.results()
         return True

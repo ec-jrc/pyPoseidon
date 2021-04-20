@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pyPoseidon"
+name = "pyposeidon"
 version = "0.4.2"
 description = "Framework for Sea Level Hydrodynamic simulations"
 authors = [
@@ -7,7 +7,7 @@ authors = [
     "Panos Mavrogiorgos <pmav99@gmail.com>"
 ]
 readme = "README.md"
-homepage = "https://github.com/brey/pyPoseidon"
+homepage = "https://github.com/brey/pyposeidon"
 keywords = [
     "Hydrodynamic",
     "Sea",
@@ -80,7 +80,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra --verbose --showlocals --tb=short --cov=pyPoseidon --cov-report term-missing"
+addopts = "-ra --verbose --showlocals --tb=short --cov=pyposeidon --cov-report term-missing"
 testpaths = [
     "tests",
 ]

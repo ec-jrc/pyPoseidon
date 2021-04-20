@@ -3,7 +3,7 @@ Grid module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyPoseidon.
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
@@ -19,15 +19,15 @@ import logging
 import f90nml
 import os
 import subprocess
-from pyPoseidon.utils.verify import *
+from pyposeidon.utils.verify import *
 import multiprocessing
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
-logger = logging.getLogger('pyPoseidon')
+logger = logging.getLogger('pyposeidon')
 
 
-DATA_PATH = os.path.dirname(pyPoseidon.__file__)+'/misc/'
+DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/misc/'
 
 
 def grid(type=None, **kwargs):
