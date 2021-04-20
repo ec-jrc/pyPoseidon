@@ -1,3 +1,3 @@
 # Reference
 
-::: pyPoseidon.schism
+::: pyposeidon.schism

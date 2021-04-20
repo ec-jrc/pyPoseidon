@@ -18,7 +18,7 @@ dependencies:
   - descartes
   - netCDF4
   - cfgrib <0.9.9
-# - eccodes=2.19.1
+  - eccodes=2.19.1
   - libgfortran4
   - moviepy
   - imageio-ffmpeg
@@ -29,6 +29,11 @@ dependencies:
   - pytest-cov
   - ipympl
   - zarr
+  - mkdocs
+  - black
+  - mkdocstrings
+  - pymdown-extensions
+  - mkdocs-material
   - pip
   - pip:
     - gmsh

@@ -15,7 +15,7 @@ dependencies:
 # - xorg-libxft
 # - xorg-libxinerama
 # - fltk
-  - eccodes
+  - eccodes=2.19.1
 # - delft3d4
 # - pschism
   - pip:
