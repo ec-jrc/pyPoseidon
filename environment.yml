@@ -4,20 +4,22 @@ channels:
   - conda-forge
 
 dependencies:
-  - python=3.8
+  - python =3.8
   - mayavi
   - pyresample
 # - pydap
   - dask
-  - pygeos>=0.6
+  - pygeos >=0.6
   - geoviews
   - geopandas
   - rasterio
-  - jigsaw=0.9.12
+  - jigsaw =0.9.12
   - hvplot
   - descartes
   - netCDF4
-  - cfgrib
+  - cfgrib <0.9.9
+# - eccodes=2.19.1
+  - libgfortran4
   - moviepy
   - imageio-ffmpeg
   - bump2version
