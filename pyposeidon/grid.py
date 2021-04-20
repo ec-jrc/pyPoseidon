@@ -23,7 +23,7 @@ import multiprocessing
 
 try:
     from .ugmsh import *
-except 
+except: 
     pass
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
