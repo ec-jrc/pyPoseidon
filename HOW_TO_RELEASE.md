@@ -21,7 +21,7 @@
 
 `poetry install`
 
-- update version in pyproject.toml
+- check in pyproject.toml for issues
 
 `poetry update`
 
