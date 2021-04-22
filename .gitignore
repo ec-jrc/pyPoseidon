@@ -91,9 +91,6 @@ github.token
 venv/
 .venv/
 
-
-conda.recipe/
-
 tests/data/*
 
 # mkdocs

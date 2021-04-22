@@ -8,10 +8,15 @@
 
 `bump2version minor/patch`
 
-* Push to origin using the new way
+- check for issues
 
-`git push --follow-tags`
+`git show`
 
+- After fixing issues
+
+`git add .`
+
+`git commit --amend`
 
 ## Build pip version
 
@@ -19,17 +24,38 @@
 
 `source .venv/bin/activate`
 
-`poetry install`
-
-- check in pyproject.toml for issues
-
 `poetry update`
 
 - clean dist/
 
 `poetry build`
 
-`poetry publish`
+
+- test CI on github
+
+`git push`
+
+## Compile anaconda conda version
+
+`python setup.py clean --all`
+
+- if needed `export CONDA_BLD_PATH=location_of_conda_channel/`
+
+`conda build conda.recipe`
+
+`anaconda upload --force location_of_conda_channel/noarch/pyposeidon-X.X.X-py_0.tar.bz2`
+
+## Tag
+
+* If all works create tag and push tag e.g.
+
+`git tag -a -m 'Release: 0.4.2 -> 0.5.0' '0.5.0'`
+
+`git push --follow-tags`
+
+
+## Set release on Github
+
 
 ## Update conda-forge.
 
@@ -38,16 +64,9 @@
 - Submit a pull request (and merge it, once CI passes).
 
 
-## Compile anaconda conda version
+## Publish on pypi
 
-`python setup.py clean --all`
-
-- if needed `export CONDA_BLD_PATH=location_of_conda_channel/`
-
-`conda build conda.recipe --no-test`
-
-`anaconda upload --force location_of_conda_channel/noarch/pyposeidon-X.X.X-py_0.tar.bz2`
-
+`poetry publish`
 
 ## Go back to the original status
 
