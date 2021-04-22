@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyposeidon"
-version = "0.5.0"
+version = "0.5.1"
 description = "Framework for Sea Level Hydrodynamic simulations"
 authors = [
     "George Breyiannis <breyiannis@gmail.com>",
