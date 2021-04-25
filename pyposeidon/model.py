@@ -25,7 +25,7 @@ import glob
 from shutil import copyfile
 import xarray as xr
 
-#local modules
+# local modules
 from .d3d import *
 from .schism import *
 from pyposeidon.bnd import *
@@ -40,52 +40,43 @@ import colorlog
 
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': True,
-    'formatters': {
-        'verbose': {
-            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"},
+        "simple": {"format": "%(levelname)s %(message)s"},
+        "color": {
+            "()": "colorlog.ColoredFormatter",
         },
-        'simple': {
-            'format': '%(levelname)s %(message)s'
+    },
+    "handlers": {
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "formatter": "verbose",
+            "filename": "pyposeidon.log",
         },
-        'color': {
-            '()': 'colorlog.ColoredFormatter',
+        "console": {"level": "DEBUG", "class": "colorlog.StreamHandler", "formatter": "color"},
+    },
+    "loggers": {
+        "pyposeidon": {
+            "handlers": ["file", "console"],
+            "propagate": True,
+            "level": "DEBUG",
         }
     },
-    'handlers': {
-        'file': {
-            'level':'DEBUG',
-            'class':'logging.FileHandler',
-            'formatter': 'verbose',
-            'filename': 'pyposeidon.log'
-        }
-    ,
-        'console':{
-            'level':'DEBUG',
-            'class':'colorlog.StreamHandler',
-            'formatter': 'color'
-        }
-    },
-    'loggers': {
-        'pyposeidon': {
-            'handlers':['file','console'],
-            'propagate': True,
-            'level':'DEBUG',
-        }
-    }
 }
 
 logging.config.dictConfig(LOGGING)
 
-#retrieve the module path
-#DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
-DATA_PATH = os.path.dirname(pyposeidon.__file__)+'/misc/'
+# retrieve the module path
+# DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
+DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
 # strings to be used
-le=['A','B']
+le = ["A", "B"]
 
-nm = ['Z', 'A']
+nm = ["Z", "A"]
 
 
 def model(solver=None, atm=True, tide=False, **kwargs):
@@ -106,28 +97,24 @@ def model(solver=None, atm=True, tide=False, **kwargs):
 
     """
 
-    kwargs.update({'atm':atm,'tide':tide})
-    if solver == 'd3d':
+    kwargs.update({"atm": atm, "tide": tide})
+    if solver == "d3d":
         return d3d(**kwargs)
-    elif solver == 'schism':
+    elif solver == "schism":
         return schism(**kwargs)
 
-def read_model(filename,**kwargs):
 
-    end = filename.split('.')[-1]
+def read_model(filename, **kwargs):
 
-    if end in ['txt','json'] :
-        with open(filename, 'rb') as f:
-            info = pd.read_json(f,lines=True).T
+    end = filename.split(".")[-1]
+
+    if end in ["txt", "json"]:
+        with open(filename, "rb") as f:
+            info = pd.read_json(f, lines=True).T
             info[info.isnull().values] = None
             info = info.to_dict()[0]
     else:
-        logger.error('Model file should be .txt or .json')
+        logger.error("Model file should be .txt or .json")
         sys.exit(0)
 
     return model(**info)
-
-
-
-
-

@@ -19,299 +19,302 @@ import subprocess
 import os
 import sys
 
-ffmpeg = sys.exec_prefix + '/bin/ffmpeg'
-os.environ['FFMPEG_BINARY'] = ffmpeg
+ffmpeg = sys.exec_prefix + "/bin/ffmpeg"
+os.environ["FFMPEG_BINARY"] = ffmpeg
 
-import  moviepy.editor as mpy
+import moviepy.editor as mpy
 
-#try:
+# try:
 #    mlab.init_notebook()
-#except:
+# except:
 #    pass
 
-@xr.register_dataset_accessor('mplot')
-#@xr.register_dataarray_accessor('pplot')
+
+@xr.register_dataset_accessor("mplot")
+# @xr.register_dataarray_accessor('pplot')
+
 
 class mplot(object):
-
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
+    def globe(self, R, bcolor=(0.0, 0.0, 0.0)):
+        # We use a sphere Glyph, throught the points3d mlab function, rather than
+        # building the mesh ourselves, because it gives a better transparent
+        # rendering.
+        sphere = mlab.points3d(
+            0,
+            0,
+            0,
+            scale_mode="none",
+            scale_factor=2 * R,
+            #                                color=(0.67, 0.77, 0.93),
+            color=bcolor,
+            resolution=50,
+            opacity=1.0,
+            name="Earth",
+        )
 
-    def globe(self,R, bcolor=(0.,0.,0.)):
-    # We use a sphere Glyph, throught the points3d mlab function, rather than
-    # building the mesh ourselves, because it gives a better transparent
-    # rendering.
-        sphere = mlab.points3d(0, 0, 0, scale_mode='none',
-                                    scale_factor=2*R,
-    #                                color=(0.67, 0.77, 0.93),
-                                    color=bcolor,
-                                    resolution=50,
-                                    opacity=1.0,
-                                    name='Earth')
-
-    # These parameters, as well as the color, where tweaked through the GUI,
-    # with the record mode to produce lines of code usable in a script.
+        # These parameters, as well as the color, where tweaked through the GUI,
+        # with the record mode to produce lines of code usable in a script.
         sphere.actor.property.specular = 0.45
         sphere.actor.property.specular_power = 5
-    # Backface culling is necessary for more a beautiful transparent
-    # rendering.
+        # Backface culling is necessary for more a beautiful transparent
+        # rendering.
         sphere.actor.property.backface_culling = True
 
         return sphere
 
+    def contourf(self, **kwargs):
 
-    def contourf(self,**kwargs):
-
-        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         try:
-            t = kwargs.get('t',self._obj.time.values)
+            t = kwargs.get("t", self._obj.time.values)
         except:
             pass
 
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tri3 = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
 
-        it = kwargs.get('it', None)
+        it = kwargs.get("it", None)
 
-        var = kwargs.get('var','depth')
-        z = kwargs.get('z',self._obj[var].values[it,:].flatten())
-        name = kwargs.get('name',self._obj[var].name)
+        var = kwargs.get("var", "depth")
+        z = kwargs.get("z", self._obj[var].values[it, :].flatten())
+        name = kwargs.get("name", self._obj[var].name)
 
-        vmin = kwargs.get('vmin', z.min())
-        vmax = kwargs.get('vmax', z.max())
+        vmin = kwargs.get("vmin", z.min())
+        vmax = kwargs.get("vmax", z.max())
 
-        R = kwargs.get('R',1.)
+        R = kwargs.get("R", 1.0)
 
-        px=np.cos(y/180*np.pi)*np.cos(x/180*np.pi)*R
-        py=np.cos(y/180*np.pi)*np.sin(x/180*np.pi)*R
-        pz=np.sin(y/180*np.pi)*R
+        px = np.cos(y / 180 * np.pi) * np.cos(x / 180 * np.pi) * R
+        py = np.cos(y / 180 * np.pi) * np.sin(x / 180 * np.pi) * R
+        pz = np.sin(y / 180 * np.pi) * R
 
-        rep=kwargs.get('representation','surface')
+        rep = kwargs.get("representation", "surface")
 
-        cmap = kwargs.get('cmap','gist_earth')
+        cmap = kwargs.get("cmap", "gist_earth")
 
-        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.,1.,1.))
+        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.0, 1.0, 1.0))
         mlab.clf()
 
-        bcolor=kwargs.get('bcolor',(0.,0.,0.))
-        self.globe(R - .002, bcolor=bcolor)
+        bcolor = kwargs.get("bcolor", (0.0, 0.0, 0.0))
+        self.globe(R - 0.002, bcolor=bcolor)
         # 3D triangular mesh surface (like trisurf)
-        grd = mlab.triangular_mesh(px,py,pz,tri3, representation=rep, opacity=1.0, scalars=z,  colormap=cmap,vmin=vmin,vmax=vmax)
+        grd = mlab.triangular_mesh(
+            px, py, pz, tri3, representation=rep, opacity=1.0, scalars=z, colormap=cmap, vmin=vmin, vmax=vmax
+        )
 
         grd.actor.mapper.scalar_visibility = True
         mlab.view(azimuth=0, distance=4)
 
-        title = kwargs.get('title', '{}'.format(var))
+        title = kwargs.get("title", "{}".format(var))
 
-        mlab.colorbar(grd, title=name, orientation='vertical')
+        mlab.colorbar(grd, title=name, orientation="vertical")
 
-        coast = kwargs.get('coastlines',None)
+        coast = kwargs.get("coastlines", None)
 
-        if coast is not None :
-            src, lines = self.c3d(coast,R=R)
-            mlab.pipeline.surface(src, color=(1,0,0), line_width=10, opacity=0.8)
-
+        if coast is not None:
+            src, lines = self.c3d(coast, R=R)
+            mlab.pipeline.surface(src, color=(1, 0, 0), line_width=10, opacity=0.8)
 
         mlab.show()
         return
 
+    def animate(self, **kwargs):
 
-    def animate(self,**kwargs):
-
-        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         try:
-            t = kwargs.get('t',self._obj.time.values.astype(str))
+            t = kwargs.get("t", self._obj.time.values.astype(str))
         except:
             pass
 
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tri3 = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
 
-        var = kwargs.get('var','depth')
-        z = kwargs.get('z',self._obj[var].values)
-        name = kwargs.get('name',self._obj[var].name)
+        var = kwargs.get("var", "depth")
+        z = kwargs.get("z", self._obj[var].values)
+        name = kwargs.get("name", self._obj[var].name)
 
+        vmin = kwargs.get("vmin", z.min())
+        vmax = kwargs.get("vmax", z.max())
 
-        vmin = kwargs.get('vmin', z.min())
-        vmax = kwargs.get('vmax', z.max())
+        R = kwargs.get("R", 1.0)
 
-        R = kwargs.get('R',1.)
+        px = np.cos(y / 180 * np.pi) * np.cos(x / 180 * np.pi) * R
+        py = np.cos(y / 180 * np.pi) * np.sin(x / 180 * np.pi) * R
+        pz = np.sin(y / 180 * np.pi) * R
 
-        px=np.cos(y/180*np.pi)*np.cos(x/180*np.pi)*R
-        py=np.cos(y/180*np.pi)*np.sin(x/180*np.pi)*R
-        pz=np.sin(y/180*np.pi)*R
+        rep = kwargs.get("representation", "surface")
 
-        rep=kwargs.get('representation','surface')
+        cmap = kwargs.get("cmap", "gist_earth")
 
-        cmap = kwargs.get('cmap','gist_earth')
-
-        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.,1.,1.))
+        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.0, 1.0, 1.0))
         mlab.clf()
 
-        bcolor=kwargs.get('bcolor',(0.,0.,0.))
-        self.globe(R - .002, bcolor=bcolor)
+        bcolor = kwargs.get("bcolor", (0.0, 0.0, 0.0))
+        self.globe(R - 0.002, bcolor=bcolor)
         # 3D triangular mesh surface (like trisurf)
-        grd = mlab.triangular_mesh(px,py,pz,tri3, representation=rep, opacity=1.0, scalars=z[0,:],  colormap=cmap,vmin=vmin,vmax=vmax)
+        grd = mlab.triangular_mesh(
+            px, py, pz, tri3, representation=rep, opacity=1.0, scalars=z[0, :], colormap=cmap, vmin=vmin, vmax=vmax
+        )
 
         grd.actor.mapper.scalar_visibility = True
         mlab.view(azimuth=0, distance=4)
 
-        title = kwargs.get('title', '{}'.format(var))
+        title = kwargs.get("title", "{}".format(var))
 
-        mlab.colorbar(grd, title=name, orientation='vertical')
+        mlab.colorbar(grd, title=name, orientation="vertical")
 
-        coast = kwargs.get('coastlines',None)
+        coast = kwargs.get("coastlines", None)
 
-        if coast is not None :
-            src, lines = self.c3d(coast,R=R)
-            mlab.pipeline.surface(src, color=(1,0,0), line_width=10, opacity=0.8)
+        if coast is not None:
+            src, lines = self.c3d(coast, R=R)
+            mlab.pipeline.surface(src, color=(1, 0, 0), line_width=10, opacity=0.8)
 
+        date = mlab.text(0.8, 0.9, t[0], color=(1, 1, 1), width=0.2)
 
-        date = mlab.text(.8,.9,t[0],color=(1,1,1), width=.2)
-
-        @mlab.animate(delay=100)#, ui=False)
+        @mlab.animate(delay=100)  # , ui=False)
         def anim():
             f = mlab.gcf()
             ms = grd.mlab_source
             while True:
-                for i in range(1,z.shape[0]):
-    #                    print('Updating scene...')
-                    scalars = z[i,:]
+                for i in range(1, z.shape[0]):
+                    #                    print('Updating scene...')
+                    scalars = z[i, :]
                     ms.trait_set(scalars=scalars)
                     date.trait_set(text=t[i])
                     yield
-
 
         anim()
         mlab.show()
 
         return
 
-    def to_file(self,**kwargs):
+    def to_file(self, **kwargs):
 
         mlab.options.offscreen = True
 
-        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         try:
-            time = kwargs.get('t',self._obj.time.values.astype(str))
+            time = kwargs.get("t", self._obj.time.values.astype(str))
         except:
             pass
 
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tri3 = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
 
-        var = kwargs.get('var','depth')
-        z = kwargs.get('z',self._obj[var].values)
-        name = kwargs.get('name',self._obj[var].name)
+        var = kwargs.get("var", "depth")
+        z = kwargs.get("z", self._obj[var].values)
+        name = kwargs.get("name", self._obj[var].name)
 
-        vmin = kwargs.get('vmin', z.min())
-        vmax = kwargs.get('vmax', z.max())
+        vmin = kwargs.get("vmin", z.min())
+        vmax = kwargs.get("vmax", z.max())
 
-        R = kwargs.get('R',1.)
+        R = kwargs.get("R", 1.0)
 
-        px=np.cos(y/180*np.pi)*np.cos(x/180*np.pi)*R
-        py=np.cos(y/180*np.pi)*np.sin(x/180*np.pi)*R
-        pz=np.sin(y/180*np.pi)*R
+        px = np.cos(y / 180 * np.pi) * np.cos(x / 180 * np.pi) * R
+        py = np.cos(y / 180 * np.pi) * np.sin(x / 180 * np.pi) * R
+        pz = np.sin(y / 180 * np.pi) * R
 
-        rep=kwargs.get('representation','surface')
+        rep = kwargs.get("representation", "surface")
 
-        cmap = kwargs.get('cmap','gist_earth')
+        cmap = kwargs.get("cmap", "gist_earth")
 
-        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.,1.,1.))
+        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.0, 1.0, 1.0))
         mlab.clf()
 
-        bcolor=kwargs.get('bcolor',(0.,0.,0.))
-        self.globe(R - .002, bcolor=bcolor)
+        bcolor = kwargs.get("bcolor", (0.0, 0.0, 0.0))
+        self.globe(R - 0.002, bcolor=bcolor)
         # 3D triangular mesh surface (like trisurf)
-        grd = mlab.triangular_mesh(px,py,pz,tri3, representation=rep, opacity=1.0, scalars=z[0,:],  colormap=cmap,vmin=vmin,vmax=vmax)
+        grd = mlab.triangular_mesh(
+            px, py, pz, tri3, representation=rep, opacity=1.0, scalars=z[0, :], colormap=cmap, vmin=vmin, vmax=vmax
+        )
 
         grd.actor.mapper.scalar_visibility = True
 
-        title = kwargs.get('title', '{}'.format(var))
+        title = kwargs.get("title", "{}".format(var))
 
-        mlab.colorbar(grd, title=name, orientation='vertical')
+        mlab.colorbar(grd, title=name, orientation="vertical")
 
-        coast = kwargs.get('coastlines',None)
+        coast = kwargs.get("coastlines", None)
 
-        if coast is not None :
-            src, lines = self.c3d(coast,R=R)
-            mlab.pipeline.surface(src, color=(1,0,0), line_width=10, opacity=0.8)
+        if coast is not None:
+            src, lines = self.c3d(coast, R=R)
+            mlab.pipeline.surface(src, color=(1, 0, 0), line_width=10, opacity=0.8)
 
+        date = mlab.text(0.8, 0.9, time[0], color=(1, 1, 1), width=0.2)
 
-        date = mlab.text(.8,.9,time[0],color=(1,1,1), width=.2)
+        label = mlab.text(0.9, 0.03, "pyposeidon", color=(0, 0.2, 1), width=0.05)
 
-        label = mlab.text(.9,.03,'pyposeidon',color=(0,.2,1), width=.05)
-
-        distance = kwargs.get('distance',4)
+        distance = kwargs.get("distance", 4)
 
         mlab.view(azimuth=x.mean(), distance=distance)
 
-
         # Output path for you animation images
-        out_path = kwargs.get('out_path','./tmp/')
+        out_path = kwargs.get("out_path", "./tmp/")
         out_path = os.path.abspath(out_path)
         if not os.path.exists(out_path):
             os.makedirs(out_path)
 
-        fps = kwargs.get('fps',20)
+        fps = kwargs.get("fps", 20)
 
         padding = len(str(z.shape[0]))
 
-        rotate = kwargs.get('rotate',False)
+        rotate = kwargs.get("rotate", False)
 
         f = mlab.gcf()
         ms = grd.mlab_source
 
-
-    # ANIMATE THE FIGURE WITH MOVIEPY, WRITE AN ANIMATED GIF
+        # ANIMATE THE FIGURE WITH MOVIEPY, WRITE AN ANIMATED GIF
 
         def make_frame(t):
             """ Generates and returns the frame for time t. """
-            dt = 1./fps
-            i = int(t/dt)
-            scalars = z[i,:]
+            dt = 1.0 / fps
+            i = int(t / dt)
+            scalars = z[i, :]
             ms.trait_set(scalars=scalars)
             date.trait_set(text=time[i])
 
-            mlab.view(azimuth=2*np.pi*t/duration, distance=distance)
-            return mlab.screenshot(antialiased=True) # return a RGB image
+            mlab.view(azimuth=2 * np.pi * t / duration, distance=distance)
+            return mlab.screenshot(antialiased=True)  # return a RGB image
 
-        filename =  kwargs.get('filename', 'anim.mp4')
-        form = filename.split('.')[-1]
+        filename = kwargs.get("filename", "anim.mp4")
+        form = filename.split(".")[-1]
 
-        duration = z.shape[0]/fps
+        duration = z.shape[0] / fps
         animation = mpy.VideoClip(make_frame, duration=duration)
         # Video generation takes 10 seconds, GIF generation takes 25s
-        if form == 'mp4' : animation.write_videofile(filename, fps=fps)
-        if form == 'gif' : animation.write_gif(filename, fps=fps)
+        if form == "mp4":
+            animation.write_videofile(filename, fps=fps)
+        if form == "gif":
+            animation.write_gif(filename, fps=fps)
 
         mlab.options.offscreen = False
 
         return
 
     @mlab.show
-    def grid(self,**kwargs):
+    def grid(self, **kwargs):
 
-        x = kwargs.get('x',self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get('y',self._obj.SCHISM_hgrid_node_y[:].values)
+        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
+        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         try:
-            t = kwargs.get('t',self._obj.time.values)
+            t = kwargs.get("t", self._obj.time.values)
         except:
             pass
 
-        tri3 = kwargs.get('tri3',self._obj.SCHISM_hgrid_face_nodes.values[:,:3].astype(int))
+        tri3 = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
 
-        dim = kwargs.get('dim','2D')
+        dim = kwargs.get("dim", "2D")
 
-        R = kwargs.get('R',1.)
+        R = kwargs.get("R", 1.0)
 
+        if dim == "3D":
 
-        if dim == '3D':
-
-            px=np.cos(y/180*np.pi)*np.cos(x/180*np.pi)*R
-            py=np.cos(y/180*np.pi)*np.sin(x/180*np.pi)*R
-            pz=np.sin(y/180*np.pi)*R
+            px = np.cos(y / 180 * np.pi) * np.cos(x / 180 * np.pi) * R
+            py = np.cos(y / 180 * np.pi) * np.sin(x / 180 * np.pi) * R
+            pz = np.sin(y / 180 * np.pi) * R
 
         else:
 
@@ -319,25 +322,25 @@ class mplot(object):
             py = y
             pz = np.zeros(x.shape[0])
 
-        mlab.figure(1, size=(3840/2, 2160/2), bgcolor=(0, 0, 0), fgcolor=(1.,1.,1.))
+        mlab.figure(1, size=(3840 / 2, 2160 / 2), bgcolor=(0, 0, 0), fgcolor=(1.0, 1.0, 1.0))
         mlab.clf()
-        bcolor=kwargs.get('bcolor',(0.,0.,0.))
-        if dim == '3D': self.globe(R - .002, bcolor=bcolor)
+        bcolor = kwargs.get("bcolor", (0.0, 0.0, 0.0))
+        if dim == "3D":
+            self.globe(R - 0.002, bcolor=bcolor)
 
         # 3D triangular mesh surface (like trisurf)
-        grd = mlab.triangular_mesh(px,py,pz,tri3, representation='wireframe', opacity=1.0)
+        grd = mlab.triangular_mesh(px, py, pz, tri3, representation="wireframe", opacity=1.0)
 
-        coast = kwargs.get('coastlines',None)
+        coast = kwargs.get("coastlines", None)
 
-        if coast is not None :
+        if coast is not None:
             try:
-                del kwargs['coastlines','R']
+                del kwargs["coastlines", "R"]
             except:
                 pass
 
-            src, lines = self.c3d(coast,R=R,**kwargs)
-            mlab.pipeline.surface(src, color=(1,0,0), line_width=10, opacity=0.8)
-
+            src, lines = self.c3d(coast, R=R, **kwargs)
+            mlab.pipeline.surface(src, color=(1, 0, 0), line_width=10, opacity=0.8)
 
         engine = mlab.get_engine()
         scene = engine.scenes[0]
@@ -347,49 +350,48 @@ class mplot(object):
         return
 
     @staticmethod
-    def c3d(coastlines,R=1,**kwargs):
+    def c3d(coastlines, R=1, **kwargs):
 
         bo = coastlines.geometry.values
 
-        dic={}
+        dic = {}
         for l in range(len(bo)):
-        #    print(l)
-            lon=[]
-            lat=[]
+            #    print(l)
+            lon = []
+            lat = []
             try:
-                for x,y in bo[l].coords[:]:
+                for x, y in bo[l].coords[:]:
                     lon.append(x)
                     lat.append(y)
             except:
                 try:
-                    for x,y in bo[l].boundary.coords[:]:
+                    for x, y in bo[l].boundary.coords[:]:
                         lon.append(x)
                         lat.append(y)
                 except:
-                    for x,y in bo[l].boundary[0].coords[:]:
+                    for x, y in bo[l].boundary[0].coords[:]:
                         lon.append(x)
                         lat.append(y)
 
+            dic.update({"line{}".format(l): {"lon": lon, "lat": lat}})
 
-            dic.update({'line{}'.format(l):{'lon':lon,'lat':lat}})
-
-        dict_of_df = {k: pd.DataFrame(v) for k,v in dic.items()}
+        dict_of_df = {k: pd.DataFrame(v) for k, v in dic.items()}
         dff = pd.concat(dict_of_df, axis=0)
-        dff['z']=0
+        dff["z"] = 0
         dff.head()
 
-        dim = kwargs.get('dim','2D')
+        dim = kwargs.get("dim", "2D")
 
-        if dim == '3D':
+        if dim == "3D":
 
             # add 3D coordinates
-            dff['x']=np.cos(dff.lat/180*np.pi)*np.cos(dff.lon/180*np.pi)*R
-            dff['y']=np.cos(dff.lat/180*np.pi)*np.sin(dff.lon/180*np.pi)*R
-            dff['z']=np.sin(dff.lat/180*np.pi)*R
+            dff["x"] = np.cos(dff.lat / 180 * np.pi) * np.cos(dff.lon / 180 * np.pi) * R
+            dff["y"] = np.cos(dff.lat / 180 * np.pi) * np.sin(dff.lon / 180 * np.pi) * R
+            dff["z"] = np.sin(dff.lat / 180 * np.pi) * R
 
         else:
 
-            dff.columns = ['x','y','z']
+            dff.columns = ["x", "y", "z"]
 
         # We create a list of positions and connections, each describing a line.
         # We will collapse them in one array before plotting.
@@ -408,27 +410,24 @@ class mplot(object):
             y.append(sdf.y.values)
             z.append(sdf.z.values)
             N = sdf.shape[0]
-            #s.append(np.linspace(-2 * np.pi, 2 * np.pi, N))
+            # s.append(np.linspace(-2 * np.pi, 2 * np.pi, N))
             # This is the tricky part: in a line, each point is connected
             # to the one following it. We have to express this with the indices
             # of the final set of points once all lines have been combined
             # together, this is why we need to keep track of the total number of
             # points already created (index)
-            connections.append(np.vstack(
-                               [np.arange(index,   index + N - 1.5),
-                                np.arange(index + 1, index + N - .5)]
-                                    ).T)
+            connections.append(np.vstack([np.arange(index, index + N - 1.5), np.arange(index + 1, index + N - 0.5)]).T)
             index += N
 
         # Now collapse all positions, scalars and connections in big arrays
         x = np.hstack(x)
         y = np.hstack(y)
         z = np.hstack(z)
-        #s = np.hstack(s)
+        # s = np.hstack(s)
         connections = np.vstack(connections)
 
         # Create the points
-        src = mlab.pipeline.scalar_scatter(x, y, z)#, s)
+        src = mlab.pipeline.scalar_scatter(x, y, z)  # , s)
 
         # Connect them
         src.mlab_source.dataset.lines = connections

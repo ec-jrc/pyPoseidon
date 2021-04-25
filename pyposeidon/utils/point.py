@@ -29,77 +29,77 @@ import scipy.interpolate
 
 
 class point:
-
-    def __init__(self, solver = None, lon=None, lat = None, dataset = None, **kwargs):
+    def __init__(self, solver=None, lon=None, lat=None, dataset=None, **kwargs):
 
         self.lon = lon
         self.lat = lat
         self.data = dataset
 
-        if solver == 'd3d':
+        if solver == "d3d":
             self.time_series = self.tseries(**kwargs)
-        elif solver == 'schism':
+        elif solver == "schism":
             self.time_series = self.stseries(**kwargs)
         else:
-            logger.error('solver is not defined, exiting \n')
+            logger.error("solver is not defined, exiting \n")
             sys.exit(1)
 
+    def tseries(self, **kwargs):
 
-    def tseries(self,**kwargs):
+        var = kwargs.get("var", None)
+        method = kwargs.get("method", "nearest")
 
-        var = kwargs.get('var', None)
-        method = kwargs.get('method', 'nearest')
+        plat = float(self.lat)
+        plon = float(self.lon)
 
-        plat=float(self.lat)
-        plon=float(self.lon)
-
-        X, Y = self.data.Dataset.XZ.values[1:-1,1:-1].T,self.data.Dataset.YZ.values[1:-1,1:-1].T
-        xh = np.ma.masked_array(X, self.data.w) #mask land
+        X, Y = self.data.Dataset.XZ.values[1:-1, 1:-1].T, self.data.Dataset.YZ.values[1:-1, 1:-1].T
+        xh = np.ma.masked_array(X, self.data.w)  # mask land
         yh = np.ma.masked_array(Y, self.data.w)
 
+        i = np.abs(X[0, :] - plon).argmin()
+        j = np.abs(Y[:, 0] - plat).argmin()
 
-        i=np.abs(X[0,:]-plon).argmin()
-        j=np.abs(Y[:,0]-plat).argmin()
+        xb, yb = xh[j - 5 : j + 5, i - 5 : i + 5], yh[j - 5 : j + 5, i - 5 : i + 5]
 
-        xb, yb = xh[j-5:j+5,i-5:i+5],yh[j-5:j+5,i-5:i+5]
+        vals = self.data.Dataset[var][:, j - 5 : j + 5, i - 5 : i + 5].values
 
-        vals = self.data.Dataset[var][:,j-5:j+5,i-5:i+5].values
+        orig = pyresample.geometry.SwathDefinition(lons=xb, lats=yb)  # create original swath grid
 
-        orig = pyresample.geometry.SwathDefinition(lons=xb,lats=yb) # create original swath grid
-
-        targ = pyresample.geometry.SwathDefinition(lons=np.array([plon,plon]),lats=np.array([plat,plat])) #  point
+        targ = pyresample.geometry.SwathDefinition(lons=np.array([plon, plon]), lats=np.array([plat, plat]))  #  point
 
         svals = []
 
-        if method == 'nearest':
+        if method == "nearest":
             for k in range(vals.shape[0]):
-                s = pyresample.kd_tree.resample_nearest(orig,vals[k,:,:],targ,radius_of_influence=100000,fill_value=np.nan)
+                s = pyresample.kd_tree.resample_nearest(
+                    orig, vals[k, :, :], targ, radius_of_influence=100000, fill_value=np.nan
+                )
                 svals.append(s[0])
-        elif method == 'gauss':
+        elif method == "gauss":
             for k in range(vals.shape[0]):
-                s = pyresample.kd_tree.resample_gauss(orig,vals[k,:,:],targ,radius_of_influence=100000,fill_value=np.nan,sigmas=25000)
+                s = pyresample.kd_tree.resample_gauss(
+                    orig, vals[k, :, :], targ, radius_of_influence=100000, fill_value=np.nan, sigmas=25000
+                )
                 svals.append(s[0])
 
+        pdata = pd.DataFrame({"time": self.data.Dataset[var].time, self.data.Dataset[var].name: svals})
+        return pdata.set_index(["time"])
 
-        pdata = pd.DataFrame({'time':self.data.Dataset[var].time, self.data.Dataset[var].name : svals})
-        return pdata.set_index(['time'])
+    def stseries(self, **kwargs):
 
+        var = kwargs.get("var", None)
+        method = kwargs.get("method", "nearest")
 
-    def stseries(self,**kwargs):
+        plat = float(self.lat)
+        plon = float(self.lon)
 
-        var = kwargs.get('var', None)
-        method = kwargs.get('method', 'nearest')
-
-        plat=float(self.lat)
-        plon=float(self.lon)
-
-        points = pd.concat([self.data.SCHISM_hgrid_node_x[:].to_dataframe(), self.data.SCHISM_hgrid_node_y[:].to_dataframe()], axis=1)
+        points = pd.concat(
+            [self.data.SCHISM_hgrid_node_x[:].to_dataframe(), self.data.SCHISM_hgrid_node_y[:].to_dataframe()], axis=1
+        )
         values = self.data[var].values
 
         svals = []
         for k in range(self.data[var].time.size):
-            svals.append( scipy.interpolate.griddata(points.values, values[k,:], (plon, plat), method=method) )
+            svals.append(scipy.interpolate.griddata(points.values, values[k, :], (plon, plat), method=method))
 
-        pdata = pd.DataFrame({'time':self.data[var].time, self.data[var].name : svals})
-        return pdata.set_index(['time'])
-
+        pdata = pd.DataFrame({"time": self.data[var].time, self.data[var].name: svals})
+        return pdata.set_index(["time"])

@@ -9,15 +9,9 @@ from . import DATA_DIR
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--runschism", action="store_true", default=False, help="run schism tests"
-    )
-    parser.addoption(
-        "--rundelft", action="store_true", default=False, help="run delft tests"
-    )
-    parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
-    )
+    parser.addoption("--runschism", action="store_true", default=False, help="run schism tests")
+    parser.addoption("--rundelft", action="store_true", default=False, help="run delft tests")
+    parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -54,15 +48,15 @@ def save_as(url: str, path: pathlib.Path) -> None:
 
 
 TEST_DATA = {
-    DATA_DIR / "dem.nc" : "https://www.dropbox.com/s/l16crheqc9d89gy/dem.nc?dl=1",
-    DATA_DIR / "era5.grib" : "https://www.dropbox.com/s/mo8z8mv8k9kqj91/era5.grib?dl=1",
-    DATA_DIR / "erai.grib" : "https://www.dropbox.com/s/d56ctpo7nfptc1b/erai.grib?dl=1",
-    DATA_DIR / "hgrid.gr3" : "https://www.dropbox.com/s/73f1q13istbmacb/hgrid.gr3?dl=1",
-    DATA_DIR / "meteo.nc" : "https://www.dropbox.com/s/1kqt8732a284tbk/meteo.nc?dl=1",
-    DATA_DIR / "uvp_2018100100.grib" : "https://www.dropbox.com/s/jhf117jf9t2os8u/uvp_2018100100.grib?dl=1",
-    DATA_DIR / "uvp_2018100112.grib" : "https://www.dropbox.com/s/6y57hg119cpd6gx/uvp_2018100112.grib?dl=1",
-    DATA_DIR / "uvp_2018100200.grib" : "https://www.dropbox.com/s/7uejb2061k19zsf/uvp_2018100200.grib?dl=1",
-    DATA_DIR / "uvp_2018100212.grib" : "https://www.dropbox.com/s/nidbkobti83urzw/uvp_2018100212.grib?dl=1",
+    DATA_DIR / "dem.nc": "https://www.dropbox.com/s/l16crheqc9d89gy/dem.nc?dl=1",
+    DATA_DIR / "era5.grib": "https://www.dropbox.com/s/mo8z8mv8k9kqj91/era5.grib?dl=1",
+    DATA_DIR / "erai.grib": "https://www.dropbox.com/s/d56ctpo7nfptc1b/erai.grib?dl=1",
+    DATA_DIR / "hgrid.gr3": "https://www.dropbox.com/s/73f1q13istbmacb/hgrid.gr3?dl=1",
+    DATA_DIR / "meteo.nc": "https://www.dropbox.com/s/1kqt8732a284tbk/meteo.nc?dl=1",
+    DATA_DIR / "uvp_2018100100.grib": "https://www.dropbox.com/s/jhf117jf9t2os8u/uvp_2018100100.grib?dl=1",
+    DATA_DIR / "uvp_2018100112.grib": "https://www.dropbox.com/s/6y57hg119cpd6gx/uvp_2018100112.grib?dl=1",
+    DATA_DIR / "uvp_2018100200.grib": "https://www.dropbox.com/s/7uejb2061k19zsf/uvp_2018100200.grib?dl=1",
+    DATA_DIR / "uvp_2018100212.grib": "https://www.dropbox.com/s/nidbkobti83urzw/uvp_2018100212.grib?dl=1",
 }
 
 

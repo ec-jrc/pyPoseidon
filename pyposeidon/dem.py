@@ -19,82 +19,80 @@ import multiprocessing
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
-logger = logging.getLogger('pyposeidon')
+logger = logging.getLogger("pyposeidon")
+
 
 class dem:
     def __init__(self, dem_source=None, **kwargs):
-        
+
         # integrate geometry attribute.
-        geometry = kwargs.get('geometry', None)        
-        if geometry:           
+        geometry = kwargs.get("geometry", None)
+        if geometry:
             kwargs.update(**geometry)
-        
-        if not dem_source :
-            dem_source = 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus'
-        self.Dataset = dem_(source = dem_source, **kwargs)
 
-        coastline = kwargs.get('coastlines', None)
-        if coastline is not None :
-            if kwargs.get('adjust_dem', True) : self.adjust(coastline)
+        if not dem_source:
+            dem_source = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus"
+        self.Dataset = dem_(source=dem_source, **kwargs)
 
-    def adjust(self,coastline,**kwargs):
+        coastline = kwargs.get("coastlines", None)
+        if coastline is not None:
+            if kwargs.get("adjust_dem", True):
+                self.adjust(coastline)
 
-        self.Dataset = fix(self.Dataset,coastline,**kwargs)
+    def adjust(self, coastline, **kwargs):
 
+        self.Dataset = fix(self.Dataset, coastline, **kwargs)
 
 
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs):
 
-    ncores = kwargs.get('ncores', NCORES)
-    
-    xk = {'engine':'pydap'} if str(source).split('.')[-1] != 'nc' else {}
+    ncores = kwargs.get("ncores", NCORES)
 
-    xr_kwargs = kwargs.get('dem_xr_kwargs', xk)
+    xk = {"engine": "pydap"} if str(source).split(".")[-1] != "nc" else {}
 
-    #---------------------------------------------------------------------
-    logger.info('extracting dem from {}\n'.format(source))
-    #---------------------------------------------------------------------
+    xr_kwargs = kwargs.get("dem_xr_kwargs", xk)
+
+    # ---------------------------------------------------------------------
+    logger.info("extracting dem from {}\n".format(source))
+    # ---------------------------------------------------------------------
 
     data = xr.open_dataset(source, **xr_kwargs)
 
-    #rename vars,coords
+    # rename vars,coords
     var = [keys for keys in data.data_vars]
     coords = [keys for keys in data.coords]
-    lat = [x for x in coords if 'lat' in  x]
-    lon = [x for x in coords if 'lon' in  x]
-    data = data.rename({var[0] : 'elevation', lat[0] : 'latitude', lon[0] : 'longitude'})
+    lat = [x for x in coords if "lat" in x]
+    lon = [x for x in coords if "lon" in x]
+    data = data.rename({var[0]: "elevation", lat[0]: "latitude", lon[0]: "longitude"})
 
-    #recenter the window
-    if data.longitude.max()-data.longitude.min() > 359.:
+    # recenter the window
+    if data.longitude.max() - data.longitude.min() > 359.0:
 
-        lon0 = lon_min + 360. if lon_min < data.longitude.min() else lon_min
-        lon1 = lon_max + 360. if lon_max < data.longitude.min() else lon_max
+        lon0 = lon_min + 360.0 if lon_min < data.longitude.min() else lon_min
+        lon1 = lon_max + 360.0 if lon_max < data.longitude.min() else lon_max
 
-        lon0 = lon0 - 360. if lon0 > data.longitude.max() else lon0
-        lon1 = lon1 - 360. if lon1 > data.longitude.max() else lon1
-        
+        lon0 = lon0 - 360.0 if lon0 > data.longitude.max() else lon0
+        lon1 = lon1 - 360.0 if lon1 > data.longitude.max() else lon1
+
     else:
-        
+
         lon0 = lon_min
         lon1 = lon_max
 
     if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()):
-        logger.warning('Lon must be within {} and {}'.format(data.longitude.min().values,data.longitude.max().values))
-        logger.warning('compensating if global dataset available')
+        logger.warning("Lon must be within {} and {}".format(data.longitude.min().values, data.longitude.max().values))
+        logger.warning("compensating if global dataset available")
 
     if (lat_min < data.latitude.min()) or (lat_max > data.latitude.max()):
-        logger.warning('Lat must be within {} and {}'.format(data.latitude.min().values,data.latitude.max().values))
-        logger.warning('compensating if global dataset available')
+        logger.warning("Lat must be within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
+        logger.warning("compensating if global dataset available")
 
+    # get idx
+    i0 = np.abs(data.longitude.data - lon0).argmin()
+    i1 = np.abs(data.longitude.data - lon1).argmin()
 
-    #get idx
-    i0=np.abs(data.longitude.data-lon0).argmin()
-    i1=np.abs(data.longitude.data-lon1).argmin()
-
-
-    j0=np.abs(data.latitude.data-lat_min).argmin()
-    j1=np.abs(data.latitude.data-lat_max).argmin()
-
+    j0 = np.abs(data.latitude.data - lat_min).argmin()
+    j1 = np.abs(data.latitude.data - lat_max).argmin()
 
     # expand the window a little bit
     lon_0 = max(0, i0 - 2)
@@ -104,114 +102,91 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
     lat_1 = min(data.latitude.size, j1 + 2)
 
     # descenting lats
-    if j0 > j1 :
-       j0, j1 = j1, j0
-       lat_0 = max(0, j0 - 1)
-       lat_1 = min(data.latitude.size, j1 + 3)
+    if j0 > j1:
+        j0, j1 = j1, j0
+        lat_0 = max(0, j0 - 1)
+        lat_1 = min(data.latitude.size, j1 + 3)
 
+    if i0 > i1:
 
+        p1 = data.elevation.isel(longitude=slice(lon_0, data.longitude.size), latitude=slice(lat_0, lat_1))
 
-    if i0 > i1 :
+        p1 = p1.assign_coords({"longitude": p1.longitude.values - 360.0})
 
-        p1 = (
-          data.elevation
-          .isel(longitude=slice(lon_0,data.longitude.size),latitude=slice(lat_0,lat_1))
-          )
+        p2 = data.elevation.isel(longitude=slice(0, lon_1), latitude=slice(lat_0, lat_1))
 
-        p1 = p1.assign_coords({'longitude':p1.longitude.values - 360.})
-
-
-        p2 = (
-          data.elevation
-          .isel(longitude=slice(0,lon_1),latitude=slice(lat_0,lat_1))
-          )
-
-        dem = xr.concat([p1,p2],dim='longitude')
+        dem = xr.concat([p1, p2], dim="longitude")
 
     else:
 
-        dem = (
-            data.elevation
-            .isel(longitude=slice(lon_0,lon_1),latitude=slice(lat_0,lat_1))
-            )
+        dem = data.elevation.isel(longitude=slice(lon_0, lon_1), latitude=slice(lat_0, lat_1))
 
-
-    if np.abs(np.mean(dem.longitude) - np.mean([lon_min, lon_max])) > 170. :
+    if np.abs(np.mean(dem.longitude) - np.mean([lon_min, lon_max])) > 170.0:
         c = np.sign(np.mean([lon_min, lon_max]))
-        dem['longitude'] = dem['longitude'] + c*360.
+        dem["longitude"] = dem["longitude"] + c * 360.0
 
+    if "grid_x" in kwargs.keys():
 
+        # ---------------------------------------------------------------------
+        logger.info(".. interpolating on grid ..\n")
+        # ---------------------------------------------------------------------
 
-    if 'grid_x' in kwargs.keys():
-
-        #---------------------------------------------------------------------
-        logger.info('.. interpolating on grid ..\n')
-        #---------------------------------------------------------------------
-
-        grid_x = kwargs.get('grid_x', None)
-        grid_y = kwargs.get('grid_y', None)
+        grid_x = kwargs.get("grid_x", None)
+        grid_y = kwargs.get("grid_y", None)
         # resample on the given grid
-        xx,yy = np.meshgrid(dem.longitude ,dem.latitude)   #original grid
+        xx, yy = np.meshgrid(dem.longitude, dem.latitude)  # original grid
 
         # Translate for pyresample
-        if xx.mean() < 0 and xx.min() < -180. :
-            xx = xx + 180.
-            gx = grid_x + 180.
-        elif xx.mean() > 0 and xx.max() > 180. :
-            xx = xx - 180.
-            gx = grid_x - 180.
+        if xx.mean() < 0 and xx.min() < -180.0:
+            xx = xx + 180.0
+            gx = grid_x + 180.0
+        elif xx.mean() > 0 and xx.max() > 180.0:
+            xx = xx - 180.0
+            gx = grid_x - 180.0
         else:
             gx = grid_x
 
+        orig = pyresample.geometry.SwathDefinition(lons=xx, lats=yy)  # original points
+        targ = pyresample.geometry.SwathDefinition(lons=gx, lats=grid_y)  # target grid
 
-        orig = pyresample.geometry.SwathDefinition(lons=xx,lats=yy) # original points
-        targ = pyresample.geometry.SwathDefinition(lons=gx,lats=grid_y) # target grid
-
-
-        wet = kwargs.get('wet_only', False)
+        wet = kwargs.get("wet_only", False)
         if wet:
-            #mask positive bathymetry
-            vals = np.ma.masked_array(dem,dem.values > 0 )
+            # mask positive bathymetry
+            vals = np.ma.masked_array(dem, dem.values > 0)
         else:
             vals = dem.values
 
-
         # with nearest using only the water values
 
-        itopo = pyresample.kd_tree.resample_nearest(orig,dem.values,targ,radius_of_influence=100000,fill_value=np.nan)#,nprocs=ncores)
+        itopo = pyresample.kd_tree.resample_nearest(
+            orig, dem.values, targ, radius_of_influence=100000, fill_value=np.nan
+        )  # ,nprocs=ncores)
 
         if len(grid_x.shape) > 1:
-            idem = xr.Dataset({'ival': (['k', 'l'],  itopo),
-                           'ilons': (['k', 'l'], grid_x),
-                           'ilats': (['k', 'l'], grid_y)})#,
-#                           coords={'ilon': ('ilon', grid_x[0,:]),
-#                                   'ilat': ('ilat', grid_y[:,0])})
+            idem = xr.Dataset(
+                {"ival": (["k", "l"], itopo), "ilons": (["k", "l"], grid_x), "ilats": (["k", "l"], grid_y)}
+            )  # ,
+        #                           coords={'ilon': ('ilon', grid_x[0,:]),
+        #                                   'ilat': ('ilat', grid_y[:,0])})
 
         elif len(grid_x.shape) == 1:
-            idem = xr.Dataset({'ival': (['k'],  itopo),
-                    'ilons': (['k'], grid_x),
-                    'ilats': (['k'], grid_y)}
-                         )
+            idem = xr.Dataset({"ival": (["k"], itopo), "ilons": (["k"], grid_x), "ilats": (["k"], grid_y)})
 
-        #---------------------------------------------------------------------
-        logger.info('dem done\n')
-        #---------------------------------------------------------------------
+        # ---------------------------------------------------------------------
+        logger.info("dem done\n")
+        # ---------------------------------------------------------------------
 
-
-        return xr.merge([dem,idem])
+        return xr.merge([dem, idem])
 
     else:
 
         return xr.merge([dem])
 
 
+def to_output(dataset=None, solver=None, **kwargs):
 
-def to_output(dataset=None,solver=None, **kwargs):
+    model = importlib.import_module("pyposeidon.model")  # load pyposeidon model class
 
-    model=importlib.import_module('pyposeidon.model') #load pyposeidon model class
-
-    s = getattr(model,solver) # get solver class
+    s = getattr(model, solver)  # get solver class
 
     s.to_dep(dataset, **kwargs)
-
-
