@@ -2,7 +2,7 @@
 
 site_name: "pyPoseidon"
 use_directory_urls: false
-repo_url: "https://github.com/brey/pyPoseidon"
+repo_url: "https://github.com/ec-jrc/pyPoseidon"
 
 theme:
   name: "material"

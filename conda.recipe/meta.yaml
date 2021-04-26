@@ -44,7 +44,7 @@ test:
     - pyposeidon
 
 about:
-  home: https://github.com/brey/pyposeidon
+  home: https://github.com/ec-jrc/pyposeidon
   license: EUPL-1.2
   license_file: LICENSE
   summary: 'Framework for Hydrodynamic simulations'
@@ -56,8 +56,9 @@ about:
     pre/post processing utilizing popular packages
     such as xarray, pandas, geopandas etc.
   doc_url: https://pyposeidon.readthedocs.io/
-  dev_url: https://github.com/brey/pyPoseidon
+  dev_url: https://github.com/ec-jrc/pyPoseidon
 
 extra:
   recipe-maintainers:
     - brey
+    - pmav99
