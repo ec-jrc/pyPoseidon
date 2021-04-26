@@ -7,7 +7,7 @@ authors = [
     "Panos Mavrogiorgos <pmav99@gmail.com>"
 ]
 readme = "README.md"
-homepage = "https://github.com/brey/pyposeidon"
+homepage = "https://github.com/ec-jrc/pyposeidon"
 keywords = [
     "Hydrodynamic",
     "Sea",
