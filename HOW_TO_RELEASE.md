@@ -30,6 +30,9 @@
 
 `poetry build`
 
+- rebase to upstream (if needed)
+
+`git rebase -i upstream/master`
 
 - test CI on github
 
