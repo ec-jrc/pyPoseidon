@@ -62,6 +62,7 @@ moviepy = "^1.0.3"
 branca = "^0.4.2"
 ipython = "^7.20.0"
 llvmlite = "^0.36.0"
+Pydap = { git = "https://github.com/pydap/pydap.git", rev = "3f6aa190c59e3bbc6c834377a61579b20275ff69" }
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
