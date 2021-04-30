@@ -8,18 +8,24 @@ Dem module
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 
+import importlib
+import logging
+import multiprocessing
+import warnings
+
 import numpy as np
 import pyresample
 import xarray as xr
-import sys
-import importlib
+
 from pyposeidon.utils.fix import fix
-import logging
-import multiprocessing
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 logger = logging.getLogger("pyposeidon")
+
+LONGITUDE_NAMES = {"longitude", "lon", "x", "Lon", "LONGITUDE", "LON", "X"}
+LATITUDE_NAMES = {"latitude", "lat", "y", "Lat", "LATITUDE", "LAT", "Y"}
+
 
 
 class dem:
@@ -44,6 +50,33 @@ class dem:
         self.Dataset = fix(self.Dataset, coastline, **kwargs)
 
 
+def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
+    """ Return a dataset with coords containing "longitude" and "latitude" """
+    coords = set(dataset.coords.keys())
+    # longitude
+    for lon_name in LONGITUDE_NAMES:
+        if lon_name in coords:
+            break
+    else:
+        raise ValueError(f"Couldn't normalize longitude: {coords}")
+    # latitude
+    for lat_name in LATITUDE_NAMES:
+        if lat_name in coords:
+            break
+    else:
+        raise ValueError(f"Couldn't normalize latitude: {coords}")
+    dataset = dataset.rename({lon_name: "longitude", lat_name: "latitude"})
+    return dataset
+
+
+def normalize_elevation_name(dataset: xr.Dataset) -> xr.Dataset:
+    data_vars = list(dataset.data_vars.keys())
+    if len(data_vars) > 1:
+        warnings.warn(f"There are multiple data_vars. Assuming 'elevation' is the first one: {data_vars}")
+    dataset = dataset.rename({data_vars[0]: "elevation"})
+    return dataset
+
+
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs):
 
     ncores = kwargs.get("ncores", NCORES)
@@ -57,13 +90,8 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
     # ---------------------------------------------------------------------
 
     data = xr.open_dataset(source, **xr_kwargs)
-
-    # rename vars,coords
-    var = [keys for keys in data.data_vars]
-    coords = [keys for keys in data.coords]
-    lat = [x for x in coords if "lat" in x]
-    lon = [x for x in coords if "lon" in x]
-    data = data.rename({var[0]: "elevation", lat[0]: "latitude", lon[0]: "longitude"})
+    data = normalize_coord_names(data)
+    data = normalize_elevation_name(data)
 
     # recenter the window
     if data.longitude.max() - data.longitude.min() > 359.0:
