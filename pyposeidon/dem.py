@@ -11,6 +11,8 @@ Dem module
 import importlib
 import logging
 import multiprocessing
+import os
+import pathlib
 import warnings
 
 import numpy as np
@@ -25,7 +27,6 @@ logger = logging.getLogger("pyposeidon")
 
 LONGITUDE_NAMES = {"longitude", "lon", "x", "Lon", "LONGITUDE", "LON", "X"}
 LATITUDE_NAMES = {"latitude", "lat", "y", "Lat", "LATITUDE", "LAT", "Y"}
-
 
 
 class dem:
@@ -77,19 +78,24 @@ def normalize_elevation_name(dataset: xr.Dataset) -> xr.Dataset:
     return dataset
 
 
-def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs):
+def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
+    logger.info("extracting dem from %s\n", source)
+    if isinstance(source, pathlib.Path):
+        source = source.as_posix()
+    if source.lower().startswith("http"):  # URL
+        kwargs.update({"engine": "pydap"})
+        dataset = xr.open_dataset(source, **kwargs)
+    elif source.lower().endswith("tif"):  # GeoTiff
+        data_array = xr.open_rasterio(source, **kwargs)
+        dataset = data_array.to_dataset(name="elevation")
+    else:  # NetCDF
+        dataset = xr.open_dataset(source, **kwargs)
+    return dataset
 
-    ncores = kwargs.get("ncores", NCORES)
 
-    xk = {"engine": "pydap"} if str(source).split(".")[-1] != "nc" else {}
-
-    xr_kwargs = kwargs.get("dem_xr_kwargs", xk)
-
-    # ---------------------------------------------------------------------
-    logger.info("extracting dem from {}\n".format(source))
-    # ---------------------------------------------------------------------
-
-    data = xr.open_dataset(source, **xr_kwargs)
+def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs) -> xr.Dataset:
+    dataset_kwargs = kwargs.pop("dem_xr_kwargs", {})
+    data = open_dataset(source, **dataset_kwargs)
     data = normalize_coord_names(data)
     data = normalize_elevation_name(data)
 

@@ -49,6 +49,7 @@ def save_as(url: str, path: pathlib.Path) -> None:
 
 TEST_DATA = {
     DATA_DIR / "dem.nc": "https://www.dropbox.com/s/l16crheqc9d89gy/dem.nc?dl=1",
+    DATA_DIR / "dem.tif": "https://www.dropbox.com/s/e8soiux6m1lnohn/dem.tif?dl=1",
     DATA_DIR / "era5.grib": "https://www.dropbox.com/s/mo8z8mv8k9kqj91/era5.grib?dl=1",
     DATA_DIR / "erai.grib": "https://www.dropbox.com/s/d56ctpo7nfptc1b/erai.grib?dl=1",
     DATA_DIR / "hgrid.gr3": "https://www.dropbox.com/s/73f1q13istbmacb/hgrid.gr3?dl=1",
