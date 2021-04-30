@@ -4,6 +4,7 @@ name: "venv"
 
 on:
   - "push"
+  - "pull_request"
 
 jobs:
   ci:
