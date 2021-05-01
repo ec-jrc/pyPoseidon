@@ -12,7 +12,14 @@ import numpy as np
 
 from . import DATA_DIR
 
-DEM_SOURCE = DATA_DIR / "dem.nc"
+DEM_SOURCES = pytest.mark.parametrize(
+    "dem_source",
+    [
+        pytest.param(DATA_DIR / "dem.nc", id="local netcdf"),
+        pytest.param(DATA_DIR / "dem.tif", id="local geotiff"),
+    ],
+)
+
 
 # define the lat/lon window and time frame of interest
 window1 = {
@@ -20,7 +27,6 @@ window1 = {
     "lon_max": -10.0,
     "lat_min": 60.0,
     "lat_max": 70.0,
-    "dem_source": DEM_SOURCE,
 }
 
 
@@ -78,7 +84,8 @@ def d3d(tmpdir, kwargs):
     return c1.fillna(0).equals(c2.fillna(0))
 
 
+@DEM_SOURCES
 @pytest.mark.parametrize("kwargs", [window1])
 @pytest.mark.parametrize("solver", [schism, d3d])
-def test_answer(tmpdir, kwargs, solver):
+def test_answer(tmpdir, dem_source, kwargs, solver):
     assert solver(tmpdir, kwargs) == True

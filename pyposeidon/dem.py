@@ -86,8 +86,8 @@ def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
         kwargs.update({"engine": "pydap"})
         dataset = xr.open_dataset(source, **kwargs)
     elif source.lower().endswith("tif"):  # GeoTiff
-        data_array = xr.open_rasterio(source, **kwargs)
-        dataset = data_array.to_dataset(name="elevation")
+        data_array = xr.open_rasterio(source, parse_coordinates=True, **kwargs)
+        dataset = data_array.to_dataset(name="elevation").squeeze().reset_coords(drop=True)
     else:  # NetCDF
         dataset = xr.open_dataset(source, **kwargs)
     return dataset
