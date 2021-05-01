@@ -158,23 +158,22 @@ python-versions = "*"
 
 [[package]]
 name = "cartopy"
-version = "0.18.0"
+version = "0.19.0.post1"
 description = "A cartographic python library with Matplotlib support for visualisation"
 category = "main"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.5"
 
 [package.dependencies]
-numpy = ">=1.10"
-pyshp = ">=1.1.4"
+numpy = ">=1.13.3"
+pyshp = ">=2"
 shapely = ">=1.5.6"
-six = ">=1.3.0"
 
 [package.extras]
 epsg = ["pyepsg (>=0.4.0)"]
 ows = ["OWSLib (>=0.8.11)", "pillow (>=1.7.8)"]
 plotting = ["matplotlib (>=1.5.1)", "GDAL (>=1.10.0)", "pillow (>=1.7.8)", "scipy (>=0.10)"]
-tests = ["filelock", "mock (>=1.0.1)", "pytest (>=3.0.0)"]
+tests = ["flufl.lock", "pytest (>=3.0.0)"]
 
 [[package]]
 name = "certifi"
@@ -1615,20 +1614,6 @@ python-versions = ">=3.7,<3.10"
 numpy = ">=1.16.5,<1.23.0"
 
 [[package]]
-name = "seaborn"
-version = "0.11.1"
-description = "seaborn: statistical data visualization"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-matplotlib = ">=2.2"
-numpy = ">=1.15"
-pandas = ">=0.23"
-scipy = ">=1.0"
-
-[[package]]
 name = "shapely"
 version = "1.7.1"
 description = "Geometric objects, predicates, and operations"
@@ -1790,11 +1775,11 @@ testing = ["pytest (>=3.1.0)", "coverage", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "xarray"
-version = "0.16.2"
+version = "0.17.0"
 description = "N-D labeled arrays and datasets in Python"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 numpy = ">=1.15"
@@ -1834,7 +1819,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7, <3.10"
-content-hash = "79f2259c3a4d11dff6559ce9af3383663bb1589d242ab753a0d65f46234d5e59"
+content-hash = "d9324f0bfeee22de1ac641b520ae500944d1a3434d339ca2697f10a9abd390c0"
 
 [metadata.files]
 affine = [
@@ -1893,7 +1878,7 @@ cached-property = [
     {file = "cached_property-1.5.2-py2.py3-none-any.whl", hash = "sha256:df4f613cf7ad9a588cc381aaf4a512d26265ecebd5eb9e1ba12f1319eb85a6a0"},
 ]
 cartopy = [
-    {file = "Cartopy-0.18.0.tar.gz", hash = "sha256:7ffa317e8f8011e0d965a3ef1179e57a049f77019867ed677d49dcc5c0744434"},
+    {file = "Cartopy-0.19.0.post1.tar.gz", hash = "sha256:4b8b4773a98ed7009fe17d9b6ec87ac3ac62b7d14634d7768c190eadc647d576"},
 ]
 certifi = [
     {file = "certifi-2020.12.5-py2.py3-none-any.whl", hash = "sha256:719a74fb9e33b9bd44cc7f3a8d94bc35e4049deebe19ba7d8e108280cfd59830"},
@@ -2853,10 +2838,6 @@ scipy = [
     {file = "scipy-1.6.3-cp39-cp39-win_amd64.whl", hash = "sha256:3274ce145b5dc416c49c0cf8b6119f787f0965cd35e22058fe1932c09fe15d77"},
     {file = "scipy-1.6.3.tar.gz", hash = "sha256:a75b014d3294fce26852a9d04ea27b5671d86736beb34acdfc05859246260707"},
 ]
-seaborn = [
-    {file = "seaborn-0.11.1-py3-none-any.whl", hash = "sha256:4e1cce9489449a1c6ff3c567f2113cdb41122f727e27a984950d004a88ef3c5c"},
-    {file = "seaborn-0.11.1.tar.gz", hash = "sha256:44e78eaed937c5a87fc7a892c329a7cc091060b67ebd1d0d306b446a74ba01ad"},
-]
 shapely = [
     {file = "Shapely-1.7.1-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:4c10f317e379cc404f8fc510cd9982d5d3e7ba13a9cfd39aa251d894c6366798"},
     {file = "Shapely-1.7.1-cp35-cp35m-macosx_10_6_intel.whl", hash = "sha256:17df66e87d0fe0193910aeaa938c99f0b04f67b430edb8adae01e7be557b141b"},
@@ -3006,8 +2987,8 @@ webob = [
     {file = "WebOb-1.8.7.tar.gz", hash = "sha256:b64ef5141be559cfade448f044fa45c2260351edcb6a8ef6b7e00c7dcef0c323"},
 ]
 xarray = [
-    {file = "xarray-0.16.2-py3-none-any.whl", hash = "sha256:88d0f80145999443730f87c7575e426d377f0b62677d915f21059cc364b4a1e1"},
-    {file = "xarray-0.16.2.tar.gz", hash = "sha256:38e8439d6c91bcd5b7c0fca349daf8e0643ac68850c987262d53526e9d7d01e4"},
+    {file = "xarray-0.17.0-py3-none-any.whl", hash = "sha256:ce204fb5015c3d382036f7c065c927df5684276976810aef43d78908c3ceb440"},
+    {file = "xarray-0.17.0.tar.gz", hash = "sha256:9c2edad2a4e588f9117c666a4249920b9717fb75703b96998cf65fcd4f60551f"},
 ]
 zict = [
     {file = "zict-2.0.0-py3-none-any.whl", hash = "sha256:26aa1adda8250a78dfc6a78d200bfb2ea43a34752cf58980bca75dde0ba0c6e9"},
