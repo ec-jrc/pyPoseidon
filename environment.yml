@@ -36,7 +36,10 @@ dependencies:
   - mkdocstrings
   - pymdown-extensions
   - mkdocs-material
+  - webtest
+  - werkzeug
   - pip
   - pip:
     - gmsh
+    - requests_mock
     - "--editable=git+https://github.com/pydap/pydap.git@3f6aa190c59e3bbc6c834377a61579b20275ff69#egg=Pydap"
