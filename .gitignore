@@ -98,3 +98,5 @@ site/
 
 # repren
 *.orig
+
+src/

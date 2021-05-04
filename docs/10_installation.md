@@ -4,7 +4,7 @@ There are a number of ways to install and use pyPoseidon.
 
 ### conda
 
-`conda install -c gbrey pyposeidon`
+`conda install -c conda-forge pyposeidon`
 
 Afterwards, since gmsh is not yet installable with conda, one needs to install gmsh manually with
 
@@ -22,7 +22,7 @@ For using pip please note that your system needs to have:
 
 Then 
 
-`pip install pyPoseidon`
+`pip install pyposeidon`
 
 
 ### virtualenv
