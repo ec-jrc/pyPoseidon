@@ -11,7 +11,7 @@ Point analysis module
 
 import numpy as np
 from pyposeidon.utils.pplot import *
-from pyposeidon.utils.obs import obs
+from pyposeidon.utils.vals import obs
 from pyposeidon.grid import *
 import pyposeidon.model as pmodel
 import pyresample
@@ -28,7 +28,7 @@ import subprocess
 import scipy.interpolate
 
 
-class point:
+class spot:
     def __init__(self, solver=None, lon=None, lat=None, dataset=None, **kwargs):
 
         self.lon = lon

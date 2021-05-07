@@ -52,7 +52,7 @@ class dem:
 
 
 def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
-    """ Return a dataset with coords containing "longitude" and "latitude" """
+    """Return a dataset with coords containing "longitude" and "latitude" """
     coords = set(dataset.coords.keys())
     # longitude
     for lon_name in LONGITUDE_NAMES:

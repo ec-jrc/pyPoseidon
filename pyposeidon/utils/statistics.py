@@ -5,6 +5,20 @@ import pandas as pd
 import warnings
 
 
+def get_stats(sim_, obs_):
+
+    # match time frames
+    try:
+        end = min(obs_.index[-1], sim_.index[-1])
+        obs_ = obs_.loc[:end]
+        sim_ = sim_.loc[:end]
+        obs_ = obs_.reindex(sim_.index, method="nearest")  # sample on simulation times
+    except:
+        pass
+
+    return vtable(obs_.values, sim_.values)
+
+
 def vtable(obsrv, model):
 
     if len(obsrv) != len(model):

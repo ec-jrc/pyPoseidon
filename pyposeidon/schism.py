@@ -36,7 +36,7 @@ import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
-from pyposeidon.utils import obs
+from pyposeidon.utils.vals import obs
 from pyposeidon.utils.cpoint import closest_node
 from pyposeidon.utils.hfun import hfun
 from pyposeidon.utils.unml import unml
@@ -54,6 +54,7 @@ NCORES = max(1, multiprocessing.cpu_count() - 1)
 # DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/tests/data/"
+
 # add conda path to PATH
 cpath = pyposeidon.__path__[0].split("/lib/")[0]
 os.environ["PATH"] += os.pathsep + cpath + "/bin"
@@ -1626,7 +1627,7 @@ class schism:
 
         path = get_value(self, kwargs, "rpath", "./schism/")
         nspool_sta = get_value(self, kwargs, "nspool_sta", 1)
-        tg_database = get_value(self, kwargs, "tide_gauges", None)  # TODO
+        tg_database = get_value(self, kwargs, "obs", DATA_PATH + "critech.csv")
         coastal_monitoring = get_value(self, kwargs, "coastal_monitoring", False)
         flags = get_value(self, kwargs, "station_flags", [1] + [0] * 8)
 
@@ -1645,9 +1646,10 @@ class schism:
             index=[0],
         )
 
-        z = self.__dict__.copy()
         ## FOR TIDE GAUGE MONITORING
-        tg = obs.obs(**z)
+        z = self.__dict__.copy()
+        tg = obs(**z)
+
         logger.info("get in-situ measurements locations \n")
 
         gpoints = np.array(
@@ -1657,7 +1659,7 @@ class schism:
         stations = []
         grid_index = []
         for l in range(tg.locations.shape[0]):
-            plat, plon = tg.locations.loc[l, ["lat", "lon"]]
+            plat, plon = tg.locations.loc[l, ["latitude", "longitude"]]
             cp = closest_node([plon, plat], gpoints)
             grid_index.append(
                 list(
@@ -1748,7 +1750,7 @@ class schism:
             pindex = pd.MultiIndex.from_product([df.T.columns, df.T.index])
 
             r = pd.DataFrame(df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]])
-            r.index.names = ["time", "point"]
+            r.index.names = ["time", "index"]
 
             dfs.append(r.to_xarray())
 

@@ -21,15 +21,15 @@ import subprocess
 from pyposeidon.utils.verify import *
 import multiprocessing
 
+logger = logging.getLogger("pyposeidon")
+
 try:
     from .ugmsh import *
-except:
+except Exception as e:
+    logger.warning("GMSH failed or unavailable")
     pass
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
-
-logger = logging.getLogger("pyposeidon")
-
 
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
@@ -156,7 +156,7 @@ class tri2d:
 
         elif grid_generator == "gmsh":
 
-            g = gmsh_(**kwargs)  # create grid with JIGSAW
+            g = gmsh_(**kwargs)  # create grid with GMSH
 
             self.Dataset = g
 

@@ -269,7 +269,7 @@ class mplot(object):
         # ANIMATE THE FIGURE WITH MOVIEPY, WRITE AN ANIMATED GIF
 
         def make_frame(t):
-            """ Generates and returns the frame for time t. """
+            """Generates and returns the frame for time t."""
             dt = 1.0 / fps
             i = int(t / dt)
             scalars = z[i, :]
