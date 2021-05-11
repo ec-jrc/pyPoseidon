@@ -446,7 +446,7 @@ class schism:
         # save bctides.in
         bs = self.grid.Dataset[["node", "id", "type"]].to_dataframe()
         # open boundaries
-        number_of_open_boundaries = bs.id.max()
+        number_of_open_boundaries = np.max([bs.id.max(),0])
         number_of_open_boundaries_nodes = bs.loc[bs.id > 0].shape[0]
 
         with open(path + "bctides.in", "w") as f:
@@ -1176,13 +1176,13 @@ class schism:
         for key in tfs[0].variables:
             if "nSCHISM_hgrid_face" in tfs[0][key].dims:
                 r = self.combine_(key, tfs, self.misc["melems"], "nSCHISM_hgrid_face")
-                side.append(r)
+                el.append(r)
             elif "nSCHISM_hgrid_node" in tfs[0][key].dims:
                 r = self.combine_(key, tfs, self.misc["mnodes"], "nSCHISM_hgrid_node")
                 node.append(r)
             elif "nSCHISM_hgrid_edge" in tfs[0][key].dims:
                 r = self.combine_(key, tfs, self.misc["msides"], "nSCHISM_hgrid_edge")
-                node.append(r)
+                side.append(r)
             elif len(tfs[0][key].dims) == 1:
                 single.append(tfs[0][key])
 
