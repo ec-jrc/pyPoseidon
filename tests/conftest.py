@@ -33,7 +33,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 def download_file_in_chunks(url: str, chunk_size: int = 1024):
-    """ Download file from `url` in chunks of size `chunk_size`.  """
+    """Download file from `url` in chunks of size `chunk_size`."""
     response = requests.get(url, stream=True)
     response.raise_for_status()
     for chunk in response.iter_content(chunk_size=chunk_size):
@@ -48,6 +48,7 @@ def save_as(url: str, path: pathlib.Path) -> None:
 
 
 TEST_DATA = {
+    DATA_DIR / "bl": "https://www.dropbox.com/sh/9tfdl67sll1ax8c/AACntQeIavCzRfTZZ9Tp8uFda?dl=1",
     DATA_DIR / "dem.nc": "https://www.dropbox.com/s/l16crheqc9d89gy/dem.nc?dl=1",
     DATA_DIR / "dem.tif": "https://www.dropbox.com/s/dgdlnr2p5q66np7/dem.tif?dl=1",
     DATA_DIR / "era5.grib": "https://www.dropbox.com/s/mo8z8mv8k9kqj91/era5.grib?dl=1",

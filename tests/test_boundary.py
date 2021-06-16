@@ -5,7 +5,7 @@ import cartopy.feature as cf
 
 from . import DATA_DIR
 
-boundary = DATA_DIR / "bl"
+noaa = DATA_DIR / "bl.zip"
 
 land = cf.NaturalEarthFeature(category="physical", name="land", scale="50m")
 nland = gp.GeoDataFrame(geometry=[x for x in land.geometries()])
@@ -13,10 +13,11 @@ nland = gp.GeoDataFrame(geometry=[x for x in land.geometries()])
 coast = cf.NaturalEarthFeature(category="physical", name="coastline", scale="50m")
 ncoast = gp.GeoDataFrame(geometry=[x for x in coast.geometries()])
 
-#gh = cf.GSHHSFeature(scale="intermediate", levels=[1])
-#iGSHHS = gp.GeoDataFrame(geometry=[x for x in gh.geometries()])
+# gh = cf.GSHHSFeature(scale="intermediate", levels=[1])
+# iGSHHS = gp.GeoDataFrame(geometry=[x for x in gh.geometries()])
 
-INPUTS = pytest.mark.parametrize("input", [nland, ncoast]) #, iGSHHS])
+INPUTS = pytest.mark.parametrize("input", [nland, ncoast])  # , iGSHHS])
+CUSTOM = pytest.mark.parametrize("boundary", [noaa])
 WINDOWS = pytest.mark.parametrize(
     "window",
     [
@@ -24,6 +25,7 @@ WINDOWS = pytest.mark.parametrize(
         {"lon_min": 175.0, "lon_max": 184.0, "lat_min": 14.5, "lat_max": 16.5},
     ],
 )
+
 
 @INPUTS
 @WINDOWS
@@ -33,10 +35,11 @@ def test_window(tmpdir, window, input):
 
     assert isinstance(df.contours, gp.GeoDataFrame)
 
+
 @INPUTS
 def test_global(tmpdir, input):
 
-    df = pb.get_boundaries(geometry='global', coastlines=input, rpath=str(tmpdir) + "/")
+    df = pb.get_boundaries(geometry="global", coastlines=input, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
 
@@ -45,7 +48,7 @@ def test_global(tmpdir, input):
 @WINDOWS
 def test_buffer(tmpdir, window, input):
 
-    df = pb.get_boundaries(geometry=window, coastlines=input, cbuffer = 0.01, rpath=str(tmpdir) + "/")
+    df = pb.get_boundaries(geometry=window, coastlines=input, cbuffer=0.01, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
 
@@ -54,14 +57,14 @@ def test_buffer(tmpdir, window, input):
 @WINDOWS
 def test_isodem(tmpdir, window, input):
 
-    df = pb.get_boundaries(geometry=window, blevels = [-100], rpath=str(tmpdir) + "/")
+    df = pb.get_boundaries(geometry=window, blevels=[-100], rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
 
 
-def test_custom(tmpdir):
-    
+@CUSTOM
+def test_custom(tmpdir, boundary):
+
     df = pb.get_boundaries(geometry=boundary, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
-    
