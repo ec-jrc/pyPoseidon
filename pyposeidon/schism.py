@@ -446,8 +446,9 @@ class schism:
         # save bctides.in
         bs = self.grid.Dataset[["node", "id", "type"]].to_dataframe()
         # open boundaries
-        number_of_open_boundaries = np.max([bs.id.max(),0])
-        number_of_open_boundaries_nodes = bs.loc[bs.id > 0].shape[0]
+        number_of_open_boundaries = bs.loc[bs.type == "open"].id.max()
+        number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
+        print(number_of_open_boundaries)
 
         with open(path + "bctides.in", "w") as f:
             f.write("Header\n")
