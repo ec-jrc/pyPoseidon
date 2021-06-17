@@ -167,7 +167,13 @@ def jigsaw(contours, **kwargs):
         try:
 
             logger.info("Read DEM")
-            dem = pdem.dem(**kwargs)
+
+            lon_min = contours.bounds.minx.min()
+            lon_max = contours.bounds.maxx.max()
+            lat_min = contours.bounds.miny.min()
+            lat_max = contours.bounds.maxy.max()
+
+            dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs)
 
             res_min = kwargs.get("resolution_min", 0.01)
             res_max = kwargs.get("resolution_max", 0.5)
@@ -456,8 +462,8 @@ def to_dataset(**kwargs):
         idf = None
 
     tbf = pd.concat([odf, ldf, idf])
-    tbf.index.name = "bnodes"
     tbf = tbf.reset_index(drop=True)
+    tbf.index.name = "bnodes"
 
     gr = xr.merge([nod, dep, els, tbf.to_xarray()])  # total
 

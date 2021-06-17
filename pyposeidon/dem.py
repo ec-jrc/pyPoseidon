@@ -113,13 +113,18 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         lon0 = lon_min
         lon1 = lon_max
 
+    lon0 = lon_min + 360.0 if lon_min < -180 else lon_min
+    lon1 = lon_max + 360.0 if lon_max < -180 else lon_max
+
+    lon0 = lon0 - 360.0 if lon0 > 180 else lon0
+    lon1 = lon1 - 360.0 if lon1 > 180 else lon1
+
     if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()):
         logger.warning("Lon must be within {} and {}".format(data.longitude.min().values, data.longitude.max().values))
         logger.warning("compensating if global dataset available")
 
     if (lat_min < data.latitude.min()) or (lat_max > data.latitude.max()):
-        logger.warning("Lat must be within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
-        logger.warning("compensating if global dataset available")
+        logger.warning("Lat is within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
 
     # get idx
     i0 = np.abs(data.longitude.data - lon0).argmin()

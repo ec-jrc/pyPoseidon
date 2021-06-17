@@ -150,6 +150,8 @@ class tri2d:
 
         grid_file = kwargs.get("grid_file", None)
         grid_generator = kwargs.get("grid_generator", "jigsaw")
+        geo = kwargs.get("geometry", None)
+        coasts = kwargs.get("coastlines", None)
 
         if grid_file:
 
@@ -157,14 +159,15 @@ class tri2d:
 
         elif grid_generator == "gmsh":
 
-            g = gmsh_(**kwargs)  # create grid with GMSH
+            del kwargs["geometry"]
+            del kwargs["coastlines"]
+
+            self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
+            g = gmsh_(self.boundary.contours, **kwargs)  # create grid with GMSH
 
             self.Dataset = g
 
         elif grid_generator == "jigsaw":
-
-            geo = kwargs.get("geometry", None)
-            coasts = kwargs.get("coastlines", None)
 
             del kwargs["geometry"]
             del kwargs["coastlines"]

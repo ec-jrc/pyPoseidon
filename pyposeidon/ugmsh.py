@@ -17,7 +17,6 @@ from tqdm import tqdm
 import sys
 import gmsh
 
-from pyposeidon.utils.tag import *
 from pyposeidon.utils.spline import *
 from pyposeidon.utils.stereo import to_lat_lon
 from pyposeidon.utils.pos import *
@@ -66,7 +65,7 @@ def read_gmsh(mesh, **kwargs):
         onodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
 
         db = pd.DataFrame({"node": onodes - 1})
-        db["type"] = np.nan
+        db["type"] = "open"
         db["id"] = getattr(row, "Index") + 1
 
         bounds.append(db)
@@ -81,28 +80,22 @@ def read_gmsh(mesh, **kwargs):
         lnodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
 
         db = pd.DataFrame({"node": lnodes - 1})
-        db["type"] = 0
-        db["id"] = -(getattr(row, "Index") + 1)
+        db["type"] = "land"
+        db["id"] = 1000 + (getattr(row, "Index") + 1)
 
         bounds.append(db)
-
-    if lbs.empty:  # Store max index from land boundaries
-        itag = 0
-    else:
-        itag = lbs.tag.max() - 1000
 
     # islands
     logger.info("islands")
 
     ibs = bgs.loc[bgs.tag > 2000]
     ibs.reset_index(inplace=True, drop=True)
-    ibs.index = ibs.index + itag  # set index
 
     for row in ibs.itertuples(index=True, name="Pandas"):
 
         inodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
         db = pd.DataFrame({"node": inodes - 1})
-        db["type"] = -1
+        db["type"] = "island"
         db["id"] = -(getattr(row, "Index") + 1)
 
         bounds.append(db)
@@ -153,28 +146,22 @@ def read_gmsh(mesh, **kwargs):
     return gr
 
 
-def gmsh_(**kwargs):
+def gmsh_(df, **kwargs):
 
     logger.info("Creating grid with GMSH\n")
 
-    geometry = kwargs.get("geometry", None)
+    rpath = kwargs.get("rpath", ".")
 
-    if isinstance(geometry, dict):
+    if not os.path.exists(rpath):
+        os.makedirs(rpath)
 
-        rpath = kwargs.get("rpath", ".")
+    gpath = os.path.join(rpath, "gmsh")
+    if not os.path.exists(gpath):
+        os.makedirs(gpath)
 
-        if not os.path.exists(rpath):
-            os.makedirs(rpath)
+    make_gmsh(df, **kwargs)
 
-        gpath = os.path.join(rpath, "gmsh")
-        if not os.path.exists(gpath):
-            os.makedirs(gpath)
-
-        df, bmindx = tag_(**kwargs)
-
-        make_gmsh(df, **kwargs)
-
-        gr = read_gmsh(rpath + "/gmsh/mymesh.msh")
+    gr = read_gmsh(rpath + "/gmsh/mymesh.msh")
 
     return gr
 
@@ -298,6 +285,53 @@ def make_bgmesh(dem, res_min, res_max):
     return df
 
 
+def make_bgmesh_gradient(dem, res_min, res_max):
+
+    # scale bathymetry
+    try:
+        b = dem.adjusted.to_dataframe()
+    except:
+        b = dem.elevation.to_dataframe()
+
+    b.columns = ["z"]
+
+    b[b.z >= -10] = -1.0e-4  # normalize to only negative values
+
+    b.z = np.sqrt(-b.z) / 0.5  # scale
+
+    # compute gradient
+
+    sdem = b.z.values.reshape(dem.adjusted.shape)
+
+    vgrad = np.gradient(sdem)
+
+    mag = np.sqrt(vgrad[0] ** 2 + vgrad[1] ** 2)
+
+    # adjust scale
+
+    bg = mag.flatten()
+
+    a2 = (bg - bg.min()) / (bg.max() - bg.min())
+
+    d2 = res_min + a2 * (res_max - res_min)
+
+    b["d2"] = d2
+
+    nodes = b.reset_index()
+
+    nodes["z"] = 0
+
+    x = dem.longitude.values
+    y = dem.latitude.values
+
+    quad = MakeFacesVectorized(y.shape[0], x.shape[0])  # get element structure from array
+    elems = pd.DataFrame(quad, columns=["a", "b", "c", "d"])
+
+    df = to_df(elems, nodes)
+
+    return df
+
+
 def make_gmsh(df, **kwargs):
 
     logger.info("create grid")
@@ -312,65 +346,83 @@ def make_gmsh(df, **kwargs):
 
     interpolate = kwargs.get("interpolate", False)
     if interpolate:
-        ddf = gset(df, **kwargs)
+        df = gset(df, **kwargs)
     else:
-        ddf = df
+        df = df
     lc = kwargs.get("lc", 0.5)
 
-    ddf["lc"] = lc
-    ddf = ddf.apply(pd.to_numeric)
+    df["lc"] = lc
 
     # save boundary configuration for Line0
-    rb0 = ddf.loc["line0"].copy()
+    df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
 
-    if not shapely.geometry.LinearRing(rb0[["lon", "lat"]].values).is_ccw:  # check for clockwise orientation
-        rb0 = ddf.loc["line0"].iloc[::-1].reset_index(drop=True)
+    if not df_.empty:
 
-    rb0.index = rb0.index + 1  # fix index
-    rb0["bounds"] = [[i, i + 1] for i in rb0.index]
-    rb0["bounds"] = rb0.bounds.values.tolist()[:-1] + [[rb0.index[-1], 1]]  # fix last one
+        # store xy in a DataFrame
+        dic = {}
+        for k, d in df_.iterrows():
+            out = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
+            out["lindex"] = d.lindex
+            out = out.drop_duplicates(["lon", "lat"])
+            if d.tag == "land":  # drop end points in favor or open tag
+                out = out[1:-1]
+            dic.update({"line{}".format(k): out})
+        o1 = pd.concat(dic, axis=0).droplevel(0).reset_index(drop=True)
+        o1 = o1.drop_duplicates(["lon", "lat"])
 
-    # store blines
-    blines = {}
+        # Do linemerge of outer contours
+        lss = df_.geometry.values
+        merged = shapely.ops.linemerge(lss)
+        o2 = pd.DataFrame({"lon": merged.xy[0], "lat": merged.xy[1]})  # convert to DataFrame
+        o2 = o2.drop_duplicates()
 
-    for tag_ in rb0.tag.unique():
+        rb0 = o2.merge(o1)  # merge to transfer the lindex
 
-        ibs = rb0.loc[rb0.tag == tag_].index.values
-        # ibs
+        rb0["z"] = 0
 
-        lbs = rb0.loc[rb0.tag == tag_].bounds.values.tolist()
-        # lbs
+        # check orientation
+        if not shapely.geometry.LinearRing(rb0[["lon", "lat"]].values).is_ccw:
 
-        ai = np.unique(np.concatenate(lbs))
-        # ai
+            rb0_ = rb0.iloc[::-1].reset_index(drop=True)
+            rb0 = rb0_
 
-        itags = [i for i in ai if i in ibs]
-        # itags
+        rb0["lc"] = lc
 
-        if tag_ > 0:
-            items = set(itags)
+        logger.info("Compute edges")
+        edges = [
+            list(a) for a in zip(np.arange(rb0.shape[0]), np.arange(rb0.shape[0]) + 1, rb0.lindex.values)
+        ]  # outer
+        edges[-1][1] = 0
 
-            imask = [set(x).issubset(items) for x in rb0.loc[rb0.tag == tag_].bounds]
-            # imask
+        # sort (duplicated bounds)
+        edges = pd.DataFrame(edges, columns=["index", "ie", "lindex"])
 
-            bi = rb0.loc[rb0.tag == tag_][imask].index.values.tolist()
+        edges["lindex1"] = (
+            pd.concat([rb0.loc[1:, "lindex"], rb0.loc[0:0, "lindex"]]).reset_index(drop=True).astype(int)
+        )
+        edges["que"] = np.where(
+            ((edges["lindex"] != edges["lindex1"]) & (edges["lindex"] > 0) & (edges["lindex"] < 1000)),
+            edges["lindex1"],
+            edges["lindex"],
+        )
 
-        else:
+        edges = edges.reset_index().loc[:, ["index", "ie", "que"]]
 
-            bi = rb0.loc[rb0.tag == tag_].index.values.tolist()
+        rb0["bounds"] = edges.loc[:, ["index", "ie"]].values.tolist()
 
-        blines.update({tag_: bi})
+        # get boundary types
+        land_lines = {
+            your_key: edges.loc[edges.que == your_key].index.values
+            for your_key in [x for x in edges.que.unique() if x > 1000]
+        }
+        open_lines = {
+            your_key: edges.loc[edges.que == your_key].index.values
+            for your_key in [x for x in edges.que.unique() if x < 1000]
+        }
 
-    al = [j for i in list(blines.values()) for j in i]
-    lover = [x for x in rb0.index if x not in al]
-
-    for i, v in rb0.loc[lover].iterrows():
-        nns = rb0.loc[v[5], ["tag"]].values
-        itag = [x for x in nns if x < 0][0]
-        blines.update({itag[0]: blines[itag[0]] + [i]})
-
-    land_lines = {your_key: blines[your_key] for your_key in [x for x in blines.keys() if x < 0]}
-    open_lines = {your_key: blines[your_key] for your_key in [x for x in blines.keys() if x > 0]}
+        # join
+        ols = [j for i in list(open_lines.values()) for j in i]
+        lls = [j for i in list(land_lines.values()) for j in i]
 
     logger.info("Define geometry")
 
@@ -400,10 +452,16 @@ def make_gmsh(df, **kwargs):
     tag += 1
     ltag += 1
 
-    for contour in tqdm(ddf.index.levels[0][1:]):
-        rb = ddf.loc[contour].copy()
+    for k, d in df.loc[df.tag == "island"].iterrows():
+
+        rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
+        rb["z"] = 0
+        rb["lc"] = lc
+        rb = rb.drop_duplicates(["lon", "lat"])
+
         if not shapely.geometry.LinearRing(rb[["lon", "lat"]].values).is_ccw:  # check for clockwise orientation
-            rb = ddf.loc[contour].iloc[::-1].reset_index(drop=True)
+            rb_ = rb.iloc[::-1].reset_index(drop=True)
+            rb = rb_
 
         rb.index = rb.index + tag
         rb["bounds"] = [[i, i + 1] for i in rb.index]
@@ -441,7 +499,7 @@ def make_gmsh(df, **kwargs):
 
     ## Group land boundaries lines
     for key, values in land_lines.items():
-        gmsh.model.addPhysicalGroup(1, values, 1000 - int(key))
+        gmsh.model.addPhysicalGroup(1, values, int(key))
 
     ntag = 1
     for k in tqdm(range(len(islands))):
@@ -473,35 +531,63 @@ def make_gmsh(df, **kwargs):
     # Set bgmesh
     bgmesh = kwargs.get("bgmesh", None)
 
-    if bgmesh == "auto":
+    if bgmesh:
 
-        try:
+        if bgmesh == "auto":
 
-            logger.info("Read DEM")
-            dem = pdem.dem(**kwargs)
+            try:
 
-            res_min = kwargs.get("resolution_min", 0.01)
-            res_max = kwargs.get("resolution_max", 0.5)
+                logger.info("Read DEM")
 
-            logger.info("Evaluate bgmesh")
-            w = make_bgmesh(dem.Dataset, res_min, res_max)
+                lon_min = df.bounds.minx.min()
+                lon_max = df.bounds.maxx.max()
+                lat_min = df.bounds.miny.min()
+                lat_max = df.bounds.maxy.max()
 
-            path = kwargs.get("rpath", ".")
+                dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs)
 
-            if not os.path.exists(path):  # check if run folder exists
-                os.makedirs(path)
+                res_min = kwargs.get("resolution_min", 0.01)
+                res_max = kwargs.get("resolution_max", 0.5)
 
-            logger.info("Save bgmesh to {}/bgmesh/bgmesh.pos".format(path))
+                logger.info("Evaluate bgmesh")
+                w = make_bgmesh(dem.Dataset, res_min, res_max)
 
-            fpos = path + "/bgmesh/bgmesh.pos"
-            to_sq(w, fpos)  # save bgmesh
+                path = kwargs.get("rpath", ".")
 
-            kwargs.update({"bgmesh": fpos})
+                if not os.path.exists(path):  # check if run folder exists
+                    os.makedirs(path)
+
+                logger.info("Save bgmesh to {}/bgmesh/bgmesh.pos".format(path))
+
+                fpos = path + "/bgmesh/bgmesh.pos"
+                to_sq(w, fpos)  # save bgmesh
+
+                kwargs.update({"bgmesh": fpos})
+
+                model.mesh.field.setNumber(2, "StopAtDistMax", 1)
+
+                # Merge a post-processing view containing the target anisotropic mesh sizes
+                gmsh.merge(fpos)
+
+                model.mesh.field.add("PostView", 3)
+                model.mesh.field.setNumber(3, "ViewIndex", 0)
+
+                model.mesh.field.add("Min", 4)
+                model.mesh.field.setNumbers(4, "FieldsList", [2, 3])
+
+                model.mesh.field.setAsBackgroundMesh(4)
+
+            except:
+
+                logger.warning("bgmesh failed... continuing without background mesh size")
+
+                model.mesh.field.setAsBackgroundMesh(2)
+
+        elif bgmesh.endswith(".pos"):
+
+            gmsh.merge(bgmesh)
 
             model.mesh.field.setNumber(2, "StopAtDistMax", 1)
-
-            # Merge a post-processing view containing the target anisotropic mesh sizes
-            gmsh.merge(fpos)
 
             model.mesh.field.add("PostView", 3)
             model.mesh.field.setNumber(3, "ViewIndex", 0)
@@ -511,12 +597,6 @@ def make_gmsh(df, **kwargs):
 
             model.mesh.field.setAsBackgroundMesh(4)
 
-        except:
-
-            logger.warning("bgmesh failed... continuing without background mesh size")
-
-            model.mesh.field.setAsBackgroundMesh(2)
-
     else:
 
         model.mesh.field.setAsBackgroundMesh(2)
@@ -525,7 +605,7 @@ def make_gmsh(df, **kwargs):
     gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
     gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 0)
 
-    logger.info("execute")
+    logger.info("execute gmsh")
 
     gmsh.model.mesh.generate(2)
 
