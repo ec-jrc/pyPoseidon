@@ -14,6 +14,7 @@ import xarray as xr
 import pandas as pd
 import sys
 from .jigsaw import *
+from .ugmsh import *
 import logging
 import f90nml
 import os
@@ -23,12 +24,6 @@ import pyposeidon.boundary as pb
 import multiprocessing
 
 logger = logging.getLogger("pyposeidon")
-
-try:
-    from .ugmsh import *
-except Exception as e:
-    logger.warning("GMSH failed or unavailable")
-    pass
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
@@ -79,7 +74,15 @@ class r2d:
             y = np.linspace(lat_min, lat_max, nj)
             gx, gy = np.meshgrid(x, y)
 
-            attrs = kwargs.get("attrs", {"Coordinate System": "Spherical", "alfori": 0.0, "xori": 0.0, "yori": 0.0})
+            attrs = kwargs.get(
+                "attrs",
+                {
+                    "Coordinate System": "Spherical",
+                    "alfori": 0.0,
+                    "xori": 0.0,
+                    "yori": 0.0,
+                },
+            )
 
             g = xr.Dataset(
                 {"lons": (["y", "x"], gx), "lats": (["y", "x"], gy)},
@@ -101,7 +104,14 @@ class r2d:
         ni, nj = int(ni), int(nj)
         alfori, xori, yori = header.loc[2, 0].split(" ")
 
-        d = pd.read_csv(filename, header=2, comment="*", delim_whitespace=True, engine="python", na_values="ETA=")
+        d = pd.read_csv(
+            filename,
+            header=2,
+            comment="*",
+            delim_whitespace=True,
+            engine="python",
+            na_values="ETA=",
+        )
         d = d.reset_index()
         data = d.values[~np.isnan(d.values)]
         data = np.array(data)
@@ -117,7 +127,12 @@ class r2d:
             coords={"x": ("x", lons[0, :]), "y": ("y", lats[:, 0])},
         )
 
-        g.attrs = {"Coordinate System": cs, "alfori": alfori, "xori": xori, "yori": yori}
+        g.attrs = {
+            "Coordinate System": cs,
+            "alfori": alfori,
+            "xori": xori,
+            "yori": yori,
+        }
 
         return g
 
@@ -130,7 +145,9 @@ class r2d:
             f.write("{} {}\n".format(self.Dataset.lons.shape[1], self.Dataset.lons.shape[0]))
             f.write(
                 "{} {} {}\n".format(
-                    self.Dataset.attrs["xori"], self.Dataset.attrs["yori"], self.Dataset.attrs["alfori"]
+                    self.Dataset.attrs["xori"],
+                    self.Dataset.attrs["yori"],
+                    self.Dataset.attrs["alfori"],
                 )
             )
             for i in range(self.Dataset.lons.shape[0]):
@@ -150,8 +167,12 @@ class tri2d:
 
         grid_file = kwargs.get("grid_file", None)
         grid_generator = kwargs.get("grid_generator", "jigsaw")
-        geo = kwargs.get("geometry", None)
-        coasts = kwargs.get("coastlines", None)
+        geo = kwargs.pop("geometry", None)
+        coasts = kwargs.pop("coastlines", None)
+        boundary = kwargs.pop("boundary", None)
+
+        if geo == "global":
+            kwargs.update({"gglobal": True})
 
         if grid_file:
 
@@ -159,30 +180,29 @@ class tri2d:
 
         elif grid_generator == "gmsh":
 
-            del kwargs["geometry"]
-            del kwargs["coastlines"]
+            if boundary is None:
+                self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
+            else:
+                self.boundary = boundary
 
-            self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
-            g = gmsh_(self.boundary.contours, **kwargs)  # create grid with GMSH
+            g, bg = gmsh_(self.boundary, **kwargs)  # create grid with GMSH
 
             self.Dataset = g
+
+            self.bgmesh = bg
 
         elif grid_generator == "jigsaw":
 
-            del kwargs["geometry"]
-            del kwargs["coastlines"]
+            if boundary is None:
+                self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
+            else:
+                self.boundary = boundary
 
-            self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
-
-            g = jigsaw(self.boundary.contours, **kwargs)  # create grid with JIGSAW
+            g, bg = jigsaw(self.boundary, **kwargs)  # create grid with JIGSAW
 
             self.Dataset = g
 
-            bgmesh = kwargs.get("bgmesh", None)
-
-            if bgmesh is not None:
-                path = kwargs.get("rpath", "./bgmesh/")
-                self.bgmesh = xr.open_dataset(path + "bgmesh.nc")
+            self.bgmesh = bg
 
         else:
 
@@ -263,7 +283,10 @@ class tri2d:
             oi = pd.DataFrame({"node": nodes, "type": "open", "id": int(label[-1])})
             odic.update({label: oi})
 
-        dfo = pd.concat(odic).droplevel(0).reset_index(drop=True)
+        try:
+            dfo = pd.concat(odic).droplevel(0).reset_index(drop=True)
+        except ValueError:
+            dfo = pd.DataFrame()
 
         # Land boundaries
         n1 = df[df.data.str.contains("land boundaries")].index
@@ -295,8 +318,12 @@ class tri2d:
             li["type"] = tt[0]
             li["id"] = idi[0]
             ldic.update({label: li})
+            ili -= 1
 
-        dfl = pd.concat(ldic).droplevel(0).reset_index(drop=True)
+        try:
+            dfl = pd.concat(ldic).droplevel(0).reset_index(drop=True)
+        except ValueError:
+            dfl = pd.DataFrame()
 
         # concat boundaries
         bbs = pd.concat([dfo, dfl])
@@ -304,6 +331,7 @@ class tri2d:
         bbs.node = bbs.node - 1  # start_index = 0
         bbs = bbs.reset_index(drop=True)  # reset index
         bbs = bbs[["type", "node", "id"]]  # set column order
+        bbs = bbs.sort_values(["type", "id", "node"]).reset_index(drop=True)  # sort
         bbs.index.name = "bnodes"
 
         # merge to one xarray DataSet
@@ -351,7 +379,14 @@ class tri2d:
 
         e.loc[:, ["a", "b", "c"]] = e.loc[:, ["a", "b", "c"]] + 1  # convert to fortran (index starts from 1)
 
-        e.to_csv(filename, index=True, sep="\t", header=None, mode="a", columns=["nv", "a", "b", "c"])
+        e.to_csv(
+            filename,
+            index=True,
+            sep="\t",
+            header=None,
+            mode="a",
+            columns=["nv", "a", "b", "c"],
+        )
 
         bs = self.Dataset[["node", "id", "type"]].to_dataframe()
 
@@ -446,7 +481,7 @@ class tri2d:
         # save bctides.in
         bs = self.Dataset[["node", "id", "type"]].to_dataframe()
         # open boundaries
-        number_of_open_boundaries = bs.loc[bs.type == "open"].id.max()
+        number_of_open_boundaries = np.nan_to_num(bs.loc[bs.type == "open"].id.max()).astype(int)
         number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
 
         with open(path + "bctides.in", "w") as f:
@@ -513,7 +548,11 @@ class tri2d:
 
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(
-            args=["./launchSchism.sh"], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            args=["./launchSchism.sh"],
+            cwd=calc_dir,
+            shell=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )  # , bufsize=1)
 
         out, err = ex.communicate()[:]

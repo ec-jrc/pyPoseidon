@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 # based on https://stackoverflow.com/questions/52014197/how-to-interpolate-a-2d-curve-in-python
 
 
-def spline(df, ds=0.001, method="slinear"):
+def use_spline(df, ds=0.001, method="slinear"):
 
     points = df.values  # a (nbre_points x nbre_dim) array
 

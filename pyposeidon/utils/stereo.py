@@ -44,14 +44,16 @@ def stereo_to_3d(u, v, R=1):
     return x, y, z
 
 
-def to_lat_lon(x, y, z=None):
+def to_lat_lon(x, y, z=None, R=1):
 
     if z is None:
-        x, y, z = to_3d(x, y)
+        x, y, z = stereo_to_3d(x, y, R=R)
 
     # to lat/lon
     rad = x ** 2 + y ** 2 + z ** 2
     rad = np.sqrt(rad)
+
+    rad[rad == 0] = rad.max()
 
     rlat = np.arcsin(z / rad)
     rlon = np.arctan2(y, x)

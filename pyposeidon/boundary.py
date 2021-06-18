@@ -19,15 +19,20 @@ logger = logging.getLogger("pyposeidon")
 def simplify(geo):
 
     logger.info("merge dataset")
-    geo = geo.loc[:, ["geometry"]].explode().droplevel(0).reset_index(drop=True)
+    geo = geo.loc[:, ["geometry"]].explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     # Just in case merge
     if geo.geom_type.all() == "LineString":
         geo_ = gp.GeoDataFrame(geometry=[shapely.ops.linemerge(geo.geometry.values)])
-        geo = geo_.explode().droplevel(0).reset_index(drop=True)
+        geo = geo_.explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     if geo.geom_type.all() == "Polygon":
-        geo = gp.GeoDataFrame(geometry=list(geo.buffer(0).unary_union))
+        try:
+            geo_ = list(geo.buffer(0).unary_union)
+        except TypeError:
+            geo_ = [geo.buffer(0).unary_union]
+
+        geo = gp.GeoDataFrame(geometry=geo_)
 
     return geo
 
@@ -93,14 +98,14 @@ class get_boundaries:
         else:
 
             try:
-                self.geometry = gp.GeoDataFrame.from_file(geometry)
+                self.geometry = gp.read_file(geometry)
             except:
                 logger.warning("geometry is not a file, trying with geopandas Dataset")
-                try:
+                if isinstance(geometry, gp.GeoDataFrame):
                     self.geometry = geometry
-                except:
+                else:
                     logger.error("geometry argument not valid ")
-        #                    sys.exit(1)
+                    sys.exit(1)
 
         # Define internal boundary as isovalue of DEM
         if blevels:
@@ -156,7 +161,7 @@ def buffer_(coasts, cbuffer):
 
     # shrink the world so not to get over
     limit = shapely.geometry.Polygon([[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]).buffer(-cbuffer)
-    de = coasts.intersection(limit).explode().droplevel(0)
+    de = coasts.intersection(limit).explode(index_parts=True).droplevel(0)
 
     # buffer
     w_ = gp.GeoDataFrame(geometry=de.buffer(cbuffer))  # in arcs
@@ -183,7 +188,7 @@ def buffer_(coasts, cbuffer):
 
     # join
     wu = w_.unary_union
-    wu = gp.GeoDataFrame(geometry=[wu]).explode().droplevel(0).reset_index(drop=True)
+    wu = gp.GeoDataFrame(geometry=[wu]).explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     rings = wu.boundary.is_ring  # get multiple boundaries instance
     wi = wu.loc[~rings]
@@ -296,7 +301,13 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
 
     # create a LineString of the grid
     grl = shapely.geometry.LineString(
-        [(lon_min, lat_min), (lon_min, lat_max), (lon_max, lat_max), (lon_max, lat_min), (lon_min, lat_min)]
+        [
+            (lon_min, lat_min),
+            (lon_min, lat_max),
+            (lon_max, lat_max),
+            (lon_max, lat_min),
+            (lon_min, lat_min),
+        ]
     )
 
     # check -180/180 trespass
@@ -371,7 +382,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
     # polygonize if need be for getting the symetric difference
     if block.geom_type.all() == "LineString":
         gg = shapely.ops.polygonize_full(block.geometry.values)
-        block = gp.GeoDataFrame(geometry=list(gg[0])).explode().droplevel(0).reset_index(drop=True)
+        block = gp.GeoDataFrame(geometry=list(gg[0])).explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     # bypass blocks in case of isodem
     if blevels:
@@ -409,7 +420,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
     except:
         cwater = water
 
-    df_water = gp.GeoDataFrame(geometry=[cwater]).explode().droplevel(0).reset_index(drop=True)
+    df_water = gp.GeoDataFrame(geometry=[cwater]).explode(index_parts=True).droplevel(0).reset_index(drop=True)
     df_water["tag"] = "open"
 
     # land boundaries!!
@@ -423,7 +434,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
     except:
         cland = land
 
-    df_land = gp.GeoDataFrame(geometry=[cland]).explode().droplevel(0).reset_index(drop=True)
+    df_land = gp.GeoDataFrame(geometry=[cland]).explode(index_parts=True).droplevel(0).reset_index(drop=True)
     df_land["tag"] = "land"
 
     ### interpolate if needed
@@ -452,7 +463,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
 
     ndf = (
         gp.GeoDataFrame(geometry=[shapely.ops.LineString(x) for x in b.interiors])
-        .explode()
+        .explode(index_parts=True)
         .droplevel(0)
         .reset_index(drop=True)
     )
@@ -541,7 +552,8 @@ def global_tag(geo, cbuffer, blevels, **kwargs):
             geo.loc[idx, "geometry"] = shapely.geometry.LineString(list(zip(gx_, gy_)))
         else:
             geo.loc[idx, "geometry"] = shapely.ops.transform(
-                lambda x, y, z=None: to_stereo(x, y, R=kwargs.get("R", 1.0)), poly.geometry
+                lambda x, y, z=None: to_stereo(x, y, R=kwargs.get("R", 1.0)),
+                poly.geometry,
             )
 
     w = geo.drop(indx)  # get all polygons
@@ -575,18 +587,22 @@ def global_tag(geo, cbuffer, blevels, **kwargs):
 
     w = w.drop(mm)
 
-    if w.geom_type.all() == "Polygon":
-        w = gp.GeoDataFrame(geometry=w.exterior.values)  # get boundaries if Polygons
+    wp = w.loc[w.geom_type == "Polygon"]
+    w2 = w.loc[w.geom_type != "Polygon"]
+    w1 = gp.GeoDataFrame(geometry=wp.exterior.values)  # get boundaries if Polygons
 
     # Check antartica LineString
     if not geo.iloc[indx].geometry.values[0].is_ring:
-        ca = gp.GeoDataFrame(geometry=[shapely.geometry.LinearRing(geo.loc[indx].geometry.values[0])], index=indx)
+        ca = gp.GeoDataFrame(
+            geometry=[shapely.geometry.LinearRing(geo.loc[indx].geometry.values[0])],
+            index=indx,
+        )
         ca["geometry"] = shapely.geometry.LineString(ca.geometry.values[0])
     else:
         ca = geo.loc[indx]
 
     # PUT ALL TOGETHER
-    geo = pd.concat([w, gw, ca], ignore_index=True).reset_index(drop=True)
+    geo = pd.concat([w1, w2, gw, ca], ignore_index=True).reset_index(drop=True)
 
     logger.info("storing boundaries")
 

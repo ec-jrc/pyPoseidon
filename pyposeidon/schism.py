@@ -38,7 +38,6 @@ from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils.vals import obs
 from pyposeidon.utils.cpoint import closest_node
-from pyposeidon.utils.hfun import hfun
 from pyposeidon.utils.unml import unml
 from pyposeidon.utils.data import data
 
@@ -119,7 +118,12 @@ class schism:
                     logger.error("geometry argument not a valid geopandas file")
                     sys.exit(1)
 
-                self.lon_min, self.lat_min, self.lon_max, self.lat_max = geo.total_bounds
+                (
+                    self.lon_min,
+                    self.lat_min,
+                    self.lon_max,
+                    self.lat_max,
+                ) = geo.total_bounds
 
         # coastlines
         coastlines = kwargs.get("coastlines", None)
@@ -129,7 +133,9 @@ class schism:
 
             # world polygons - user input
             coast = cf.NaturalEarthFeature(
-                category="physical", name="land", scale="{}m".format({"l": 110, "i": 50, "h": 10}[cr])
+                category="physical",
+                name="land",
+                scale="{}m".format({"l": 110, "i": 50, "h": 10}[cr]),
             )
 
             self.coastlines = gp.GeoDataFrame(geometry=[x for x in coast.geometries()])
@@ -225,7 +231,8 @@ class schism:
             logger.warning("rnday larger than simulation range\n")
             logger.warning(
                 "rnday={} while simulation time is {}\n".format(
-                    params["core"]["rnday"], (self.end_date - self.start_date).total_seconds() / (3600 * 24.0)
+                    params["core"]["rnday"],
+                    (self.end_date - self.start_date).total_seconds() / (3600 * 24.0),
                 )
             )
             # ---------------------------------------------------------------------
@@ -310,11 +317,24 @@ class schism:
             coords={"time": tlist},
         )
 
-        sout.attrs = {"description": "Schism meteo data", "history": "pyposeidon", "source": "netCDF4 python module"}
+        sout.attrs = {
+            "description": "Schism meteo data",
+            "history": "pyposeidon",
+            "source": "netCDF4 python module",
+        }
 
-        sout.time.attrs = {"long_name": "Time", "standard_name": "time", "base_date": bdate, "units": udate}
+        sout.time.attrs = {
+            "long_name": "Time",
+            "standard_name": "time",
+            "base_date": bdate,
+            "units": udate,
+        }
 
-        sout.lat.attrs = {"units": "degrees_north", "long_name": "Latitude", "standard_name": "latitude"}
+        sout.lat.attrs = {
+            "units": "degrees_north",
+            "long_name": "Latitude",
+            "standard_name": "latitude",
+        }
 
         sout.prmsl.attrs = {
             "units": "Pa",
@@ -635,7 +655,11 @@ class schism:
 
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(
-            args=["./launchSchism.sh"], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            args=["./launchSchism.sh"],
+            cwd=calc_dir,
+            shell=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )  # , bufsize=1)
 
         with open(calc_dir + "err.log", "w") as f:
@@ -883,7 +907,12 @@ class schism:
         for i in range(len(gfiles)):
             with open(gfiles[i], "r") as f:
                 frames[i] = pd.read_csv(
-                    f, skiprows=3, header=None, nrows=nels[i], names=["local", "global_n"], delim_whitespace=True
+                    f,
+                    skiprows=3,
+                    header=None,
+                    nrows=nels[i],
+                    names=["local", "global_n"],
+                    delim_whitespace=True,
                 )
 
         elems = pd.concat(frames, keys=keys)
@@ -940,7 +969,13 @@ class schism:
                 header=None,
                 nrows=1,
                 delim_whitespace=True,
-                names=["start_year", "start_month", "start_day", "start_hour", "utc_start"],
+                names=[
+                    "start_year",
+                    "start_month",
+                    "start_day",
+                    "start_hour",
+                    "utc_start",
+                ],
             )
         with open(gfiles[0], "r") as f:
             h1 = pd.read_csv(
@@ -949,7 +984,19 @@ class schism:
                 header=None,
                 nrows=1,
                 delim_whitespace=True,
-                names=["nrec", "dtout", "nspool", "nvrt", "kz", "h0", "h_s", "h_c", "theta_b", "theta_f", "ics"],
+                names=[
+                    "nrec",
+                    "dtout",
+                    "nspool",
+                    "nvrt",
+                    "kz",
+                    "h0",
+                    "h_s",
+                    "h_c",
+                    "theta_b",
+                    "theta_f",
+                    "ics",
+                ],
             )
 
         ztots = ["ztot_" + str(i) for i in range(1, h1.loc[:, "kz"].values[0] - 1)]
@@ -1231,7 +1278,13 @@ class schism:
 
         path = get_value(self, kwargs, "rpath", "./schism/")
 
-        vgrid = pd.read_csv(path + "vgrid.in", header=None, index_col=False, engine="python", delimiter="!")
+        vgrid = pd.read_csv(
+            path + "vgrid.in",
+            header=None,
+            index_col=False,
+            engine="python",
+            delimiter="!",
+        )
 
         try:
             vgrid = vgrid.drop(1, axis=1)
@@ -1302,8 +1355,14 @@ class schism:
                     ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
                     gt34 - 1,
                 ),  # -> start index = 0
-                "SCHISM_hgrid_face_x": (["nSCHISM_hgrid_face"], gt3.loc[:, "xc"].values),
-                "SCHISM_hgrid_face_y": (["nSCHISM_hgrid_face"], gt3.loc[:, "yc"].values),
+                "SCHISM_hgrid_face_x": (
+                    ["nSCHISM_hgrid_face"],
+                    gt3.loc[:, "xc"].values,
+                ),
+                "SCHISM_hgrid_face_y": (
+                    ["nSCHISM_hgrid_face"],
+                    gt3.loc[:, "yc"].values,
+                ),
                 "ele_bottom_index": (["nSCHISM_hgrid_face"], gt3.kbe.values),
             }
         )
@@ -1377,7 +1436,12 @@ class schism:
         sigms = header2.loc[:, sigmas].values.flatten()  # get sigmas
         iwet_dry = 0  # defined by the user
         ihgrid_id = -2147483647  # defined by user - 0,dummy_dim,ihgrid_id
-        one = xr.Dataset({"dry_value_flag": (("one"), [iwet_dry]), "SCHISM_hgrid": (("one"), [ihgrid_id])})
+        one = xr.Dataset(
+            {
+                "dry_value_flag": (("one"), [iwet_dry]),
+                "SCHISM_hgrid": (("one"), [ihgrid_id]),
+            }
+        )
 
         # compute cs
         klev = np.arange(header2.kz.values[0], header2.nvrt.values[0] + 1)
@@ -1513,7 +1577,10 @@ class schism:
                 "positive": "down",
             }
 
-            xc.Cs.attrs = {"long_name": "Function C(s) at whole levels", "positive": "up"}
+            xc.Cs.attrs = {
+                "long_name": "Function C(s) at whole levels",
+                "positive": "up",
+            }
 
             xc.dry_value_flag.attrs = {"values": "0: use last-wet value; 1: use junk"}
 
@@ -1593,7 +1660,11 @@ class schism:
             }
 
             base_date = " ".join([str(x) for x in date.T.values.flatten()])
-            xc.time.attrs = {"long_name": "Time", "base_date": base_date, "standard_name": "time"}
+            xc.time.attrs = {
+                "long_name": "Time",
+                "base_date": base_date,
+                "standard_name": "time",
+            }
 
             xc.sigma.attrs = {
                 "long_name": "S coordinates at whole levels",
@@ -1654,7 +1725,12 @@ class schism:
         logger.info("get in-situ measurements locations \n")
 
         gpoints = np.array(
-            list(zip(self.grid.Dataset.SCHISM_hgrid_node_x.values, self.grid.Dataset.SCHISM_hgrid_node_y.values))
+            list(
+                zip(
+                    self.grid.Dataset.SCHISM_hgrid_node_x.values,
+                    self.grid.Dataset.SCHISM_hgrid_node_y.values,
+                )
+            )
         )
 
         stations = []
@@ -1664,7 +1740,10 @@ class schism:
             cp = closest_node([plon, plat], gpoints)
             grid_index.append(
                 list(
-                    zip(self.grid.Dataset.SCHISM_hgrid_node_x.values, self.grid.Dataset.SCHISM_hgrid_node_y.values)
+                    zip(
+                        self.grid.Dataset.SCHISM_hgrid_node_x.values,
+                        self.grid.Dataset.SCHISM_hgrid_node_y.values,
+                    )
                 ).index(tuple(cp))
             )
             stations.append(cp)
@@ -1730,7 +1809,17 @@ class schism:
             # get the station flags
             flags = pd.read_csv(path + "station.in", header=None, nrows=1, delim_whitespace=True).T
             flags.columns = ["flag"]
-            flags["variable"] = ["elev", "air_pressure", "windx", "windy", "T", "S", "u", "v", "w"]
+            flags["variable"] = [
+                "elev",
+                "air_pressure",
+                "windx",
+                "windy",
+                "T",
+                "S",
+                "u",
+                "v",
+                "w",
+            ]
 
             vals = flags[flags.values == 1]  # get the active ones
         except OSError as e:

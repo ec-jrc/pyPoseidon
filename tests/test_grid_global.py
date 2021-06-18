@@ -5,28 +5,28 @@ import os
 import geopandas as gp
 import cartopy.feature as cf
 
+from . import DATA_DIR
 
-ne = []
-for cr in ["l", "i", "h"]:
-    coast = cf.NaturalEarthFeature(
-        category="physical", name="land", scale="{}m".format({"l": 110, "i": 50, "h": 10}[cr])
-    )
+DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
-    gdf = gp.GeoDataFrame(geometry=[x for x in coast.geometries()])
-
-    w = gdf.explode().reset_index(drop=True)
-    ne.append(w)
-
-coast = cf.GSHHSFeature(scale="auto", levels=[1])
-
-GSHHS = gp.GeoDataFrame(geometry=[x for x in coast.geometries()])
+COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("coast", ne[0:1])
-def test_answer(tmpdir, coast):
+@pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
+@pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
+@pytest.mark.parametrize("bindings", [True, False])
+def test_answer(tmpdir, ggor, bgmesh, bindings):
 
-    df = pg.grid(type="tri2d", geometry="global", coastlines=coast, rpath=str(tmpdir) + "/")
+    df = pg.grid(
+        type="tri2d",
+        geometry="global",
+        coastlines=COAST_FILE,
+        rpath=str(tmpdir) + "/",
+        grid_generator=ggor,
+        dem_source=bgmesh,
+        use_bindings=bindings,
+    )
 
     check = np.isnan(df.Dataset.depth.values).sum() == 0
 

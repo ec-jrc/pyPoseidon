@@ -19,6 +19,7 @@ from tqdm import tqdm
 import sys
 
 from pyposeidon.utils.stereo import to_lat_lon, to_stereo
+from pyposeidon.utils.global_bgmesh import make_bgmesh_global
 from pyposeidon.utils.sort import *
 import pyposeidon.dem as pdem
 from pyposeidon.utils.hfun import *
@@ -78,7 +79,12 @@ def to_geo(df, path=".", tag="jigsaw"):
             # compute edges
 
         edges = [
-            list(a) for a in zip(np.arange(outer.shape[0]), np.arange(outer.shape[0]) + 1, outer.lindex.values)
+            list(a)
+            for a in zip(
+                np.arange(outer.shape[0]),
+                np.arange(outer.shape[0]) + 1,
+                outer.lindex.values,
+            )
         ]  # outer
         edges[-1][1] = 0
 
@@ -138,74 +144,81 @@ def read_msh(fmsh):
     npoints = int(grid.loc[2].str.split("=")[0][1])
 
     nodes = pd.DataFrame(
-        grid.loc[3 : 3 + npoints - 1, "data"].str.split(";").values.tolist(), columns=["lon", "lat", "z"]
+        grid.loc[3 : 3 + npoints - 1, "data"].str.split(";").values.tolist(),
+        columns=["lon", "lat", "z"],
     )
 
     ie = grid[grid.data.str.contains("EDGE")].index.values[0]
     nedges = int(grid.loc[ie].str.split("=")[0][1])
     edges = pd.DataFrame(
-        grid.loc[ie + 1 : ie + nedges, "data"].str.split(";").values.tolist(), columns=["e1", "e2", "e3"]
+        grid.loc[ie + 1 : ie + nedges, "data"].str.split(";").values.tolist(),
+        columns=["e1", "e2", "e3"],
     )
 
     i3 = grid[grid.data.str.contains("TRIA")].index.values[0]
     ntria = int(grid.loc[i3].str.split("=")[0][1])
     tria = pd.DataFrame(
-        grid.loc[i3 + 1 : i3 + ntria + 1, "data"].str.split(";").values.tolist(), columns=["a", "b", "c", "d"]
+        grid.loc[i3 + 1 : i3 + ntria + 1, "data"].str.split(";").values.tolist(),
+        columns=["a", "b", "c", "d"],
     )
 
     return [nodes, edges, tria]
 
 
-def jigsaw(contours, **kwargs):
+def make_bgmesh(boundary, **kwargs):
 
-    logger.info("Creating grid with JIGSAW\n")
+    logger.info("Read DEM")
+    gglobal = kwargs.get("gglobal", False)
 
-    bgmesh = kwargs.get("bgmesh", None)
+    contours = boundary.contours
 
-    if bgmesh == "auto":
+    if gglobal:
+        lon_min = -180.0
+        lon_max = 180.0
+        lat_min = -90.0
+        lat_max = 90.0
+    else:
+        lon_min = contours.bounds.minx.min()
+        lon_max = contours.bounds.maxx.max()
+        lat_min = contours.bounds.miny.min()
+        lat_max = contours.bounds.maxy.max()
 
-        try:
+    dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs)
 
-            logger.info("Read DEM")
+    kwargs_ = kwargs.copy()
+    res_min = kwargs_.pop("resolution_min", 0.01)
+    res_max = kwargs_.pop("resolution_max", 0.5)
+    dhdx = kwargs_.pop("dhdx", 0.15)
 
-            lon_min = contours.bounds.minx.min()
-            lon_max = contours.bounds.maxx.max()
-            lat_min = contours.bounds.miny.min()
-            lat_max = contours.bounds.maxy.max()
+    rpath = kwargs.get("rpath", ".")
+    tag = kwargs.get("tag", "jigsaw")
+    fpos = rpath + "/jigsaw/" + tag + "-hfun.msh"
 
-            dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs)
+    if gglobal:
 
-            res_min = kwargs.get("resolution_min", 0.01)
-            res_max = kwargs.get("resolution_max", 0.5)
-            dhdx = kwargs.get("dhdx", 0.15)
+        logger.info("Evaluate global bgmesh")
+        nds, lms = make_bgmesh_global(boundary, fpos, dem, **kwargs)
+        logger.info("Saving global background scale file")
+        dh = to_global_hfun(nds, lms, fpos, **kwargs)
 
-            logger.info("Evaluate bgmesh")
-            w = hfun(
-                dem.Dataset.elevation, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx
-            )  # resolution in lat/lon degrees
+    else:
 
-            path = kwargs.get("rpath", "./bgmesh/")
+        logger.info("Evaluate bgmesh")
+        dh = get_hfun(
+            dem, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx, **kwargs_
+        )  # resolution in lat/lon degrees
 
-            if not os.path.exists(path):  # check if run folder exists
-                os.makedirs(path)
+        logger.info("Saving background scale file")
+        to_hfun_grid(dh, fpos)  # write bgmesh file
 
-            logger.info("Save bgmesh to {}bgmesh.nc".format(path))
-            w.to_netcdf(path + "bgmesh.nc")  # save bgmesh
-
-            kwargs.update({"bgmesh": path + "bgmesh.nc"})
-
-        except:
-
-            logger.warning("bgmesh failed... continuing without background mesh size")
-
-    gr = jigsaw_(contours, **kwargs)
-
-    return gr
+    return dh
 
 
-def jigsaw_(contours, **kwargs):
+def jigsaw(boundary, **kwargs):
 
     logger.info("Creating JIGSAW files\n")
+
+    contours = boundary.contours
 
     tag = kwargs.get("tag", "jigsaw")
     rpath = kwargs.get("rpath", ".")
@@ -217,19 +230,47 @@ def jigsaw_(contours, **kwargs):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    # GEO FILE
-    to_geo(contours, path=path, tag=tag)
-
     # HFUN FILE
     bgmesh = kwargs.get("bgmesh", None)
 
+    if bgmesh is None:
+        dem_source = kwargs.get("dem_source", None)
+        if dem_source:
+            bgmesh = "auto"
+            kwargs.update({"bgmesh": "auto"})
+
     if bgmesh is not None:
 
-        if isinstance(bgmesh, str):
-            dh = xr.open_dataset(bgmesh)
-            to_hfun_grid(dh, path + tag + "-hfun.msh")  # write bgmesh file
-        else:
-            to_hfun_mesh(bgmesh, path + tag + "-hfun.msh")
+        logger.info("Set background scale")
+
+        if bgmesh.endswith(".nc"):
+
+            try:
+                dh = xr.open_dataset(bgmesh)
+
+                if "longitude" in dh.coords:
+                    to_hfun_grid(dh, path + tag + "-hfun.msh")  # write bgmesh file
+                else:
+                    to_hfun_mesh(dh, path + tag + "-hfun.msh")
+            except:
+                logger.warning("bgmesh failed... continuing without background mesh size")
+                bgmesh = None
+
+        elif bgmesh == "auto":
+
+            dh = make_bgmesh(boundary, **kwargs)
+
+        elif bgmesh.endswith(".msh"):
+
+            pass
+
+    try:
+        bg = dh
+    except:
+        bg = None
+
+    # GEO FILE
+    to_geo(contours, path=path, tag=tag)
 
     # JIG FILE
     fjig = path + "/" + tag + ".jig"
@@ -253,9 +294,9 @@ def jigsaw_(contours, **kwargs):
     calc_dir = rpath + "/jigsaw/"
 
     # EXECUTE
-    execute = kwargs.get("execute_jigsaw", True)
+    setup_only = kwargs.get("setup_only", False)
 
-    if execute:
+    if not setup_only:
 
         # ---------------------------------
         logger.info("executing jigsaw\n")
@@ -290,7 +331,13 @@ def jigsaw_(contours, **kwargs):
 
         logger.info("..done creating mesh\n")
 
-        return gr
+        return gr, bg
+
+    else:
+
+        gr = None
+
+        return gr, bg
 
 
 def to_dataset(**kwargs):
@@ -428,10 +475,24 @@ def to_dataset(**kwargs):
         name="SCHISM_hgrid_face_nodes",
     )
 
+    # convert if global
+    gglobal = kwargs.get("gglobal", False)
+    if gglobal:
+        R = kwargs.get("R", 1.0)
+        rlon, rlat = to_lat_lon(nodes.lon, nodes.lat, R=R)
+        nodes["lon"] = rlon
+        nodes["lat"] = rlat
+
     nod = (
         nodes.loc[:, ["lon", "lat"]]
         .to_xarray()
-        .rename({"index": "nSCHISM_hgrid_node", "lon": "SCHISM_hgrid_node_x", "lat": "SCHISM_hgrid_node_y"})
+        .rename(
+            {
+                "index": "nSCHISM_hgrid_node",
+                "lon": "SCHISM_hgrid_node_x",
+                "lat": "SCHISM_hgrid_node_y",
+            }
+        )
     )
     nod = nod.drop_vars("nSCHISM_hgrid_node")
 

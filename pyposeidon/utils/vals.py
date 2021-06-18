@@ -89,7 +89,17 @@ class obs:
         pdate = min([self.edate, datetime.datetime.now()])
 
         url = "http://webcritech.jrc.ec.europa.eu/SeaLevelsDb/Home/ShowBuoyData?id={}&dateMin={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&dateMax={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&field=&options=".format(
-            point, sdate.year, sdate.month, sdate.day, sdate.hour, 0, pdate.year, pdate.month, pdate.day, pdate.hour, 0
+            point,
+            sdate.year,
+            sdate.month,
+            sdate.day,
+            sdate.hour,
+            0,
+            pdate.year,
+            pdate.month,
+            pdate.day,
+            pdate.hour,
+            0,
         )
 
         # print(url)
@@ -181,7 +191,13 @@ class obs:
                 tg = tg.apply(pd.to_numeric)
             except:
                 tg = pd.DataFrame(
-                    {"TimeUTC": np.nan, "Level m": np.nan, "Tide m": np.nan, "Level-Tide m": np.nan}, index=[0]
+                    {
+                        "TimeUTC": np.nan,
+                        "Level m": np.nan,
+                        "Tide m": np.nan,
+                        "Level-Tide m": np.nan,
+                    },
+                    index=[0],
                 )
             tg.index.name = "time"
             tg.columns = ["Total", "Tide", "Surge"]

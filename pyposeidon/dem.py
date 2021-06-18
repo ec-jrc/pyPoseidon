@@ -203,13 +203,23 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
         if len(grid_x.shape) > 1:
             idem = xr.Dataset(
-                {"ival": (["k", "l"], itopo), "ilons": (["k", "l"], grid_x), "ilats": (["k", "l"], grid_y)}
+                {
+                    "ival": (["k", "l"], itopo),
+                    "ilons": (["k", "l"], grid_x),
+                    "ilats": (["k", "l"], grid_y),
+                }
             )  # ,
         #                           coords={'ilon': ('ilon', grid_x[0,:]),
         #                                   'ilat': ('ilat', grid_y[:,0])})
 
         elif len(grid_x.shape) == 1:
-            idem = xr.Dataset({"ival": (["k"], itopo), "ilons": (["k"], grid_x), "ilats": (["k"], grid_y)})
+            idem = xr.Dataset(
+                {
+                    "ival": (["k"], itopo),
+                    "ilons": (["k"], grid_x),
+                    "ilats": (["k"], grid_y),
+                }
+            )
 
         # ---------------------------------------------------------------------
         logger.info("dem done\n")

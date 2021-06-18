@@ -101,7 +101,7 @@ def verify(g, shp, thorough=False):
         gover = gp.GeoDataFrame(fd, geometry="overlap")
 
         # #### Reject small injuctions
-        ipols = gover.explode().loc[0]
+        ipols = gover.explode(index_parts=True).loc[0]
 
         ipols.columns = ["geometry"]
 

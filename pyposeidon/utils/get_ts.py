@@ -51,7 +51,10 @@ class spot:
         plat = float(self.lat)
         plon = float(self.lon)
 
-        X, Y = self.data.Dataset.XZ.values[1:-1, 1:-1].T, self.data.Dataset.YZ.values[1:-1, 1:-1].T
+        X, Y = (
+            self.data.Dataset.XZ.values[1:-1, 1:-1].T,
+            self.data.Dataset.YZ.values[1:-1, 1:-1].T,
+        )
         xh = np.ma.masked_array(X, self.data.w)  # mask land
         yh = np.ma.masked_array(Y, self.data.w)
 
@@ -71,13 +74,22 @@ class spot:
         if method == "nearest":
             for k in range(vals.shape[0]):
                 s = pyresample.kd_tree.resample_nearest(
-                    orig, vals[k, :, :], targ, radius_of_influence=100000, fill_value=np.nan
+                    orig,
+                    vals[k, :, :],
+                    targ,
+                    radius_of_influence=100000,
+                    fill_value=np.nan,
                 )
                 svals.append(s[0])
         elif method == "gauss":
             for k in range(vals.shape[0]):
                 s = pyresample.kd_tree.resample_gauss(
-                    orig, vals[k, :, :], targ, radius_of_influence=100000, fill_value=np.nan, sigmas=25000
+                    orig,
+                    vals[k, :, :],
+                    targ,
+                    radius_of_influence=100000,
+                    fill_value=np.nan,
+                    sigmas=25000,
                 )
                 svals.append(s[0])
 
@@ -93,7 +105,11 @@ class spot:
         plon = float(self.lon)
 
         points = pd.concat(
-            [self.data.SCHISM_hgrid_node_x[:].to_dataframe(), self.data.SCHISM_hgrid_node_y[:].to_dataframe()], axis=1
+            [
+                self.data.SCHISM_hgrid_node_x[:].to_dataframe(),
+                self.data.SCHISM_hgrid_node_y[:].to_dataframe(),
+            ],
+            axis=1,
         )
         values = self.data[var].values
 

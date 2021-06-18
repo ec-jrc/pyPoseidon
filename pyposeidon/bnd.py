@@ -32,8 +32,18 @@ class box(bound):
         tpath = kwargs.get("tpath", "./")
         tmodel = kwargs.get("tmodel", "./")
 
-        dic = {"West": ba[:, 0], "East": ba[:, -1], "South": ba[0, :], "North": ba[-1, :]}
-        idic = {"West": [0, -99], "East": [lons.shape[0], -99], "South": [-99, 0], "North": [-99, lats.shape[0]]}
+        dic = {
+            "West": ba[:, 0],
+            "East": ba[:, -1],
+            "South": ba[0, :],
+            "North": ba[-1, :],
+        }
+        idic = {
+            "West": [0, -99],
+            "East": [lons.shape[0], -99],
+            "South": [-99, 0],
+            "North": [-99, lats.shape[0]],
+        }
 
         for bound in ["West", "East", "North", "South"]:
             chunks = []

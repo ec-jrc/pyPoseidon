@@ -75,7 +75,12 @@ class d3d:
                     logger.error("geometry argument not a valid geopandas file")
                     sys.exit(1)
 
-                self.lon_min, self.lat_min, self.lon_max, self.lat_max = geo.total_bounds
+                (
+                    self.lon_min,
+                    self.lat_min,
+                    self.lon_max,
+                    self.lat_max,
+                ) = geo.total_bounds
 
         start_date = kwargs.get("start_date", None)
         self.start_date = pd.to_datetime(start_date)
@@ -442,7 +447,12 @@ class d3d:
 
         else:
             kwargs.update(
-                {"lon_min": self.lon_min, "lat_min": self.lat_min, "lon_max": self.lon_max, "lat_max": self.lat_max}
+                {
+                    "lon_min": self.lon_min,
+                    "lat_min": self.lat_min,
+                    "lon_max": self.lon_max,
+                    "lat_max": self.lat_max,
+                }
             )
             self.dem = pdem.dem(**kwargs)
 
@@ -538,7 +548,17 @@ class d3d:
                     bname = key + str(idx)
                     f.write(
                         "{0:<10s}{1:>12s}{2:>2s}{3:>6d}{4:>6d}{5:>6d}{6:>6d}   0.0000000e+00 {7:<s}{8:<g}A {9:<s}{10:<g}B\n".format(
-                            bname, nm[0], nm[1], k1[0] + 1, k1[1] + 1, k2[0] + 1, k2[1] + 1, key, idx, key, idx
+                            bname,
+                            nm[0],
+                            nm[1],
+                            k1[0] + 1,
+                            k1[1] + 1,
+                            k2[0] + 1,
+                            k2[1] + 1,
+                            key,
+                            idx,
+                            key,
+                            idx,
                         )
                     )  # fortran index ??
                     idx += 1
@@ -602,12 +622,27 @@ class d3d:
 
         if ofilename:
 
-            obs_points = pd.read_csv(ofilename, delimiter="\t", header=None, names=["index", "Name", "lat", "lon"])
+            obs_points = pd.read_csv(
+                ofilename,
+                delimiter="\t",
+                header=None,
+                names=["index", "Name", "lat", "lon"],
+            )
             obs_points = obs_points.set_index("index", drop=True).reset_index(drop=True)  # reset index if any
 
             obs_points = obs_points[
-                (obs_points.lon.between(self.grid.Dataset.lons.values.min(), self.grid.Dataset.lons.values.max()))
-                & (obs_points.lat.between(self.grid.Dataset.lats.values.min(), self.grid.Dataset.lats.values.max()))
+                (
+                    obs_points.lon.between(
+                        self.grid.Dataset.lons.values.min(),
+                        self.grid.Dataset.lons.values.max(),
+                    )
+                )
+                & (
+                    obs_points.lat.between(
+                        self.grid.Dataset.lats.values.min(),
+                        self.grid.Dataset.lats.values.max(),
+                    )
+                )
             ]
 
             obs_points.reset_index(inplace=True, drop=True)

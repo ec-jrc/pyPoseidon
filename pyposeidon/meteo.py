@@ -224,7 +224,11 @@ def cfgrib(
     # ---------------------------------------------------------------------
 
     data = xr.open_mfdataset(
-        filenames, combine=meteo_combine_by, engine="cfgrib", backend_kwargs=backend_kwargs, **xr_kwargs
+        filenames,
+        combine=meteo_combine_by,
+        engine="cfgrib",
+        backend_kwargs=backend_kwargs,
+        **xr_kwargs,
     )
 
     data = data.squeeze(drop=True)
@@ -344,7 +348,10 @@ def cfgrib(
 
         sh = (
             data[["msl", "u10", "v10"]]
-            .isel(longitude=slice(lon_0, data.longitude.size), latitude=slice(lat_0, lat_1))
+            .isel(
+                longitude=slice(lon_0, data.longitude.size),
+                latitude=slice(lat_0, lat_1),
+            )
             .sel(time=tslice)
         )
         sh = sh.assign_coords({"longitude": sh.longitude.values - 360.0})
@@ -427,7 +434,11 @@ def pynio(
     # ---------------------------------------------------------------------
 
     data = xr.open_mfdataset(
-        filenames, combine=meteo_combine_by, engine="pynio", backend_kwargs=backend_kwargs, **xr_kwargs
+        filenames,
+        combine=meteo_combine_by,
+        engine="pynio",
+        backend_kwargs=backend_kwargs,
+        **xr_kwargs,
     )
 
     data = data.squeeze(drop=True)
@@ -448,7 +459,13 @@ def pynio(
     ]
 
     data = data.rename(
-        {msl_[0]: "msl", u10_[0]: "u10", v10_[0]: "v10", lon_coord[0]: "longitude", lat_coord[0]: "latitude"}
+        {
+            msl_[0]: "msl",
+            u10_[0]: "u10",
+            v10_[0]: "v10",
+            lon_coord[0]: "longitude",
+            lat_coord[0]: "latitude",
+        }
     )
 
     if time_coord:
@@ -544,7 +561,10 @@ def pynio(
 
         sh = (
             data[["msl", "u10", "v10"]]
-            .isel(longitude=slice(lon_0, data.longitude.size), latitude=slice(lat_0, lat_1))
+            .isel(
+                longitude=slice(lon_0, data.longitude.size),
+                latitude=slice(lat_0, lat_1),
+            )
             .sel(time=tslice)
         )
         sh = sh.assign_coords({"longitude": sh.longitude.values - 360.0})
@@ -727,7 +747,13 @@ def netcdf(
     v10_ = [x for (x, v) in sn.items() if ("v wind" in v) | ("v-component" in v)]
 
     data = data.rename(
-        {msl_[0]: "msl", u10_[0]: "u10", v10_[0]: "v10", lon_coord[0]: "longitude", lat_coord[0]: "latitude"}
+        {
+            msl_[0]: "msl",
+            u10_[0]: "u10",
+            v10_[0]: "v10",
+            lon_coord[0]: "longitude",
+            lat_coord[0]: "latitude",
+        }
     )
 
     data = data.sel(longitude=slice(lon_min, lon_max)).sel(latitude=slice(lat_min, lat_max))

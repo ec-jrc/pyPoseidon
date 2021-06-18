@@ -18,7 +18,12 @@ DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 METEO_FILES_1 = [(DATA_DIR / name).as_posix() for name in ("uvp_2018100100.grib", "uvp_2018100112.grib")]
 METEO_FILES_2 = [
     (DATA_DIR / name).as_posix()
-    for name in ("uvp_2018100100.grib", "uvp_2018100112.grib", "uvp_2018100200.grib", "uvp_2018100212.grib")
+    for name in (
+        "uvp_2018100100.grib",
+        "uvp_2018100112.grib",
+        "uvp_2018100200.grib",
+        "uvp_2018100212.grib",
+    )
 ]
 
 
@@ -39,7 +44,15 @@ case = {
     "meteo_xr_kwargs": {"concat_dim": "step"},
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
-    "parameters": {"dt": 400, "rnday": 0.5, "nhot": 1, "ihot": 0, "nspool": 9, "ihfskip": 36, "nhot_write": 108},
+    "parameters": {
+        "dt": 400,
+        "rnday": 0.5,
+        "nhot": 1,
+        "ihot": 0,
+        "nspool": 9,
+        "ihfskip": 36,
+        "nhot_write": 108,
+    },
 }
 
 # define in a dictionary the properties of the model..
@@ -59,7 +72,15 @@ check = {
     "meteo_xr_kwargs": {"concat_dim": "step"},
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
-    "parameters": {"dt": 400, "rnday": 1.5, "nhot": 0, "ihot": 0, "nspool": 9, "ihfskip": 36, "nhot_write": 108},
+    "parameters": {
+        "dt": 400,
+        "rnday": 1.5,
+        "nhot": 0,
+        "ihot": 0,
+        "nspool": 9,
+        "ihfskip": 36,
+        "nhot_write": 108,
+    },
 }
 
 
@@ -94,7 +115,12 @@ def schism(tmpdir):
     # set cast
     for l in range(len(rpaths) - 1):
         h = cast.cast(
-            solver="schism", model=b, ppath=rpaths[l], cpath=rpaths[l + 1], meteo=meteo[l + 1], date=date_list[l + 1]
+            solver="schism",
+            model=b,
+            ppath=rpaths[l],
+            cpath=rpaths[l + 1],
+            meteo=meteo[l + 1],
+            date=date_list[l + 1],
         )
         h.set(execute=True)  # execute
 

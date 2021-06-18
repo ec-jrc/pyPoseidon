@@ -1,110 +1,8 @@
-import numpy as np
 import pandas as pd
+import xarray as xr
 
-
-def MakeFacesVectorized(Nr, Nc):
-
-    out = np.empty((Nr - 1, Nc - 1, 4), dtype=int)
-
-    r = np.arange(Nr * Nc).reshape(Nr, Nc)
-
-    out[:, :, 0] = r[:-1, :-1]
-    out[:, :, 1] = r[:-1, 1:]
-    out[:, :, 2] = r[1:, 1:]
-    out[:, :, 3] = r[1:, :-1]
-
-    out.shape = (-1, 4)
-    return out
-
-
-def MakeFacesVectorized_periodic(Nr, Nc):
-
-    out = np.empty((Nr - 1, Nc, 4), dtype=int)
-
-    r = np.arange(Nr * Nc).reshape(Nr, Nc)
-
-    out[:, :-1, 0] = r[:-1, :-1]
-    out[:, :-1, 1] = r[:-1, 1:]
-    out[:, :-1, 2] = r[1:, 1:]
-    out[:, :-1, 3] = r[1:, :-1]
-
-    out[:, -1, 0] = r[:-1, -1]
-    out[:, -1, 1] = r[:-1, 0]
-    out[:, -1, 2] = r[1:, 0]
-    out[:, -1, 3] = r[1:, -1]
-
-    out.shape = (-1, 4)
-    return out
-
-
-def to_df(elems, nodes):
-    # cells to polygons
-    ap = nodes.loc[elems.a, ["longitude", "latitude"]]
-    bp = nodes.loc[elems.b, ["longitude", "latitude"]]
-    cp = nodes.loc[elems.c, ["longitude", "latitude"]]
-    dp = nodes.loc[elems.d, ["longitude", "latitude"]]
-
-    ap["z"] = 0
-    bp["z"] = 0
-    cp["z"] = 0
-    dp["z"] = 0
-
-    elems["ap"] = ap.values.tolist()
-    elems["bp"] = bp.values.tolist()
-    elems["cp"] = cp.values.tolist()
-    elems["dp"] = dp.values.tolist()
-
-    elems["va"] = nodes.loc[elems.a, "d2"].values.tolist()
-    elems["vb"] = nodes.loc[elems.b, "d2"].values.tolist()
-    elems["vc"] = nodes.loc[elems.c, "d2"].values.tolist()
-    elems["vd"] = nodes.loc[elems.d, "d2"].values.tolist()
-
-    return elems.drop(["a", "b", "c", "d"], axis=1)
-
-
-def to_df_uv(elems, nodes):
-    # cells to polygons
-    ap = nodes.loc[elems.a, ["u", "v"]]
-    bp = nodes.loc[elems.b, ["u", "v"]]
-    cp = nodes.loc[elems.c, ["u", "v"]]
-    dp = nodes.loc[elems.d, ["u", "v"]]
-
-    ap["z"] = 0
-    bp["z"] = 0
-    cp["z"] = 0
-    dp["z"] = 0
-
-    elems["ap"] = ap.values.tolist()
-    elems["bp"] = bp.values.tolist()
-    elems["cp"] = cp.values.tolist()
-    elems["dp"] = dp.values.tolist()
-
-    elems["va"] = nodes.loc[elems.a, "d2"].values.tolist()
-    elems["vb"] = nodes.loc[elems.b, "d2"].values.tolist()
-    elems["vc"] = nodes.loc[elems.c, "d2"].values.tolist()
-    elems["vd"] = nodes.loc[elems.d, "d2"].values.tolist()
-
-    return elems.drop(["a", "b", "c", "d"], axis=1)
-
-
-def to_df_3d(elems, nodes):
-    # cells to polygons
-    ap = nodes.loc[elems.a, ["x", "y", "z"]]
-    bp = nodes.loc[elems.b, ["x", "y", "z"]]
-    cp = nodes.loc[elems.c, ["x", "y", "z"]]
-    dp = nodes.loc[elems.d, ["x", "y", "z"]]
-
-    elems["ap"] = ap.values.tolist()
-    elems["bp"] = bp.values.tolist()
-    elems["cp"] = cp.values.tolist()
-    elems["dp"] = dp.values.tolist()
-
-    elems["va"] = nodes.loc[elems.a, "d2"].values.tolist()
-    elems["vb"] = nodes.loc[elems.b, "d2"].values.tolist()
-    elems["vc"] = nodes.loc[elems.c, "d2"].values.tolist()
-    elems["vd"] = nodes.loc[elems.d, "d2"].values.tolist()
-
-    return elems.drop(["a", "b", "c", "d"], axis=1)
+from pyposeidon.utils.topology import tria_to_df, tria_to_df_3d
+from pyposeidon.utils.stereo import stereo_to_3d
 
 
 def to_sq(df, fpos):
@@ -144,3 +42,95 @@ def to_sq(df, fpos):
             )
 
         f.write("{};\n".format("}"))
+
+
+def to_st(df, fpos):
+
+    with open(fpos, "w") as f:
+        f.write("//*********************************************************************\n")
+        f.write("// *\n")
+        f.write("// *  pyposeidon\n")
+        f.write("// *\n")
+        f.write("// *  Scalar 2D post-processing view\n")
+        f.write("// *\n")
+        f.write("// *********************************************************************/\n\n")
+
+        f.write("// This view contains a scalar field defined on triangles.\n")
+        f.write("\n")
+        f.write('View "{}" {}\n'.format("bgmesh", "{"))
+        for idx, vals in df.iterrows():
+            f.write(
+                "ST({},{},{},{},{},{},{},{},{}){{{},{},{}}};\n".format(
+                    vals.ap[0],
+                    vals.ap[1],
+                    vals.ap[2],
+                    vals.bp[0],
+                    vals.bp[1],
+                    vals.bp[2],
+                    vals.cp[0],
+                    vals.cp[1],
+                    vals.cp[2],
+                    vals.va,
+                    vals.vb,
+                    vals.vc,
+                )
+            )
+
+        f.write("{};\n".format("}"))
+
+
+def to_global_pos(nodes, elems, fpos, **kwargs):
+
+    use_bindings = kwargs.get("use_bindings", True)
+    R = kwargs.get("R", 1.0)
+
+    if use_bindings:
+        # Keep stereographic
+
+        elems["d"] = 0
+
+        sv = 4 * R ** 2 / (nodes.u ** 2 + nodes.v ** 2 + 4 * R ** 2)
+        nodes["d2"] = nodes.d2 / sv
+
+        dout = tria_to_df(elems, nodes, x="u", y="v")
+        # save bgmesh
+        to_st(dout, fpos)
+
+    else:
+        # use 3D
+        x, y, z = stereo_to_3d(nodes.u.values, nodes.v.values)
+
+        nodes["x"] = x
+        nodes["y"] = y
+        nodes["z"] = z
+
+        # create output dataframe
+        dout = tria_to_df_3d(elems, nodes)
+        # save bgmesh
+        to_st(dout, fpos)
+
+    ## make dataset
+    els = xr.DataArray(
+        elems.loc[:, ["a", "b", "c"]],
+        dims=["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+        name="SCHISM_hgrid_face_nodes",
+    )
+
+    nod = (
+        nodes.loc[:, ["u", "v"]]
+        .to_xarray()
+        .rename(
+            {
+                "index": "nSCHISM_hgrid_node",
+                "u": "SCHISM_hgrid_node_x",
+                "v": "SCHISM_hgrid_node_y",
+            }
+        )
+    )
+    nod = nod.drop_vars("nSCHISM_hgrid_node")
+
+    bg = xr.Dataset({"h": (["nSCHISM_hgrid_node"], nodes.d2.values)})
+
+    dh = xr.merge([nod, els, bg])
+
+    return dh

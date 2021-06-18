@@ -87,7 +87,10 @@ class d3d:
 
         self.dem = xr.Dataset(
             {"bathymetry": (["latitude", "longitude"], -b)},
-            coords={"longitude": ("longitude", grid.lons[0, :]), "latitude": ("latitude", grid.lats[:, 0])},
+            coords={
+                "longitude": ("longitude", grid.lons[0, :]),
+                "latitude": ("latitude", grid.lats[:, 0]),
+            },
         )
 
         self.grid = grid

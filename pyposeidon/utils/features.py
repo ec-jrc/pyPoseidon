@@ -23,7 +23,10 @@ def create_geojson_features(gf, time):
                 "type": "Polygon",
                 "coordinates": [[row["ap"].tolist(), row["bp"].tolist(), row["cp"].tolist()]],
             },
-            "properties": {"times": [time], "style": {"fillColor": row["color"], "weight": 0, "fill-opacity": 1.0}},
+            "properties": {
+                "times": [time],
+                "style": {"fillColor": row["color"], "weight": 0, "fill-opacity": 1.0},
+            },
         }
         features.append(feature)
     return features
