@@ -1275,7 +1275,6 @@ description = "An implementation of the Data Access Protocol."
 category = "main"
 optional = false
 python-versions = "*"
-develop = false
 
 [package.dependencies]
 beautifulsoup4 = "*"
@@ -1297,11 +1296,8 @@ testing = ["gsw (==3.0.6)", "coards", "lxml", "gunicorn", "pastedeploy", "netcdf
 tests = ["pytest (>=3.6)", "pytest-cov", "pytest-attrib", "beautifulsoup4", "requests-mock", "webtest", "flake8", "werkzeug", "pyopenssl"]
 
 [package.source]
-type = "git"
-url = "https://github.com/pydap/pydap.git"
-reference = "3f6aa190c59e3bbc6c834377a61579b20275ff69"
-resolved_reference = "3f6aa190c59e3bbc6c834377a61579b20275ff69"
-
+type = "url"
+url = "https://github.com/pydap/pydap/archive/12c6f44f7cd60bb7fc21a17908317fdcb6d814bc.zip"
 [[package]]
 name = "pygeos"
 version = "0.9"
@@ -1842,7 +1838,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7, <3.10"
-content-hash = "63afafe23fe50acf9cf7008d09cea8c68e0fc074ea23b88f92789de398954c8b"
+content-hash = "2bb973bb317960975fec4300c0a505891d04560406050be76b60cf76247b77dd"
 
 [metadata.files]
 affine = [
