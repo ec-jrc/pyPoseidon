@@ -32,7 +32,8 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.7, <3.10"
+python = ">=3.8, <3.10"
+setuptools = "*"
 numpy = "^1.20"
 rasterio = "^1.2"
 matplotlib = "^3.3"
@@ -41,10 +42,10 @@ xarray = ">=0.16.0,<1.0"
 geopandas = "^0.10.1"
 tqdm = "^4.58"
 pyresample = "^1.17"
-pygeos = "^0.9"
-gmsh = "^4.7"
+pygeos = ">=0.10, <1.0"
+gmsh = "^4.8"
 f90nml = "^1.2"
-Cartopy = "^0.19"
+Cartopy = "^0.20"
 requests = "^2.25"
 holoviews = "^1.14.1"
 geoviews = "^1.8.1"

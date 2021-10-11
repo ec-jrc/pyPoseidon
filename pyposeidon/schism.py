@@ -15,7 +15,6 @@ import xml.dom.minidom as md
 from shutil import copy2
 import subprocess
 import sys
-import pkg_resources
 import json
 from collections import OrderedDict
 import pandas as pd
@@ -50,7 +49,6 @@ import multiprocessing
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 # retrieve the module path
-# DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/tests/data/"
 

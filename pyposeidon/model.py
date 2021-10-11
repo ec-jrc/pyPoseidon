@@ -17,7 +17,6 @@ import xml.dom.minidom as md
 from shutil import copy2
 import subprocess
 import sys
-import pkg_resources
 import json
 from collections import OrderedDict
 import pandas as pd
@@ -74,7 +73,6 @@ LOGGING = {
 logging.config.dictConfig(LOGGING)
 
 # retrieve the module path
-# DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
 # strings to be used

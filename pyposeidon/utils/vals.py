@@ -13,7 +13,6 @@ import datetime
 from dateutil.parser import parse
 import numpy as np
 import pandas as pd
-import pkg_resources
 import pyposeidon
 from pyposeidon.utils.norm import normalize_column_names
 import os
@@ -23,7 +22,6 @@ import logging
 logger = logging.getLogger("pyposeidon")
 
 
-# DATA_PATH = pkg_resources.resource_filename('pyposeidon', 'misc')
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
 
