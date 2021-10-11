@@ -35,6 +35,7 @@ python-versions = "*"
 
 [package.dependencies]
 six = ">=1.6.1,<2.0"
+wheel = ">=0.23.0,<1.0"
 
 [[package]]
 name = "atomicwrites"
@@ -441,6 +442,7 @@ jinja2 = "*"
 msgpack = ">=0.6.0"
 psutil = ">=5.0"
 pyyaml = "*"
+setuptools = "*"
 sortedcontainers = "<2.0.0 || >2.0.0,<2.0.1 || >2.0.1"
 tblib = ">=1.6.0"
 toolz = ">=0.8.2"
@@ -517,6 +519,7 @@ click = ">=4.0"
 click-plugins = ">=1.0"
 cligj = ">=0.5"
 munch = "*"
+setuptools = "*"
 six = ">=1.7"
 
 [package.extras]
@@ -750,6 +753,7 @@ pexpect = {version = ">4.3", markers = "sys_platform != \"win32\""}
 pickleshare = "*"
 prompt-toolkit = ">=2.0.0,<3.0.0 || >3.0.0,<3.0.1 || >3.0.1,<3.1.0"
 pygments = "*"
+setuptools = ">=18.5"
 traitlets = ">=4.2"
 
 [package.extras]
@@ -1038,6 +1042,7 @@ python-versions = ">=3.6,<3.10"
 [package.dependencies]
 llvmlite = ">=0.36.0rc1,<0.37"
 numpy = ">=1.15"
+setuptools = "*"
 
 [[package]]
 name = "numpy"
@@ -1375,6 +1380,7 @@ numpy = ">=1.10.0"
 pykdtree = ">=1.3.1"
 pyproj = ">=2.2"
 pyyaml = "*"
+setuptools = ">=3.2"
 
 [package.extras]
 cf = ["xarray"]
@@ -1547,6 +1553,7 @@ click = ">=4.0"
 click-plugins = "*"
 cligj = ">=0.5"
 numpy = "*"
+setuptools = "*"
 snuggs = ">=1.4.1"
 
 [package.extras]
@@ -1593,6 +1600,18 @@ python-versions = ">=3.7,<3.10"
 
 [package.dependencies]
 numpy = ">=1.16.5,<1.23.0"
+
+[[package]]
+name = "setuptools"
+version = "58.2.0"
+description = "Easily download, build, install, upgrade, and uninstall Python packages"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "sphinx-inline-tabs", "sphinxcontrib-towncrier", "furo"]
+testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "mock", "flake8-2020", "virtualenv (>=13.0.0)", "pytest-virtualenv (>=1.2.7)", "wheel", "paver", "pip (>=19.1)", "jaraco.envs", "pytest-xdist", "sphinx", "jaraco.path (>=3.2.0)", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [[package]]
 name = "shapely"
@@ -1766,6 +1785,17 @@ docs = ["Sphinx (>=1.7.5)", "pylons-sphinx-themes"]
 testing = ["pytest (>=3.1.0)", "coverage", "pytest-cov", "pytest-xdist"]
 
 [[package]]
+name = "wheel"
+version = "0.37.0"
+description = "A built-package format for Python"
+category = "dev"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
+
+[package.extras]
+test = ["pytest (>=3.0.0)", "pytest-cov"]
+
+[[package]]
 name = "xarray"
 version = "0.19.0"
 description = "N-D labeled arrays and datasets in Python"
@@ -1776,6 +1806,7 @@ python-versions = ">=3.7"
 [package.dependencies]
 numpy = ">=1.17"
 pandas = ">=1.0"
+setuptools = ">=40.4"
 
 [package.extras]
 accel = ["scipy", "bottleneck", "numbagg"]
@@ -1811,7 +1842,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7, <3.10"
-content-hash = "4beac8636b337fa397f535b92484b97bcc0adb3815796e5bee9718dc63670f68"
+content-hash = "63afafe23fe50acf9cf7008d09cea8c68e0fc074ea23b88f92789de398954c8b"
 
 [metadata.files]
 affine = [
@@ -2856,6 +2887,10 @@ scipy = [
     {file = "scipy-1.7.1-cp39-cp39-win_amd64.whl", hash = "sha256:da9c6b336e540def0b7fd65603da8abeb306c5fc9a5f4238665cbbb5ff95cf58"},
     {file = "scipy-1.7.1.tar.gz", hash = "sha256:6b47d5fa7ea651054362561a28b1ccc8da9368a39514c1bbf6c0977a1c376764"},
 ]
+setuptools = [
+    {file = "setuptools-58.2.0-py3-none-any.whl", hash = "sha256:2551203ae6955b9876741a26ab3e767bb3242dafe86a32a749ea0d78b6792f11"},
+    {file = "setuptools-58.2.0.tar.gz", hash = "sha256:2c55bdb85d5bb460bd2e3b12052b677879cffcf46c0c688f2e5bf51d36001145"},
+]
 shapely = [
     {file = "Shapely-1.7.1-1-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:46da0ea527da9cf9503e66c18bab6981c5556859e518fe71578b47126e54ca93"},
     {file = "Shapely-1.7.1-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:4c10f317e379cc404f8fc510cd9982d5d3e7ba13a9cfd39aa251d894c6366798"},
@@ -3033,6 +3068,10 @@ wcwidth = [
 webob = [
     {file = "WebOb-1.8.7-py2.py3-none-any.whl", hash = "sha256:73aae30359291c14fa3b956f8b5ca31960e420c28c1bec002547fb04928cf89b"},
     {file = "WebOb-1.8.7.tar.gz", hash = "sha256:b64ef5141be559cfade448f044fa45c2260351edcb6a8ef6b7e00c7dcef0c323"},
+]
+wheel = [
+    {file = "wheel-0.37.0-py2.py3-none-any.whl", hash = "sha256:21014b2bd93c6d0034b6ba5d35e4eb284340e09d63c59aef6fc14b0f346146fd"},
+    {file = "wheel-0.37.0.tar.gz", hash = "sha256:e2ef7239991699e3355d54f8e968a21bb940a1dbf34a4d226741e64462516fad"},
 ]
 xarray = [
     {file = "xarray-0.19.0-py3-none-any.whl", hash = "sha256:da0f0d7719b5ee95143a34804e3afb82cb8abbe5c10f9750a9dbed156ad30f00"},
