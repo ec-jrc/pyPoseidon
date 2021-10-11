@@ -25,7 +25,15 @@ case1 = {
     "dem_source": DEM_FILE,
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
-    "parameters": {"dt": 400, "rnday": 0.3, "nhot": 0, "ihot": 0, "nspool": 9, "ihfskip": 36, "nhot_write": 108},
+    "parameters": {
+        "dt": 400,
+        "rnday": 0.3,
+        "nhot": 0,
+        "ihot": 0,
+        "nspool": 9,
+        "ihfskip": 36,
+        "nhot_write": 108,
+    },
 }
 
 case2 = {
@@ -41,7 +49,15 @@ case2 = {
     "meteo_engine": "cfgrib",
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
-    "parameters": {"dt": 400, "rnday": 0.3, "nhot": 0, "ihot": 0, "nspool": 9, "ihfskip": 36, "nhot_write": 108},
+    "parameters": {
+        "dt": 400,
+        "rnday": 0.3,
+        "nhot": 0,
+        "ihot": 0,
+        "nspool": 9,
+        "ihfskip": 36,
+        "nhot_write": 108,
+    },
 }
 
 
@@ -58,7 +74,15 @@ case3 = {
     "dem_source": DEM_FILE,
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
-    "parameters": {"dt": 400, "rnday": 0.3, "nhot": 0, "ihot": 0, "nspool": 9, "ihfskip": 36, "nhot_write": 108},
+    "parameters": {
+        "dt": 400,
+        "rnday": 0.3,
+        "nhot": 0,
+        "ihot": 0,
+        "nspool": 9,
+        "ihfskip": 36,
+        "nhot_write": 108,
+    },
 }
 
 

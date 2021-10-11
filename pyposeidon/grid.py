@@ -14,22 +14,18 @@ import xarray as xr
 import pandas as pd
 import sys
 from .jigsaw import *
+from .ugmsh import *
 import logging
 import f90nml
 import os
 import subprocess
 from pyposeidon.utils.verify import *
+import pyposeidon.boundary as pb
 import multiprocessing
-
-try:
-    from .ugmsh import *
-except:
-    pass
-
-NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 logger = logging.getLogger("pyposeidon")
 
+NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
@@ -78,7 +74,15 @@ class r2d:
             y = np.linspace(lat_min, lat_max, nj)
             gx, gy = np.meshgrid(x, y)
 
-            attrs = kwargs.get("attrs", {"Coordinate System": "Spherical", "alfori": 0.0, "xori": 0.0, "yori": 0.0})
+            attrs = kwargs.get(
+                "attrs",
+                {
+                    "Coordinate System": "Spherical",
+                    "alfori": 0.0,
+                    "xori": 0.0,
+                    "yori": 0.0,
+                },
+            )
 
             g = xr.Dataset(
                 {"lons": (["y", "x"], gx), "lats": (["y", "x"], gy)},
@@ -100,7 +104,14 @@ class r2d:
         ni, nj = int(ni), int(nj)
         alfori, xori, yori = header.loc[2, 0].split(" ")
 
-        d = pd.read_csv(filename, header=2, comment="*", delim_whitespace=True, engine="python", na_values="ETA=")
+        d = pd.read_csv(
+            filename,
+            header=2,
+            comment="*",
+            delim_whitespace=True,
+            engine="python",
+            na_values="ETA=",
+        )
         d = d.reset_index()
         data = d.values[~np.isnan(d.values)]
         data = np.array(data)
@@ -116,7 +127,12 @@ class r2d:
             coords={"x": ("x", lons[0, :]), "y": ("y", lats[:, 0])},
         )
 
-        g.attrs = {"Coordinate System": cs, "alfori": alfori, "xori": xori, "yori": yori}
+        g.attrs = {
+            "Coordinate System": cs,
+            "alfori": alfori,
+            "xori": xori,
+            "yori": yori,
+        }
 
         return g
 
@@ -129,7 +145,9 @@ class r2d:
             f.write("{} {}\n".format(self.Dataset.lons.shape[1], self.Dataset.lons.shape[0]))
             f.write(
                 "{} {} {}\n".format(
-                    self.Dataset.attrs["xori"], self.Dataset.attrs["yori"], self.Dataset.attrs["alfori"]
+                    self.Dataset.attrs["xori"],
+                    self.Dataset.attrs["yori"],
+                    self.Dataset.attrs["alfori"],
                 )
             )
             for i in range(self.Dataset.lons.shape[0]):
@@ -149,6 +167,12 @@ class tri2d:
 
         grid_file = kwargs.get("grid_file", None)
         grid_generator = kwargs.get("grid_generator", "jigsaw")
+        geo = kwargs.pop("geometry", None)
+        coasts = kwargs.pop("coastlines", None)
+        boundary = kwargs.pop("boundary", None)
+
+        if geo == "global":
+            kwargs.update({"gglobal": True})
 
         if grid_file:
 
@@ -156,15 +180,29 @@ class tri2d:
 
         elif grid_generator == "gmsh":
 
-            g = gmsh_(**kwargs)  # create grid with JIGSAW
+            if boundary is None:
+                self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
+            else:
+                self.boundary = boundary
+
+            g, bg = gmsh_(self.boundary, **kwargs)  # create grid with GMSH
 
             self.Dataset = g
+
+            self.bgmesh = bg
 
         elif grid_generator == "jigsaw":
 
-            g = jigsaw(**kwargs)  # create grid with JIGSAW
+            if boundary is None:
+                self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
+            else:
+                self.boundary = boundary
+
+            g, bg = jigsaw(self.boundary, **kwargs)  # create grid with JIGSAW
 
             self.Dataset = g
+
+            self.bgmesh = bg
 
         else:
 
@@ -230,7 +268,7 @@ class tri2d:
         nobn = df.loc[n0 + 1, "data"].split("=")[0].strip()
         nobn = int(nobn)
 
-        onodes = []
+        odic = {}
         ottr = []
         idx = n0 + 2
         for nl in range(nob):
@@ -239,26 +277,16 @@ class tri2d:
             label = df.loc[idx, "data"].split("=")[1]
             label = label[label.index("open") :]
             ottr.append([nn, label])
-            nodes = df.loc[idx + 1 : idx + nn, "data"]
-            onodes.append(nodes.astype(int).values)
+            nodes = df.loc[idx + 1 : idx + nn, "data"].astype("int")
             idx = idx + nn + 1
 
-        oinfo = pd.DataFrame(ottr)
-        try:
-            oinfo.columns = ["nps", "label"]
-            oinfo.label = oinfo.label.str.rstrip()
-            oinfo.label = oinfo.label.str.replace(" ", "_")
-            oinfo.set_index("label", inplace=True, drop=True)
-            oinfo = oinfo.apply(pd.to_numeric)
-        except:
-            pass
+            oi = pd.DataFrame({"node": nodes, "type": "open", "id": int(label[-1])})
+            odic.update({label: oi})
 
-        obnodes = [j for i in onodes for j in i]
-        dfo = pd.DataFrame({"node": obnodes, "type": -1, "id": 0}, index=np.arange(len(obnodes)))
-        idx = 1
-        for l in range(len(onodes)):
-            dfo.loc[dfo.node.isin(onodes[l]), "id"] = idx
-            idx += 1
+        try:
+            dfo = pd.concat(odic).droplevel(0).reset_index(drop=True)
+        except ValueError:
+            dfo = pd.DataFrame()
 
         # Land boundaries
         n1 = df[df.data.str.contains("land boundaries")].index
@@ -270,9 +298,10 @@ class tri2d:
         nlbn = df.loc[n1 + 1, "data"].split("=")[0].strip()
         nlbn = int(nlbn)
 
-        lnodes = []
+        ldic = {}
         attr = []
         idx = n1 + 2
+        ili = -1
         for nl in range(nlb):
             nn, etype = df.loc[idx, "data"].split("=")[0].strip().split(" ")
             nn = int(nn)
@@ -280,32 +309,30 @@ class tri2d:
             label = df.loc[idx, "data"].split("=")[1]
             label = label[label.index("land") :]
             attr.append([nn, etype, label])
-            nodes = df.loc[idx + 1 : idx + nn, "data"]
-            lnodes.append(nodes.astype(int).values)
+            nodes = df.loc[idx + 1 : idx + nn, "data"].astype(int)
             idx = idx + nn + 1
 
-        linfo = pd.DataFrame(attr)
+            li = pd.DataFrame({"node": nodes})
+            tt = ["land" if etype == 0 else "island"]
+            idi = [ili if etype == 1 else 1000 + int(label[-1])]
+            li["type"] = tt[0]
+            li["id"] = idi[0]
+            ldic.update({label: li})
+            ili -= 1
+
         try:
-            linfo.columns = ["nps", "type", "label"]
-            linfo.label = linfo.label.str.rstrip()
-            linfo.label = linfo.label.str.replace(" ", "_") + "_" + linfo.type.astype(str)
-            linfo.set_index("label", inplace=True, drop=True)
-            linfo = linfo.apply(pd.to_numeric)
-        except:
-            pass
+            dfl = pd.concat(ldic).droplevel(0).reset_index(drop=True)
+        except ValueError:
+            dfl = pd.DataFrame()
 
-        lbnodes = [j for i in lnodes for j in i]
-        dfl = pd.DataFrame({"node": lbnodes, "type": 0, "id": 0}, index=np.arange(len(lbnodes)))
-        idx = -1
-        for l in range(len(lnodes)):
-            dfl.loc[dfl.node.isin(lnodes[l]), "id"] = idx
-            dfl.loc[dfl.node.isin(lnodes[l]), "type"] = linfo.iloc[l].type
-            idx -= 1
-
+        # concat boundaries
         bbs = pd.concat([dfo, dfl])
-        bbs.index.name = "bnodes"
 
         bbs.node = bbs.node - 1  # start_index = 0
+        bbs = bbs.reset_index(drop=True)  # reset index
+        bbs = bbs[["type", "node", "id"]]  # set column order
+        bbs = bbs.sort_values(["type", "id", "node"]).reset_index(drop=True)  # sort
+        bbs.index.name = "bnodes"
 
         # merge to one xarray DataSet
         g = xr.merge([grid, depth, els, bbs.to_xarray()])
@@ -352,13 +379,24 @@ class tri2d:
 
         e.loc[:, ["a", "b", "c"]] = e.loc[:, ["a", "b", "c"]] + 1  # convert to fortran (index starts from 1)
 
-        e.to_csv(filename, index=True, sep="\t", header=None, mode="a", columns=["nv", "a", "b", "c"])
+        e.to_csv(
+            filename,
+            index=True,
+            sep="\t",
+            header=None,
+            mode="a",
+            columns=["nv", "a", "b", "c"],
+        )
 
         bs = self.Dataset[["node", "id", "type"]].to_dataframe()
 
         # open boundaries
-        number_of_open_boundaries = bs.id.max().astype(int)
-        number_of_open_boundaries_nodes = bs.loc[bs.id > 0].shape[0]
+        number_of_open_boundaries = bs.loc[bs.type == "open"].id
+        if not number_of_open_boundaries.empty:
+            number_of_open_boundaries = number_of_open_boundaries.max()
+        else:
+            number_of_open_boundaries = 0
+        number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
 
         if number_of_open_boundaries > 0:
             with open(filename, "a") as f:
@@ -380,31 +418,54 @@ class tri2d:
 
         # land boundaries
 
-        number_of_land_boundaries = bs.id.min().astype(int)
-        number_of_land_boundaries_nodes = bs.loc[bs.id < 0].shape[0]
+        number_of_land_boundaries = bs.loc[bs.type == "land"].id
+        if not number_of_land_boundaries.empty:
+            number_of_land_boundaries = number_of_land_boundaries.max() - 1000
+        else:
+            number_of_land_boundaries = 0
+        number_of_land_boundaries_nodes = bs.loc[bs.type == "land"].shape[0]
 
-        if number_of_land_boundaries < 0:
+        number_of_island_boundaries = bs.loc[bs.type == "island"].id
+        if not number_of_island_boundaries.empty:
+            number_of_island_boundaries = number_of_island_boundaries.min()
+        else:
+            number_of_island_boundaries = 0
+        number_of_island_boundaries_nodes = bs.loc[bs.type == "island"].shape[0]
+
+        nlb = number_of_land_boundaries - number_of_island_boundaries
+        nlbn = number_of_land_boundaries_nodes + number_of_island_boundaries_nodes
+
+        if nlb > 0:
+            with open(filename, "a") as f:
+                f.write("{} = Number of land boundaries\n".format(nlb))
+                f.write("{} = Total number of land boundary nodes\n".format(nlbn))
+                ik = 1
+        else:
+            with open(filename, "a") as f:
+                f.write("{} = Number of land boundaries\n".format(0))
+                f.write("{} = Total number of land boundary nodes\n".format(0))
+
+        if number_of_land_boundaries > 0:
             with open(filename, "a") as f:
 
-                f.write("{} = Number of land boundaries\n".format(-number_of_land_boundaries))
-                f.write("{} = Total number of land boundary nodes\n".format(number_of_land_boundaries_nodes))
-
-                ik = 1
-                for i in range(-1, number_of_land_boundaries - 1, -1):
+                for i in range(1001, 1000 + number_of_land_boundaries + 1):
                     dat_ = bs.loc[bs.id == i]
                     dat = dat_.node + 1  # fortran
-                    dat_t = dat_.type.iloc[0].astype(int)
 
-                    f.write("{} {} = Number of nodes for land boundary {}\n".format(dat.size, dat_t, ik))
+                    f.write("{} {} = Number of nodes for land boundary {}\n".format(dat.size, 0, ik))
                     dat.to_csv(f, index=None, header=False)
                     ik += 1
 
-        else:
+        if number_of_island_boundaries < 0:
 
             with open(filename, "a") as f:
 
-                f.write("{} = Number of land boundaries\n".format(0))
-                f.write("{} = Total number of land boundary nodes\n".format(0))
+                for i in range(-1, number_of_island_boundaries - 1, -1):
+                    dat_ = bs.loc[bs.id == i]
+                    dat = dat_.node + 1  # fortran
+
+                    f.write("{} {} = Number of nodes for land boundary {}\n".format(dat.size, 1, -i))
+                    dat.to_csv(f, index=None, header=False)
 
     def validate(self, **kwargs):
 
@@ -420,8 +481,8 @@ class tri2d:
         # save bctides.in
         bs = self.Dataset[["node", "id", "type"]].to_dataframe()
         # open boundaries
-        number_of_open_boundaries = bs.id.max().astype(int)
-        number_of_open_boundaries_nodes = bs.loc[bs.id > 0].shape[0]
+        number_of_open_boundaries = np.nan_to_num(bs.loc[bs.type == "open"].id.max()).astype(int)
+        number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
 
         with open(path + "bctides.in", "w") as f:
             f.write("Header\n")
@@ -487,7 +548,11 @@ class tri2d:
 
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(
-            args=["./launchSchism.sh"], cwd=calc_dir, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            args=["./launchSchism.sh"],
+            cwd=calc_dir,
+            shell=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )  # , bufsize=1)
 
         out, err = ex.communicate()[:]

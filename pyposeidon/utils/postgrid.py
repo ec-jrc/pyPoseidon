@@ -136,7 +136,10 @@ def check(g, shp, bad):
             if ids_.shape[0] > 1:
                 itype = bnodes.loc[bnodes.id == ids_[-1], ["type"]].values[0]
                 bnodes.loc[bnodes.id.isin(ids_[:-1]), "id"] = ids_[-1]
-                ibs = pd.DataFrame({"node": ibs, "type": itype, "id": ids_[-1]}, index=np.arange(len(ibs)))
+                ibs = pd.DataFrame(
+                    {"node": ibs, "type": itype, "id": ids_[-1]},
+                    index=np.arange(len(ibs)),
+                )
             else:
                 itype, iid = bnodes.loc[bnodes.node.isin(ibs), ["type", "id"]].values[0]
                 ibs = pd.DataFrame({"node": ibs, "type": itype, "id": iid}, index=np.arange(len(ibs)))
@@ -221,7 +224,7 @@ def check(g, shp, bad):
     gover = gp.GeoDataFrame(fd, geometry="overlap")
 
     # #### Reject small injuctions
-    ipols = gover.explode().loc[0]
+    ipols = gover.explode(index_parts=True).loc[0]
 
     ipols.columns = ["geometry"]
 
@@ -287,10 +290,16 @@ def check(g, shp, bad):
                 if ids_.shape[0] > 1:
                     itype = bnodes.loc[bnodes.id == ids_[-1], ["type"]].values[0]
                     bnodes.loc[bnodes.id.isin(ids_[:-1]), "id"] = ids_[-1]
-                    ibs = pd.DataFrame({"node": ibs, "type": itype, "id": ids_[-1]}, index=np.arange(len(ibs)))
+                    ibs = pd.DataFrame(
+                        {"node": ibs, "type": itype, "id": ids_[-1]},
+                        index=np.arange(len(ibs)),
+                    )
                 else:
                     itype, iid = bnodes.loc[bnodes.node.isin(ibs), ["type", "id"]].values[0]
-                    ibs = pd.DataFrame({"node": ibs, "type": itype, "id": iid}, index=np.arange(len(ibs)))
+                    ibs = pd.DataFrame(
+                        {"node": ibs, "type": itype, "id": iid},
+                        index=np.arange(len(ibs)),
+                    )
             else:
                 maxb -= 1
                 ibs = pd.DataFrame({"node": ibs, "type": 1, "id": maxb}, index=np.arange(len(ibs)))
@@ -332,7 +341,7 @@ def check(g, shp, bad):
     w["overlap"] = w["overlap"].apply(shapely.wkt.loads)
     gw = gp.GeoDataFrame(w, geometry="overlap")
 
-    gw = gw.explode()
+    gw = gw.explode(index_parts=True)
     gw = gw.droplevel(0)
     gw.columns = ["geometry"]
     gw["length"] = gw["geometry"][:].length
@@ -412,7 +421,13 @@ def check(g, shp, bad):
     nod = (
         nodes.loc[:, ["lon", "lat"]]
         .to_xarray()
-        .rename({"index": "nSCHISM_hgrid_node", "lon": "SCHISM_hgrid_node_x", "lat": "SCHISM_hgrid_node_y"})
+        .rename(
+            {
+                "index": "nSCHISM_hgrid_node",
+                "lon": "SCHISM_hgrid_node_x",
+                "lat": "SCHISM_hgrid_node_y",
+            }
+        )
     )
     nod = nod.drop_vars("nSCHISM_hgrid_node")
 

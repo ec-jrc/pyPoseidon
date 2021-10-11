@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import pkg_resources
 import pyposeidon
+from pyposeidon.utils.norm import normalize_column_names
 import os
 import sys
 import logging
@@ -44,21 +45,24 @@ class obs:
         lat_min = kwargs.get("lat_min", None)
         lat_max = kwargs.get("lat_max", None)
 
-        #        db = kwargs.get('filename', DATA_PATH+'ioc.csv')
+        db = kwargs.get("tg_database", DATA_PATH + "critech.csv")
+        tg = pd.read_csv(db)
+        tg = normalize_column_names(tg)
 
-        #        ioc = pd.read_csv(db)
-        critech = pd.read_csv(DATA_PATH + "critech.csv")
+        tg.loc[:, ["longitude", "latitude"]] = tg.loc[:, ["longitude", "latitude"]].apply(pd.to_numeric)
+        try:
+            tg.loc[:, "Name"] = tg.Name.str.replace(" ", "").values
+        except:
+            pass
 
-        critech.loc[:, ["lon", "lat"]] = critech.loc[:, ["lon", "lat"]].apply(pd.to_numeric)
-
-        w = critech.loc[
-            (critech["lon"] > lon_min)
-            & (critech["lon"] < lon_max)
-            & (critech["lat"] > lat_min)
-            & (critech["lat"] < lat_max)
+        w = tg.loc[
+            (tg["longitude"] > lon_min)
+            & (tg["longitude"] < lon_max)
+            & (tg["latitude"] > lat_min)
+            & (tg["latitude"] < lat_max)
             & (
-                (pd.to_datetime(critech["Min. Time"]).dt.round("D") < self.sdate)
-                | (pd.to_datetime(critech["Min. Time"]).dt.round("D") < self.edate)
+                (pd.to_datetime(tg["Min. Time"]).dt.round("D") < self.sdate)
+                | (pd.to_datetime(tg["Min. Time"]).dt.round("D") < self.edate)
             )
         ]
 
@@ -85,7 +89,17 @@ class obs:
         pdate = min([self.edate, datetime.datetime.now()])
 
         url = "http://webcritech.jrc.ec.europa.eu/SeaLevelsDb/Home/ShowBuoyData?id={}&dateMin={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&dateMax={}%2F{:02d}%2F{:02d}+{:02d}%3A{:02d}&field=&options=".format(
-            point, sdate.year, sdate.month, sdate.day, sdate.hour, 0, pdate.year, pdate.month, pdate.day, pdate.hour, 0
+            point,
+            sdate.year,
+            sdate.month,
+            sdate.day,
+            sdate.hour,
+            0,
+            pdate.year,
+            pdate.month,
+            pdate.day,
+            pdate.hour,
+            0,
         )
 
         # print(url)
@@ -177,8 +191,16 @@ class obs:
                 tg = tg.apply(pd.to_numeric)
             except:
                 tg = pd.DataFrame(
-                    {"TimeUTC": np.nan, "Level m": np.nan, "Tide m": np.nan, "Level-Tide m": np.nan}, index=[0]
+                    {
+                        "TimeUTC": np.nan,
+                        "Level m": np.nan,
+                        "Tide m": np.nan,
+                        "Level-Tide m": np.nan,
+                    },
+                    index=[0],
                 )
+            tg.index.name = "time"
+            tg.columns = ["Total", "Tide", "Surge"]
             return tg
         except Exception as e:
             print(e)

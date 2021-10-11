@@ -16,7 +16,7 @@ def tag_(**kwargs):
         logger.error("coastlines not given")
         sys.exit(1)
 
-    world = world.explode()
+    world = world.explode(index_parts=True)
 
     geometry = kwargs.get("geometry", None)
 
@@ -34,7 +34,13 @@ def tag_(**kwargs):
 
     # create a LineString of the grid
     grl = shapely.geometry.LineString(
-        [(lon_min, lat_min), (lon_min, lat_max), (lon_max, lat_max), (lon_max, lat_min), (lon_min, lat_min)]
+        [
+            (lon_min, lat_min),
+            (lon_min, lat_max),
+            (lon_max, lat_max),
+            (lon_max, lat_min),
+            (lon_min, lat_min),
+        ]
     )
 
     # check -180/180 trespass

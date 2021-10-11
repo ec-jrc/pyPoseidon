@@ -21,9 +21,38 @@ from . import DATA_DIR
     [
         {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
         {"lon_min": 175.0, "lon_max": 184.0, "lat_min": 14.5, "lat_max": 16.5},
-        {"lon_min": 175.0 - 360.0, "lon_max": 184.0 - 360.0, "lat_min": 14.5, "lat_max": 16.5},
+        {
+            "lon_min": 175.0 - 360.0,
+            "lon_max": 184.0 - 360.0,
+            "lat_min": 14.5,
+            "lat_max": 16.5,
+        },
     ],
 )
 def test_answer(dem_source, kwargs):
     df = pdem.dem(dem_source=dem_source, **kwargs)
+    assert np.isnan(df.Dataset.elevation.values).sum() == 0
+
+
+@pytest.mark.parametrize(
+    "full",
+    [
+        {"lon_min": -180.0, "lon_max": 180.0, "lat_min": -90.0, "lat_max": 90.0},
+        {
+            "lon_min": -180.0 - 180.0,
+            "lon_max": 180.0 - 180.0,
+            "lat_min": -90.0,
+            "lat_max": 90.0,
+        },
+    ],
+)
+@pytest.mark.parametrize(
+    "local_dem_source",
+    [
+        pytest.param(DATA_DIR / "dem.nc", id="local netcdf"),
+        pytest.param(DATA_DIR / "dem.tif", id="local geotiff"),
+    ],
+)
+def test_answer_global(local_dem_source, full):
+    df = pdem.dem(dem_source=local_dem_source, **full)
     assert np.isnan(df.Dataset.elevation.values).sum() == 0

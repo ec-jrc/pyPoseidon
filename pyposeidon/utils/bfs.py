@@ -23,7 +23,7 @@ class Solution(object):
                 #                queue.append((x, y))
                 for [i, j], [k, l] in b:
                     try:
-                        if self.grid[x + i][y + j] in ["1", island_counter] and self.grid[x + k][y + l] in [
+                        if self.grid[x + i][y + j] in ["1", island_counter,] and self.grid[x + k][y + l] in [
                             "1",
                             island_counter,
                         ]:

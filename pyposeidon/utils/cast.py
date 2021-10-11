@@ -175,7 +175,11 @@ class dcast:
             logger.info("meteo files present\n")
 
         # modify mdf file
-        m.config(config_file=ppath + m.tag + ".mdf", config={"Restid": outresfile}, output=True)
+        m.config(
+            config_file=ppath + m.tag + ".mdf",
+            config={"Restid": outresfile},
+            output=True,
+        )
 
         m.config_file = rpath + m.tag + ".mdf"
 
@@ -217,7 +221,12 @@ class scast:
 
         pwd = os.getcwd()
 
-        files = ["bctides.in", "launchSchism.sh", "/sflux/sflux_inputs.txt", "/outputs/flux.out"]
+        files = [
+            "bctides.in",
+            "launchSchism.sh",
+            "/sflux/sflux_inputs.txt",
+            "/outputs/flux.out",
+        ]
         files_sym = [
             "hgrid.gr3",
             "hgrid.ll",
@@ -405,9 +414,20 @@ class scast:
                 times, datasets = zip(*m.meteo.Dataset.groupby("time.{}".format(self.meteo_split_by)))
                 mpaths = ["sflux/sflux_air_1.{:04d}.nc".format(t + 1) for t in np.arange(len(times))]
                 for das, mpath in list(zip(datasets, mpaths)):
-                    m.to_force(das, vars=["msl", "u10", "v10"], rpath=rpath, filename=mpath, date=self.date0)
+                    m.to_force(
+                        das,
+                        vars=["msl", "u10", "v10"],
+                        rpath=rpath,
+                        filename=mpath,
+                        date=self.date0,
+                    )
             else:
-                m.to_force(m.meteo.Dataset, vars=["msl", "u10", "v10"], rpath=rpath, date=self.date0)
+                m.to_force(
+                    m.meteo.Dataset,
+                    vars=["msl", "u10", "v10"],
+                    rpath=rpath,
+                    date=self.date0,
+                )
 
         else:
             logger.warning("meteo files present\n")

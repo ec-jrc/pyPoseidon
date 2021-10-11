@@ -15,7 +15,12 @@ from . import DATA_DIR
 GRIB_FILES_1 = [(DATA_DIR / filename).as_posix() for filename in ("uvp_2018100100.grib", "uvp_2018100112.grib")]
 GRIB_FILES_2 = [
     (DATA_DIR / filename).as_posix()
-    for filename in ("uvp_2018100100.grib", "uvp_2018100112.grib", "uvp_2018100200.grib", "uvp_2018100212.grib")
+    for filename in (
+        "uvp_2018100100.grib",
+        "uvp_2018100112.grib",
+        "uvp_2018100200.grib",
+        "uvp_2018100212.grib",
+    )
 ]
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
@@ -87,7 +92,12 @@ def d3d(tmpdir):
     # set cast
     for l in range(len(rpaths) - 1):
         h = cast.cast(
-            solver="d3d", model=b, ppath=rpaths[l], cpath=rpaths[l + 1], meteo=meteo[l + 1], date=date_list[l + 1]
+            solver="d3d",
+            model=b,
+            ppath=rpaths[l],
+            cpath=rpaths[l + 1],
+            meteo=meteo[l + 1],
+            date=date_list[l + 1],
         )
         h.set(execute=True)  # execute
 

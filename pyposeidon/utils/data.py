@@ -10,7 +10,7 @@ Data analysis module
 
 import numpy as np
 import os
-from pyposeidon.utils.obs import obs
+from pyposeidon.utils.vals import obs
 from pyposeidon.grid import *
 import pyposeidon.model as pm
 import datetime
@@ -87,7 +87,10 @@ class d3d:
 
         self.dem = xr.Dataset(
             {"bathymetry": (["latitude", "longitude"], -b)},
-            coords={"longitude": ("longitude", grid.lons[0, :]), "latitude": ("latitude", grid.lats[:, 0])},
+            coords={
+                "longitude": ("longitude", grid.lons[0, :]),
+                "latitude": ("latitude", grid.lats[:, 0]),
+            },
         )
 
         self.grid = grid
@@ -210,70 +213,71 @@ class schism:
         try:
             p.get_station_data(dstamp=dstamp)
             self.time_series = p.time_series
-        except:
-            logger.info("no station data loaded")
-
-        dic = {}
-
-        try:
-
-            with open(self.folders[0] + "/" + tag + "_model.json", "r") as f:
-                info = pd.read_json(f, lines=True).T
-                info[info.isnull().values] = None
-                self.info = info.to_dict()[0]
-
-            dic = self.info.copy()  # start with x's keys and values
-            dic.update(kwargs)  # modifies z with y's keys and values & returns None
-
-        except:
-            pass
-
-        if "sa_date" not in dic.keys():
-            dic.update({"sa_date": self.Dataset.time.values[0]})
-
-        if "se_date" not in dic.keys():
-            dic.update({"se_date": self.Dataset.time.values[-1]})
-
-        if "lon_min" not in dic.keys():
-            dic.update({"lon_min": self.Dataset.SCHISM_hgrid_node_x.values.min()})
-
-        if "lon_max" not in dic.keys():
-            dic.update({"lon_max": self.Dataset.SCHISM_hgrid_node_x.values.max()})
-
-        if "lat_min" not in dic.keys():
-            dic.update({"lat_min": self.Dataset.SCHISM_hgrid_node_y.values.min()})
-
-        if "lat_max" not in dic.keys():
-            dic.update({"lat_max": self.Dataset.SCHISM_hgrid_node_y.values.max()})
-
-        logger.info("Retrieve observations info\n")
-
-        self.obs = obs(**dic)
-
-        ret = kwargs.get("online", False)
-
-        if ret is True:
-            logger.info("collect observational data")
-            tgs = self.obs.locations.loc[self.obs.locations.Group == "TD UNESCO"]
 
             dic = {}
-            for i in tgs.index:
-                #            print(i, tgs.loc[i].Name.strip())
-                while True:
-                    p = self.obs.iloc(i)
-                    if p is not None:
-                        if p.shape[0] > 1:
-                            p = p.dropna()
-                        break
-                dic.update({tgs.loc[i].Name.strip(): p})
-
-            tg = pd.concat(dic, axis=0, sort=True)
 
             try:
-                tg = tg.drop("TimeUTC", axis=1)
+
+                with open(self.folders[0] + "/" + tag + "_model.json", "r") as f:
+                    info = pd.read_json(f, lines=True).T
+                    info[info.isnull().values] = None
+                    self.info = info.to_dict()[0]
+
+                dic = self.info.copy()  # start with x's keys and values
+                dic.update(kwargs)  # modifies z with y's keys and values & returns None
+
             except:
                 pass
 
-            tg.to_csv(self.folders[0] + "/" + "obs.csv")
+            if "sa_date" not in dic.keys():
+                dic.update({"sa_date": self.time_series.time.values[0]})
 
-            self.obs.data = tg
+            if "se_date" not in dic.keys():
+                dic.update({"se_date": self.Dataset.time.values[-1]})
+
+            if "lon_min" not in dic.keys():
+                dic.update({"lon_min": self.Dataset.SCHISM_hgrid_node_x.values.min()})
+
+            if "lon_max" not in dic.keys():
+                dic.update({"lon_max": self.Dataset.SCHISM_hgrid_node_x.values.max()})
+
+            if "lat_min" not in dic.keys():
+                dic.update({"lat_min": self.Dataset.SCHISM_hgrid_node_y.values.min()})
+
+            if "lat_max" not in dic.keys():
+                dic.update({"lat_max": self.Dataset.SCHISM_hgrid_node_y.values.max()})
+
+            logger.info("Retrieve observations info\n")
+
+            self.obs = obs(**dic)
+
+            ret = kwargs.get("online", False)
+
+            if ret is True:
+                logger.info("collect observational data")
+                tgs = self.obs.locations.loc[self.obs.locations.Group == "TD UNESCO"]
+
+                dic = {}
+                for i in tgs.index:
+                    #            print(i, tgs.loc[i].Name.strip())
+                    while True:
+                        p = self.obs.iloc(i)
+                        if p is not None:
+                            if p.shape[0] > 1:
+                                p = p.dropna()
+                            break
+                    dic.update({tgs.loc[i].Name.strip(): p})
+
+                tg = pd.concat(dic, axis=0, sort=True)
+
+                try:
+                    tg = tg.drop("TimeUTC", axis=1)
+                except:
+                    pass
+
+                tg.to_csv(self.folders[0] + "/" + "obs.csv")
+
+                self.obs.dataframe = tg
+
+        except:
+            logger.info("no station data loaded")

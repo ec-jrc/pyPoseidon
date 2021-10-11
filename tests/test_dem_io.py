@@ -30,7 +30,7 @@ window1 = {
 }
 
 
-def schism(tmpdir, kwargs):
+def schism(tmpdir, dem_source, kwargs):
 
     grid = pgrid.grid(type="tri2d", grid_file=(DATA_DIR / "hgrid.gr3").as_posix())
 
@@ -41,7 +41,7 @@ def schism(tmpdir, kwargs):
 
     kwargs.update({"grid_x": xp, "grid_y": yp})
     # get dem
-    df = pdem.dem(**kwargs)
+    df = pdem.dem(dem_source=dem_source, **kwargs)
 
     grid.Dataset["depth"].loc[:] = -df.Dataset.ival.values
 
@@ -56,7 +56,7 @@ def schism(tmpdir, kwargs):
     return grid.Dataset.equals(grid_.Dataset)
 
 
-def d3d(tmpdir, kwargs):
+def d3d(tmpdir, dem_source, kwargs):
 
     ## lat,lon grid
     resolution = 0.1
@@ -67,7 +67,7 @@ def d3d(tmpdir, kwargs):
     kwargs.update({"grid_x": xp, "grid_y": yp})
 
     # get dem
-    df = pdem.dem(**kwargs)
+    df = pdem.dem(dem_source=dem_source, **kwargs)
 
     rpath = str(tmpdir) + "/"
     # output
@@ -88,4 +88,4 @@ def d3d(tmpdir, kwargs):
 @pytest.mark.parametrize("kwargs", [window1])
 @pytest.mark.parametrize("solver", [schism, d3d])
 def test_answer(tmpdir, dem_source, kwargs, solver):
-    assert solver(tmpdir, kwargs) == True
+    assert solver(tmpdir, dem_source, kwargs) == True

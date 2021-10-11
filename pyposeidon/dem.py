@@ -52,7 +52,7 @@ class dem:
 
 
 def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
-    """ Return a dataset with coords containing "longitude" and "latitude" """
+    """Return a dataset with coords containing "longitude" and "latitude" """
     coords = set(dataset.coords.keys())
     # longitude
     for lon_name in LONGITUDE_NAMES:
@@ -113,13 +113,18 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         lon0 = lon_min
         lon1 = lon_max
 
+    lon0 = lon_min + 360.0 if lon_min < -180 else lon_min
+    lon1 = lon_max + 360.0 if lon_max < -180 else lon_max
+
+    lon0 = lon0 - 360.0 if lon0 > 180 else lon0
+    lon1 = lon1 - 360.0 if lon1 > 180 else lon1
+
     if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()):
         logger.warning("Lon must be within {} and {}".format(data.longitude.min().values, data.longitude.max().values))
         logger.warning("compensating if global dataset available")
 
     if (lat_min < data.latitude.min()) or (lat_max > data.latitude.max()):
-        logger.warning("Lat must be within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
-        logger.warning("compensating if global dataset available")
+        logger.warning("Lat is within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
 
     # get idx
     i0 = np.abs(data.longitude.data - lon0).argmin()
@@ -198,13 +203,23 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
         if len(grid_x.shape) > 1:
             idem = xr.Dataset(
-                {"ival": (["k", "l"], itopo), "ilons": (["k", "l"], grid_x), "ilats": (["k", "l"], grid_y)}
+                {
+                    "ival": (["k", "l"], itopo),
+                    "ilons": (["k", "l"], grid_x),
+                    "ilats": (["k", "l"], grid_y),
+                }
             )  # ,
         #                           coords={'ilon': ('ilon', grid_x[0,:]),
         #                                   'ilat': ('ilat', grid_y[:,0])})
 
         elif len(grid_x.shape) == 1:
-            idem = xr.Dataset({"ival": (["k"], itopo), "ilons": (["k"], grid_x), "ilats": (["k"], grid_y)})
+            idem = xr.Dataset(
+                {
+                    "ival": (["k"], itopo),
+                    "ilons": (["k"], grid_x),
+                    "ilats": (["k"], grid_y),
+                }
+            )
 
         # ---------------------------------------------------------------------
         logger.info("dem done\n")

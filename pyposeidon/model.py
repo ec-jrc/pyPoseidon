@@ -56,7 +56,11 @@ LOGGING = {
             "formatter": "verbose",
             "filename": "pyposeidon.log",
         },
-        "console": {"level": "DEBUG", "class": "colorlog.StreamHandler", "formatter": "color"},
+        "console": {
+            "level": "DEBUG",
+            "class": "colorlog.StreamHandler",
+            "formatter": "color",
+        },
     },
     "loggers": {
         "pyposeidon": {

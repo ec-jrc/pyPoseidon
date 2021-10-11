@@ -4,16 +4,18 @@ channels:
   - conda-forge
 
 dependencies:
-  - python =3.8
+  - python=3.8
   - mayavi
   - pyresample
 # - pydap
   - dask
   - pygeos >=0.6
   - geoviews
-  - geopandas
+  - geopandas>=0.10.1
   - rasterio
-  - jigsaw =0.9.12
+  - jigsaw=0.9.12
+  - gmsh>=4.8.4
+  - python-gmsh
   - hvplot
   - descartes
   - netCDF4
@@ -38,5 +40,4 @@ dependencies:
   - mkdocs-material
   - pip
   - pip:
-    - gmsh
-    - "--editable=git+https://github.com/pydap/pydap.git@3f6aa190c59e3bbc6c834377a61579b20275ff69#egg=Pydap"
+    - "git+https://github.com/pydap/pydap.git@3f6aa190c59e3bbc6c834377a61579b20275ff69#egg=Pydap"

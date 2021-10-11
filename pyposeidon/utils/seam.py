@@ -186,7 +186,10 @@ def to_2d(files=None, var=None, grid=None, **kwargs):
             var: (["time", "nSCHISM_hgrid_node"], xelev),
             "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
             "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
-            "SCHISM_hgrid_face_nodes": (["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"], tri3n),
+            "SCHISM_hgrid_face_nodes": (
+                ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+                tri3n,
+            ),
         },
         coords={"time": ("time", out.time.values)},
     )
