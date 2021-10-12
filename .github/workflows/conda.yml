@@ -34,14 +34,23 @@ jobs:
       - name: "Checkout code"
         uses: "actions/checkout@v2"
 
+      - name: "Cache tests/data/"
+        uses: "actions/cache@v2"
+        env:
+          # Increase this value to reset cache if files in tests/data have been added/removed
+          CACHE_NUMBER: 0
+        with:
+          path: "/home/runner/work/pyPoseidon/pyPoseidon/tests/data"
+          key: "tests_data-${{ env.CACHE_NUMBER }}"
+
       - name: "Cache conda"
-        uses: "actions/cache@v1"
+        uses: "actions/cache@v2"
         env:
           # Increase this value to reset cache if env.yml has not changed
           CACHE_NUMBER: 0
         with:
           path: "~/conda_pkgs_dir"
-          key: "${{ matrix.os }}-conda-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles('enviroment.yml') }}"
+          key: "${{ matrix.os }}-conda-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles( 'environment.yml' ) }}"
 
       - name: "Setup conda"
         uses: "conda-incubator/setup-miniconda@v2"

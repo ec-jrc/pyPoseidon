@@ -20,7 +20,6 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import pandas as pd
-import panel as pn
 from hvplot import xarray
 from pyposeidon.utils.quads2tr import quads_to_tris
 
