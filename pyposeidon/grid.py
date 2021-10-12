@@ -21,11 +21,10 @@ import os
 import subprocess
 from pyposeidon.utils.verify import *
 import pyposeidon.boundary as pb
-import multiprocessing
+
+from . import tools
 
 logger = logging.getLogger("pyposeidon")
-
-NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
@@ -532,19 +531,12 @@ class tri2d:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
-        ncores = 1
-        calc_dir = path
-
-        with open(calc_dir + "launchSchism.sh", "w") as f:
-            f.write("exec={}\n".format(bin_path))
-            f.write("mkdir outputs\n")
-            f.write("mpirun -N {} $exec\n".format(ncores))
-
-        # make the script executable
-        execf = calc_dir + "launchSchism.sh"
-        mode = os.stat(execf).st_mode
-        mode |= (mode & 0o444) >> 2  # copy R bits to X
-        os.chmod(execf, mode)
+        tools.create_mpirun_script(
+            target_dir=path,
+            cmd=bin_path,
+            script_name="launchSchism.sh",
+            ncores=1,
+        )
 
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(

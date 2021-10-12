@@ -62,6 +62,7 @@ branca = "^0.4"
 ipython = "^7.20"
 llvmlite = "^0.36"
 Pydap = { url = "https://github.com/pydap/pydap/archive/3f6aa190c59e3bbc6c834377a61579b20275ff69.zip" }
+psutil = "^5.8.0"
 
 
 [tool.poetry.dev-dependencies]

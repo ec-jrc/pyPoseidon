@@ -1289,6 +1289,7 @@ tests = ["pytest (>=3.6)", "pytest-cov", "pytest-attrib", "beautifulsoup4", "req
 [package.source]
 type = "url"
 url = "https://github.com/pydap/pydap/archive/3f6aa190c59e3bbc6c834377a61579b20275ff69.zip"
+
 [[package]]
 name = "pygeos"
 version = "0.10.2"
@@ -1808,7 +1809,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8, <3.10"
-content-hash = "a843689af1656279c7f2d99fae89c675827ea36121f55ae9a57cf3fb6de46471"
+content-hash = "0e76330495b265c10b2615d6f319d906e36bcedc22c571e89ea54dd9eaa105a6"
 
 [metadata.files]
 affine = [

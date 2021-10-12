@@ -42,11 +42,10 @@ from pyposeidon.utils.data import data
 
 import logging
 
+from . import tools
+
 logger = logging.getLogger("pyposeidon")
 
-import multiprocessing
-
-NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 # retrieve the module path
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
@@ -624,18 +623,11 @@ class schism:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
-        ncores = get_value(self, kwargs, "ncores", NCORES)
-
-        with open(calc_dir + "launchSchism.sh", "w") as f:
-            f.write("exec={}\n".format(bin_path))
-            f.write("mkdir outputs\n")
-            f.write("mpirun -N {} $exec\n".format(ncores))
-
-        # make the script executable
-        execf = calc_dir + "launchSchism.sh"
-        mode = os.stat(execf).st_mode
-        mode |= (mode & 0o444) >> 2  # copy R bits to X
-        os.chmod(execf, mode)
+        tools.create_mpirun_script(
+            target_dir=calc_dir,
+            cmd=bin_path,
+            script_name="launchSchism.sh",
+        )
 
         # ---------------------------------------------------------------------
         logger.info("output done\n")
@@ -644,8 +636,6 @@ class schism:
     def run(self, **kwargs):
 
         calc_dir = get_value(self, kwargs, "rpath", "./schism/")
-
-        ncores = get_value(self, kwargs, "ncores", NCORES)
 
         # ---------------------------------------------------------------------
         logger.info("executing model\n")
@@ -751,18 +741,11 @@ class schism:
                 # ------------------------------------------------------------------------------
                 bin_path = "schism"
 
-            ncores = get_value(self, kwargs, "ncores", NCORES)
-
-            with open(calc_dir + "launchSchism.sh", "w") as f:
-                f.write("exec={}\n".format(bin_path))
-                f.write("mkdir outputs\n")
-                f.write("mpirun -N {} $exec\n".format(ncores))
-
-            # make the script executable
-            execf = calc_dir + "launchSchism.sh"
-            mode = os.stat(execf).st_mode
-            mode |= (mode & 0o444) >> 2  # copy R bits to X
-            os.chmod(execf, mode)
+            tools.create_mpirun_script(
+                target_dir=calc_dir,
+                cmd=bin_path,
+                script_name="launchSchism.sh",
+            )
 
             self.run(**kwargs)
 
