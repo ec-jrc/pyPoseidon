@@ -36,16 +36,16 @@ jobs:
         uses: "actions/checkout@v2"
 
       - name: "Cache conda"
-        uses: "actions/cache@v1"
+        uses: "actions/cache@v2"
         env:
           # Increase this value to reset cache if env.yml has not changed
           CACHE_NUMBER: 0
         with:
           path: "~/conda_pkgs_dir"
-          key: "${{ matrix.os }}-conda-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles('env.yml') }}"
+          key: "${{ matrix.os }}-conda-${{ matrix.python-version }}-${{ env.CACHE_NUMBER }}-${{ hashFiles( 'env.yml' ) }}"
 
       - name: "Cache poetry"
-        uses: "actions/cache@v1"
+        uses: "actions/cache@v2"
         env:
           # Increase this value to reset cache if env.yml has not changed
           CACHE_NUMBER: 0
