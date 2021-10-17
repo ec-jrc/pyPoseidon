@@ -1,3 +1,5 @@
+---
+
 name: pyPoseidon
 
 channels:
@@ -27,6 +29,7 @@ dependencies:
   - bump2version
   - colorlog
   - f90nml
+  - psutil
   - pytest
   - pytest-cov
   - ipympl
