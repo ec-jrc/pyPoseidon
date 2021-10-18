@@ -176,7 +176,7 @@ class schism:
             xdat.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
 
             if len(xdat) > 0:
-                datai.append(xdat)  # append to list
+                datai.extend(xdat)  # append to list
 
             else:  # run merge output
 
@@ -196,7 +196,7 @@ class schism:
                 xdat = glob.glob(folder + "/outputs/schout_[!0]*.nc")
                 xdat.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
 
-                datai.append(xdat)  # append to list
+                datai.extend(xdat)  # append to list
 
         self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
 
