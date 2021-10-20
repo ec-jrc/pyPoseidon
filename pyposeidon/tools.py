@@ -1,7 +1,12 @@
+import logging
 import os
+import shlex
+import subprocess
+import time
 
 import psutil
 
+logger = logging.getLogger(__name__)
 
 LAUNCH_SCHISM_TEMPLATE = """
 #!/usr/bin/env bash
@@ -25,6 +30,29 @@ def make_executable(path):
     os.chmod(path, mode)
 
 
+def run(cmd: str, quiet: bool = False, check: bool = True) -> subprocess.CompletedProcess:
+    t1 = time.perf_counter()
+    proc = subprocess.run(shlex.split(cmd), check=False, capture_output=True, text=True)
+    if not quiet:
+        logger.info("Executed <%s> in %s seconds", cmd, time.perf_counter() - t1)
+    if check and proc.returncode:
+        # The process returned an error. Print stdout/stderr and raise
+        logger.error("StdOut: %s", proc.stdout)
+        logger.error("StdErr: %s", proc.stderr)
+        proc.check_returncode()
+    else:
+        if not quiet:
+            logger.info("StdOut: %s", proc.stdout)
+            logger.info("StdErr: %s", proc.stderr)
+    return proc
+
+
+def is_openmpi() -> bool:
+    cmd = "mpirun --version"
+    proc = run(cmd, quiet=True)
+    return "Open MPI" in proc.stdout
+
+
 def create_mpirun_script(
     target_dir: str,
     cmd: str,
@@ -35,13 +63,14 @@ def create_mpirun_script(
     """
     Create a script for launching schism.
 
-    - if `use_threads is True`, then the CPU threads are being used and `--use-hwthreaded_cpus` is
-      passed to `mpirun`.
-    - if `use_threads is False`, then only physical CPU cores are being used.
+    - if `use_threads is True`, and the MPI implementation is `OpenMPI`, then the CPU threads are
+      being used and `--use-hwthreaded_cpus` is passed to `mpirun`.
+    - if `use_threads is False` or the MPI implementation is `mpich`, then only physical CPU cores
+      are being used.
     """
     if ncores < 1:
         ncores = psutil.cpu_count(logical=use_threads)
-    if use_threads:
+    if use_threads and is_openmpi():
         mpirun_flags = "--use-hwthread-cpus"
     else:
         mpirun_flags = ""
