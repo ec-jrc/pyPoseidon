@@ -1,10 +1,14 @@
 import logging
 import os
 import shlex
+import pathlib
 import subprocess
 import time
 
 import psutil
+import xarray as xr
+
+logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
@@ -85,3 +89,25 @@ def create_mpirun_script(
         fd.write(content)
     make_executable(script_path)
     return script_path
+
+
+def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
+    """
+    A wrapper around `xr.open_dataset` that supports multiple engines
+
+    This function is needed because `xr.open_dataset()` is not yet supporting e.g. rasterio
+    """
+    logger.info("extracting dem from %s\n", source)
+    if isinstance(source, pathlib.Path):
+        source = source.as_posix()
+    if source.lower().endswith("tif"):  # GeoTiff
+        data_array = xr.open_rasterio(source, parse_coordinates=True, **kwargs)
+        dataset = data_array.to_dataset(name="elevation").squeeze().reset_coords(drop=True)
+    else:
+        if source.lower().startswith("http"):  # URL
+            engine = "pydap"
+        else:
+            engine = "netcdf4"
+        logger.debug("Engine: %s", engine)
+        dataset = xr.open_dataset(source, engine=engine, **kwargs)
+    return dataset

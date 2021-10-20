@@ -20,6 +20,7 @@ import pyresample
 import xarray as xr
 
 from pyposeidon.utils.fix import fix
+from pyposeidon import tools
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
@@ -78,24 +79,9 @@ def normalize_elevation_name(dataset: xr.Dataset) -> xr.Dataset:
     return dataset
 
 
-def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
-    logger.info("extracting dem from %s\n", source)
-    if isinstance(source, pathlib.Path):
-        source = source.as_posix()
-    if source.lower().startswith("http"):  # URL
-        kwargs.update({"engine": "pydap"})
-        dataset = xr.open_dataset(source, **kwargs)
-    elif source.lower().endswith("tif"):  # GeoTiff
-        data_array = xr.open_rasterio(source, parse_coordinates=True, **kwargs)
-        dataset = data_array.to_dataset(name="elevation").squeeze().reset_coords(drop=True)
-    else:  # NetCDF
-        dataset = xr.open_dataset(source, **kwargs)
-    return dataset
-
-
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs) -> xr.Dataset:
     dataset_kwargs = kwargs.pop("dem_xr_kwargs", {})
-    data = open_dataset(source, **dataset_kwargs)
+    data = tools.open_dataset(source, **dataset_kwargs)
     data = normalize_coord_names(data)
     data = normalize_elevation_name(data)
 
