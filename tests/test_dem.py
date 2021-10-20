@@ -39,3 +39,9 @@ def test_dem_source_is_url():
     kwargs = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
     df = pdem.dem(dem_source=dem_source, **kwargs)
     assert np.isnan(df.Dataset.elevation.values).sum() == 0
+
+
+def test_dem_source_is_not_specified():
+    kwargs = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
+    df = pdem.dem(**kwargs)
+    assert np.isnan(df.Dataset.elevation.values).sum() == 0
