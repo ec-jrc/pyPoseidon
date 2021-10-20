@@ -16,6 +16,7 @@ ncoast = gp.GeoDataFrame(geometry=[x for x in coast.geometries()])
 # gh = cf.GSHHSFeature(scale="intermediate", levels=[1])
 # iGSHHS = gp.GeoDataFrame(geometry=[x for x in gh.geometries()])
 
+
 INPUTS = pytest.mark.parametrize("input", [nland, ncoast])  # , iGSHHS])
 CUSTOM = pytest.mark.parametrize("boundary", [noaa])
 WINDOWS = pytest.mark.parametrize(
@@ -23,6 +24,13 @@ WINDOWS = pytest.mark.parametrize(
     [
         {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
         {"lon_min": 175.0, "lon_max": 184.0, "lat_min": 14.5, "lat_max": 16.5},
+    ],
+)
+DEM_SOURCES = pytest.mark.parametrize(
+    "dem_source",
+    [
+        pytest.param(DATA_DIR / "dem.nc", id="local netcdf"),
+        pytest.param(DATA_DIR / "dem.tif", id="local geotiff"),
     ],
 )
 
@@ -55,10 +63,24 @@ def test_buffer(tmpdir, window, input):
 
 @INPUTS
 @WINDOWS
-def test_isodem(tmpdir, window, input):
+@DEM_SOURCES
+def test_isodem(tmpdir, window, input, dem_source):
+    df = pb.get_boundaries(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
+    assert isinstance(df.contours, gp.GeoDataFrame)
 
+
+def test_isodem_with_url(tmpdir):
+    input = nland
+    window = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
+    dem_source = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus"
+    df = pb.get_boundaries(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
+    assert isinstance(df.contours, gp.GeoDataFrame)
+
+
+def test_isodem_with_missing_dem_source(tmpdir):
+    input = ncoast
+    window = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
     df = pb.get_boundaries(geometry=window, blevels=[-100], rpath=str(tmpdir) + "/")
-
     assert isinstance(df.contours, gp.GeoDataFrame)
 
 
