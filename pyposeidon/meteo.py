@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Meteo module. Pre-processing the weather forcing component.
 
@@ -15,19 +14,21 @@ import datetime
 import glob
 import sys
 import os
+import pathlib
 import time
+from typing import Callable
 import dask
 import xarray as xr
 import pandas as pd
 import importlib
 from pyposeidon.utils.get_value import get_value
+from pyposeidon import tools
 import logging
 
 logger = logging.getLogger("pyposeidon")
 
 
 def get_url(start_date):
-
     start_date = start_date - pd.DateOffset(days=1)
     r = [0, 6, 12, 18]
     h = np.argmin([n for n in [start_date.hour - x for x in r] if n > 0])
@@ -121,7 +122,7 @@ def regrid(ds):
 
 
 class meteo:
-    def __init__(self, meteo_source=None, meteo_engine=None, **kwargs):
+    def __init__(self, meteo_source=None, **kwargs):
 
         """Read meteo data from variable sources.
 
@@ -143,21 +144,11 @@ class meteo:
         if geometry:
             kwargs.update(**geometry)
 
-        if meteo_engine == "cfgrib":
-            self.Dataset = cfgrib(meteo_source, **kwargs)
-        elif meteo_engine == "pynio":
-            self.Dataset = pynio(meteo_source, **kwargs)
-        elif meteo_engine == "netcdf":
-            self.Dataset = netcdf(meteo_source, **kwargs)
-        elif meteo_engine == "empty":
-            self.Dataset = None
-        elif meteo_engine == "passthrough":
-            self.Dataset = meteo_source
+        if isinstance(meteo_source, pathlib.Path):
+            meteo_source = meteo_source.as_posix()
 
-        else:
-
-            logger.warning("Proceeding with default option")
-            self.Dataset = from_url(**kwargs)
+        meteo_func = dispatch_meteo_source(meteo_source)
+        self.Dataset = meteo_func(meteo_source=meteo_source, **kwargs)
 
     def to_output(self, solver=None, **kwargs):
 
@@ -178,8 +169,12 @@ class meteo:
             s.to_force(self.Dataset, vars=var_list, **kwargs)
 
 
+def passthrough(meteo_source, **kwargs):
+    return meteo_source
+
+
 def cfgrib(
-    filenames=None,
+    meteo_source,
     lon_min=None,
     lon_max=None,
     lat_min=None,
@@ -224,7 +219,7 @@ def cfgrib(
     # ---------------------------------------------------------------------
 
     data = xr.open_mfdataset(
-        filenames,
+        meteo_source,
         combine=meteo_combine_by,
         engine="cfgrib",
         backend_kwargs=backend_kwargs,
@@ -385,221 +380,8 @@ def cfgrib(
     return tot
 
 
-def pynio(
-    filenames=None,
-    lon_min=None,
-    lon_max=None,
-    lat_min=None,
-    lat_max=None,
-    start_date=None,
-    end_date=None,
-    time_frame=None,
-    meteo_irange=[0, -1, 1],
-    meteo_merge=None,
-    meteo_combine_by="by_coords",
-    **kwargs,
-):
-
-    backend_kwargs = kwargs.get("meteo_backend_kwargs", {})
-    xr_kwargs = kwargs.get("meteo_xr_kwargs", {})  # {'concat_dim':'step'})
-    minlon = lon_min
-    maxlon = lon_max
-
-    if "preprocess" in xr_kwargs.keys():
-        xr_kwargs["preprocess"] = fix_my_data
-
-    try:
-        start_date = pd.to_datetime(start_date)
-    except:
-        pass
-
-    if time_frame:
-        try:
-            end_date = start_date + pd.to_timedelta(time_frame)
-        except:
-            pass
-    else:
-        try:
-            end_date = pd.to_datetime(end_date)
-        except:
-            pass
-
-    ft1, ft2, dft = meteo_irange
-
-    ts = pd.to_datetime(start_date)
-    te = pd.to_datetime(end_date)
-
-    # ---------------------------------------------------------------------
-    logger.info("extracting meteo")
-    # ---------------------------------------------------------------------
-
-    data = xr.open_mfdataset(
-        filenames,
-        combine=meteo_combine_by,
-        engine="pynio",
-        backend_kwargs=backend_kwargs,
-        **xr_kwargs,
-    )
-
-    data = data.squeeze(drop=True)
-
-    time_coord = [x for x in data.coords if "time" in data[x].long_name.lower()]
-    lon_coord = [x for x in data.coords if "longitude" in data[x].long_name.lower()]
-    lat_coord = [x for x in data.coords if "latitude" in data[x].long_name.lower()]
-    msl_ = [x for x in data.variables if "pressure" in data[x].long_name.lower()]
-    u10_ = [
-        x
-        for x in data.variables
-        if ("u wind" in data[x].long_name.lower()) | ("u-component" in data[x].long_name.lower())
-    ]
-    v10_ = [
-        x
-        for x in data.variables
-        if ("v wind" in data[x].long_name.lower()) | ("v-component" in data[x].long_name.lower())
-    ]
-
-    data = data.rename(
-        {
-            msl_[0]: "msl",
-            u10_[0]: "u10",
-            v10_[0]: "v10",
-            lon_coord[0]: "longitude",
-            lat_coord[0]: "latitude",
-        }
-    )
-
-    if time_coord:
-        name = time_coord[0]
-        if "forecast" in name:
-            tts = pd.to_datetime(data.msl.attrs["initial_time"], format="%m/%d/%Y (%H:%M)") + pd.to_timedelta(
-                data.coords[name].values
-            )
-            data = data.assign_coords(name=tts)
-        data = data.rename({name: "time"})
-    else:
-        tts = pd.to_datetime(data.msl.attrs["initial_time"], format="%m/%d/%Y (%H:%M)") + pd.to_timedelta(
-            data.coords["step"].values, unit="H"
-        )
-        data = data.rename({"step": "time"})
-        data = data.assign_coords(time=tts)
-
-    #    if combine_forecast : TODO
-    #        mask = data.time.to_pandas().duplicated('last').values
-    #        msl = data.msl[~mask]
-    #        u10 = data.u10[~mask]
-    #        v10 = data.v10[~mask]
-    #        data = xr.merge([msl,u10,v10])
-
-    #        data = data.sortby('latitude', ascending=True)   # make sure that latitude is increasing
-
-    if not lon_min:
-        lon_min = data.longitude.data.min()
-    if not lon_max:
-        lon_max = data.longitude.data.max()
-    if not lat_min:
-        lat_min = data.latitude.data.min()
-    if not lat_max:
-        lat_max = data.latitude.data.max()
-
-    if lon_min < data.longitude.data.min():
-        lon_min = lon_min + 360.0
-
-    if lon_max < data.longitude.data.min():
-        lon_max = lon_max + 360.0
-
-    if lon_min > data.longitude.data.max():
-        lon_min = lon_min - 360.0
-
-    if lon_max > data.longitude.data.max():
-        lon_max = lon_max - 360.0
-
-    if not ts:
-        ts = data.time.data[ft1]
-    if not te:
-        te = data.time.data[ft2]
-
-    if ts < data.time.data.min():
-        logger.warning("coverage between {} and {} \n".format(data.time.data.min(), data.time.data.max()))
-        logger.error("time frame not available\n")
-        sys.exit(1)
-
-    if te > data.time.data.max():
-        logger.error("time frame not available\n")
-        logger.warning("coverage between {} and {} \n".format(data.time.data.min(), data.time.data.max()))
-        sys.exit(1)
-
-    if len(data.longitude.shape) == 2:
-        d1 = data.where(data.longitude > lon_min, drop=True)
-        d2 = d1.where(d1.longitude < lon_max, drop=True)
-        d3 = d2.where(d2.latitude > lat_min, drop=True)
-        d4 = d3.where(d3.latitude < lat_max, drop=True)
-
-        data = regrid(d4)
-
-    tslice = slice(ts, te, dft)
-
-    i0 = np.abs(data.longitude.data - lon_min).argmin()
-    i1 = np.abs(data.longitude.data - lon_max).argmin()
-
-    j0 = np.abs(data.latitude.data - lat_min).argmin()
-    j1 = np.abs(data.latitude.data - lat_max).argmin()
-
-    # expand the window a little bit
-    lon_0 = max(0, i0 - 2)
-    lon_1 = min(data.longitude.size, i1 + 2)
-
-    lat_0 = max(0, j0 - 2)
-    lat_1 = min(data.latitude.size, j1 + 2)
-
-    # descenting lats
-    if j0 > j1:
-        j0, j1 = j1, j0
-        lat_0 = max(0, j0 - 1)
-        lat_1 = min(data.latitude.size, j1 + 3)
-
-    if i0 >= i1:
-
-        sh = (
-            data[["msl", "u10", "v10"]]
-            .isel(
-                longitude=slice(lon_0, data.longitude.size),
-                latitude=slice(lat_0, lat_1),
-            )
-            .sel(time=tslice)
-        )
-        sh = sh.assign_coords({"longitude": sh.longitude.values - 360.0})
-
-        sh1 = (
-            data[["msl", "u10", "v10"]].isel(longitude=slice(0, lon_1), latitude=slice(lat_0, lat_1)).sel(time=tslice)
-        )
-
-        tot = xr.concat([sh, sh1], dim="longitude")
-
-    else:
-
-        tot = (
-            data[["msl", "u10", "v10"]]
-            .isel(longitude=slice(lon_0, lon_1), latitude=slice(lat_0, lat_1))
-            .sel(time=tslice)
-        )
-
-    # Adjust lon values
-    try:
-        if np.abs(np.mean([lon_min, lon_max]) - np.mean([minlon, maxlon])) > 300.0:
-            c = np.sign(np.mean([minlon, maxlon]))
-            tot["longitude"] = tot.longitude.values + c * 360.0
-    except:
-        pass
-
-    # ---------------------------------------------------------------------
-    logger.info("meteo done\n")
-    # ---------------------------------------------------------------------
-
-    return tot
-
-
 def from_url(
-    url=None,
+    meteo_source=None,
     lon_min=None,
     lon_max=None,
     lat_min=None,
@@ -625,14 +407,14 @@ def from_url(
 
     xr_kwargs = kwargs.get("meteo_xr_kwargs", {"engine": "pydap"})
 
-    if not url:
-        url = get_url(ts)
+    if not meteo_source:
+        meteo_source = get_url(ts)
 
     # ---------------------------------------------------------------------
-    logger.info("extracting meteo from {}\n".format(url))
+    logger.info("extracting meteo from {}\n".format(meteo_source))
     # ---------------------------------------------------------------------
 
-    data = xr.open_dataset(url, **xr_kwargs)
+    data = xr.open_dataset(meteo_source, **xr_kwargs)
 
     try:
         data = data.rename({"lon": "longitude", "lat": "latitude"})
@@ -709,7 +491,7 @@ def from_url(
 
 
 def netcdf(
-    filenames=None,
+    meteo_source,
     lon_min=None,
     lon_max=None,
     lat_min=None,
@@ -728,7 +510,7 @@ def netcdf(
 
     xr_kwargs = kwargs.get("meteo_xr_kwargs", {})
 
-    data = xr.open_mfdataset(filenames, combine=meteo_combine_by, **xr_kwargs)
+    data = xr.open_mfdataset(meteo_source, combine=meteo_combine_by, **xr_kwargs)
 
     # rename var/coords
     time_coord = [x for x in data.coords if "time" in data[x].long_name.lower()]
@@ -766,8 +548,45 @@ def netcdf(
     s, f, i = meteo_irange
     data = data.isel(time=slice(s, f, i))
 
-    return data
-
     # ---------------------------------------------------------------------
     logger.info("meteo done\n")
     # ---------------------------------------------------------------------
+
+    return data
+
+
+def dispatch_meteo_source(obj) -> Callable[..., xr.Dataset]:
+    """Choose the appropriate function to handle `obj`
+
+    `obj` can be any of the following:
+
+    - `str`
+    - `Path`
+    - `list[str]`
+    - `list[Path]`
+    - `None`
+    - `URL`
+
+    """
+    original = obj
+    obj = tools.cast_path_to_str(obj)
+    if tools.is_iterable(obj) and not isinstance(obj, str) and not isinstance(obj, xr.Dataset):
+        if len({type(o) for o in obj}) != 1:
+            raise ValueError(f"Multiple types in iterable: {obj}")
+        obj = tools.cast_path_to_str(obj[0])
+    if obj is None:
+        meteo_func = from_url
+    elif isinstance(obj, xr.Dataset):
+        meteo_func = passthrough
+    elif isinstance(obj, str):
+        if obj.lower().endswith("grib"):
+            meteo_func = cfgrib
+        elif obj.lower().startswith("http"):
+            meteo_func = from_url
+        elif obj.lower().endswith("nc"):
+            meteo_func = netcdf
+        else:
+            raise ValueError(f"Can't determine meteo_type from string: {obj}")
+    else:
+        raise ValueError(f"Can't determine meteo_type: {type(original)} - {original}")
+    return meteo_func

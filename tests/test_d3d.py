@@ -20,7 +20,6 @@ case1 = {
     "ncores": NCORES,  # number of cores
     "meteo_source": [(DATA_DIR / "uvp_2018100100.grib").as_posix()],
     "dem_source": (DATA_DIR / "dem.nc").as_posix(),
-    "meteo_engine": "cfgrib"
     #     'update':['all'] # optional to select update quantities
 }
 

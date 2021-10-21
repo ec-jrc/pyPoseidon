@@ -11,13 +11,13 @@ from . import DATA_DIR
 
 @pytest.fixture(scope="session")
 def meteo_paths() -> List[pathlib.Path]:
-    paths = list(sorted(DATA_DIR.glob("uvp_*")))
+    paths = list(sorted(DATA_DIR.glob("uvp_*.grib")))
     return paths
 
 
 @pytest.fixture(scope="session")
 def meteo_datasets(meteo_paths) -> List[pm.meteo]:
-    return [pm.meteo(meteo_source=path.as_posix(), meteo_engine="cfgrib").Dataset for path in meteo_paths]
+    return [pm.meteo(meteo_source=path.as_posix()).Dataset for path in meteo_paths]
 
 
 def test_merge_strategy_last(meteo_paths, meteo_datasets):
@@ -33,7 +33,6 @@ def test_merge_strategy_last(meteo_paths, meteo_datasets):
     )
     merged = pm.meteo(
         meteo_source=meteo_paths,
-        meteo_engine="cfgrib",
         meteo_combine_by="nested",
         meteo_merge="last",
         meteo_xr_kwargs={"concat_dim": "step"},
@@ -56,7 +55,6 @@ def test_merge_strategy_first(meteo_paths, meteo_datasets):
     )
     merged = pm.meteo(
         meteo_source=meteo_paths,
-        meteo_engine="cfgrib",
         meteo_combine_by="nested",
         meteo_merge="first",
         meteo_xr_kwargs={"concat_dim": "step"},

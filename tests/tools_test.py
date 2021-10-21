@@ -4,9 +4,11 @@ import shutil
 
 import psutil
 import pytest
-
+import xarray as xr
 
 from pyposeidon import tools
+
+from . import DATA_DIR
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
@@ -37,3 +39,18 @@ def test_create_mpirun_script_ncores(tmp_path, ncores):
     content = pathlib.Path(script_path).read_text()
     assert content.endswith(cmd), "the cmd is not being used"
     assert f"-N {ncores}" in content
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param(DATA_DIR / "dem.nc", id="netcdf - pathlib"),
+        pytest.param(DATA_DIR / "dem.tif", id="geotiff - pathlib"),
+        pytest.param((DATA_DIR / "dem.nc").as_posix(), id="netcdf- str"),
+        pytest.param((DATA_DIR / "dem.tif").as_posix(), id="geotiff - str"),
+        pytest.param("https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus", id="URL"),
+    ],
+)
+def test_open_dataset(source) -> None:
+    ds = tools.open_dataset(source)
+    assert isinstance(ds, xr.Dataset)

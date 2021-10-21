@@ -38,7 +38,6 @@ case = {
     "time_frame": "12H",
     "dem_source": DEM_FILE,
     "meteo_source": METEO_FILES_1,
-    "meteo_engine": "cfgrib",
     "meteo_merge": "last",  # combine meteo
     "meteo_combine_by": "nested",
     "meteo_xr_kwargs": {"concat_dim": "step"},
@@ -66,7 +65,6 @@ check = {
     "time_frame": "36H",
     "dem_source": DEM_FILE,
     "meteo_source": METEO_FILES_2,
-    "meteo_engine": "cfgrib",
     "meteo_merge": "last",  # combine meteo
     "meteo_combine_by": "nested",
     "meteo_xr_kwargs": {"concat_dim": "step"},

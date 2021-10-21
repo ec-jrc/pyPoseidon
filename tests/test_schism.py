@@ -21,7 +21,6 @@ case1 = {
     "start_date": "2017-10-1 0:0:0",
     "time_frame": "12H",
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
-    "meteo_engine": "cfgrib",
     "dem_source": DEM_FILE,
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
@@ -46,7 +45,6 @@ case2 = {
     "end_date": "2017-10-2 0:0:0",  # optional instead of time_frame
     "dem_source": DEM_FILE,
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
-    "meteo_engine": "cfgrib",
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
@@ -70,7 +68,6 @@ case3 = {
     "start_date": "2011-1-1 0:0:0",
     "time_frame": "12H",
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
-    "meteo_engine": "cfgrib",
     "dem_source": DEM_FILE,
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
