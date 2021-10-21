@@ -11,7 +11,7 @@ from . import DATA_DIR
 
 @pytest.fixture(scope="session")
 def meteo_paths() -> List[pathlib.Path]:
-    paths = list(sorted(DATA_DIR.glob("uvp_*")))
+    paths = list(sorted(DATA_DIR.glob("uvp_*.grib")))
     return paths
 
 
