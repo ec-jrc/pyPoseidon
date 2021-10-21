@@ -1,5 +1,6 @@
 import os
 import pathlib
+import shutil
 
 import psutil
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from pyposeidon import tools
 
 
+@pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
 @pytest.mark.parametrize("use_threads", [True, False])
 def test_create_mpirun_script(tmp_path, use_threads):
     target_dir = tmp_path.as_posix()
@@ -22,6 +24,7 @@ def test_create_mpirun_script(tmp_path, use_threads):
     assert f"-N {psutil.cpu_count(logical=use_threads)}" in content
 
 
+@pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
 @pytest.mark.parametrize("ncores", [1, 2, 44])
 def test_create_mpirun_script_ncores(tmp_path, ncores):
     target_dir = tmp_path.as_posix()
