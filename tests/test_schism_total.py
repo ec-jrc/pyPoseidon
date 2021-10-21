@@ -41,7 +41,6 @@ def schism(tmpdir, case):
         "start_date": "2017-10-1 0:0:0",
         "time_frame": "12H",
         "meteo_source": [DATA_DIR / "erai.grib"],  # meteo file
-        "meteo_engine": "cfgrib",
         "dem_source": DEM_FILE,
         "ncores": NCORES,  # number of cores
         "update": ["all"],  # update only meteo, keep dem

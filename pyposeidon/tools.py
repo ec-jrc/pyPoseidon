@@ -3,6 +3,7 @@ import os
 import shlex
 import pathlib
 import subprocess
+from collections.abc import Iterable
 import time
 
 import psutil
@@ -111,3 +112,13 @@ def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
         logger.debug("Engine: %s", engine)
         dataset = xr.open_dataset(source, engine=engine, **kwargs)
     return dataset
+
+
+def is_iterable(obj):
+    return isinstance(obj, Iterable)
+
+
+def cast_path_to_str(path: os.PathLike) -> str:
+    if isinstance(path, pathlib.Path):
+        path = path.as_posix()
+    return path

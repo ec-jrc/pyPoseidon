@@ -35,7 +35,6 @@ case = {
     "restart_step": 720,  # when to output restart file
     "ncores": NCORES,  # number of cores
     "meteo_source": GRIB_FILES_1,
-    "meteo_engine": "cfgrib",
     "meteo_merge": "last",  # combine meteo
     "meteo_combine_by": "nested",
     "meteo_xr_kwargs": {"concat_dim": "step"},
@@ -54,7 +53,6 @@ check = {
     "ncores": NCORES,  # number of cores
     "dem_source": DEM_FILE,
     "meteo_source": GRIB_FILES_2,
-    "meteo_engine": "cfgrib",
     "meteo_merge": "last",  # combine meteo
     "meteo_combine_by": "nested",
     "meteo_xr_kwargs": {"concat_dim": "step"},

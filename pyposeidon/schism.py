@@ -802,7 +802,7 @@ class schism:
                     pm.append(msource)
                 if len(pm) == 1:
                     pm = pm[0]
-                self.meteo = pmeteo.meteo(meteo_source=pm, meteo_engine="passthrough")
+                self.meteo = pmeteo.meteo(meteo_source=pm)
 
             except:
                 pm = []
@@ -827,7 +827,7 @@ class schism:
                 if len(pm) == 1:
                     pm = pm[0]
 
-                self.meteo = pmeteo.meteo(meteo_source=pm, meteo_engine="passthrough")
+                self.meteo = pmeteo.meteo(meteo_source=pm)
 
         else:
             logger.warning("No meteo loaded")

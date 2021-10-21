@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Meteo module. Pre-processing the weather forcing component.
 
@@ -15,19 +14,21 @@ import datetime
 import glob
 import sys
 import os
+import pathlib
 import time
+from typing import Callable
 import dask
 import xarray as xr
 import pandas as pd
 import importlib
 from pyposeidon.utils.get_value import get_value
+from pyposeidon import tools
 import logging
 
 logger = logging.getLogger("pyposeidon")
 
 
 def get_url(start_date):
-
     start_date = start_date - pd.DateOffset(days=1)
     r = [0, 6, 12, 18]
     h = np.argmin([n for n in [start_date.hour - x for x in r] if n > 0])
@@ -121,7 +122,7 @@ def regrid(ds):
 
 
 class meteo:
-    def __init__(self, meteo_source=None, meteo_engine=None, **kwargs):
+    def __init__(self, meteo_source=None, **kwargs):
 
         """Read meteo data from variable sources.
 
@@ -143,19 +144,11 @@ class meteo:
         if geometry:
             kwargs.update(**geometry)
 
-        if meteo_engine == "cfgrib":
-            self.Dataset = cfgrib(meteo_source, **kwargs)
-        elif meteo_engine == "netcdf":
-            self.Dataset = netcdf(meteo_source, **kwargs)
-        elif meteo_engine == "empty":
-            self.Dataset = None
-        elif meteo_engine == "passthrough":
-            self.Dataset = meteo_source
+        if isinstance(meteo_source, pathlib.Path):
+            meteo_source = meteo_source.as_posix()
 
-        else:
-
-            logger.warning("Proceeding with default option")
-            self.Dataset = from_url(**kwargs)
+        meteo_func = dispatch_meteo_source(meteo_source)
+        self.Dataset = meteo_func(meteo_source=meteo_source, **kwargs)
 
     def to_output(self, solver=None, **kwargs):
 
@@ -176,8 +169,12 @@ class meteo:
             s.to_force(self.Dataset, vars=var_list, **kwargs)
 
 
+def passthrough(meteo_source, **kwargs):
+    return meteo_source
+
+
 def cfgrib(
-    filenames=None,
+    meteo_source,
     lon_min=None,
     lon_max=None,
     lat_min=None,
@@ -222,7 +219,7 @@ def cfgrib(
     # ---------------------------------------------------------------------
 
     data = xr.open_mfdataset(
-        filenames,
+        meteo_source,
         combine=meteo_combine_by,
         engine="cfgrib",
         backend_kwargs=backend_kwargs,
@@ -384,7 +381,7 @@ def cfgrib(
 
 
 def from_url(
-    url=None,
+    meteo_source=None,
     lon_min=None,
     lon_max=None,
     lat_min=None,
@@ -410,14 +407,14 @@ def from_url(
 
     xr_kwargs = kwargs.get("meteo_xr_kwargs", {"engine": "pydap"})
 
-    if not url:
-        url = get_url(ts)
+    if not meteo_source:
+        meteo_source = get_url(ts)
 
     # ---------------------------------------------------------------------
-    logger.info("extracting meteo from {}\n".format(url))
+    logger.info("extracting meteo from {}\n".format(meteo_source))
     # ---------------------------------------------------------------------
 
-    data = xr.open_dataset(url, **xr_kwargs)
+    data = xr.open_dataset(meteo_source, **xr_kwargs)
 
     try:
         data = data.rename({"lon": "longitude", "lat": "latitude"})
@@ -494,7 +491,7 @@ def from_url(
 
 
 def netcdf(
-    filenames=None,
+    meteo_source,
     lon_min=None,
     lon_max=None,
     lat_min=None,
@@ -513,7 +510,7 @@ def netcdf(
 
     xr_kwargs = kwargs.get("meteo_xr_kwargs", {})
 
-    data = xr.open_mfdataset(filenames, combine=meteo_combine_by, **xr_kwargs)
+    data = xr.open_mfdataset(meteo_source, combine=meteo_combine_by, **xr_kwargs)
 
     # rename var/coords
     time_coord = [x for x in data.coords if "time" in data[x].long_name.lower()]
@@ -551,8 +548,45 @@ def netcdf(
     s, f, i = meteo_irange
     data = data.isel(time=slice(s, f, i))
 
-    return data
-
     # ---------------------------------------------------------------------
     logger.info("meteo done\n")
     # ---------------------------------------------------------------------
+
+    return data
+
+
+def dispatch_meteo_source(obj) -> Callable[..., xr.Dataset]:
+    """Choose the appropriate function to handle `obj`
+
+    `obj` can be any of the following:
+
+    - `str`
+    - `Path`
+    - `list[str]`
+    - `list[Path]`
+    - `None`
+    - `URL`
+
+    """
+    original = obj
+    obj = tools.cast_path_to_str(obj)
+    if tools.is_iterable(obj) and not isinstance(obj, str) and not isinstance(obj, xr.Dataset):
+        if len({type(o) for o in obj}) != 1:
+            raise ValueError(f"Multiple types in iterable: {obj}")
+        obj = tools.cast_path_to_str(obj[0])
+    if obj is None:
+        meteo_func = from_url
+    elif isinstance(obj, xr.Dataset):
+        meteo_func = passthrough
+    elif isinstance(obj, str):
+        if obj.lower().endswith("grib"):
+            meteo_func = cfgrib
+        elif obj.lower().startswith("http"):
+            meteo_func = from_url
+        elif obj.lower().endswith("nc"):
+            meteo_func = netcdf
+        else:
+            raise ValueError(f"Can't determine meteo_type from string: {obj}")
+    else:
+        raise ValueError(f"Can't determine meteo_type: {type(original)} - {original}")
+    return meteo_func

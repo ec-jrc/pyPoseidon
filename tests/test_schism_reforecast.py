@@ -40,7 +40,6 @@ case = {
     "time_frame": "24H",
     "dem_source": DEM_FILE,
     "meteo_source": METEO_FILES_1,
-    "meteo_engine": "cfgrib",
     "meteo_merge": "first",  # combine meteo
     "meteo_combine_by": "nested",
     "meteo_xr_kwargs": {"concat_dim": "step"},
@@ -68,7 +67,6 @@ check = {
     "start_date": "2018-10-1 0:0:0",
     "time_frame": "36H",
     "dem_source": DEM_FILE,
-    "meteo_engine": "passthrough",
     "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
@@ -128,10 +126,10 @@ def schism(tmpdir):
 
     # Combine meteo appropriately
 
-    m1 = pm.meteo(meteo_source=METEO_FILES_2[0], meteo_engine="cfgrib")
-    m2 = pm.meteo(meteo_source=METEO_FILES_2[1], meteo_engine="cfgrib")
-    m3 = pm.meteo(meteo_source=METEO_FILES_2[2], meteo_engine="cfgrib")
-    m4 = pm.meteo(meteo_source=METEO_FILES_2[3], meteo_engine="cfgrib")
+    m1 = pm.meteo(meteo_source=METEO_FILES_2[0])
+    m2 = pm.meteo(meteo_source=METEO_FILES_2[1])
+    m3 = pm.meteo(meteo_source=METEO_FILES_2[2])
+    m4 = pm.meteo(meteo_source=METEO_FILES_2[3])
 
     # extract correct chunk
 
