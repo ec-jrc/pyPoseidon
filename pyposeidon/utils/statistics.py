@@ -3,6 +3,9 @@ import sys
 import numpy as np
 import pandas as pd
 import warnings
+import logging
+
+logger = logging.getLogger("pyposeidon")
 
 
 def get_stats(sim_, obs_):
@@ -13,10 +16,26 @@ def get_stats(sim_, obs_):
         obs_ = obs_.loc[:end]
         sim_ = sim_.loc[:end]
         obs_ = obs_.reindex(sim_.index, method="nearest")  # sample on simulation times
+        return vtable(obs_.values, sim_.values)
     except:
-        pass
-
-    return vtable(obs_.values, sim_.values)
+        if obs_.dropna().empty:
+            logger.warning("Observation data not available for this station")
+            stats = pd.Series(
+                index={
+                    "Mean Absolute Error",
+                    "RMSE",
+                    "Scatter Index",
+                    "percentage RMSE",
+                    "BIAS or mean error",
+                    "Standard deviation of residuals",
+                    "Correlation Coefficient",
+                    "R^2",
+                    "Nash-Sutcliffe Coefficient",
+                    "lamda index",
+                },
+                dtype="float64",
+            )
+            return stats
 
 
 def vtable(obsrv, model):

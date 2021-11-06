@@ -30,7 +30,7 @@ import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
-from pyposeidon.utils.data import data
+from pyposeidon.utils import data
 import logging
 
 logger = logging.getLogger("pyposeidon")
@@ -1057,4 +1057,4 @@ class d3d:
 
         dic.update(kwargs)
 
-        self.data = data(**dic)
+        self.data = data.get_output(**dic)

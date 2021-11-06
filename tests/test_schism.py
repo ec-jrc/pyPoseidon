@@ -3,8 +3,6 @@ import pyposeidon
 import os
 import multiprocessing
 
-NCORES = max(1, multiprocessing.cpu_count() - 1)
-
 from . import DATA_DIR
 
 
@@ -22,7 +20,6 @@ case1 = {
     "time_frame": "12H",
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
-    "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
         "dt": 400,
@@ -45,7 +42,6 @@ case2 = {
     "end_date": "2017-10-2 0:0:0",  # optional instead of time_frame
     "dem_source": DEM_FILE,
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
-    "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
         "dt": 400,
@@ -69,7 +65,6 @@ case3 = {
     "time_frame": "12H",
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
-    "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
         "dt": 400,
@@ -88,16 +83,18 @@ def schism(tmpdir, dic):
     rpath = str(tmpdir) + "/"
     dic.update({"rpath": rpath})  # use tmpdir for running the model
 
-    b = pyposeidon.model(**dic)
+    b = pyposeidon.model.set(**dic)
 
-    try:
-        b.execute()
-        b.results()
-        a = pyposeidon.read_model(rpath + "test_model.json")  # read model
+    b.execute()
+    b.results()
+    err_file = b.rpath + "/outputs/fatal.error"
+    if os.stat(err_file).st_size == 0:
+        a = pyposeidon.model.read(rpath + "test_model.json")  # read model
         a.execute()
         a.results()
-        return True
-    except:
+        err_file = a.rpath + "/outputs/fatal.error"
+        return os.stat(err_file).st_size == 0
+    else:
         return False
 
 

@@ -16,14 +16,17 @@ def get_hfun(dem, path=".", tag="jigsaw", resolution_min=0.01, resolution_max=0.
 
     # scale bathymetry
     try:
-        b = dem.adjusted.to_dataframe()
+        b = dem.Dataset.adjusted.to_dataframe()
     except:
-        b = dem.elevation.to_dataframe()
+        b = dem.Dataset.elevation.to_dataframe()
+
+    b = b.reset_index()
+    b.columns = ["longitude", "latitude", "z"]
 
     nodes = scale_dem(b, resolution_min, resolution_max, **kwargs)
 
-    x = dem.longitude.values
-    y = dem.latitude.values
+    x = dem.Dataset.longitude.values
+    y = dem.Dataset.latitude.values
 
     tria = MakeTriangleFaces(y.shape[0], x.shape[0])
 
@@ -47,7 +50,7 @@ def get_hfun(dem, path=".", tag="jigsaw", resolution_min=0.01, resolution_max=0.
     cfun = fun.flatten().reshape((y.shape[0], x.shape[0]))
 
     dh = xr.Dataset(
-        {"h": (["longitude", "latitude"], cfun)},
+        {"h": (["latitude", "longitude"], cfun)},
         coords={"longitude": ("longitude", x), "latitude": ("latitude", y)},
     )
 
@@ -139,7 +142,7 @@ def to_hfun_grid(dh, fhfun):
         np.savetxt(f, dh.latitude.values)
 
     with open(fhfun, "a") as f:
-        f.write("VALUE={};1\n".format(dh.z.size))
+        f.write("VALUE={};1\n".format(dh.h.size))
 
     with open(fhfun, "a") as f:
-        np.savetxt(f, dh.z.values.flatten())
+        np.savetxt(f, dh.h.T.values.flatten())

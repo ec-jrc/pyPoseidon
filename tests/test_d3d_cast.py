@@ -8,8 +8,6 @@ import os
 import numpy as np
 import multiprocessing
 
-NCORES = max(1, multiprocessing.cpu_count() - 1)
-
 from . import DATA_DIR
 
 GRIB_FILES_1 = [(DATA_DIR / filename).as_posix() for filename in ("uvp_2018100100.grib", "uvp_2018100112.grib")]
@@ -33,7 +31,6 @@ case = {
     "resolution": 0.1,  # grid resoltuion
     "map_step": 60,  # step for output of map field in d3d
     "restart_step": 720,  # when to output restart file
-    "ncores": NCORES,  # number of cores
     "meteo_source": GRIB_FILES_1,
     "meteo_merge": "last",  # combine meteo
     "meteo_combine_by": "nested",
@@ -50,7 +47,6 @@ check = {
     "resolution": 0.1,  # grid resoltuion
     "map_step": 60,  # step for output of map field in d3d
     "restart_step": 720,  # when to output restart file
-    "ncores": NCORES,  # number of cores
     "dem_source": DEM_FILE,
     "meteo_source": GRIB_FILES_2,
     "meteo_merge": "last",  # combine meteo
@@ -64,7 +60,7 @@ def d3d(tmpdir):
     # initialize a model
     rpath = str(tmpdir) + "/d3d/"
     case.update({"rpath": rpath + "/20181001.00/"})  # use tmpdir for running the model
-    b = pyposeidon.model(**case)
+    b = pyposeidon.model.set(**case)
 
     b.execute()
 
@@ -89,7 +85,7 @@ def d3d(tmpdir):
 
     # set cast
     for l in range(len(rpaths) - 1):
-        h = cast.cast(
+        h = cast.set(
             solver="d3d",
             model=b,
             ppath=rpaths[l],
@@ -97,16 +93,16 @@ def d3d(tmpdir):
             meteo=meteo[l + 1],
             date=date_list[l + 1],
         )
-        h.set(execute=True)  # execute
+        h.run(execute=True)  # execute
 
     # Run check case - Total duration
     check.update({"rpath": rpath + "check/"})  # use tmpdir for running the model
-    c = pyposeidon.model(**check)
+    c = pyposeidon.model.set(**check)
     c.execute()
 
     # COMPARE
-    output = data.data(folders=rpaths, solver="d3d")
-    total = data.data(folders=[rpath + "check/"], solver="d3d")
+    output = data.get_output(folders=rpaths, solver="d3d")
+    total = data.get_output(folders=[rpath + "check/"], solver="d3d")
 
     test = True
     rb = []

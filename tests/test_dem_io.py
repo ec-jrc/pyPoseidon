@@ -74,7 +74,7 @@ def d3d(tmpdir, dem_source, kwargs):
     pdem.to_output(df.Dataset, solver="d3d", rpath=rpath)
 
     # read again dem
-    m = pmodel(solver="d3d")
+    m = pmodel.set(solver="d3d")
     rd = m.from_dep(rpath + "d3d.dep")
 
     # compare

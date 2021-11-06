@@ -23,7 +23,7 @@ import logging
 logger = logging.getLogger("pyposeidon")
 
 
-def data(**kwargs):
+def get_output(**kwargs):
 
     solver = kwargs.get("solver", None)
     if solver == "d3d":
@@ -176,7 +176,7 @@ class schism:
             xdat.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
 
             if len(xdat) > 0:
-                datai.extend(xdat)  # append to list
+                datai.append(xdat)  # append to list
 
             else:  # run merge output
 
@@ -185,7 +185,7 @@ class schism:
                     info[info.isnull().values] = None
                     info = info.to_dict()[0]
 
-                p = pm.model(**info)
+                p = pm.set(**info)
 
                 p.misc = misc
 
@@ -196,88 +196,47 @@ class schism:
                 xdat = glob.glob(folder + "/outputs/schout_[!0]*.nc")
                 xdat.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
 
-                datai.extend(xdat)  # append to list
+                datai.append(xdat)  # append to list
 
-        self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
+        merge = kwargs.get("merge", True)
 
-        with open(self.folders[-1] + "/" + tag + "_model.json", "r") as f:
-            info = pd.read_json(f, lines=True).T
-            info[info.isnull().values] = None
-            info = info.to_dict()[0]
+        if merge:
 
-        p = pm.model(**info)
+            datai = [j for i in datai for j in i]
+            self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
 
-        logger.info("Retrieve station timeseries if any\n")
+            with open(self.folders[-1] + "/" + tag + "_model.json", "r") as f:
+                info = pd.read_json(f, lines=True).T
+                info[info.isnull().values] = None
+                info = info.to_dict()[0]
 
-        dstamp = kwargs.get("dstamp", info["date"])
-        try:
-            p.get_station_data(dstamp=dstamp)
-            self.time_series = p.time_series
+            p = pm.set(**info)
 
-            dic = {}
+            if hasattr(p, "stations"):
 
-            try:
+                logger.info("Retrieve station timeseries\n")
 
-                with open(self.folders[0] + "/" + tag + "_model.json", "r") as f:
-                    info = pd.read_json(f, lines=True).T
-                    info[info.isnull().values] = None
-                    self.info = info.to_dict()[0]
+                dstamp = kwargs.get("dstamp", info["date"])
 
-                dic = self.info.copy()  # start with x's keys and values
-                dic.update(kwargs)  # modifies z with y's keys and values & returns None
+                p.get_station_data(dstamp=dstamp)
+                self.time_series = p.time_series
 
-            except:
-                pass
+        else:
+            self.Dataset = [xr.open_mfdataset(x, combine="by_coords", data_vars="minimal") for x in datai]
 
-            if "sa_date" not in dic.keys():
-                dic.update({"sa_date": self.time_series.time.values[0]})
+            ts = []
 
-            if "se_date" not in dic.keys():
-                dic.update({"se_date": self.Dataset.time.values[-1]})
+            for folder in self.folders:
 
-            if "lon_min" not in dic.keys():
-                dic.update({"lon_min": self.Dataset.SCHISM_hgrid_node_x.values.min()})
+                p = pm.read_model(folder + "/{}_model.json".format(tag))  # read model
 
-            if "lon_max" not in dic.keys():
-                dic.update({"lon_max": self.Dataset.SCHISM_hgrid_node_x.values.max()})
+                if hasattr(p, "stations"):
 
-            if "lat_min" not in dic.keys():
-                dic.update({"lat_min": self.Dataset.SCHISM_hgrid_node_y.values.min()})
+                    logger.info("Retrieve station timeseries\n")
 
-            if "lat_max" not in dic.keys():
-                dic.update({"lat_max": self.Dataset.SCHISM_hgrid_node_y.values.max()})
+                    dstamp = kwargs.get("dstamp", p.date)
 
-            logger.info("Retrieve observations info\n")
+                    p.get_station_data(dstamp=dstamp)
+                    ts.append(p.time_series)
 
-            self.obs = obs(**dic)
-
-            ret = kwargs.get("online", False)
-
-            if ret is True:
-                logger.info("collect observational data")
-                tgs = self.obs.locations.loc[self.obs.locations.Group == "TD UNESCO"]
-
-                dic = {}
-                for i in tgs.index:
-                    #            print(i, tgs.loc[i].Name.strip())
-                    while True:
-                        p = self.obs.iloc(i)
-                        if p is not None:
-                            if p.shape[0] > 1:
-                                p = p.dropna()
-                            break
-                    dic.update({tgs.loc[i].Name.strip(): p})
-
-                tg = pd.concat(dic, axis=0, sort=True)
-
-                try:
-                    tg = tg.drop("TimeUTC", axis=1)
-                except:
-                    pass
-
-                tg.to_csv(self.folders[0] + "/" + "obs.csv")
-
-                self.obs.dataframe = tg
-
-        except:
-            logger.info("no station data loaded")
+            self.time_series = ts

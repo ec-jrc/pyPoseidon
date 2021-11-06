@@ -4,7 +4,7 @@ import xarray as xr
 
 def scale_dem(b, res_min, res_max, **kwargs):
 
-    b.columns = ["z"]
+    #    b.columns = ["z"]
 
     b[b.z >= -10] = -1.0e-4  # normalize to only negative values
 

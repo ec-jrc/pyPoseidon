@@ -33,6 +33,7 @@ def simplify(geo):
             geo_ = [geo.buffer(0).unary_union]
 
         geo = gp.GeoDataFrame(geometry=geo_)
+        geo = gp.GeoDataFrame(geometry=geo.buffer(0))
 
     return geo
 

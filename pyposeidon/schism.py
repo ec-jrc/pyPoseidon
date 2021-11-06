@@ -38,7 +38,7 @@ from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils.vals import obs
 from pyposeidon.utils.cpoint import closest_node
 from pyposeidon.utils.unml import unml
-from pyposeidon.utils.data import data
+from pyposeidon.utils import data
 
 import logging
 
@@ -161,7 +161,7 @@ class schism:
                 self.time_frame = self.end_date - self.start_date
 
         if not hasattr(self, "date"):
-            self.date = self.start_date
+            self.date = get_value(self, kwargs, "date", self.start_date)
 
         if not hasattr(self, "end_date"):
             # ---------------------------------------------------------------------
@@ -465,7 +465,6 @@ class schism:
         # open boundaries
         number_of_open_boundaries = bs.loc[bs.type == "open"].id.max()
         number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
-        print(number_of_open_boundaries)
 
         with open(path + "bctides.in", "w") as f:
             f.write("Header\n")
@@ -1734,6 +1733,11 @@ class schism:
         stations["z"] = 0
         stations.index += 1
         stations["gindex"] = grid_index
+        stations["name"] = tg.locations.Name.values
+        stations["id"] = tg.locations.ID.values
+        stations["group"] = tg.locations.Group.values
+        stations["longitude"] = tg.locations.longitude.values
+        stations["latitude"] = tg.locations.latitude.values
 
         if coastal_monitoring:
             ## FOR COASTAL MONITORING
@@ -1808,7 +1812,7 @@ class schism:
                 logger.error("No station.in file present")
             return
 
-        dstamp = kwargs.get("dstamp", self.start_date)
+        dstamp = kwargs.get("dstamp", self.date)
 
         dfs = []
         for idx in vals.index:
@@ -1821,16 +1825,22 @@ class schism:
             pindex = pd.MultiIndex.from_product([df.T.columns, df.T.index])
 
             r = pd.DataFrame(df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]])
-            r.index.names = ["time", "index"]
+            r.index.names = ["time", "node"]
+
+            r.index = r.index.set_levels(r.index.levels[1] - 1, level=1)
 
             dfs.append(r.to_xarray())
 
         self.time_series = xr.combine_by_coords(dfs)
 
-    def get_data(self, **kwargs):
+    def get_output_data(self, **kwargs):
 
         dic = self.__dict__
 
         dic.update(kwargs)
 
-        self.data = data(**dic)
+        self.data = data.get_output(**dic)
+
+    def open_thalassa(self, **kwargs):
+        # open a Thalassa instance to visualize the output
+        return

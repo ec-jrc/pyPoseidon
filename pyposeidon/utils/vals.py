@@ -196,7 +196,7 @@ class obs:
                         "Level-Tide m": np.nan,
                     },
                     index=[0],
-                )
+                ).set_index("TimeUTC")
             tg.index.name = "time"
             tg.columns = ["Total", "Tide", "Surge"]
             return tg
