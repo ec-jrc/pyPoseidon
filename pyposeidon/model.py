@@ -81,7 +81,7 @@ le = ["A", "B"]
 nm = ["Z", "A"]
 
 
-def model(solver=None, atm=True, tide=False, **kwargs):
+def set(solver=None, atm=True, tide=False, **kwargs):
     """
     Construct a hydrodynamic model based on different solvers.
 
@@ -95,7 +95,7 @@ def model(solver=None, atm=True, tide=False, **kwargs):
 
     Example:
 
-    model = pyposeidon.model(solver='d3d)
+    model = pyposeidon.set(solver='d3d)
 
     """
 
@@ -106,7 +106,7 @@ def model(solver=None, atm=True, tide=False, **kwargs):
         return schism(**kwargs)
 
 
-def read_model(filename, **kwargs):
+def read(filename, **kwargs):
 
     end = filename.split(".")[-1]
 
@@ -119,4 +119,4 @@ def read_model(filename, **kwargs):
         logger.error("Model file should be .txt or .json")
         sys.exit(0)
 
-    return model(**info)
+    return set(**info)

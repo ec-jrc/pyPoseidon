@@ -81,7 +81,12 @@ class hplot(object):
             )
         else:
             return rasterize(trimesh, aggregator="mean").opts(
-                colorbar=True, cmap="Viridis", padding=0.1, tools=["hover"], width=width, height=height
+                colorbar=True,
+                cmap="Viridis",
+                padding=0.1,
+                tools=["hover"],
+                width=width,
+                height=height,
             )
 
     def meteo(self, **kwargs):
@@ -218,10 +223,66 @@ class hplot(object):
         meshes = hv.DynamicMap(time_mesh, kdims=["Time"]).redim.values(Time=times)
 
         imesh = rasterize(meshes, aggregator="mean").opts(
-            cmap="viridis", colorbar=True, padding=0.1, tools=["hover"], clim=(zmin, zmax)
+            cmap="viridis",
+            colorbar=True,
+            padding=0.1,
+            tools=["hover"],
+            clim=(zmin, zmax),
         )
 
         if tiles:
             return hv.output(tile * imesh, holomap="scrubber", fps=1)
         else:
             return hv.output(imesh.opts(width=width, height=height), holomap="scrubber", fps=1)
+
+
+# from https://pandas.pydata.org/pandas-docs/stable/development/extending.html
+@pd.api.extensions.register_dataframe_accessor("hplot")
+class BoundaryAccessor:
+    def __init__(self, pandas_obj):
+        self._validate(pandas_obj)
+        self._obj = pandas_obj
+
+    @staticmethod
+    def _validate(obj):
+        # verify there is a column latitude and a column longitude
+        if "lat" not in obj.columns or "lon" not in obj.columns:
+            raise AttributeError("Must have 'lat' and 'lon'.")
+
+    @property
+    def center(self):
+        # return the geographic center point of this DataFrame
+        lat = self._obj.lat
+        lon = self._obj.lon
+        return (float(lon.mean()), float(lat.mean()))
+
+    def show(self, **kwargs):
+        width = kwargs.get("width", 800)
+        height = kwargs.get("height", 600)
+        opts.defaults(opts.WMTS(width=width, height=height))
+
+        tile = gv.WMTS("https://b.tile.openstreetmap.org/{Z}/{X}/{Y}.png")
+
+        ps = [tile]
+
+        # external
+        ds = self._obj.loc["line0"]
+        ds = ds.append(ds.iloc[0]).reset_index(drop=True)
+
+        dland = ds.loc[ds.tag == "land"]
+        dland_ = np.split(dland, np.flatnonzero(np.diff(dland.index) != 1) + 1)
+        for seg in dland_:
+            ps.append(seg.hvplot.paths(x="lon", y="lat", geo=True, color="brown"))
+
+        dwater = ds.loc[ds.tag == "open"]
+        dwater_ = np.split(dwater, np.flatnonzero(np.diff(dwater.index) != 1) + 1)
+        for seg in dwater_:
+            ps.append(seg.hvplot.paths(x="lon", y="lat", geo=True, color="blue"))
+
+        # islands
+        for line in self._obj.index.levels[0][1:]:
+            ds = self._obj.loc[line]
+            ds = ds.append(ds.iloc[0]).reset_index(drop=True)
+            ps.append(ds.hvplot.paths(x="lon", y="lat", geo=True, color="green"))
+
+        return hv.Overlay(ps)

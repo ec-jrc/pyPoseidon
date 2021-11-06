@@ -10,12 +10,14 @@ Visualization module in 3D
 
 from mayavi import mlab
 
+mlab.options.offscreen = True
 from mayavi.sources.builtin_surface import BuiltinSurface
 import xarray as xr
 import numpy as np
 import pandas as pd
 import subprocess
-
+from pyposeidon.utils.stereo import to_3d
+from itkwidgets import view
 import os
 import sys
 
@@ -102,7 +104,16 @@ class mplot(object):
         self.globe(R - 0.002, bcolor=bcolor)
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(
-            px, py, pz, tri3, representation=rep, opacity=1.0, scalars=z, colormap=cmap, vmin=vmin, vmax=vmax
+            px,
+            py,
+            pz,
+            tri3,
+            representation=rep,
+            opacity=1.0,
+            scalars=z,
+            colormap=cmap,
+            vmin=vmin,
+            vmax=vmax,
         )
 
         grd.actor.mapper.scalar_visibility = True
@@ -156,7 +167,16 @@ class mplot(object):
         self.globe(R - 0.002, bcolor=bcolor)
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(
-            px, py, pz, tri3, representation=rep, opacity=1.0, scalars=z[0, :], colormap=cmap, vmin=vmin, vmax=vmax
+            px,
+            py,
+            pz,
+            tri3,
+            representation=rep,
+            opacity=1.0,
+            scalars=z[0, :],
+            colormap=cmap,
+            vmin=vmin,
+            vmax=vmax,
         )
 
         grd.actor.mapper.scalar_visibility = True
@@ -228,7 +248,16 @@ class mplot(object):
         self.globe(R - 0.002, bcolor=bcolor)
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(
-            px, py, pz, tri3, representation=rep, opacity=1.0, scalars=z[0, :], colormap=cmap, vmin=vmin, vmax=vmax
+            px,
+            py,
+            pz,
+            tri3,
+            representation=rep,
+            opacity=1.0,
+            scalars=z[0, :],
+            colormap=cmap,
+            vmin=vmin,
+            vmax=vmax,
         )
 
         grd.actor.mapper.scalar_visibility = True
@@ -311,13 +340,8 @@ class mplot(object):
         R = kwargs.get("R", 1.0)
 
         if dim == "3D":
-
-            px = np.cos(y / 180 * np.pi) * np.cos(x / 180 * np.pi) * R
-            py = np.cos(y / 180 * np.pi) * np.sin(x / 180 * np.pi) * R
-            pz = np.sin(y / 180 * np.pi) * R
-
+            px, py, pz = to_3d(x, y, R=R)
         else:
-
             px = x
             py = y
             pz = np.zeros(x.shape[0])
@@ -335,10 +359,13 @@ class mplot(object):
 
         if coast is not None:
             try:
-                del kwargs["coastlines", "R"]
+                del kwargs["coastlines"]
             except:
                 pass
-
+            try:
+                del kwargs["R"]
+            except:
+                pass
             src, lines = self.c3d(coast, R=R, **kwargs)
             mlab.pipeline.surface(src, color=(1, 0, 0), line_width=10, opacity=0.8)
 
@@ -346,8 +373,8 @@ class mplot(object):
         scene = engine.scenes[0]
         scene.scene.z_plus_view()
 
-        mlab.show()
-        return
+        # mlab.show()
+        return view(actors=grd, rotate=True, ui_collapsed=True)
 
     @staticmethod
     def c3d(coastlines, R=1, **kwargs):
@@ -416,7 +443,14 @@ class mplot(object):
             # of the final set of points once all lines have been combined
             # together, this is why we need to keep track of the total number of
             # points already created (index)
-            connections.append(np.vstack([np.arange(index, index + N - 1.5), np.arange(index + 1, index + N - 0.5)]).T)
+            connections.append(
+                np.vstack(
+                    [
+                        np.arange(index, index + N - 1.5),
+                        np.arange(index + 1, index + N - 0.5),
+                    ]
+                ).T
+            )
             index += N
 
         # Now collapse all positions, scalars and connections in big arrays

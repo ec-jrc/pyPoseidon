@@ -45,7 +45,7 @@ def d3d(tmpdir, name):
     df.to_output(solver="d3d", rpath=rpath)
 
     # read again meteo
-    m = pmodel(solver="d3d")
+    m = pmodel.set(solver="d3d")
 
     p = m.from_force(rpath + "p.amp", "msl")
     u = m.from_force(rpath + "u.amu", "u10")

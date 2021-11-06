@@ -165,7 +165,7 @@ class tri2d:
     def __init__(self, **kwargs):
 
         grid_file = kwargs.get("grid_file", None)
-        grid_generator = kwargs.get("grid_generator", "jigsaw")
+        grid_generator = kwargs.get("grid_generator", None)
         geo = kwargs.pop("geometry", None)
         coasts = kwargs.pop("coastlines", None)
         boundary = kwargs.pop("boundary", None)

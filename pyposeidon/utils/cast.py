@@ -3,10 +3,15 @@ Simulation management module
 
 """
 # Copyright 2018 European Union
-# This file is part of pyposeidon, a software written by George Breyiannis (JRC E.1)
+# This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
+import pyposeidon
+import pyposeidon.model as pm
+import pyposeidon.grid as pgrid
+from pyposeidon.utils.get_value import get_value
+
 
 import numpy as np
 import errno
@@ -15,10 +20,8 @@ import sys
 import os, errno
 from shutil import copy2
 import glob
-import pyposeidon.model as pmodel
-import pyposeidon.grid as pgrid
-from pyposeidon.utils.get_value import get_value
 import pandas as pd
+import pathlib
 
 # from pyposeidon.utils import data
 import subprocess
@@ -27,7 +30,7 @@ import logging
 logger = logging.getLogger("pyposeidon")
 
 
-def cast(solver=None, **kwargs):
+def set(solver=None, **kwargs):
     if solver == "d3d":
         return dcast(**kwargs)
     elif solver == "schism":
@@ -40,7 +43,7 @@ class dcast:
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
-    def set(self, **kwargs):
+    def run(self, **kwargs):
 
         if isinstance(self.model, str):
             self.model = pyposeidon.read_model(self.model)
@@ -103,9 +106,7 @@ class dcast:
         if self.restart_step:
             info["restart_step"] = self.restart_step
 
-        #            for attr, value in self.items():
-        #                setattr(info, attr, value)
-        m = pmodel(**info)
+        m = pm.set(**info)
 
         # copy/link necessary files
         logger.debug("copy necessary files")
@@ -128,13 +129,16 @@ class dcast:
             ipath = glob.glob(self.origin + filename)
             if ipath:
                 try:
-                    os.symlink(ipath[0], rpath + filename)
+                    os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
                 except OSError as e:
                     if e.errno == errno.EEXIST:
                         logger.warning("Restart link present\n")
                         logger.warning("overwriting\n")
                         os.remove(rpath + filename)
-                        os.symlink(ipath[0], rpath + filename)
+                        os.symlink(
+                            pathlib.Path(ipath[0]).resolve(strict=True),
+                            rpath + filename,
+                        )
         logger.debug(".. done")
 
         copy2(ppath + m.tag + ".mdf", rpath)  # copy the mdf file
@@ -147,14 +151,20 @@ class dcast:
 
         #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
         try:
-            os.symlink(ppath + "/" + inresfile, rpath + "tri-rst." + outresfile)
+            os.symlink(
+                pathlib.Path(ppath + "/" + inresfile).resolve(strict=True),
+                rpath + "tri-rst." + outresfile,
+            )
             logger.debug("symlink {} to {}".format(ppath + "/" + inresfile, rpath + "tri-rst." + outresfile))
         except OSError as e:
             if e.errno == errno.EEXIST:
                 logger.warning("Restart symlink present\n")
                 logger.warning("overwriting\n")
                 os.remove(rpath + "tri-rst." + outresfile)
-                os.symlink(ppath + "/" + inresfile, rpath + "tri-rst." + outresfile)
+                os.symlink(
+                    pathlib.Path(ppath + "/" + inresfile).resolve(strict=True),
+                    rpath + "tri-rst." + outresfile,
+                )
             else:
                 raise e
 
@@ -184,7 +194,6 @@ class dcast:
         m.config_file = rpath + m.tag + ".mdf"
 
         os.chdir(rpath)
-        # subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
         m.save()
 
         if execute:
@@ -192,10 +201,6 @@ class dcast:
 
         # cleanup
         os.remove(rpath + "tri-rst." + outresfile)
-
-        # save compiled nc file
-
-        # out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
 
         logger.info("done for date :" + datetime.datetime.strftime(self.date, "%Y%m%d.%H"))
 
@@ -208,7 +213,7 @@ class scast:
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
-    def set(self, **kwargs):
+    def run(self, **kwargs):
 
         if isinstance(self.model, str):
             self.model = pyposeidon.read_model(self.model)
@@ -217,7 +222,7 @@ class scast:
             if not hasattr(self, attr):
                 setattr(self, attr, value)
 
-        execute = get_value(self, kwargs, "execute", False)
+        execute = get_value(self, kwargs, "execute", True)
 
         pwd = os.getcwd()
 
@@ -257,12 +262,13 @@ class scast:
             sys.exit(1)
 
         ppath = self.ppath
-        # create the folder/run path
+        # create the new folder/run path
         rpath = self.cpath
 
         if not os.path.exists(rpath):
             os.makedirs(rpath)
 
+        tag = kwargs.get("tag", "schism")
         copy2(ppath + self.tag + "_model.json", rpath)  # copy the info file
 
         # load model
@@ -271,27 +277,34 @@ class scast:
             info[info.isnull().values] = None
             info = info.to_dict()[0]
 
-        args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
-        for attr in list(args):
-            info[attr] = kwargs[attr]
+        try:
+            args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
+            for attr in list(args):
+                info[attr] = kwargs[attr]
+        except:
+            pass
 
         info["config_file"] = ppath + "param.nml"
 
         # update the properties
 
-        info["start_date"] = self.date
+        info["date"] = self.date0
+        info["start_date"] = self.sdate
         info["time_frame"] = self.time_frame
-        info["end_date"] = self.date + pd.to_timedelta(self.time_frame)
+        info["end_date"] = self.sdate + pd.to_timedelta(self.time_frame)
         info["meteo_source"] = self.meteo
         info["rpath"] = rpath
-        #            info['grid_file'] = ppath + '/hgrid.gr3'
 
-        #            for attr, value in self.items():
-        #                setattr(info, attr, value)
-
-        m = pmodel(**info)
+        m = pm.set(**info)
 
         # Grid
+        gfile = glob.glob(ppath + "hgrid.gr3")
+        if gfile:
+            info["grid_file"] = gfile[0]
+            self.grid_file = gfile[0]
+            info["grid_generator"] = None
+            self.grid_generator = None
+
         m.grid = pgrid.grid(type="tri2d", **info)
 
         # get lat/lon from file
@@ -330,46 +343,29 @@ class scast:
                     copy2(ppath + filename, rpath + filename)
         logger.debug(".. done")
 
-        # symlink the station files
-        # logger.debug('symlink station files')
-        # for filename in station_files:
-
-        #   ipath = glob.glob(self.path+self.folders[0] + filename)
-        #   if ipath:
-
-        #        if not os.path.exists(rpath + '/outputs/'):
-        #            os.makedirs(rpath + '/outputs/')
-
-        #        try:
-        #            os.symlink(ipath[0],rpath + filename)
-        #        except OSError as e:
-        #            if e.errno == errno.EEXIST:
-        #                logger.warning('Restart link present\n')
-        #                logger.warning('overwriting\n')
-        #                os.remove(rpath + filename)
-        #                os.symlink(ipath[0],rpath + filename)
-        # logger.debug('.. done')
-
         # symlink the big files
         logger.debug("symlink model files")
         for filename in files_sym:
             ipath = glob.glob(self.origin + filename)
             if ipath:
                 try:
-                    os.symlink(ipath[0], rpath + filename)
+                    os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
                 except OSError as e:
                     if e.errno == errno.EEXIST:
                         logger.warning("Restart link present\n")
                         logger.warning("overwriting\n")
                         os.remove(rpath + filename)
-                        os.symlink(ipath[0], rpath + filename)
+                        os.symlink(
+                            pathlib.Path(ipath[0]).resolve(strict=True),
+                            rpath + filename,
+                        )
         logger.debug(".. done")
 
         # create restart file
         logger.debug("create restart file")
 
         # check for combine hotstart
-        hotout = int((self.date - self.date0).total_seconds() / info["params"]["core"]["dt"])
+        hotout = int((self.sdate - self.date0).total_seconds() / info["params"]["core"]["dt"])
         logger.debug("hotout_it = {}".format(hotout))
 
         resfile = glob.glob(ppath + "/outputs/hotstart_it={}.nc".format(hotout))
@@ -379,7 +375,7 @@ class scast:
                 ph = pd.read_json(f, lines=True).T
                 ph[ph.isnull().values] = None
                 ph = ph.to_dict()[0]
-            p = pmodel(**ph)
+            p = pm.set(**ph)
             p.hotstart(it=hotout)
 
         # link restart file
@@ -389,13 +385,16 @@ class scast:
         logger.info("set restart\n")
 
         try:
-            os.symlink(ppath + inresfile, rpath + outresfile)
+            os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 logger.warning("Restart link present\n")
                 logger.warning("overwriting\n")
                 os.remove(rpath + outresfile)
-                os.symlink(ppath + inresfile, rpath + outresfile)
+                os.symlink(
+                    pathlib.Path(ppath + inresfile).resolve(strict=True),
+                    rpath + outresfile,
+                )
             else:
                 raise e
 
@@ -433,7 +432,7 @@ class scast:
             logger.warning("meteo files present\n")
 
         # modify param file
-        rnday_new = (self.date - self.date0).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
+        rnday_new = (self.sdate - self.date0).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
             self.time_frame
         ).total_seconds() / (3600 * 24.0)
         hotout_write = int(rnday_new * 24 * 3600 / info["params"]["core"]["dt"])
@@ -448,24 +447,15 @@ class scast:
             }
         )
 
-        m.config(output=True, **info)
+        m.config(output=True, **info)  # save param.nml
 
         m.config_file = rpath + "param.nml"
 
-        os.chdir(rpath)
-        # subprocess.call(rpath+'run_flow2d3d.sh',shell=True)
         m.save()
 
         if execute:
             m.run()
 
-        # cleanup
-        #            os.remove(rpath+'hotstart.nc')
-
-        # save compiled nc file
-
-        # out = data(**{'solver':m.solver,'rpath':rpath,'savenc':True})
-
-        logger.info("done for date :" + datetime.datetime.strftime(self.date, "%Y%m%d.%H"))
+        logger.info("done for date :" + datetime.datetime.strftime(self.sdate, "%Y%m%d.%H"))
 
         os.chdir(pwd)

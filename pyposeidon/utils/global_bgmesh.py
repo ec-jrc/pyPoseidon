@@ -67,7 +67,7 @@ def make_bgmesh_global(b, fpos, dem, **kwargs):
     elif grid_generator == "jigsaw":
 
         dh = xr.Dataset(
-            {"z": (["longitude", "latitude"], nodes.d2.values.reshape(ui.shape))},
+            {"h": (["longitude", "latitude"], nodes.d2.values.reshape(ui.shape))},
             coords={
                 "longitude": ("longitude", d1.flatten()),
                 "latitude": ("latitude", d2.flatten()),

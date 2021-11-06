@@ -16,6 +16,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import geopandas as gp
+import pandas as pd
 import shapely
 from pyposeidon.utils.quads2tr import quads_to_tris
 
@@ -74,7 +75,15 @@ class gplot(object):
         ax.set_aspect("equal")
         ims = []
         for i in range(len(t)):
-            im = ax.contourf(grid_x, grid_y, z_[i, :, :], vrange, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
+            im = ax.contourf(
+                grid_x,
+                grid_y,
+                z_[i, :, :],
+                vrange,
+                vmin=vmin,
+                vmax=vmax,
+                transform=ccrs.PlateCarree(),
+            )
             #        im = ax.contourf(x,y,z[i,:,:],v,vmin=v1,vmax=v2,latlon=True)
             add_arts = im.collections
             text = "time={}".format(t[i])
@@ -125,11 +134,21 @@ class gplot(object):
         ax.set_aspect("equal")
 
         land_50m = cfeature.NaturalEarthFeature(
-            "physical", "land", "50m", edgecolor="face", facecolor=cfeature.COLORS["land"], zorder=0
+            "physical",
+            "land",
+            "50m",
+            edgecolor="face",
+            facecolor=cfeature.COLORS["land"],
+            zorder=0,
         )
 
         sea_50m = cfeature.NaturalEarthFeature(
-            "physical", "ocean", "50m", edgecolor="face", facecolor=cfeature.COLORS["water"], zorder=0
+            "physical",
+            "ocean",
+            "50m",
+            edgecolor="face",
+            facecolor=cfeature.COLORS["water"],
+            zorder=0,
         )
 
         title = kwargs.get("title", None)
@@ -163,23 +182,15 @@ class gplot(object):
         # you need to set blit=False, or the first set of arrows never gets
         # cleared on subsequent frames
         v = animation.FuncAnimation(
-            fig, update_quiver, fargs=(Q, U, V, step), frames=range(0, np.size(t)), blit=False, repeat=False
+            fig,
+            update_quiver,
+            fargs=(Q, U, V, step),
+            frames=range(0, np.size(t)),
+            blit=False,
+            repeat=False,
         )  # , interval=1)
 
         return v
-
-
-def to_html5(fname, mimetype):
-    """Load the video in the file `fname`, with given mimetype, and display as HTML5 video."""
-    from IPython.display import HTML
-    import base64
-
-    video = open(fname, "rb").read()
-    video_encoded = base64.b64encode(video)
-    video_tag = '<video controls alt="test" src="data:video/{0};base64,{1}">'.format(
-        mimetype, video_encoded.decode("ascii")
-    )
-    return HTML(data=video_tag)
 
 
 def update_qframes(num, Q, U, V):
@@ -248,7 +259,21 @@ class pplot(object):
             z = np.ma.masked_array(z, mask)
             z = z.filled(fill_value=-99999)
 
-        for val in ["x", "y", "t", "it", "vmin", "vmax", "title", "nv", "tes", "mask", "xy", "z", "var"]:
+        for val in [
+            "x",
+            "y",
+            "t",
+            "it",
+            "vmin",
+            "vmax",
+            "title",
+            "nv",
+            "tes",
+            "mask",
+            "xy",
+            "z",
+            "var",
+        ]:
             try:
                 del kwargs[val]
             except:
@@ -319,7 +344,22 @@ class pplot(object):
 
         xy = kwargs.get("xy", (0.3, 1.05))
 
-        for val in ["x", "y", "t", "it", "z", "vmin", "vmax", "title", "nv", "tes", "mask", "xy", "var", "figure"]:
+        for val in [
+            "x",
+            "y",
+            "t",
+            "it",
+            "z",
+            "vmin",
+            "vmax",
+            "title",
+            "nv",
+            "tes",
+            "mask",
+            "xy",
+            "var",
+            "figure",
+        ]:
             try:
                 del kwargs[val]
             except:
@@ -368,7 +408,21 @@ class pplot(object):
             v = v.filled(fill_value=-99999)
             u = u.filled(fill_value=-99999)
 
-        for val in ["x", "y", "t", "it", "u", "v", "title", "tes", "xy", "scale", "mask", "color", "var"]:
+        for val in [
+            "x",
+            "y",
+            "t",
+            "it",
+            "u",
+            "v",
+            "title",
+            "tes",
+            "xy",
+            "scale",
+            "mask",
+            "color",
+            "var",
+        ]:
             try:
                 del kwargs[val]
             except:
@@ -454,7 +508,17 @@ class pplot(object):
 
         step = kwargs.get("step", 1)  # change accordingly to fit your needs
 
-        Q = ax.quiver(x, y, u[0, :], v[0, :], pivot="mid", color=color, angles="xy", scale_units="xy", scale=scale)
+        Q = ax.quiver(
+            x,
+            y,
+            u[0, :],
+            v[0, :],
+            pivot="mid",
+            color=color,
+            angles="xy",
+            scale_units="xy",
+            scale=scale,
+        )
 
         #        if cr is not None:
         #            try:
@@ -471,7 +535,12 @@ class pplot(object):
         # you need to set blit=False, or the first set of arrows never gets
         # cleared on subsequent frames
         v = animation.FuncAnimation(
-            fig, update_qframes, fargs=(Q, u, v), blit=False, repeat=False, frames=range(0, np.size(t))
+            fig,
+            update_qframes,
+            fargs=(Q, u, v),
+            blit=False,
+            repeat=False,
+            frames=range(0, np.size(t)),
         )
 
         plt.close()
@@ -567,3 +636,58 @@ class pplot(object):
         plt.close()
 
         return v
+
+
+# https://pandas.pydata.org/pandas-docs/stable/development/extending.html
+@pd.api.extensions.register_dataframe_accessor("geo")
+class GeoAccessor:
+    def __init__(self, geopandas_obj):
+        dic = {}
+        tag = 0
+        for l in range(geopandas_obj.shape[0]):
+            lon = []
+            lat = []
+            try:
+                contour = geopandas_obj.loc[l].geometry.boundary
+            except:
+                contour = geopandas_obj.loc[l].geometry
+
+            if contour.type == "LineString":
+                for x, y in contour.coords[:]:
+                    lon.append(x)
+                    lat.append(y)
+                dic.update({"line{}".format(tag): {"longitude": lon, "latitude": lat}})
+                tag += 1
+            elif contour.type == "MultiLineString":
+                for m in range(len(contour)):
+                    lon = []
+                    lat = []
+                    for x, y in contour[l].coords[:]:
+                        lon.append(x)
+                        lat.append(y)
+                    dic.update({"line{}".format(tag): {"longitude": lon, "latitude": lat}})
+                    tag += 1
+
+        dict_of_df = {k: pd.DataFrame(v) for k, v in dic.items()}
+        df = pd.concat(dict_of_df, axis=0)
+        df = df.drop_duplicates()  # drop the repeat value on closed boundaries
+        self._validate(df)
+        self._obj = df
+
+    @staticmethod
+    def _validate(obj):
+        # verify there is a column latitude and a column longitude
+        if "latitude" not in obj.columns or "longitude" not in obj.columns:
+            raise AttributeError("Must have 'latitude' and 'longitude'.")
+
+    @property
+    def center(self):
+        # return the geographic center point of this DataFrame
+        lat = self._obj.latitude
+        lon = self._obj.longitude
+        return (float(lon.mean()), float(lat.mean()))
+
+    def plot(self):
+        # plot this array's data on a map, e.g., using Cartopy
+        self._obj.plot.scatter(x="longitude", y="latitude")
+        pass

@@ -3,8 +3,6 @@ import pyposeidon
 import os
 import multiprocessing
 
-NCORES = max(1, multiprocessing.cpu_count() - 1)
-
 from . import DATA_DIR
 
 DEM_FILE = DATA_DIR / "dem.nc"
@@ -30,7 +28,9 @@ case3 = {
 case4 = {"lon_min": -25.0, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 68.0}
 
 
-def schism(tmpdir, case):
+@pytest.mark.schism
+@pytest.mark.parametrize("case", [case0, case2])  # , case1, case3])
+def test_schism(tmpdir, case):
     # initialize a model
     dic = {
         "solver": "schism",
@@ -40,9 +40,9 @@ def schism(tmpdir, case):
         "tag": "test",
         "start_date": "2017-10-1 0:0:0",
         "time_frame": "12H",
+        "grid_generator": "jigsaw",
         "meteo_source": [DATA_DIR / "erai.grib"],  # meteo file
         "dem_source": DEM_FILE,
-        "ncores": NCORES,  # number of cores
         "update": ["all"],  # update only meteo, keep dem
         "parameters": {
             "dt": 400,
@@ -58,17 +58,10 @@ def schism(tmpdir, case):
     rpath = str(tmpdir) + "/"
     dic.update({"rpath": rpath})  # use tmpdir for running the model
 
-    b = pyposeidon.model(**dic)
+    b = pyposeidon.model.set(**dic)
 
-    try:
-        b.execute()
-        b.results()
-        return True
-    except:
-        return False
+    b.execute()
+    b.results()
 
-
-@pytest.mark.schism
-@pytest.mark.parametrize("case", [case0, case2])  # , case1, case3])
-def test_answer(tmpdir, case):
-    assert schism(tmpdir, case) == True
+    err_file = b.rpath + "/outputs/fatal.error"
+    assert os.stat(err_file).st_size == 0

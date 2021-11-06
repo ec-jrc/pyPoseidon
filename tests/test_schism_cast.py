@@ -6,9 +6,6 @@ import pandas as pd
 import datetime
 import os
 import numpy as np
-import multiprocessing
-
-NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 from . import DATA_DIR
 
@@ -41,7 +38,6 @@ case = {
     "meteo_merge": "last",  # combine meteo
     "meteo_combine_by": "nested",
     "meteo_xr_kwargs": {"concat_dim": "step"},
-    "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
         "dt": 400,
@@ -68,7 +64,6 @@ check = {
     "meteo_merge": "last",  # combine meteo
     "meteo_combine_by": "nested",
     "meteo_xr_kwargs": {"concat_dim": "step"},
-    "ncores": NCORES,  # number of cores
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
         "dt": 400,
@@ -87,7 +82,7 @@ def schism(tmpdir):
     rpath = str(tmpdir) + "/schism/"
     case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
 
-    b = pyposeidon.model(**case)
+    b = pyposeidon.model.set(**case)
 
     b.execute()
 
@@ -112,27 +107,28 @@ def schism(tmpdir):
 
     # set cast
     for l in range(len(rpaths) - 1):
-        h = cast.cast(
+        h = cast.set(
             solver="schism",
             model=b,
             ppath=rpaths[l],
             cpath=rpaths[l + 1],
             meteo=meteo[l + 1],
-            date=date_list[l + 1],
+            sdate=date_list[l + 1],
         )
-        h.set(execute=True)  # execute
+
+        h.run(execute=True)  # execute
 
     # Run check case - Total duration
     check.update({"rpath": rpath + "check/"})  # use tmpdir for running the model
 
-    c = pyposeidon.model(**check)
+    c = pyposeidon.model.set(**check)
 
     c.execute()
 
     # COMPARE
-    output = data.data(folders=rpaths, solver="schism")
+    output = data.get_output(folders=rpaths, solver="schism")
 
-    total = data.data(folders=[rpath + "check/"], solver="schism")
+    total = data.get_output(folders=[rpath + "check/"], solver="schism")
 
     rb = []
     for var in total.Dataset.data_vars:

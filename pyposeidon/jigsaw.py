@@ -183,9 +183,14 @@ def make_bgmesh(boundary, **kwargs):
         lat_min = contours.bounds.miny.min()
         lat_max = contours.bounds.maxy.max()
 
-    dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs)
-
     kwargs_ = kwargs.copy()
+    kwargs_.pop("lon_min", None)
+    kwargs_.pop("lon_max", None)
+    kwargs_.pop("lat_min", None)
+    kwargs_.pop("lat_max", None)
+
+    dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+
     res_min = kwargs_.pop("resolution_min", 0.01)
     res_max = kwargs_.pop("resolution_max", 0.5)
     dhdx = kwargs_.pop("dhdx", 0.15)

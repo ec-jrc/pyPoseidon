@@ -47,7 +47,13 @@ def test_dem_adjust(natural_earth, dem_source, window):
 @DEM_SOURCES
 @WINDOWS
 def test_schism_grid(tmpdir, natural_earth, dem_source, window):
-    grid = pg.grid(type="tri2d", geometry=window, coastlines=natural_earth, rpath=str(tmpdir) + "/")
+    grid = pg.grid(
+        type="tri2d",
+        geometry=window,
+        coastlines=natural_earth,
+        grid_generator="jigsaw",
+        rpath=str(tmpdir) + "/",
+    )
     xg = grid.Dataset.SCHISM_hgrid_node_x.values
     yg = grid.Dataset.SCHISM_hgrid_node_y.values
     df = pdem.dem(**window, grid_x=xg, grid_y=yg, dem_source=dem_source)  # get dem
@@ -62,7 +68,7 @@ def test_schism_grid(tmpdir, natural_earth, dem_source, window):
 def test_d3d_grid(tmpdir, natural_earth, dem_source, window):
     grid = pg.grid(type="r2d", geometry=window, resolution=0.1, rpath=str(tmpdir) + "/")
     gr = grid.Dataset
-    xp, yp = gr.lons, gr.lats
+    xp, yp = gr.lons.values, gr.lats.values
     df = pdem.dem(**window, grid_x=xp, grid_y=yp, dem_source=dem_source)
     df.adjust(natural_earth)
     assert np.isnan(df.Dataset.fval.values).sum() == 0
