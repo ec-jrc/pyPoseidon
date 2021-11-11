@@ -28,99 +28,6 @@ import logging
 logger = logging.getLogger("pyposeidon")
 
 
-def get_url(start_date):
-    start_date = start_date - pd.DateOffset(days=1)
-    r = [0, 6, 12, 18]
-    h = np.argmin([n for n in [start_date.hour - x for x in r] if n > 0])
-    url = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_1hr/gfs{}/gfs_0p25_1hr_{:0>2d}z".format(
-        start_date.strftime("%Y%m%d"), r[h]
-    )
-    return url
-
-
-def reduced_gg(dc):
-
-    logger.info("regriding meteo")
-
-    dc = dc.sortby("latitude", ascending=True)
-
-    lon_min = dc.longitude.values.min()
-    lon_max = dc.longitude.values.max()
-    lat_min = dc.latitude.values.min()
-    lat_max = dc.latitude.values.max()
-
-    glats = 2 * dc.msl.attrs["GRIB_N"]
-    glons = 2 * glats
-
-    dlon = 360.0 / glons
-
-    npoints = (lon_max - lon_min) / dlon + 1
-
-    x = np.linspace(lon_min, lon_max, npoints)
-
-    values, index = np.unique(dc.latitude, return_index=True)
-
-    new_data = []
-    for val in values:
-        row = dc.where(dc.latitude == val, drop=True)
-        da = row.assign_coords(values=row.longitude).interp(
-            values=x, kwargs={"fill_value": "extrapolate"}, method="cubic"
-        )
-        da = da.drop("longitude").rename({"values": "longitude"}).drop("latitude")
-        new_data.append(da)
-    # concat
-    res = xr.concat(new_data, dim="latitude").transpose("time", "latitude", "longitude")
-
-    res = res.assign_coords(latitude=values)
-
-    logger.info("regriding done")
-
-    return res
-
-
-def regrid(ds):
-
-    logger.info("regriding meteo")
-
-    de = ds.rename({"longitude": "lon", "latitude": "lat"})
-
-    lon_min = de.lon.values.min()  # get lat/lon window
-    lon_max = de.lon.values.max()
-    lat_min = de.lat.values.min()
-    lat_max = de.lat.values.max()
-
-    Nj, Ni = de.lon.shape  # get shape of original grid
-
-    y = np.linspace(lat_min, lat_max, Nj)  # create a similar grid as the original
-    x = np.linspace(lon_min, lon_max, Ni)
-
-    dlon = np.diff(x)[0]  # resolution
-    dlat = np.diff(y)[0]
-
-    ds_out = xe.util.grid_2d(lon_min, lon_max, dlon, lat_min, lat_max, dlat)  # establish out grid
-
-    regridder = xe.Regridder(de, ds_out, "bilinear")
-
-    varn = ["msl", "u10", "v10"]
-
-    dats = []
-    for var in varn:
-
-        q = regridder(de[var])
-
-        dats.append(q.where(q.values != 0))
-
-    data = xr.merge(dats)
-
-    data = data.assign_coords(x=data.lon.values[0, :], y=data.lat.values[:, 0])  # assign 1-D coords
-
-    data = data.rename({"x": "longitude", "y": "latitude"}).drop(["lon", "lat"])  # rename and drop 2-D coords
-
-    logger.info("regriding done")
-
-    return data
-
-
 class meteo:
     def __init__(self, meteo_source=None, **kwargs):
 
@@ -171,6 +78,10 @@ class meteo:
 
 def passthrough(meteo_source, **kwargs):
     return meteo_source
+
+
+def empty(meteo_source, **kwargs):
+    return None
 
 
 def cfgrib(
@@ -302,22 +213,6 @@ def cfgrib(
         logger.error("time frame does not match source range\n")
         sys.exit(1)
 
-    if len(data.longitude.shape) == 2:
-        d1 = data.where(data.longitude > lon_min, drop=True)
-        d2 = d1.where(d1.longitude < lon_max, drop=True)
-        d3 = d2.where(d2.latitude > lat_min, drop=True)
-        d4 = d3.where(d3.latitude < lat_max, drop=True)
-
-        data = regrid(d4)
-
-    if data.msl.attrs["GRIB_gridType"] == "reduced_gg":
-        d1 = data.where(data.longitude > lon_min, drop=True)
-        d2 = d1.where(d1.longitude < lon_max, drop=True)
-        d3 = d2.where(d2.latitude > lat_min, drop=True)
-        d4 = d3.where(d3.latitude < lat_max, drop=True)
-
-        data = reduced_gg(d4)
-
     tslice = slice(ts, te, dft)
 
     i0 = np.abs(data.longitude.data - lon_min).argmin()
@@ -406,9 +301,6 @@ def from_url(
     te = pd.to_datetime(end_date)
 
     xr_kwargs = kwargs.get("meteo_xr_kwargs", {"engine": "pydap"})
-
-    if not meteo_source:
-        meteo_source = get_url(ts)
 
     # ---------------------------------------------------------------------
     logger.info("extracting meteo from {}\n".format(meteo_source))
@@ -575,7 +467,7 @@ def dispatch_meteo_source(obj) -> Callable[..., xr.Dataset]:
             raise ValueError(f"Multiple types in iterable: {obj}")
         obj = tools.cast_path_to_str(obj[0])
     if obj is None:
-        meteo_func = from_url
+        meteo_func = empty
     elif isinstance(obj, xr.Dataset):
         meteo_func = passthrough
     elif isinstance(obj, str):

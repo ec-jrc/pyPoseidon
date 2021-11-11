@@ -77,13 +77,6 @@ def test_isodem_with_url(tmpdir):
     assert isinstance(df.contours, gp.GeoDataFrame)
 
 
-def test_isodem_with_missing_dem_source(tmpdir):
-    input = ncoast
-    window = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
-    df = pb.get_boundaries(geometry=window, blevels=[-100], rpath=str(tmpdir) + "/")
-    assert isinstance(df.contours, gp.GeoDataFrame)
-
-
 @CUSTOM
 def test_custom(tmpdir, boundary):
 
