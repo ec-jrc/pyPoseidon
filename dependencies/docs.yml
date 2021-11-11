@@ -1,0 +1,11 @@
+---
+
+channels:
+  - "conda-forge"
+  - "gbrey"
+
+dependencies:
+  - "mkdocs"
+  - "mkdocs-material"
+  - "mkdocstrings"
+  - "pymdown-extensions"

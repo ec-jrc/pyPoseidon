@@ -1,0 +1,8 @@
+---
+
+channels:
+  - "gbrey"
+  - "conda-forge"
+
+dependencies:
+  - "pschism=5.9*=mpi_openmpi*"
