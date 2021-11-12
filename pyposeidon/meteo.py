@@ -276,7 +276,7 @@ def cfgrib(
 
 
 def from_url(
-    meteo_source=None,
+    meteo_source,
     lon_min=None,
     lon_max=None,
     lat_min=None,

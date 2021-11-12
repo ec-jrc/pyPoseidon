@@ -96,3 +96,7 @@ def test_meteo_url():
 def test_meteo_empty():
     meteo = pmeteo.meteo(meteo_source=None)
     assert meteo.Dataset == None
+
+def test_meteo_defaults():
+    meteo = pmeteo.meteo()
+    assert meteo.Dataset == None
