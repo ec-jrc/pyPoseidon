@@ -83,9 +83,7 @@ def test_meteo_url():
         "lat_min": 56.0,
         "lat_max": 74.0,
     }
-    cdate = pd.to_datetime("today") - pd.DateOffset(
-        days=1
-    )  # step back one day for availability.
+    cdate = pd.to_datetime("today") - pd.DateOffset(days=1)  # step back one day for availability.
     r = [0, 6, 12, 18]
     h = np.argmin([n for n in [cdate.hour - x for x in r] if n > 0])
     url = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_1hr/gfs{}/gfs_0p25_1hr_{:0>2d}z".format(

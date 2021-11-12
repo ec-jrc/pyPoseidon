@@ -59,9 +59,7 @@ class meteo:
 
     def to_output(self, solver=None, **kwargs):
 
-        model = importlib.import_module(
-            "pyposeidon.model"
-        )  # load pyposeidon model class
+        model = importlib.import_module("pyposeidon.model")  # load pyposeidon model class
 
         s = getattr(model, solver)  # get solver class
         var_list = kwargs.pop("vars", ["msl", "u10", "v10"])
@@ -71,10 +69,7 @@ class meteo:
         split_by = get_value(self, kwargs, "meteo_split_by", None)
         if split_by:
             times, datasets = zip(*self.Dataset.groupby("time.{}".format(split_by)))
-            mpaths = [
-                "sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1)
-                for t in np.arange(len(times))
-            ]
+            mpaths = ["sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
             for das, mpath in list(zip(datasets, mpaths)):
                 s.to_force(das, vars=var_list, filename=mpath, **kwargs)
         else:
@@ -201,12 +196,8 @@ def cfgrib(
     if ts < data.time.data.min():
         logger.warning(
             "coverage between {} and {} \n".format(
-                pd.to_datetime(data.valid_time.values.min()).strftime(
-                    "%Y.%m.%d %H:%M:%S"
-                ),
-                pd.to_datetime(data.valid_time.values.max()).strftime(
-                    "%Y.%m.%d %H:%M:%S"
-                ),
+                pd.to_datetime(data.valid_time.values.min()).strftime("%Y.%m.%d %H:%M:%S"),
+                pd.to_datetime(data.valid_time.values.max()).strftime("%Y.%m.%d %H:%M:%S"),
             )
         )
         logger.error("time frame does not match source range\n")
@@ -215,12 +206,8 @@ def cfgrib(
     if te > data.time.data.max():
         logger.warning(
             "coverage between {} and {} \n".format(
-                pd.to_datetime(data.valid_time.values.min()).strftime(
-                    "%Y.%m.%d %H:%M:%S"
-                ),
-                pd.to_datetime(data.valid_time.values.max()).strftime(
-                    "%Y.%m.%d %H:%M:%S"
-                ),
+                pd.to_datetime(data.valid_time.values.min()).strftime("%Y.%m.%d %H:%M:%S"),
+                pd.to_datetime(data.valid_time.values.max()).strftime("%Y.%m.%d %H:%M:%S"),
             )
         )
         logger.error("time frame does not match source range\n")
@@ -260,9 +247,7 @@ def cfgrib(
         sh = sh.assign_coords({"longitude": sh.longitude.values - 360.0})
 
         sh1 = (
-            data[["msl", "u10", "v10"]]
-            .isel(longitude=slice(0, lon_1), latitude=slice(lat_0, lat_1))
-            .sel(time=tslice)
+            data[["msl", "u10", "v10"]].isel(longitude=slice(0, lon_1), latitude=slice(lat_0, lat_1)).sel(time=tslice)
         )
 
         tot = xr.concat([sh, sh1], dim="longitude")
@@ -445,16 +430,12 @@ def netcdf(
         }
     )
 
-    data = data.sel(longitude=slice(lon_min, lon_max)).sel(
-        latitude=slice(lat_min, lat_max)
-    )
+    data = data.sel(longitude=slice(lon_min, lon_max)).sel(latitude=slice(lat_min, lat_max))
 
     try:
         data = data.sel(time=slice(start_date, end_date))
     except:
-        data = data.sel(
-            time=slice(start_date, start_date + pd.to_timedelta(time_frame))
-        )
+        data = data.sel(time=slice(start_date, start_date + pd.to_timedelta(time_frame)))
 
     s, f, i = meteo_irange
     data = data.isel(time=slice(s, f, i))
@@ -481,11 +462,7 @@ def dispatch_meteo_source(obj) -> Callable[..., xr.Dataset]:
     """
     original = obj
     obj = tools.cast_path_to_str(obj)
-    if (
-        tools.is_iterable(obj)
-        and not isinstance(obj, str)
-        and not isinstance(obj, xr.Dataset)
-    ):
+    if tools.is_iterable(obj) and not isinstance(obj, str) and not isinstance(obj, xr.Dataset):
         if len({type(o) for o in obj}) != 1:
             raise ValueError(f"Multiple types in iterable: {obj}")
         obj = tools.cast_path_to_str(obj[0])
