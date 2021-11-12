@@ -80,7 +80,7 @@ def fix(dem, coastline, **kwargs):
         block = shp.cx[minlon:maxlon, minlat:maxlat]
 
     try:
-        block = gp.GeoDataFrame(geometry=list(block.unary_union))
+        block = gp.GeoDataFrame(geometry=list(block.unary_union.geoms))
     except:
         pass
 
@@ -153,8 +153,8 @@ def fix(dem, coastline, **kwargs):
     # Add land boundaries to a pygeos object
     try:
         lbs = []
-        for l in range(len(land.boundary)):
-            z = pygeos.linearrings(land.boundary[l].coords[:])
+        for l in range(len(land.boundary.geoms)):
+            z = pygeos.linearrings(land.boundary.geoms[l].coords[:])
             lbs.append(z)
     except:
         lbs = pygeos.linearrings(land.boundary.coords[:])
@@ -171,7 +171,7 @@ def fix(dem, coastline, **kwargs):
 
     try:
         wl = []
-        for l in range(len(land.boundary)):
+        for l in range(len(land.boundary.geoms)):
             wl.append(tree.query(bp[l], predicate="contains").tolist())
         ns = [j for i in wl for j in i]
     except:

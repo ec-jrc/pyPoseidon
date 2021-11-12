@@ -412,7 +412,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
     # open (water) boundaries
 
     try:
-        water = b.boundary[0] - (b.boundary[0] - grl)
+        water = b.boundary.geoms[0] - (b.boundary.geoms[0] - grl)
     except:
         water = b.boundary - (b.boundary - grl)
 
@@ -426,7 +426,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
 
     # land boundaries!!
     try:
-        land = b.boundary[0] - grl
+        land = b.boundary.geoms[0] - grl
     except:
         land = b.boundary - grl
 
