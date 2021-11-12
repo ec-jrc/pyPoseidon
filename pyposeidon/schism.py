@@ -223,10 +223,7 @@ class schism:
             params = unml(params, dic)
 
         # test rnday
-        if (
-            float(params["CORE"]["rnday"]) * 24 * 3600
-            > (self.end_date - self.start_date).total_seconds()
-        ):
+        if float(params["CORE"]["rnday"]) * 24 * 3600 > (self.end_date - self.start_date).total_seconds():
             # ---------------------------------------------------------------------
             logger.warning("rnday larger than simulation range\n")
             logger.warning(
@@ -298,9 +295,7 @@ class schism:
 
         bdate = pd.to_datetime(date).strftime("%Y %m %d %H").split(" ")
 
-        tlist = (ar.time.data - pd.to_datetime([udate]).values).astype(
-            "timedelta64[s]"
-        ) / 3600.0
+        tlist = (ar.time.data - pd.to_datetime([udate]).values).astype("timedelta64[s]") / 3600.0
 
         tlist = tlist.astype(float) / 24.0
 
@@ -422,18 +417,10 @@ class schism:
 
         # set lat/lon from file
         if hasattr(self, "grid_file"):
-            kwargs.update(
-                {"lon_min": self.grid.Dataset.SCHISM_hgrid_node_x.values.min()}
-            )
-            kwargs.update(
-                {"lon_max": self.grid.Dataset.SCHISM_hgrid_node_x.values.max()}
-            )
-            kwargs.update(
-                {"lat_min": self.grid.Dataset.SCHISM_hgrid_node_y.values.min()}
-            )
-            kwargs.update(
-                {"lat_max": self.grid.Dataset.SCHISM_hgrid_node_y.values.max()}
-            )
+            kwargs.update({"lon_min": self.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
+            kwargs.update({"lon_max": self.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
+            kwargs.update({"lat_min": self.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
+            kwargs.update({"lat_max": self.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
 
             self.lon_min = self.grid.Dataset.SCHISM_hgrid_node_x.values.min()
             self.lon_max = self.grid.Dataset.SCHISM_hgrid_node_x.values.max()
@@ -483,17 +470,13 @@ class schism:
             f.write("Header\n")
             f.write("{} {}\n".format(0, 40.0))  #  ntip tip_dp
             f.write("{}\n".format(0))  # nbfr
-            f.write(
-                "{}\n".format(number_of_open_boundaries)
-            )  # number of open boundaries
+            f.write("{}\n".format(number_of_open_boundaries))  # number of open boundaries
             for i in range(1, number_of_open_boundaries + 1):
                 nnodes = bs.loc[bs.id == i, "node"].shape[0]
                 f.write(
                     "{} {} {} {} {}\n".format(nnodes, 2, 0, 0, 0)
                 )  # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
-                f.write(
-                    "{}\n".format(0)
-                )  # ethconst !constant elevation value for this segment
+                f.write("{}\n".format(0))  # ethconst !constant elevation value for this segment
 
         # save vgrid.in
         with open(path + "vgrid.in", "w") as f:
@@ -509,12 +492,8 @@ class schism:
             f.write(
                 "{} {} {}\n".format(40.0, 1.0, 1.0e-4)
             )  # constants used in S-transformation: h_c, theta_b, theta_f
-            f.write(
-                "{} {}\n".format(1, -1.0)
-            )  # first S-level (sigma-coordinate must be -1)
-            f.write(
-                "{} {}\n".format(2, 0.0)
-            )  # levels index, sigma-coordinate, last sigma-coordinate must be 0
+            f.write("{} {}\n".format(1, -1.0))  # first S-level (sigma-coordinate must be -1)
+            f.write("{} {}\n".format(2, 0.0))  # levels index, sigma-coordinate, last sigma-coordinate must be 0
 
         # save params.in
 
@@ -525,15 +504,11 @@ class schism:
 
             try:
 
-                bat = -self.dem.Dataset.fval.values.astype(
-                    float
-                )  # minus for the hydro run
+                bat = -self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
 
             except:
 
-                bat = -self.dem.Dataset.ival.values.astype(
-                    float
-                )  # minus for the hydro run
+                bat = -self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
 
             self.grid.Dataset.depth.loc[: bat.size] = bat
 
@@ -565,9 +540,7 @@ class schism:
             f.write("\t 0 \n")
             f.write("\t {} {}\n".format(n3e, nn))
 
-        df = self.grid.Dataset[
-            ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]
-        ].to_dataframe()
+        df = self.grid.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
 
         df["man"] = manning
 
@@ -600,9 +573,7 @@ class schism:
             f.write("\t 0 \n")
             f.write("\t {} {}\n".format(n3e, nn))
 
-        df = self.grid.Dataset[
-            ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]
-        ].to_dataframe()
+        df = self.grid.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
 
         df["windrot"] = windrot
 
@@ -626,29 +597,14 @@ class schism:
         if hasattr(self, "atm"):
             try:
                 if split_by:
-                    times, datasets = zip(
-                        *self.meteo.Dataset.groupby("time.{}".format(split_by))
-                    )
-                    mpaths = [
-                        "sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1)
-                        for t in np.arange(len(times))
-                    ]
+                    times, datasets = zip(*self.meteo.Dataset.groupby("time.{}".format(split_by)))
+                    mpaths = ["sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
                     for das, mpath in list(zip(datasets, mpaths)):
                         self.to_force(
-                            das,
-                            vars=["msl", "u10", "v10"],
-                            rpath=path,
-                            filename=mpath,
-                            date=self.date,
-                            **kwargs
+                            das, vars=["msl", "u10", "v10"], rpath=path, filename=mpath, date=self.date, **kwargs
                         )
                 else:
-                    self.to_force(
-                        self.meteo.Dataset,
-                        vars=["msl", "u10", "v10"],
-                        rpath=path,
-                        **kwargs
-                    )
+                    self.to_force(self.meteo.Dataset, vars=["msl", "u10", "v10"], rpath=path, **kwargs)
             except AttributeError as e:
                 logger.warning("no meteo data available.. no update..\n")
                 pass
@@ -662,9 +618,7 @@ class schism:
 
         if bin_path is None:
             # ------------------------------------------------------------------------------
-            logger.warning(
-                "Schism executable path (epath) not given -> using default \n"
-            )
+            logger.warning("Schism executable path (epath) not given -> using default \n")
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
@@ -715,11 +669,7 @@ class schism:
 
         path = get_value(self, kwargs, "rpath", "./schism/")
 
-        lista = [
-            key
-            for key, value in self.__dict__.items()
-            if key not in ["meteo", "dem", "grid"]
-        ]
+        lista = [key for key, value in self.__dict__.items() if key not in ["meteo", "dem", "grid"]]
         dic = {k: self.__dict__.get(k, None) for k in lista}
 
         grid = self.__dict__.get("grid", None)
@@ -786,9 +736,7 @@ class schism:
 
             if bin_path is None:
                 # ------------------------------------------------------------------------------
-                logger.warning(
-                    "Schism executable path (epath) not given -> using default \n"
-                )
+                logger.warning("Schism executable path (epath) not given -> using default \n")
                 # ------------------------------------------------------------------------------
                 bin_path = "schism"
 
@@ -812,28 +760,20 @@ class schism:
 
         mfiles = {"1": mfiles1, "2": mfiles2}
 
-        mfiles = {
-            k: v for k, v in mfiles.items() if v
-        }  # remove empty keys, e.g. no mfiles2
+        mfiles = {k: v for k, v in mfiles.items() if v}  # remove empty keys, e.g. no mfiles2
 
         hfile = rfolder + "/hgrid.gr3"  # Grid
         self.params = f90nml.read(s[0])
 
         mykeys = ["start_year", "start_month", "start_day"]
-        sdate = [
-            self.params["opt"][x] for x in mykeys
-        ]  # extract date info from param.nml
+        sdate = [self.params["opt"][x] for x in mykeys]  # extract date info from param.nml
         sd = "-".join(str(item) for item in sdate)  # join in str
         sd = pd.to_datetime(sd)  # convert to datestamp
 
-        sh = [
-            self.params["opt"][x] for x in ["start_hour", "utc_start"]
-        ]  # get time attrs
+        sh = [self.params["opt"][x] for x in ["start_hour", "utc_start"]]  # get time attrs
         sd = sd + pd.to_timedelta("{}H".format(sh[0] + sh[1]))  # complete start_date
 
-        ed = sd + pd.to_timedelta(
-            "{}D".format(self.params["core"]["rnday"])
-        )  # compute end date based on rnday
+        ed = sd + pd.to_timedelta("{}D".format(self.params["core"]["rnday"]))  # compute end date based on rnday
 
         self.start_date = sd  # set attrs
         self.end_date = ed
@@ -873,9 +813,7 @@ class schism:
                         ts = "-".join(g.time.attrs["base_date"].astype(str)[:3])
                         time_r = pd.to_datetime(ts)
                         try:
-                            times = time_r + pd.to_timedelta(
-                                g.time.values, unit="D"
-                            ).round("H")
+                            times = time_r + pd.to_timedelta(g.time.values, unit="D").round("H")
                             g = g.assign_coords({"time": times})
                             ma.append(g)
                         except:
@@ -1042,10 +980,7 @@ class schism:
             )
 
         ztots = ["ztot_" + str(i) for i in range(1, h1.loc[:, "kz"].values[0] - 1)]
-        sigmas = [
-            "sigma_" + str(i)
-            for i in range(h1.loc[:, "nvrt"].values[0] - h1.loc[:, "kz"].values[0] + 1)
-        ]
+        sigmas = ["sigma_" + str(i) for i in range(h1.loc[:, "nvrt"].values[0] - h1.loc[:, "kz"].values[0] + 1)]
 
         # read secondary header
         with open(gfiles[0], "r") as f:
@@ -1079,25 +1014,17 @@ class schism:
         grid = pd.concat(gframes, keys=keys)
 
         # Droping duplicates
-        drops = nodes.reset_index()[
-            nodes.reset_index().duplicated("global_n")
-        ].index.to_list()
-        cnodes = (
-            nodes.global_n.drop_duplicates()
-        )  # drop duplicate global nodes and store the values to an array
+        drops = nodes.reset_index()[nodes.reset_index().duplicated("global_n")].index.to_list()
+        cnodes = nodes.global_n.drop_duplicates()  # drop duplicate global nodes and store the values to an array
 
         grid = grid.reset_index().drop(drops)  # Use the mask from nodes to match grid
         grid = grid.set_index(["level_0", "level_1"])
 
         grid.index = grid.index.droplevel()  # drop multi-index
         grid = grid.reset_index(drop=True)  # reset index
-        grid.index = (
-            cnodes.values - 1
-        )  # reindex based on the global index, -1 for the python convention
+        grid.index = cnodes.values - 1  # reindex based on the global index, -1 for the python convention
         grd = grid.sort_index()  # sort with the new index (that is the global_n)
-        self.misc.update(
-            {"grd": grd.reset_index(drop=True)}
-        )  # reindex for final version
+        self.misc.update({"grd": grd.reset_index(drop=True)})  # reindex for final version
 
         # Read tessalation
         eframes = np.empty(len(gfiles), dtype=object)
@@ -1132,9 +1059,7 @@ class schism:
         gt3.index = gt3.index.droplevel()  # drop multi-index
         gt3 = gt3.reset_index(drop=True)
         # Now we need to put them in order based on the global index in elems
-        gt3.index = (
-            elems.global_n.values
-        )  # we set the index equal to the global_n column
+        gt3.index = elems.global_n.values  # we set the index equal to the global_n column
         gt3 = gt3.sort_index()  # sort them
 
         # add nan column in place of the fourth node. NOTE:  This needs to be tested for quadrilaterals
@@ -1143,9 +1068,7 @@ class schism:
         gt3 = gt3.reset_index()  # reset to add more columns without problems
 
         ## Add mean x, y of the elememts. To be used in the output
-        gt3["x1"] = grd.loc[
-            gt3["ga"].values - 1, "lon"
-        ].values  # lon of the index, -1 for python convention
+        gt3["x1"] = grd.loc[gt3["ga"].values - 1, "lon"].values  # lon of the index, -1 for python convention
         gt3["y1"] = grd.loc[gt3["ga"].values - 1, "lat"].values  # lat of the index
         gt3["x2"] = grd.loc[gt3["gb"].values - 1, "lon"].values
         gt3["y2"] = grd.loc[gt3["gb"].values - 1, "lat"].values
@@ -1164,9 +1087,7 @@ class schism:
         gt3.loc[ide, "x4"] = grd.loc[gt3.loc[ide, "gd"].values - 1, "lon"].values
         gt3.loc[ide, "y4"] = grd.loc[gt3.loc[ide, "gd"].values - 1, "lat"].values
 
-        gt3.loc[ide, "xc"] = gt3[["x1", "x2", "x3", "x4"]].mean(
-            axis=1
-        )  # mean lon of the element
+        gt3.loc[ide, "xc"] = gt3[["x1", "x2", "x3", "x4"]].mean(axis=1)  # mean lon of the element
         gt3.loc[ide, "yc"] = gt3[["y1", "y2", "y3", "y4"]].mean(axis=1)
 
         ## min kbe
@@ -1183,12 +1104,8 @@ class schism:
         self.misc.update({"gt3": gt3.set_index("index")})  # set index back
 
         # Droping duplicates
-        self.misc.update(
-            {"melems": elems.loc[elems.global_n.drop_duplicates().index]}
-        )  # create the retaining mask
-        self.misc.update(
-            {"msides": re.loc[re.global_n.drop_duplicates().index]}
-        )  # keep only one of the duplicates
+        self.misc.update({"melems": elems.loc[elems.global_n.drop_duplicates().index]})  # create the retaining mask
+        self.misc.update({"msides": re.loc[re.global_n.drop_duplicates().index]})  # keep only one of the duplicates
         self.misc.update(
             {"mnodes": nodes.loc[nodes.global_n.drop_duplicates().index]}
         )  # keep only one of the duplicates
@@ -1436,9 +1353,7 @@ class schism:
 
         # edge based variables
         sides = []
-        for [etype, ga, gb, gc, gd] in gt3.loc[
-            :, ["type", "ga", "gb", "gc", "gd"]
-        ].values:
+        for [etype, ga, gb, gc, gd] in gt3.loc[:, ["type", "ga", "gb", "gc", "gd"]].values:
             if etype == 3:
                 sides.append([gb, gc])
                 sides.append([gc, ga])
@@ -1455,9 +1370,7 @@ class schism:
         ed = pd.DataFrame(sides, columns=["node1", "node2"])
 
         # mean x, y
-        ed["x1"] = grd.loc[
-            ed["node1"].values - 1, "lon"
-        ].values  # lon of the index, -1 for python convention
+        ed["x1"] = grd.loc[ed["node1"].values - 1, "lon"].values  # lon of the index, -1 for python convention
         ed["y1"] = grd.loc[ed["node1"].values - 1, "lat"].values  # lat of the index
         ed["x2"] = grd.loc[ed["node2"].values - 1, "lon"].values
         ed["y2"] = grd.loc[ed["node2"].values - 1, "lat"].values
@@ -1518,11 +1431,10 @@ class schism:
 
         cs = np.zeros(k)
 
-        cs = (1 - header2.theta_b.values) * np.sinh(
-            header2.theta_f.values * sigms[k]
-        ) / np.sinh(header2.theta_f.values) + header2.theta_b.values * (
-            np.tanh(header2.theta_f.values * (sigms[k] + 0.5))
-            - np.tanh(header2.theta_f.values * 0.5)
+        cs = (1 - header2.theta_b.values) * np.sinh(header2.theta_f.values * sigms[k]) / np.sinh(
+            header2.theta_f.values
+        ) + header2.theta_b.values * (
+            np.tanh(header2.theta_f.values * (sigms[k] + 0.5)) - np.tanh(header2.theta_f.values * 0.5)
         ) / 2 / np.tanh(
             header2.theta_f.values * 0.5
         )
@@ -1550,9 +1462,7 @@ class schism:
         gen = gen.drop_vars("one")
 
         # set timestamp
-        date = header2.loc[
-            :, ["start_year", "start_month", "start_day", "start_hour", "utc_start"]
-        ]
+        date = header2.loc[:, ["start_year", "start_month", "start_day", "start_hour", "utc_start"]]
         date = date.astype(int)
         date.columns = ["year", "month", "day", "hour", "utc"]  # rename the columns
         # set the start timestamp
@@ -1583,9 +1493,7 @@ class schism:
             hfiles.sort()
 
             times = xr.open_dataset(hfiles[0]).time
-            times = pd.to_datetime(
-                times.values, unit="s", origin=sdate.tz_convert(None)
-            )
+            times = pd.to_datetime(times.values, unit="s", origin=sdate.tz_convert(None))
 
             if times.size == 0:
                 continue
@@ -1641,13 +1549,9 @@ class schism:
                 "positive": "down",
             }
 
-            xc.sigma_theta_b.attrs = {
-                "long_name": "ocean_s_coordinate theta_b constant"
-            }
+            xc.sigma_theta_b.attrs = {"long_name": "ocean_s_coordinate theta_b constant"}
 
-            xc.sigma_theta_f.attrs = {
-                "long_name": "ocean_s_coordinate theta_f constant"
-            }
+            xc.sigma_theta_f.attrs = {"long_name": "ocean_s_coordinate theta_f constant"}
 
             xc.sigma_maxdepth.attrs = {
                 "long_name": "ocean_s_coordinate maximum depth cutoff (mixed s over z boundary)",
@@ -1827,9 +1731,7 @@ class schism:
             stations.append(cp)
 
         # to df
-        stations = pd.DataFrame(
-            stations, columns=["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y"]
-        )
+        stations = pd.DataFrame(stations, columns=["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y"])
         stations["z"] = 0
         stations.index += 1
         stations["gindex"] = grid_index
@@ -1844,15 +1746,11 @@ class schism:
             logger.info("set land boundaries as observation points \n")
 
             # get land boundaries
-            coasts = [
-                key for key in self.grid.Dataset.variables if "land_boundary" in key
-            ]
+            coasts = [key for key in self.grid.Dataset.variables if "land_boundary" in key]
             # get index
             bnodes = []
             for i in range(len(coasts)):
-                bnodes = bnodes + list(
-                    self.grid.Dataset[coasts[i]].dropna("index").astype(int).values
-                )
+                bnodes = bnodes + list(self.grid.Dataset[coasts[i]].dropna("index").astype(int).values)
             bnodes = np.unique(bnodes)  # keep unique values
             # get x,y
             xx = self.grid.Dataset.SCHISM_hgrid_node_x.to_dataframe().loc[bnodes]
@@ -1884,9 +1782,7 @@ class schism:
         with open(path + "station.in", "w") as f:
             station_flag.to_csv(f, header=None, index=False, sep=" ")
             f.write("{}\n".format(stations.shape[0]))
-            stations.loc[:, ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "z"]].to_csv(
-                f, header=None, sep=" "
-            )
+            stations.loc[:, ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "z"]].to_csv(f, header=None, sep=" ")
 
     def get_station_data(self, **kwargs):
 
@@ -1898,9 +1794,7 @@ class schism:
 
         try:
             # get the station flags
-            flags = pd.read_csv(
-                path + "station.in", header=None, nrows=1, delim_whitespace=True
-            ).T
+            flags = pd.read_csv(path + "station.in", header=None, nrows=1, delim_whitespace=True).T
             flags.columns = ["flag"]
             flags["variable"] = [
                 "elev",
@@ -1932,9 +1826,7 @@ class schism:
             df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
             pindex = pd.MultiIndex.from_product([df.T.columns, df.T.index])
 
-            r = pd.DataFrame(
-                df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]]
-            )
+            r = pd.DataFrame(df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]])
             r.index.names = ["time", "node"]
 
             r.index = r.index.set_levels(r.index.levels[1] - 1, level=1)
