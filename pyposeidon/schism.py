@@ -988,10 +988,12 @@ class schism:
                 f,
                 skiprows=nels[0] + nq[0] + nw[0] + 8,
                 header=None,
-                nrows=1,
+                nrows=2,
                 delim_whitespace=True,
-                names=ztots + sigmas,
             )
+
+        h2 = h2.T
+        h2.columns = ztots + sigmas
 
         # combine headers
         self.misc.update({"header": pd.concat([h0, h1, h2], axis=1)})
@@ -1002,7 +1004,7 @@ class schism:
             with open(gfiles[i], "r") as f:
                 gframes[i] = pd.read_csv(
                     f,
-                    skiprows=nels[i] + nq[i] + nw[i] + 10,
+                    skiprows=nels[i] + nq[i] + nw[i] + 11,
                     header=None,
                     nrows=nq[i],
                     delim_whitespace=True,
@@ -1030,7 +1032,7 @@ class schism:
             with open(gfiles[i], "r") as f:
                 eframes[i] = pd.read_csv(
                     f,
-                    skiprows=nels[i] + nq[i] + nw[i] + nq[i] + 10,
+                    skiprows=nels[i] + nq[i] + nw[i] + nq[i] + 11,
                     header=None,
                     nrows=nels[i],
                     delim_whitespace=True,
