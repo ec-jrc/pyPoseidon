@@ -13,6 +13,7 @@ dependencies:
   - dask
   - pygeos >=0.6
   - geoviews
+  - shapely=1.7.1
   - geopandas>=0.10.1
   - rasterio
   - jigsaw=0.9.12
