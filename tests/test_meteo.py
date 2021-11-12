@@ -1,5 +1,6 @@
 import pyposeidon.meteo as pmeteo
 import pytest
+import pandas as pd
 import xarray as xr
 import os
 import numpy as np
@@ -75,17 +76,28 @@ def test_meteo_passthrough():
     assert new_meteo.Dataset.equals(original_meteo.Dataset)
 
 
-@pytest.mark.xfail
 def test_meteo_url():
-    today = pd.to_datetime(datetime.datetime.today())
+    geometry = {
+        "lon_min": -25.0,  # lat/lon window
+        "lon_max": -9.0,
+        "lat_min": 56.0,
+        "lat_max": 74.0,
+    }
+    cdate = pd.to_datetime("today") - pd.DateOffset(days=1)  # step back one day for availability.
+    r = [0, 6, 12, 18]
+    h = np.argmin([n for n in [cdate.hour - x for x in r] if n > 0])
     url = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_1hr/gfs{}/gfs_0p25_1hr_{:0>2d}z".format(
-        today.strftime("%Y%m%d"), r[h]
+        cdate.strftime("%Y%m%d"), r[h]
     )
-    meteo = pmeteo.meteo(meteo_source=url)
+    meteo = pmeteo.meteo(meteo_source=url, **geometry)
     assert isinstance(meteo.Dataset, xr.Dataset)
 
 
-@pytest.mark.xfail
-def test_meteo_default_arguments():
+def test_meteo_empty():
     meteo = pmeteo.meteo(meteo_source=None)
-    assert isinstance(meteo.Dataset, xr.Dataset)
+    assert meteo.Dataset == None
+
+
+def test_meteo_defaults():
+    meteo = pmeteo.meteo()
+    assert meteo.Dataset == None
