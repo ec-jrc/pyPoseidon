@@ -22,11 +22,11 @@ def simplify(geo):
     geo = geo.loc[:, ["geometry"]].explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     # Just in case merge
-    if geo.geom_type.all() == "LineString":
+    if (geo.geom_type == "LineString").all():
         geo_ = gp.GeoDataFrame(geometry=[shapely.ops.linemerge(geo.geometry.values)])
         geo = geo_.explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
-    if geo.geom_type.all() == "Polygon":
+    if (geo.geom_type == "Polygon").all():
         try:
             geo_ = list(geo.buffer(0).unary_union)
         except TypeError:
@@ -123,6 +123,10 @@ class get_boundaries:
         if isinstance(self.geometry, dict):
             df = tag(self.geometry, self.coasts, cbuffer, blevels, **kwargs)
         elif isinstance(self.geometry, str):
+            if self.coasts is None:
+                logger.error("coastlines are missing .. exiting\n")
+                sys.exit(1)
+
             df = global_tag(self.coasts, cbuffer, blevels, **kwargs)
         elif isinstance(self.geometry, gp.GeoDataFrame):
             df = self.geometry
@@ -319,60 +323,69 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
     else:
         flag = 0
 
-    # adjust abd mask based on lat/lon window
-    if flag == 1:
-        block1 = coasts.cx[lon_min:180, lat_min:lat_max].copy()
-        block2 = coasts.cx[-180 : (lon_max - 360.0), lat_min:lat_max].copy()
+    try:
 
-        for idx, poly in block2.iterrows():
-            block2.loc[idx, "geometry"] = shapely.ops.transform(lambda x, y, z=None: (x + 360.0, y), poly.geometry)
+        # adjust abd mask based on lat/lon window
+        if flag == 1:
+            block1 = coasts.cx[lon_min:180, lat_min:lat_max].copy()
+            block2 = coasts.cx[-180 : (lon_max - 360.0), lat_min:lat_max].copy()
 
-        block = block1.append(block2)
+            for idx, poly in block2.iterrows():
+                block2.loc[idx, "geometry"] = shapely.ops.transform(lambda x, y, z=None: (x + 360.0, y), poly.geometry)
 
-    elif flag == -1:
+            block = block1.append(block2)
 
-        block1 = coasts.cx[lon_min + 360 : 180, lat_min:lat_max].copy()
-        block2 = coasts.cx[-180:lon_max, lat_min:lat_max].copy()
+        elif flag == -1:
 
-        for idx, poly in block1.iterrows():
-            block1.loc[idx, "geometry"] = shapely.ops.transform(lambda x, y, z=None: (x - 360.0, y), poly.geometry)
+            block1 = coasts.cx[lon_min + 360 : 180, lat_min:lat_max].copy()
+            block2 = coasts.cx[-180:lon_max, lat_min:lat_max].copy()
 
-        block = block1.append(block2)
+            for idx, poly in block1.iterrows():
+                block1.loc[idx, "geometry"] = shapely.ops.transform(lambda x, y, z=None: (x - 360.0, y), poly.geometry)
 
-    else:
-        block = coasts.cx[lon_min:lon_max, lat_min:lat_max]
+            block = block1.append(block2)
 
-    # Fix polygons around international line
-    if flag != 0:
+        else:
+            block = coasts.cx[lon_min:lon_max, lat_min:lat_max]
 
-        wc = block[(block.bounds.maxx == flag * 180) | (block.bounds.minx == flag * 180)]
+        # Fix polygons around international line
+        if flag != 0:
 
-        cs = []  # adjust values around zero (in projection - international line in Platee Carree)
-        for idx, line in wc.itertuples():
+            wc = block[(block.bounds.maxx == flag * 180) | (block.bounds.minx == flag * 180)]
+
+            cs = []  # adjust values around zero (in projection - international line in Platee Carree)
+            for idx, line in wc.itertuples():
+                try:
+                    x_ = [
+                        flag * 180 if abs(x - flag * 180) < 1.0e-3 else x for (x, y) in line.exterior.coords[:]
+                    ]  # polygons
+                    y_ = [y for (x, y) in line.exterior.coords[:]]
+                except:
+                    x_ = [
+                        flag * 180 if abs(x - flag * 180) < 1.0e-3 else x for (x, y) in line.coords[:]
+                    ]  # LineStrings
+                    y_ = [y for (x, y) in line.coords[:]]
+
+                cs.append(shapely.geometry.Polygon(list(zip(x_, y_))))
+
+            ww = gp.GeoDataFrame(geometry=cs)
+
             try:
-                x_ = [
-                    flag * 180 if abs(x - flag * 180) < 1.0e-3 else x for (x, y) in line.exterior.coords[:]
-                ]  # polygons
-                y_ = [y for (x, y) in line.exterior.coords[:]]
+                gw = gp.GeoDataFrame(
+                    geometry=list(ww.buffer(0).unary_union)
+                )  # merge the polygons that are split (around -180/180)
             except:
-                x_ = [flag * 180 if abs(x - flag * 180) < 1.0e-3 else x for (x, y) in line.coords[:]]  # LineStrings
-                y_ = [y for (x, y) in line.coords[:]]
+                gw = gp.GeoDataFrame(geometry=list(ww.values))
 
-            cs.append(shapely.geometry.Polygon(list(zip(x_, y_))))
+            if wc.geom_type.all() != "Polygon":
+                gw = gp.GeoDataFrame(geometry=gw.boundary.values)
 
-        ww = gp.GeoDataFrame(geometry=cs)
+            block = pd.concat([block[~block.index.isin(wc.index)], gw])
 
-        try:
-            gw = gp.GeoDataFrame(
-                geometry=list(ww.buffer(0).unary_union)
-            )  # merge the polygons that are split (around -180/180)
-        except:
-            gw = gp.GeoDataFrame(geometry=list(ww.values))
-
-        if wc.geom_type.all() != "Polygon":
-            gw = gp.GeoDataFrame(geometry=gw.boundary.values)
-
-        block = pd.concat([block[~block.index.isin(wc.index)], gw])
+    except:
+        if coasts == None:
+            block = gp.GeoDataFrame(geometry=[])
+            pass
 
     # buffer the coastlines on demand
     if cbuffer:
@@ -381,7 +394,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
         logger.info("...done")
 
     # polygonize if need be for getting the symetric difference
-    if block.geom_type.all() == "LineString":
+    if (block.geom_type == "LineString").all():
         gg = shapely.ops.polygonize_full(block.geometry.values)
         block = gp.GeoDataFrame(geometry=list(gg[0])).explode(index_parts=True).droplevel(0).reset_index(drop=True)
 

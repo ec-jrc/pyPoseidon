@@ -76,6 +76,7 @@ def test_meteo_passthrough():
     assert new_meteo.Dataset.equals(original_meteo.Dataset)
 
 
+@pytest.mark.slow
 def test_meteo_url():
     geometry = {
         "lon_min": -25.0,  # lat/lon window

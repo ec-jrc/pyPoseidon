@@ -14,6 +14,7 @@ import multiprocessing
 import os
 import pathlib
 import warnings
+import sys
 
 import numpy as np
 import pyresample
@@ -35,12 +36,14 @@ class dem:
 
         # integrate geometry attribute.
         geometry = kwargs.get("geometry", None)
-        if geometry:
+        if isinstance(geometry, dict):
             kwargs.update(**geometry)
 
         if not dem_source:
-            dem_source = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus"
-        self.Dataset = dem_(source=dem_source, **kwargs)
+            logger.error("dem_source is required\n")
+            sys.exit(1)
+        else:
+            self.Dataset = dem_(source=dem_source, **kwargs)
 
         coastline = kwargs.get("coastlines", None)
         if coastline is not None:
@@ -80,13 +83,20 @@ def normalize_elevation_name(dataset: xr.Dataset) -> xr.Dataset:
 
 
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs) -> xr.Dataset:
-    dataset_kwargs = kwargs.pop("dem_xr_kwargs", {})
-    data = tools.open_dataset(source, **dataset_kwargs)
+    if isinstance(source, xr.Dataset):
+        data = source
+    else:
+        dataset_kwargs = kwargs.pop("dem_xr_kwargs", {})
+        data = tools.open_dataset(source, **dataset_kwargs)
+
     data = normalize_coord_names(data)
     data = normalize_elevation_name(data)
 
+    dlon0 = round(data.longitude.data.min())
+    dlon1 = round(data.longitude.data.max())
+
     # recenter the window
-    if data.longitude.max() - data.longitude.min() > 359.0:
+    if dlon1 - dlon0 == 360.0:
 
         lon0 = lon_min + 360.0 if lon_min < data.longitude.min() else lon_min
         lon1 = lon_max + 360.0 if lon_max < data.longitude.min() else lon_max
@@ -99,12 +109,6 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         lon0 = lon_min
         lon1 = lon_max
 
-    lon0 = lon_min + 360.0 if lon_min < -180 else lon_min
-    lon1 = lon_max + 360.0 if lon_max < -180 else lon_max
-
-    lon0 = lon0 - 360.0 if lon0 > 180 else lon0
-    lon1 = lon1 - 360.0 if lon1 > 180 else lon1
-
     if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()):
         logger.warning("Lon must be within {} and {}".format(data.longitude.min().values, data.longitude.max().values))
         logger.warning("compensating if global dataset available")
@@ -113,8 +117,12 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         logger.warning("Lat is within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
 
     # get idx
-    i0 = np.abs(data.longitude.data - lon0).argmin()
-    i1 = np.abs(data.longitude.data - lon1).argmin()
+    if lon_max - lon_min == dlon1 - dlon0:
+        i0 = 0 if lon_min == dlon0 else int(data.longitude.shape[0] / 2) + 2  # compensate for below
+        i1 = data.longitude.shape[0] if lon_max == dlon1 else -int(data.longitude.shape[0] / 2) - 2
+    else:
+        i0 = np.abs(data.longitude.data - lon0).argmin()
+        i1 = np.abs(data.longitude.data - lon1).argmin()
 
     j0 = np.abs(data.latitude.data - lat_min).argmin()
     j1 = np.abs(data.latitude.data - lat_max).argmin()
