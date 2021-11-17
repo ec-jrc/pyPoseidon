@@ -69,6 +69,7 @@ def test_isodem(tmpdir, window, input, dem_source):
     assert isinstance(df.contours, gp.GeoDataFrame)
 
 
+@pytest.mark.slow
 def test_isodem_with_url(tmpdir):
     input = nland
     window = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
