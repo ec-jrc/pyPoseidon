@@ -13,8 +13,8 @@ import datetime
 import xarray as xr
 import pandas as pd
 import sys
-from .jigsaw import *
-from .ugmsh import *
+from pyposeidon import mjigsaw
+from pyposeidon import mgmsh
 import logging
 import f90nml
 import os
@@ -166,9 +166,9 @@ class tri2d:
 
         grid_file = kwargs.get("grid_file", None)
         grid_generator = kwargs.get("grid_generator", None)
-        geo = kwargs.pop("geometry", None)
-        coasts = kwargs.pop("coastlines", None)
-        boundary = kwargs.pop("boundary", None)
+        geo = kwargs.get("geometry", None)
+        coasts = kwargs.get("coastlines", None)
+        boundary = kwargs.get("boundary", None)
 
         if geo == "global":
             kwargs.update({"gglobal": True})
@@ -180,11 +180,11 @@ class tri2d:
         elif grid_generator == "gmsh":
 
             if boundary is None:
-                self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
+                self.boundary = pb.get_boundaries(**kwargs)
             else:
                 self.boundary = boundary
 
-            g, bg = gmsh_(self.boundary, **kwargs)  # create grid with GMSH
+            g, bg = mgmsh.get(self.boundary.contours, **kwargs)  # create grid with GMSH
 
             self.Dataset = g
 
@@ -193,11 +193,11 @@ class tri2d:
         elif grid_generator == "jigsaw":
 
             if boundary is None:
-                self.boundary = pb.get_boundaries(geometry=geo, coastlines=coasts, **kwargs)
+                self.boundary = pb.get_boundaries(**kwargs)
             else:
                 self.boundary = boundary
 
-            g, bg = jigsaw(self.boundary, **kwargs)  # create grid with JIGSAW
+            g, bg = mjigsaw.get(self.boundary.contours, **kwargs)  # create grid with JIGSAW
 
             self.Dataset = g
 
@@ -301,6 +301,7 @@ class tri2d:
         attr = []
         idx = n1 + 2
         ili = -1
+        lli = 1001
         for nl in range(nlb):
             nn, etype = df.loc[idx, "data"].split("=")[0].strip().split(" ")
             nn = int(nn)
@@ -317,8 +318,12 @@ class tri2d:
             li["type"] = tt[0]
             li["id"] = idi[0]
             ldic.update({label: li})
-            ili -= 1
-
+            if tt[0] == "land":
+                lli += 1
+            elif tt[0] == "island":
+                ili -= 1
+            else:
+                raise ValueError(f"mesh boundaries error")
         try:
             dfl = pd.concat(ldic).droplevel(0).reset_index(drop=True)
         except ValueError:
@@ -463,8 +468,9 @@ class tri2d:
                     dat_ = bs.loc[bs.id == i]
                     dat = dat_.node + 1  # fortran
 
-                    f.write("{} {} = Number of nodes for land boundary {}\n".format(dat.size, 1, -i))
+                    f.write("{} {} = Number of nodes for land boundary {}\n".format(dat.size, 1, ik))
                     dat.to_csv(f, index=None, header=False)
+                    ik += 1
 
     def validate(self, **kwargs):
 
@@ -541,7 +547,7 @@ class tri2d:
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(
             args=["./launchSchism.sh"],
-            cwd=calc_dir,
+            cwd=path,
             shell=True,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,

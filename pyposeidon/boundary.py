@@ -18,7 +18,7 @@ logger = logging.getLogger("pyposeidon")
 
 def simplify(geo):
 
-    logger.info("merge dataset")
+    logger.info("simplify coastalines dataset")
     geo = geo.loc[:, ["geometry"]].explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     # Just in case merge
@@ -39,7 +39,7 @@ def simplify(geo):
 
 
 class get_boundaries:
-    def __init__(self, geometry, coastlines=None, cbuffer=None, blevels=None, **kwargs):
+    def __init__(self, **kwargs):
         """
         Set model boundaries
 
@@ -58,6 +58,12 @@ class get_boundaries:
                the extent. Defaults to `None`.
             dem_source (str): Path or url to bathymetric data.
         """
+
+        geometry = kwargs.get("geometry", None)
+        coastlines = kwargs.get("coastlines", None)
+        cbuffer = kwargs.get("cbuffer", None)
+        blevels = kwargs.get("blevels", None)
+        prad = kwargs.get("R", 1.0)
 
         # COASTLINES
         if coastlines is None:
@@ -89,12 +95,14 @@ class get_boundaries:
 
             self.geometry = geometry
 
-        elif geometry == "global":
+        elif isinstance(geometry, str):
 
-            if self.coasts is None:
-                logger.warning("coastlines might be required")
+            if geometry == "global":
 
-            self.geometry = "global"
+                if self.coasts is None:
+                    logger.warning("coastlines might be required")
+
+                self.geometry = "global"
 
         else:
 
@@ -121,13 +129,13 @@ class get_boundaries:
 
         # get boundaries
         if isinstance(self.geometry, dict):
-            df = tag(self.geometry, self.coasts, cbuffer, blevels, **kwargs)
+            df = tag(self.geometry, self.coasts, cbuffer, blevels)
         elif isinstance(self.geometry, str):
             if self.coasts is None:
                 logger.error("coastlines are missing .. exiting\n")
                 sys.exit(1)
 
-            df = global_tag(self.coasts, cbuffer, blevels, **kwargs)
+            df = global_tag(self.coasts, cbuffer, blevels, R=prad)
         elif isinstance(self.geometry, gp.GeoDataFrame):
             df = self.geometry
 
@@ -290,7 +298,7 @@ def get_dem_contours(blevels, dem):
     return w1.loc[~w1.is_empty]  # cleanup
 
 
-def tag(geometry, coasts, cbuffer, blevels, **kwargs):
+def tag(geometry, coasts, cbuffer, blevels):
 
     try:
         lon_min = geometry["lon_min"]
@@ -325,7 +333,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
 
     try:
 
-        # adjust abd mask based on lat/lon window
+        # adjust and mask based on lat/lon window
         if flag == 1:
             block1 = coasts.cx[lon_min:180, lat_min:lat_max].copy()
             block2 = coasts.cx[-180 : (lon_max - 360.0), lat_min:lat_max].copy()
@@ -513,7 +521,7 @@ def tag(geometry, coasts, cbuffer, blevels, **kwargs):
     return df
 
 
-def global_tag(geo, cbuffer, blevels, **kwargs):
+def global_tag(geo, cbuffer, blevels, R=1):
 
     # Manage coastlines
     logger.info("preparing coastlines")
@@ -566,7 +574,7 @@ def global_tag(geo, cbuffer, blevels, **kwargs):
             geo.loc[idx, "geometry"] = shapely.geometry.LineString(list(zip(gx_, gy_)))
         else:
             geo.loc[idx, "geometry"] = shapely.ops.transform(
-                lambda x, y, z=None: to_stereo(x, y, R=kwargs.get("R", 1.0)),
+                lambda x, y, z=None: to_stereo(x, y, R=R),
                 poly.geometry,
             )
 

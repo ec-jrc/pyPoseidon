@@ -45,14 +45,30 @@ class dem:
         else:
             self.Dataset = dem_(source=dem_source, **kwargs)
 
-        coastline = kwargs.get("coastlines", None)
-        if coastline is not None:
-            if kwargs.get("adjust_dem", True):
+        #        print('CHECK2  :','adjusted' in self.Dataset.data_vars.keys())
+        #        print(self.Dataset.data_vars.keys())
+        if kwargs.get("adjust_dem", True):
+            coastline = kwargs.get("coastlines", None)
+            if coastline is None:
+                logger.warning("coastlines not present, aborting adjusting dem\n")
+            elif "adjusted" in self.Dataset.data_vars.keys():
+                logger.info("Dem already adjusted\n")
+            elif "fval" in self.Dataset.data_vars.keys():
+                logger.info("Dem already adjusted\n")
+            else:
                 self.adjust(coastline)
 
     def adjust(self, coastline, **kwargs):
 
         self.Dataset = fix(self.Dataset, coastline, **kwargs)
+        try:
+            check = np.isnan(self.Dataset.adjusted).sum() == 0
+        except:
+            check = np.isnan(self.Dataset.fval).sum() == 0
+
+        if not check:
+            logger.warning("Adjusting dem failed, keeping original values\n")
+            self.Dataset = self.Dataset.drop_vars("adjusted")
 
 
 def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
@@ -76,13 +92,15 @@ def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
 
 def normalize_elevation_name(dataset: xr.Dataset) -> xr.Dataset:
     data_vars = list(dataset.data_vars.keys())
-    if len(data_vars) > 1:
+    if (len(data_vars) > 1) & ("elevation" not in data_vars):
         warnings.warn(f"There are multiple data_vars. Assuming 'elevation' is the first one: {data_vars}")
-    dataset = dataset.rename({data_vars[0]: "elevation"})
+    if "elevation" not in data_vars:
+        dataset = dataset.rename({data_vars[0]: "elevation"})
     return dataset
 
 
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs) -> xr.Dataset:
+
     if isinstance(source, xr.Dataset):
         data = source
     else:
@@ -158,72 +176,87 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         c = np.sign(np.mean([lon_min, lon_max]))
         dem["longitude"] = dem["longitude"] + c * 360.0
 
-    if "grid_x" in kwargs.keys():
+    # ---------------------------------------------------------------------
+    logger.info("dem done\n")
+    # ---------------------------------------------------------------------
 
-        # ---------------------------------------------------------------------
-        logger.info(".. interpolating on grid ..\n")
-        # ---------------------------------------------------------------------
+    dem_data = xr.merge([dem])
 
-        grid_x = kwargs.get("grid_x", None)
-        grid_y = kwargs.get("grid_y", None)
-        # resample on the given grid
-        xx, yy = np.meshgrid(dem.longitude, dem.latitude)  # original grid
+    grid_x = kwargs.get("grid_x", None)
+    if grid_x is not None:
+        dem_data = dem_on_grid(dem_data, **kwargs)
 
-        # Translate for pyresample
-        if xx.mean() < 0 and xx.min() < -180.0:
-            xx = xx + 180.0
-            gx = grid_x + 180.0
-        elif xx.mean() > 0 and xx.max() > 180.0:
-            xx = xx - 180.0
-            gx = grid_x - 180.0
-        else:
-            gx = grid_x
+    return dem_data
 
-        orig = pyresample.geometry.SwathDefinition(lons=xx, lats=yy)  # original points
-        targ = pyresample.geometry.SwathDefinition(lons=gx, lats=grid_y)  # target grid
 
-        wet = kwargs.get("wet_only", False)
-        if wet:
-            # mask positive bathymetry
-            vals = np.ma.masked_array(dem, dem.values > 0)
-        else:
-            vals = dem.values
+def dem_on_grid(dataset, **kwargs):
 
-        # with nearest using only the water values
+    # ---------------------------------------------------------------------
+    logger.info(".. interpolating on grid ..\n")
+    # ---------------------------------------------------------------------
 
-        itopo = pyresample.kd_tree.resample_nearest(
-            orig, dem.values, targ, radius_of_influence=100000, fill_value=np.nan
-        )  # ,nprocs=ncores)
+    grid_x = kwargs.get("grid_x", None)
+    grid_y = kwargs.get("grid_y", None)
+    # resample on the given grid
+    xx, yy = np.meshgrid(dataset.longitude, dataset.latitude)  # original grid
 
-        if len(grid_x.shape) > 1:
-            idem = xr.Dataset(
-                {
-                    "ival": (["k", "l"], itopo),
-                    "ilons": (["k", "l"], grid_x),
-                    "ilats": (["k", "l"], grid_y),
-                }
-            )  # ,
-        #                           coords={'ilon': ('ilon', grid_x[0,:]),
-        #                                   'ilat': ('ilat', grid_y[:,0])})
-
-        elif len(grid_x.shape) == 1:
-            idem = xr.Dataset(
-                {
-                    "ival": (["k"], itopo),
-                    "ilons": (["k"], grid_x),
-                    "ilats": (["k"], grid_y),
-                }
-            )
-
-        # ---------------------------------------------------------------------
-        logger.info("dem done\n")
-        # ---------------------------------------------------------------------
-
-        return xr.merge([dem, idem])
-
+    # Translate for pyresample
+    if xx.mean() < 0 and xx.min() < -180.0:
+        xx = xx + 180.0
+        gx = grid_x + 180.0
+    elif xx.mean() > 0 and xx.max() > 180.0:
+        xx = xx - 180.0
+        gx = grid_x - 180.0
     else:
+        gx = grid_x
 
-        return xr.merge([dem])
+    orig = pyresample.geometry.SwathDefinition(lons=xx, lats=yy)  # original points
+    targ = pyresample.geometry.SwathDefinition(lons=gx, lats=grid_y)  # target grid
+
+    var = "adjusted" if "adjusted" in dataset.data_vars.keys() else "elevation"
+
+    # ---------------------------------------------------------------------
+    logger.info(".. using {} values ..\n".format(var))
+    # ---------------------------------------------------------------------
+
+    wet = kwargs.get("wet_only", False)
+    if wet:
+        # mask positive bathymetry
+        vals = np.ma.masked_array(dataset, dataset[var].values > 0)
+    else:
+        vals = dataset[var].values
+
+    # with nearest using only the water values
+
+    itopo = pyresample.kd_tree.resample_nearest(
+        orig, dataset[var].values, targ, radius_of_influence=100000, fill_value=np.nan
+    )  # ,nprocs=ncores)
+
+    if len(grid_x.shape) > 1:
+        idem = xr.Dataset(
+            {
+                "ival": (["k", "l"], itopo),
+                "ilons": (["k", "l"], grid_x),
+                "ilats": (["k", "l"], grid_y),
+            }
+        )  # ,
+    #                           coords={'ilon': ('ilon', grid_x[0,:]),
+    #                                   'ilat': ('ilat', grid_y[:,0])})
+
+    elif len(grid_x.shape) == 1:
+        idem = xr.Dataset(
+            {
+                "ival": (["k"], itopo),
+                "ilons": (["k"], grid_x),
+                "ilats": (["k"], grid_y),
+            }
+        )
+
+    # ---------------------------------------------------------------------
+    logger.info("dem on grid done\n")
+    # ---------------------------------------------------------------------
+
+    return xr.merge([dataset, idem])
 
 
 def to_output(dataset=None, solver=None, **kwargs):

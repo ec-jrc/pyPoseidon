@@ -16,9 +16,9 @@ COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
 @pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
 @pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
 @pytest.mark.parametrize("bindings", [True, False])
-def test_answer(tmpdir, ggor, bgmesh, bindings):
+def test_io(tmpdir, ggor, bgmesh, bindings):
 
-    df = pg.grid(
+    mesh = pg.grid(
         type="tri2d",
         geometry="global",
         coastlines=COAST_FILE,
@@ -28,6 +28,46 @@ def test_answer(tmpdir, ggor, bgmesh, bindings):
         use_bindings=bindings,
     )
 
-    check = np.isnan(df.Dataset.depth.values).sum() == 0
+    # save to file
+    filename = str(tmpdir.join("hgrid_.gr3"))
+    mesh.to_file(filename)
 
-    assert check == True
+    # read from file
+    m = pg.grid(type="tri2d", grid_file=filename)
+
+    dic = {}
+    for d in m.Dataset.data_vars:
+        dic.update({d: m.Dataset[d].equals(mesh.Dataset[d])})
+
+    dic.pop("SCHISM_hgrid_node_x", None)
+    dic.pop("SCHISM_hgrid_node_y", None)
+
+    check1 = all(value == True for value in dic.values())
+
+    dx = np.abs(m.Dataset.SCHISM_hgrid_node_x - mesh.Dataset.SCHISM_hgrid_node_x).max()
+    dy = np.abs(m.Dataset.SCHISM_hgrid_node_y - mesh.Dataset.SCHISM_hgrid_node_y).max()
+
+    check2 = (dx.values.max() < 1.0e-8) & (dy.values.max() < 1.0e-8)
+
+    assert all([c == True for c in [check1, check2]])
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
+@pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
+@pytest.mark.parametrize("bindings", [True, False])
+def test_val(tmpdir, ggor, bgmesh, bindings):
+
+    mesh = pg.grid(
+        type="tri2d",
+        geometry="global",
+        coastlines=COAST_FILE,
+        rpath=str(tmpdir) + "/",
+        grid_generator=ggor,
+        dem_source=bgmesh,
+        use_bindings=bindings,
+    )
+
+    rpath = str(tmpdir) + "/"
+
+    assert mesh.validate(rpath=rpath)

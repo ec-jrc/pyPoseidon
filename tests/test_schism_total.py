@@ -2,39 +2,37 @@ import pytest
 import pyposeidon
 import os
 import multiprocessing
+import geopandas as gp
+import cartopy.feature as cf
 
 from . import DATA_DIR
 
 DEM_FILE = DATA_DIR / "dem.nc"
 
-case0 = {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0}
+coast = cf.GSHHSFeature(scale="auto", levels=[1])
 
-case1 = {
-    "lon_min": 175.0,
-    "lon_max": 184.0,
-    "lat_min": -21.5,
-    "lat_max": -14.5,
-}  # lat/lon window
+GSHHS = gp.GeoDataFrame(geometry=[x for x in coast.geometries()])
 
-case2 = {"lon_min": -20.0, "lon_max": -10.0, "lat_min": 63.0, "lat_max": 67.0}
 
-case3 = {
-    "lon_min": 175.0 - 360.0,
-    "lon_max": 184.0 - 360.0,
-    "lat_min": -21.5,
-    "lat_max": -14.5,
-}  # lat/lon window
-
-case4 = {"lon_min": -25.0, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 68.0}
+WINDOWS = pytest.mark.parametrize(
+    "window",
+    [
+        {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
+        {"lon_min": 175.0, "lon_max": 185.0, "lat_min": -21.5, "lat_max": -14.5},
+        {"lon_min": -185.0, "lon_max": -175.0, "lat_min": -21.5, "lat_max": -14.5},
+        {"lon_min": -25.0, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 68.0},
+    ],
+)
 
 
 @pytest.mark.schism
-@pytest.mark.parametrize("case", [case0, case2])  # , case1, case3])
-def test_schism(tmpdir, case):
+@WINDOWS
+def test_schism(tmpdir, window):
     # initialize a model
     dic = {
         "solver": "schism",
-        "geometry": case,
+        "geometry": window,
+        "coastlines": GSHHS,
         "manning": 0.12,
         "windrot": 0.00001,
         "tag": "test",

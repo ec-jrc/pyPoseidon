@@ -1,4 +1,4 @@
-import pyposeidon.grid as pgrid
+import pyposeidon.grid as pg
 import pytest
 import os
 
@@ -9,14 +9,14 @@ def func(tmpdir, name):
 
     filename = DATA_DIR / name
     # read grid file
-    grid = pgrid.grid(type="tri2d", grid_file=filename)
+    grid = pg.grid(type="tri2d", grid_file=filename)
 
     filename_ = str(tmpdir.join("hgrid_.gr3"))
     # output to grid file
     grid.to_file(filename_)
 
     # read again new grid
-    grid_ = pgrid.grid(type="tri2d", grid_file=filename_)
+    grid_ = pg.grid(type="tri2d", grid_file=filename_)
 
     # cleanup
     os.remove(filename_)

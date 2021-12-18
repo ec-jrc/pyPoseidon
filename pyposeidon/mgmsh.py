@@ -22,7 +22,7 @@ import shapely
 from pyposeidon.utils.spline import use_spline
 from pyposeidon.utils.global_bgmesh import make_bgmesh_global
 from pyposeidon.utils.stereo import to_stereo, to_3d, to_lat_lon
-from pyposeidon.utils.pos import to_st, to_global_pos
+from pyposeidon.utils.pos import to_st, to_global_pos, to_sq
 from pyposeidon.utils.scale import scale_dem
 from pyposeidon.utils.topology import (
     MakeTriangleFaces_periodic,
@@ -32,6 +32,7 @@ from pyposeidon.utils.topology import (
     quads_to_df,
 )
 import pyposeidon.dem as pdem
+from pyposeidon.tools import orient
 
 import multiprocessing
 
@@ -127,6 +128,24 @@ def read_gmsh(mesh, **kwargs):
     else:
         bnodes = pd.DataFrame({})
 
+    gglobal = kwargs.get("gglobal", False)
+    if gglobal:
+        use_bindings = kwargs.get("use_bindings", True)
+        if not use_bindings:
+            bnodes["type"] = "island"  # Fix for binary run and GLOBAL. CHECK
+            bnodes["id"] = -bnodes.id.values
+
+        bnodes = bnodes.sort_values(["type", "id", "node"]).reset_index(drop=True)  # sort
+        bnodes.index.name = "bnodes"
+
+        # check orientation
+        if use_bindings:
+            nodes, tria = orient(nodes, tria, x="x", y="y")
+        else:
+            bgmesh = kwargs.get("bgmesh", None)
+            if not bgmesh:
+                tria = tria.reindex(columns=["a", "c", "b"])
+
     # check if global and reproject
     sproj = kwargs.get("gglobal", False)
     if sproj:  # convert to lat/lon
@@ -174,7 +193,7 @@ def read_gmsh(mesh, **kwargs):
     return gr
 
 
-def gmsh_(boundary, **kwargs):
+def get(contours, **kwargs):
 
     logger.info("Creating grid with GMSH\n")
 
@@ -213,10 +232,10 @@ def gmsh_(boundary, **kwargs):
 
                 dem = pdem.dem(**kwargs)
 
-                nds, lms = make_bgmesh_global(boundary, fpos, dem, **kwargs)
+                nds, lms = make_bgmesh_global(contours, fpos, dem.Dataset, **kwargs)
                 dh = to_global_pos(nds, lms, fpos, **kwargs)
             else:
-                dh = make_bgmesh(boundary.contours, fpos, **kwargs)
+                dh = make_bgmesh(contours, fpos, **kwargs)
 
             kwargs.update({"bgmesh": fpos})
 
@@ -228,9 +247,9 @@ def gmsh_(boundary, **kwargs):
 
     if use_bindings:
         logger.info("using python bindings")
-        make_gmsh(boundary, **kwargs)
+        make_gmsh(contours, **kwargs)
     else:
-        to_geo(boundary, **kwargs)
+        to_geo(contours, **kwargs)
         if not setup_only:
             logger.info("using GMSH binary")
             gmsh_execute(**kwargs)
@@ -326,9 +345,7 @@ def gset(df, **kwargs):
     return ddf
 
 
-def to_geo(boundary, **kwargs):
-
-    df = boundary.contours
+def to_geo(df, **kwargs):
 
     gglobal = kwargs.get("gglobal", False)
 
@@ -416,8 +433,12 @@ def to_geo(boundary, **kwargs):
             loops.append(ltag)
 
             pl += 1
-            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
+            #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
+            f.write("Physical Line  ({}) = {}".format(pl, "{"))
+            f.write(",".join(map(str, lines)))
+            f.write("{};\n".format("}"))
 
+        #
         except:
 
             pass
@@ -477,12 +498,16 @@ def to_geo(boundary, **kwargs):
             loops.append(ltag)
 
             pl += 1
-            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
+            #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
+            f.write("Physical Line  ({}) = {}".format(pl, "{"))
+            f.write(",".join(map(str, lines)))
+            f.write("{};\n".format("}"))
 
         f.write("Plane Surface (2) = {")
         f.write(",".join(map(str, loops)))
         f.write("{};\n".format("}"))
 
+        f.write("Physical Surface(1) = {2};\n")
         f.write("Field[1] = Distance;\n")
 
         if not bspline:
@@ -492,10 +517,10 @@ def to_geo(boundary, **kwargs):
             f.write(",".join(map(str, np.arange(ptag0, ptag + 1))))
             f.write("};\n")
 
-        SizeMin = kwargs.get("SizeMin", 0.1)
-        SizeMax = kwargs.get("SizeMax", 0.5)
-        DistMin = kwargs.get("DistMin", 0.01)
-        DistMax = kwargs.get("DistMax", 0.2)
+        SizeMin = kwargs.get("SizeMin", 0.01)
+        SizeMax = kwargs.get("SizeMax", 0.1)
+        DistMin = kwargs.get("DistMin", 0.0)
+        DistMax = kwargs.get("DistMax", 0.05)
 
         f.write("Field[2] = Threshold;\n")
         f.write("Field[2].IField = 1;\n")
@@ -524,18 +549,12 @@ def to_geo(boundary, **kwargs):
 
             f.write("Background Field = 2;\n")
 
-        MeshSizeMin = kwargs.get("MeshSizeMin", None)
-        MeshSizeMax = kwargs.get("MeshSizeMax", None)
+        MeshSizeMin = kwargs.get("MeshSizeMin", SizeMin)
+        MeshSizeMax = kwargs.get("MeshSizeMax", SizeMax)
 
-        if MeshSizeMin is not None:
-            f.write("Mesh.MeshSizeMin = {};\n".format(MeshSizeMin))
-        if MeshSizeMax is not None:
-            f.write("Mesh.MeshSizeMax = {};\n".format(MeshSizeMax))
-
-        if bgmesh:
-            f.write("Mesh.MeshSizeFromPoints = 0;\n")
-            f.write("Mesh.MeshSizeFromCurvature = 0;\n")
-            f.write("Mesh.MeshSizeExtendFromBoundary = 0;\n")
+        f.write("Mesh.MeshSizeFromPoints = 0;\n")
+        f.write("Mesh.MeshSizeFromCurvature = 0;\n")
+        f.write("Mesh.MeshSizeExtendFromBoundary = 0;\n")
 
     return
 
@@ -654,14 +673,23 @@ def outer_boundary(df, **kwargs):
 
 def make_bgmesh(df, fpos, **kwargs):
 
-    logger.info("Read DEM")
-
     lon_min = df.bounds.minx.min()
     lon_max = df.bounds.maxx.max()
     lat_min = df.bounds.miny.min()
     lat_max = df.bounds.maxy.max()
 
-    dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs)
+    kwargs_ = kwargs.copy()
+    kwargs_.pop("lon_min", None)
+    kwargs_.pop("lon_max", None)
+    kwargs_.pop("lat_min", None)
+    kwargs_.pop("lat_max", None)
+
+    dem = kwargs.get("dem_source", None)
+
+    if not isinstance(dem, xr.Dataset):
+        logger.info("Read DEM")
+        dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+        dem = dem.Dataset
 
     res_min = kwargs.get("resolution_min", 0.01)
     res_max = kwargs.get("resolution_max", 0.5)
@@ -673,6 +701,10 @@ def make_bgmesh(df, fpos, **kwargs):
         b = dem.adjusted.to_dataframe()
     except:
         b = dem.elevation.to_dataframe()
+
+    b = b.reset_index()
+
+    b.columns = ["latitude", "longitude", "z"]
 
     nodes = scale_dem(b, res_min, res_max, **kwargs)
 
@@ -695,18 +727,16 @@ def make_bgmesh(df, fpos, **kwargs):
 
     logger.info("Save bgmesh to {}".format(fpos))
 
-    to_st(df, fpos)  # save bgmesh
+    to_sq(df, fpos)  # save bgmesh
 
     kwargs.update({"bgmesh": fpos})
 
     return dh
 
 
-def make_gmsh(boundary, **kwargs):
+def make_gmsh(df, **kwargs):
 
     logger.info("create grid")
-
-    df = boundary.contours
 
     model = gmsh.model
     factory = model.geo

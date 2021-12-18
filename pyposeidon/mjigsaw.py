@@ -52,19 +52,19 @@ def to_geo(df, path=".", tag="jigsaw"):
         # store xy in a DataFrame
         dic = {}
         for k, d in df_.iterrows():
-            out = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
+            out = pd.DataFrame(d.geometry.coords[:], columns=["x", "y"])
             out["lindex"] = d.lindex
-            out = out.drop_duplicates(["lon", "lat"])
+            out = out.drop_duplicates(["x", "y"])
             if d.tag == "land":  # drop end points in favor or open tag
                 out = out[1:-1]
             dic.update({"line{}".format(k): out})
         o1 = pd.concat(dic, axis=0).droplevel(0).reset_index(drop=True)
-        o1 = o1.drop_duplicates(["lon", "lat"])
+        o1 = o1.drop_duplicates(["x", "y"])
 
         # Do linemerge of outer contours
         lss = df_.geometry.values
         merged = shapely.ops.linemerge(lss)
-        o2 = pd.DataFrame({"lon": merged.xy[0], "lat": merged.xy[1]})  # convert to DataFrame
+        o2 = pd.DataFrame({"x": merged.xy[0], "y": merged.xy[1]})  # convert to DataFrame
         o2 = o2.drop_duplicates()
 
         outer = o2.merge(o1)  # merge to transfer the lindex
@@ -73,9 +73,9 @@ def to_geo(df, path=".", tag="jigsaw"):
         # outer to file
         with open(fgeo, "a") as f:
             outer["z"] = 0
-            outer = outer.drop_duplicates(["lon", "lat"])
+            outer = outer.drop_duplicates(["x", "y"])
             # nodes
-            outer.to_csv(f, index=False, header=0, columns=["lon", "lat", "z"], sep=";")
+            outer.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
             # compute edges
 
         edges = [
@@ -111,12 +111,12 @@ def to_geo(df, path=".", tag="jigsaw"):
     # the rest to file
     with open(fgeo, "a") as f:
         for k, d in df.loc[df.tag == "island"].iterrows():
-            out = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
+            out = pd.DataFrame(d.geometry.coords[:], columns=["x", "y"])
             out["z"] = 0
-            out = out.drop_duplicates(["lon", "lat"])
+            out = out.drop_duplicates(["x", "y"])
 
             # nodes
-            out.to_csv(f, index=False, header=0, columns=["lon", "lat", "z"], sep=";")
+            out.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
             # compute edges
             i0 = len(edges)
             ie = out.shape[0] + len(edges)
@@ -145,7 +145,7 @@ def read_msh(fmsh):
 
     nodes = pd.DataFrame(
         grid.loc[3 : 3 + npoints - 1, "data"].str.split(";").values.tolist(),
-        columns=["lon", "lat", "z"],
+        columns=["x", "y", "z"],
     )
 
     ie = grid[grid.data.str.contains("EDGE")].index.values[0]
@@ -165,12 +165,9 @@ def read_msh(fmsh):
     return [nodes, edges, tria]
 
 
-def make_bgmesh(boundary, **kwargs):
+def make_bgmesh(contours, **kwargs):
 
-    logger.info("Read DEM")
     gglobal = kwargs.get("gglobal", False)
-
-    contours = boundary.contours
 
     if gglobal:
         lon_min = -180.0
@@ -189,7 +186,12 @@ def make_bgmesh(boundary, **kwargs):
     kwargs_.pop("lat_min", None)
     kwargs_.pop("lat_max", None)
 
-    dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+    dem = kwargs.get("dem_source", None)
+
+    if not isinstance(dem, xr.Dataset):
+        logger.info("Read DEM")
+        dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+        dem = dem.Dataset
 
     res_min = kwargs_.pop("resolution_min", 0.01)
     res_max = kwargs_.pop("resolution_max", 0.5)
@@ -202,7 +204,7 @@ def make_bgmesh(boundary, **kwargs):
     if gglobal:
 
         logger.info("Evaluate global bgmesh")
-        nds, lms = make_bgmesh_global(boundary, fpos, dem, **kwargs)
+        nds, lms = make_bgmesh_global(contours, fpos, dem, **kwargs)
         logger.info("Saving global background scale file")
         dh = to_global_hfun(nds, lms, fpos, **kwargs)
 
@@ -219,132 +221,6 @@ def make_bgmesh(boundary, **kwargs):
     return dh
 
 
-def jigsaw(boundary, **kwargs):
-
-    logger.info("Creating JIGSAW files\n")
-
-    contours = boundary.contours
-
-    tag = kwargs.get("tag", "jigsaw")
-    rpath = kwargs.get("rpath", ".")
-
-    if not os.path.exists(rpath):
-        os.makedirs(rpath)
-
-    path = rpath + "/jigsaw/"
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    # HFUN FILE
-    bgmesh = kwargs.get("bgmesh", None)
-
-    if bgmesh is None:
-        dem_source = kwargs.get("dem_source", None)
-        if dem_source:
-            bgmesh = "auto"
-            kwargs.update({"bgmesh": "auto"})
-
-    if bgmesh is not None:
-
-        logger.info("Set background scale")
-
-        if bgmesh.endswith(".nc"):
-
-            try:
-                dh = xr.open_dataset(bgmesh)
-
-                if "longitude" in dh.coords:
-                    to_hfun_grid(dh, path + tag + "-hfun.msh")  # write bgmesh file
-                else:
-                    to_hfun_mesh(dh, path + tag + "-hfun.msh")
-            except:
-                logger.warning("bgmesh failed... continuing without background mesh size")
-                bgmesh = None
-
-        elif bgmesh == "auto":
-
-            dh = make_bgmesh(boundary, **kwargs)
-
-        elif bgmesh.endswith(".msh"):
-
-            pass
-
-    try:
-        bg = dh
-    except:
-        bg = None
-
-    # GEO FILE
-    to_geo(contours, path=path, tag=tag)
-
-    # JIG FILE
-    fjig = path + "/" + tag + ".jig"
-
-    with open(fjig, "w") as f:
-        f.write("GEOM_FILE ={}\n".format(tag + "-geo.msh"))
-        f.write("MESH_FILE ={}\n".format(tag + ".msh"))
-        if bgmesh:
-            f.write("HFUN_FILE ={}\n".format(tag + "-hfun.msh"))
-        f.write("HFUN_SCAL = ABSOLUTE\n")
-        f.write("HFUN_HMAX = Inf\n")
-        f.write("HFUN_HMIN = 0.0\n")
-        f.write("MESH_DIMS = 2\n")
-        f.write("MESH_TOP1 = TRUE\n")
-        #        f.write('MESH_TOP2 = TRUE\n')
-        f.write("MESH_EPS1 = 1.0\n")
-        f.write("MESH_RAD2 = 1\n")
-        f.write("GEOM_FEAT = TRUE\n")
-        f.write("VERBOSITY = 2")
-
-    calc_dir = rpath + "/jigsaw/"
-
-    # EXECUTE
-    setup_only = kwargs.get("setup_only", False)
-
-    if not setup_only:
-
-        # ---------------------------------
-        logger.info("executing jigsaw\n")
-        # ---------------------------------
-
-        # execute jigsaw
-        ex = subprocess.Popen(
-            args=["jigsaw {}".format(tag + ".jig")],
-            cwd=calc_dir,
-            shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )  # , bufsize=1)
-
-        with open(calc_dir + "err.log", "w") as f:
-            for line in iter(ex.stderr.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-        #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stderr.close()
-
-        with open(calc_dir + "run.log", "w") as f:
-            for line in iter(ex.stdout.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-        #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stdout.close()
-
-        # ---------------------------------
-        logger.info("Jigsaw FINISHED\n")
-        # ---------------------------------
-
-        gr = to_dataset(**kwargs)
-
-        logger.info("..done creating mesh\n")
-
-        return gr, bg
-
-    else:
-
-        gr = None
-
-        return gr, bg
-
-
 def to_dataset(**kwargs):
 
     logger.info("..reading mesh\n")
@@ -353,7 +229,6 @@ def to_dataset(**kwargs):
     rpath = kwargs.get("rpath", ".")
 
     [nodes, edges, tria] = read_msh(rpath + "/jigsaw/" + tag + ".msh")
-
     nodes = nodes.apply(pd.to_numeric)
     tria = tria.apply(pd.to_numeric)
     edges = edges.apply(pd.to_numeric)
@@ -449,9 +324,9 @@ def to_dataset(**kwargs):
 
         if openb.index.levels[0].shape[0] == 1:  # sort the nodes if open box
 
-            pts = openb[["lon", "lat"]].values
+            pts = openb[["x", "y"]].values
 
-            origin = [openb.mean()["lon"], openb.mean()["lat"]]
+            origin = [openb.mean()["x"], openb.mean()["y"]]
 
             refvec = [1, 0]
 
@@ -472,6 +347,14 @@ def to_dataset(**kwargs):
 
         openb = pd.DataFrame([])
 
+    # convert if global
+    gglobal = kwargs.get("gglobal", False)
+    if gglobal:
+        R = kwargs.get("R", 1.0)
+        rlon, rlat = to_lat_lon(nodes.x, nodes.y, R=R)
+        nodes["x"] = rlon
+        nodes["y"] = rlat
+
     # MAKE Dataset
 
     els = xr.DataArray(
@@ -480,22 +363,14 @@ def to_dataset(**kwargs):
         name="SCHISM_hgrid_face_nodes",
     )
 
-    # convert if global
-    gglobal = kwargs.get("gglobal", False)
-    if gglobal:
-        R = kwargs.get("R", 1.0)
-        rlon, rlat = to_lat_lon(nodes.lon, nodes.lat, R=R)
-        nodes["lon"] = rlon
-        nodes["lat"] = rlat
-
     nod = (
-        nodes.loc[:, ["lon", "lat"]]
+        nodes.loc[:, ["x", "y"]]
         .to_xarray()
         .rename(
             {
                 "index": "nSCHISM_hgrid_node",
-                "lon": "SCHISM_hgrid_node_x",
-                "lat": "SCHISM_hgrid_node_y",
+                "x": "SCHISM_hgrid_node_x",
+                "y": "SCHISM_hgrid_node_y",
             }
         )
     )
@@ -534,3 +409,127 @@ def to_dataset(**kwargs):
     gr = xr.merge([nod, dep, els, tbf.to_xarray()])  # total
 
     return gr
+
+
+def get(contours, **kwargs):
+
+    logger.info("Creating JIGSAW files\n")
+
+    tag = kwargs.get("tag", "jigsaw")
+    rpath = kwargs.get("rpath", ".")
+
+    if not os.path.exists(rpath):
+        os.makedirs(rpath)
+
+    path = rpath + "/jigsaw/"
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    # HFUN FILE
+    bgmesh = kwargs.get("bgmesh", None)
+
+    if bgmesh is None:
+        dem_source = kwargs.get("dem_source", None)
+        if dem_source:
+            bgmesh = "auto"
+            kwargs.update({"bgmesh": "auto"})
+
+    if bgmesh is not None:
+
+        logger.info("Set background scale")
+
+        if bgmesh.endswith(".nc"):
+
+            try:
+                dh = xr.open_dataset(bgmesh)
+
+                if "longitude" in dh.coords:
+                    to_hfun_grid(dh, path + tag + "-hfun.msh")  # write bgmesh file
+                else:
+                    to_hfun_mesh(dh, path + tag + "-hfun.msh")
+            except:
+                logger.warning("bgmesh failed... continuing without background mesh size")
+                bgmesh = None
+
+        elif bgmesh == "auto":
+
+            dh = make_bgmesh(contours, **kwargs)
+
+        elif bgmesh.endswith(".msh"):
+
+            pass
+
+    try:
+        bg = dh
+    except:
+        bg = None
+
+    # GEO FILE
+    to_geo(contours, path=path, tag=tag)
+
+    # JIG FILE
+    fjig = path + "/" + tag + ".jig"
+
+    with open(fjig, "w") as f:
+        f.write("GEOM_FILE ={}\n".format(tag + "-geo.msh"))
+        f.write("MESH_FILE ={}\n".format(tag + ".msh"))
+        if bgmesh:
+            f.write("HFUN_FILE ={}\n".format(tag + "-hfun.msh"))
+        f.write("HFUN_SCAL = ABSOLUTE\n")
+        f.write("HFUN_HMAX = Inf\n")
+        f.write("HFUN_HMIN = 0.0\n")
+        f.write("MESH_DIMS = 2\n")
+        f.write("MESH_TOP1 = TRUE\n")
+        #        f.write('MESH_TOP2 = TRUE\n')
+        f.write("MESH_EPS1 = 1.0\n")
+        f.write("MESH_RAD2 = 1\n")
+        f.write("GEOM_FEAT = TRUE\n")
+        f.write("VERBOSITY = 2")
+
+    calc_dir = rpath + "/jigsaw/"
+
+    # EXECUTE
+    setup_only = kwargs.get("setup_only", False)
+
+    if not setup_only:
+
+        # ---------------------------------
+        logger.info("executing jigsaw\n")
+        # ---------------------------------
+
+        # execute jigsaw
+        ex = subprocess.Popen(
+            args=["jigsaw {}".format(tag + ".jig")],
+            cwd=calc_dir,
+            shell=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )  # , bufsize=1)
+
+        with open(calc_dir + "err.log", "w") as f:
+            for line in iter(ex.stderr.readline, b""):
+                f.write(line.decode(sys.stdout.encoding))
+        #        logger.info(line.decode(sys.stdout.encoding))
+        ex.stderr.close()
+
+        with open(calc_dir + "run.log", "w") as f:
+            for line in iter(ex.stdout.readline, b""):
+                f.write(line.decode(sys.stdout.encoding))
+        #        logger.info(line.decode(sys.stdout.encoding))
+        ex.stdout.close()
+
+        # ---------------------------------
+        logger.info("Jigsaw FINISHED\n")
+        # ---------------------------------
+
+        gr = to_dataset(**kwargs)
+
+        logger.info("..done creating mesh\n")
+
+        return gr, bg
+
+    else:
+
+        gr = None
+
+        return gr, bg

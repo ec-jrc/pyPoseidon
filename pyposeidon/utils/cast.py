@@ -456,6 +456,6 @@ class scast:
         if execute:
             m.run()
 
-        logger.info("done for date :" + datetime.datetime.strftime(self.sdate, "%Y%m%d.%H"))
+        logger.info("done for date :" + self.sdate.strftime("%Y%m%d.%H"))
 
         os.chdir(pwd)
