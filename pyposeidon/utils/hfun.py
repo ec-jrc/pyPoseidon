@@ -16,17 +16,17 @@ def get_hfun(dem, path=".", tag="jigsaw", resolution_min=0.01, resolution_max=0.
 
     # scale bathymetry
     try:
-        b = dem.Dataset.adjusted.to_dataframe()
+        b = dem.adjusted.to_dataframe()
     except:
-        b = dem.Dataset.elevation.to_dataframe()
+        b = dem.elevation.to_dataframe()
 
     b = b.reset_index()
     b.columns = ["longitude", "latitude", "z"]
 
     nodes = scale_dem(b, resolution_min, resolution_max, **kwargs)
 
-    x = dem.Dataset.longitude.values
-    y = dem.Dataset.latitude.values
+    x = dem.longitude.values
+    y = dem.latitude.values
 
     tria = MakeTriangleFaces(y.shape[0], x.shape[0])
 

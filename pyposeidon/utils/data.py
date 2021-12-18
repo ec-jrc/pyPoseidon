@@ -13,8 +13,9 @@ import os
 from pyposeidon.utils.vals import obs
 from pyposeidon.grid import *
 import pyposeidon.model as pm
-import datetime
+from pyposeidon.tools import flat_list
 from pyposeidon.utils.get_value import get_value
+import datetime
 import xarray as xr
 import glob
 import sys
@@ -202,7 +203,7 @@ class schism:
 
         if merge:
 
-            datai = [j for i in datai for j in i]
+            datai = flat_list(datai)
             self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
 
             with open(self.folders[-1] + "/" + tag + "_model.json", "r") as f:

@@ -4,6 +4,7 @@ import pyresample
 import xarray as xr
 import os
 
+import pyposeidon.boundary as pb
 from pyposeidon.utils.stereo import to_3d, to_lat_lon, stereo_to_3d
 from pyposeidon.utils.pos import to_sq, to_st
 from pyposeidon.utils.hfun import to_hfun_mesh, to_hfun_grid
@@ -21,15 +22,15 @@ import logging
 logger = logging.getLogger("pyposeidon")
 
 
-def make_bgmesh_global(b, fpos, dem, **kwargs):
+def make_bgmesh_global(dfb, fpos, dem, **kwargs):
 
     grid_generator = kwargs.get("grid_generator", None)
 
-    bk = b.contours.copy()
+    bk = dfb.copy()
 
-    b.contours = b.contours.loc[b.contours.length == b.contours.length.max()]
+    dfb = dfb.loc[dfb.length == dfb.length.max()]
 
-    out = b.contours.buffer(0.2).exterior
+    out = dfb.buffer(0.2).exterior
 
     R = kwargs.get("R", 1.0)
 
@@ -82,6 +83,7 @@ def make_bgmesh_global(b, fpos, dem, **kwargs):
 
     logger.info("Create interim global scale mesh")
 
+    b = pb.get_boundaries(geometry=dfb)
     mesh = pg.grid(
         type="tri2d",
         boundary=b,
@@ -96,12 +98,12 @@ def make_bgmesh_global(b, fpos, dem, **kwargs):
 
     # Select DEM
     try:
-        dm = dem.Dataset.adjusted.to_dataframe()
+        dm = dem.adjusted.to_dataframe()
     except:
-        dm = dem.Dataset.elevation.to_dataframe()
+        dm = dem.elevation.to_dataframe()
 
-    lon = dem.Dataset.longitude.values
-    lat = dem.Dataset.latitude.values
+    lon = dem.longitude.values
+    lat = dem.latitude.values
 
     X, Y = np.meshgrid(lon, lat)
     # Stereo -> lat/lon
@@ -128,6 +130,6 @@ def make_bgmesh_global(b, fpos, dem, **kwargs):
 
     elems = pd.DataFrame(trii0, columns=["a", "b", "c"])
 
-    b.contours = bk
+    dfb = bk
 
     return nodes, elems

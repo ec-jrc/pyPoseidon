@@ -8,8 +8,8 @@ import time
 
 import psutil
 import xarray as xr
-
-logger = logging.getLogger(__name__)
+import pandas as pd
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -122,3 +122,28 @@ def cast_path_to_str(path: os.PathLike) -> str:
     if isinstance(path, pathlib.Path):
         path = path.as_posix()
     return path
+
+
+def flat_list(outer):
+    return [item for inner in outer for item in inner]
+
+
+def orient(nodes, tria, x="lon", y="lat"):
+
+    # compute area
+    ax = nodes.loc[tria.a, x].values
+    bx = nodes.loc[tria.b, x].values
+    cx = nodes.loc[tria.c, x].values
+    ay = nodes.loc[tria.a, y].values
+    by = nodes.loc[tria.b, y].values
+    cy = nodes.loc[tria.c, y].values
+
+    val = (by - ay) * (cx - bx) - (bx - ax) * (cy - by)
+
+    tria["val"] = val
+
+    tria["b"], tria["c"] = np.where(tria["val"] > 0, (tria["c"], tria["b"]), (tria["b"], tria["c"]))
+
+    tria = tria.drop("val", axis=1)
+
+    return nodes, tria

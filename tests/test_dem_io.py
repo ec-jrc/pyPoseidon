@@ -34,14 +34,17 @@ def schism(tmpdir, dem_source, kwargs):
 
     grid = pgrid.grid(type="tri2d", grid_file=(DATA_DIR / "hgrid.gr3").as_posix())
 
-    # update dem
-
+    # update kwargs
     xp = grid.Dataset.SCHISM_hgrid_node_x.values
     yp = grid.Dataset.SCHISM_hgrid_node_y.values
 
     kwargs.update({"grid_x": xp, "grid_y": yp})
+
     # get dem
     df = pdem.dem(dem_source=dem_source, **kwargs)
+
+    # get dem on grid
+    df.Dataset = pdem.dem_on_grid(df.Dataset, **kwargs)
 
     grid.Dataset["depth"].loc[:] = -df.Dataset.ival.values
 
@@ -63,11 +66,13 @@ def d3d(tmpdir, dem_source, kwargs):
     lon = np.arange(kwargs["lon_min"], kwargs["lon_max"], resolution)
     lat = np.arange(kwargs["lat_min"], kwargs["lat_max"], resolution)
     xp, yp = np.meshgrid(lon, lat)
-
+    # update kwargs
     kwargs.update({"grid_x": xp, "grid_y": yp})
 
     # get dem
     df = pdem.dem(dem_source=dem_source, **kwargs)
+    # get dem on grid
+    df.Dataset = pdem.dem_on_grid(df.Dataset, **kwargs)
 
     rpath = str(tmpdir) + "/"
     # output

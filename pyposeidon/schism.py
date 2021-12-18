@@ -125,19 +125,7 @@ class schism:
         # coastlines
         coastlines = kwargs.get("coastlines", None)
 
-        if coastlines is None:
-            cr = kwargs.get("coast_resolution", "i")
-
-            # world polygons - user input
-            coast = cf.NaturalEarthFeature(
-                category="physical",
-                name="land",
-                scale="{}m".format({"l": 110, "i": 50, "h": 10}[cr]),
-            )
-
-            self.coastlines = gp.GeoDataFrame(geometry=[x for x in coast.geometries()])
-
-        else:
+        if coastlines is not None:
 
             try:
                 coast = gp.GeoDataFrame.from_file(coastlines)
@@ -399,7 +387,7 @@ class schism:
                         "lat_max": self.lat_max,
                     }
                 )
-                self.dem = pdem.dem(**kwargs)
+                self.dem.Dataset = pdem.dem_on_grid(self.dem.Dataset, **kwargs)
             else:
                 logger.info("dem from grid file\n")
 
@@ -411,8 +399,11 @@ class schism:
         if not kwargs:
             kwargs = self.__dict__.copy()
 
-        # Grid
+        # DEM
+        self.dem = pdem.dem(**kwargs)
+        kwargs.update({"dem_source": self.dem.Dataset})
 
+        # Grid
         self.grid = pgrid.grid(type="tri2d", **kwargs)
 
         # set lat/lon from file
@@ -505,6 +496,9 @@ class schism:
             try:
 
                 bat = -self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
+                if np.isnan(bat).sum() != 0:
+                    raise Exception("Bathymetry contains NaNs")
+                    logger.warning("Bathymetric values fval contain NaNs, using ival values ..\n")
 
             except:
 
