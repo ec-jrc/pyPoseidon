@@ -11,7 +11,7 @@ Data analysis module
 import numpy as np
 import os
 from pyposeidon.utils.vals import obs
-from pyposeidon.grid import *
+from pyposeidon.mesh import *
 import pyposeidon.model as pm
 from pyposeidon.tools import flat_list
 from pyposeidon.utils.get_value import get_value

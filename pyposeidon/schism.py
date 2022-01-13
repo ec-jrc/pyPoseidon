@@ -30,7 +30,7 @@ from tqdm import tqdm
 
 # local modules
 import pyposeidon
-import pyposeidon.grid as pgrid
+import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.utils.get_value import get_value
@@ -67,10 +67,9 @@ class schism:
 
         Args:
             rfolder (str): The path to a directory containing the results of a Model solved by Schism.
-            global_grid (str):
             geometry (Union[dict, str]): A dictionary containing the the bounding box of the region
                 you want to solve or a shapefile.
-            load_grid (bool): Flag indicating whether to load the grid or not. Defaults to `False`.
+            load_mesh (bool): Flag indicating whether to load the mesh or not. Defaults to `False`.
             load_meteo (bool): Flag indicating whether to load the meteo data or not. Defauls to
                 `False`.
             coastlines (Union[str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile which
@@ -97,7 +96,6 @@ class schism:
         if rfolder:
             self.read_folder(**kwargs)
 
-        self.global_grid = kwargs.get("global_grid", False)
         self.geometry = kwargs.get("geometry", None)
 
         if self.geometry:
@@ -368,8 +366,8 @@ class schism:
     def bath(self, **kwargs):
         #       z = self.__dict__.copy()
 
-        kwargs["grid_x"] = self.grid.Dataset.SCHISM_hgrid_node_x.values
-        kwargs["grid_y"] = self.grid.Dataset.SCHISM_hgrid_node_y.values
+        kwargs["grid_x"] = self.mesh.Dataset.SCHISM_hgrid_node_x.values
+        kwargs["grid_y"] = self.mesh.Dataset.SCHISM_hgrid_node_y.values
 
         dpath = get_value(self, kwargs, "dem_source", None)
 
@@ -387,9 +385,9 @@ class schism:
                         "lat_max": self.lat_max,
                     }
                 )
-                self.dem.Dataset = pdem.dem_on_grid(self.dem.Dataset, **kwargs)
+                self.dem.Dataset = pdem.dem_on_mesh(self.dem.Dataset, **kwargs)
             else:
-                logger.info("dem from grid file\n")
+                logger.info("dem from mesh file\n")
 
     # ============================================================================================
     # EXECUTION
@@ -404,19 +402,19 @@ class schism:
         kwargs.update({"dem_source": self.dem.Dataset})
 
         # Grid
-        self.grid = pgrid.grid(type="tri2d", **kwargs)
+        self.mesh = pmesh.set(type="tri2d", **kwargs)
 
         # set lat/lon from file
-        if hasattr(self, "grid_file"):
-            kwargs.update({"lon_min": self.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
-            kwargs.update({"lon_max": self.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
-            kwargs.update({"lat_min": self.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
-            kwargs.update({"lat_max": self.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
+        if hasattr(self, "mesh_file"):
+            kwargs.update({"lon_min": self.mesh.Dataset.SCHISM_hgrid_node_x.values.min()})
+            kwargs.update({"lon_max": self.mesh.Dataset.SCHISM_hgrid_node_x.values.max()})
+            kwargs.update({"lat_min": self.mesh.Dataset.SCHISM_hgrid_node_y.values.min()})
+            kwargs.update({"lat_max": self.mesh.Dataset.SCHISM_hgrid_node_y.values.max()})
 
-            self.lon_min = self.grid.Dataset.SCHISM_hgrid_node_x.values.min()
-            self.lon_max = self.grid.Dataset.SCHISM_hgrid_node_x.values.max()
-            self.lat_min = self.grid.Dataset.SCHISM_hgrid_node_y.values.min()
-            self.lat_max = self.grid.Dataset.SCHISM_hgrid_node_y.values.max()
+            self.lon_min = self.mesh.Dataset.SCHISM_hgrid_node_x.values.min()
+            self.lon_max = self.mesh.Dataset.SCHISM_hgrid_node_x.values.max()
+            self.lat_min = self.mesh.Dataset.SCHISM_hgrid_node_y.values.min()
+            self.lat_max = self.mesh.Dataset.SCHISM_hgrid_node_y.values.max()
 
         # get bathymetry
         self.bath(**kwargs)
@@ -452,9 +450,13 @@ class schism:
             f.write("/ \n\n")
 
         # save bctides.in
-        bs = self.grid.Dataset[["node", "id", "type"]].to_dataframe()
+        bs = self.mesh.Dataset[["node", "id", "type"]].to_dataframe()
         # open boundaries
-        number_of_open_boundaries = bs.loc[bs.type == "open"].id.max()
+        number_of_open_boundaries = bs.loc[bs.type == "open"].id
+        if not number_of_open_boundaries.empty:
+            number_of_open_boundaries = number_of_open_boundaries.max()
+        else:
+            number_of_open_boundaries = 0
         number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
 
         with open(path + "bctides.in", "w") as f:
@@ -504,9 +506,9 @@ class schism:
 
                 bat = -self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
 
-            self.grid.Dataset.depth.loc[: bat.size] = bat
+            self.mesh.Dataset.depth.loc[: bat.size] = bat
 
-            self.grid.to_file(filename=path + "hgrid.gr3")
+            self.mesh.to_file(filename=path + "hgrid.gr3")
             copyfile(path + "hgrid.gr3", path + "hgrid.ll")
 
             logger.info("updating bathymetry ..\n")
@@ -515,7 +517,7 @@ class schism:
 
             logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
 
-            copyfile(self.grid_file, path + "hgrid.gr3")  # copy original grid file
+            copyfile(self.mesh_file, path + "hgrid.gr3")  # copy original grid file
             copyfile(path + "hgrid.gr3", path + "hgrid.ll")
 
         # manning file
@@ -527,14 +529,14 @@ class schism:
                 logger.info("Keeping manning file ..\n")
 
         manning = get_value(self, kwargs, "manning", 0.12)
-        nn = self.grid.Dataset.nSCHISM_hgrid_node.size
-        n3e = self.grid.Dataset.nSCHISM_hgrid_face.size
+        nn = self.mesh.Dataset.nSCHISM_hgrid_node.size
+        n3e = self.mesh.Dataset.nSCHISM_hgrid_face.size
 
         with open(manfile, "w") as f:
             f.write("\t 0 \n")
             f.write("\t {} {}\n".format(n3e, nn))
 
-        df = self.grid.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
+        df = self.mesh.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
 
         df["man"] = manning
 
@@ -567,7 +569,7 @@ class schism:
             f.write("\t 0 \n")
             f.write("\t {} {}\n".format(n3e, nn))
 
-        df = self.grid.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
+        df = self.mesh.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
 
         df["windrot"] = windrot
 
@@ -663,20 +665,20 @@ class schism:
 
         path = get_value(self, kwargs, "rpath", "./schism/")
 
-        lista = [key for key, value in self.__dict__.items() if key not in ["meteo", "dem", "grid"]]
+        lista = [key for key, value in self.__dict__.items() if key not in ["meteo", "dem", "mesh"]]
         dic = {k: self.__dict__.get(k, None) for k in lista}
 
-        grid = self.__dict__.get("grid", None)
-        if isinstance(grid, str):
-            dic.update({"grid": grid})
+        mesh = self.__dict__.get("mesh", None)
+        if isinstance(mesh, str):
+            dic.update({"mesh": mesh})
         else:
-            dic.update({"grid": grid.__class__.__name__})
+            dic.update({"mesh": mesh.__class__.__name__})
 
         dem = self.__dict__.get("dem", None)
         if isinstance(dem, str):
             dic.update({"dem": dem})
         elif isinstance(dem, pdem.dem):
-            dic.update({"dem": dem.Dataset.elevation.attrs})
+            dic.update({"dem_attrs": dem.Dataset.elevation.attrs})
 
         meteo = self.__dict__.get("meteo", None)
         if isinstance(meteo, str):
@@ -688,11 +690,11 @@ class schism:
                 dic.update({"meteo": [x.attrs for x in meteo.Dataset]})
 
         coast = self.__dict__.get("coast_resolution", None)
-        coastline = self.__dict__.get("coastlines", None)
+        coastlines = self.__dict__.get("coastlines", None)
         if isinstance(coast, str):
-            dic.update({"coastlines": None})
-        elif isinstance(coastline, gp.GeoDataFrame):  # TODO
-            dic.update({"coastlines": None})
+            dic.update({"coastlines": coast})
+        elif isinstance(coastlines, gp.GeoDataFrame):
+            dic.update({"coastlines": coastlines})
 
         dic["version"] = pyposeidon.__version__
 
@@ -703,6 +705,8 @@ class schism:
                 dic[attr] = value.isoformat()
             if isinstance(value, pd.DataFrame):
                 dic[attr] = value.to_dict()
+            if isinstance(value, gp.GeoDataFrame):
+                dic[attr] = value.to_json()
 
         json.dump(dic, open(path + self.tag + "_model.json", "w"), default=myconverter)
 
@@ -772,16 +776,16 @@ class schism:
         self.start_date = sd  # set attrs
         self.end_date = ed
 
-        load_grid = get_value(self, kwargs, "load_grid", False)
+        load_mesh = get_value(self, kwargs, "load_mesh", False)
 
-        if load_grid:
+        if load_mesh:
             try:
-                self.grid = pgrid.grid(type="tri2d", grid_file=hfile)
+                self.mesh = pmesh.set(type="tri2d", mesh_file=hfile)
             except:
-                logger.warning("Loading grid failed")
+                logger.warning("Loading mesh failed")
                 pass
         else:
-            logger.warning("No grid loaded")
+            logger.warning("No mesh loaded")
 
         load_meteo = get_value(self, kwargs, "load_meteo", False)
 
@@ -1005,19 +1009,19 @@ class schism:
                     names=["lon", "lat", "depth", "kbp00"],
                 )
 
-        grid = pd.concat(gframes, keys=keys)
+        mesh = pd.concat(gframes, keys=keys)
 
         # Droping duplicates
         drops = nodes.reset_index()[nodes.reset_index().duplicated("global_n")].index.to_list()
         cnodes = nodes.global_n.drop_duplicates()  # drop duplicate global nodes and store the values to an array
 
-        grid = grid.reset_index().drop(drops)  # Use the mask from nodes to match grid
-        grid = grid.set_index(["level_0", "level_1"])
+        mesh = mesh.reset_index().drop(drops)  # Use the mask from nodes to match mesh
+        mesh = mesh.set_index(["level_0", "level_1"])
 
-        grid.index = grid.index.droplevel()  # drop multi-index
-        grid = grid.reset_index(drop=True)  # reset index
-        grid.index = cnodes.values - 1  # reindex based on the global index, -1 for the python convention
-        grd = grid.sort_index()  # sort with the new index (that is the global_n)
+        mesh.index = mesh.index.droplevel()  # drop multi-index
+        mesh = mesh.reset_index(drop=True)  # reset index
+        mesh.index = cnodes.values - 1  # reindex based on the global index, -1 for the python convention
+        grd = mesh.sort_index()  # sort with the new index (that is the global_n)
         self.misc.update({"grd": grd.reset_index(drop=True)})  # reindex for final version
 
         # Read tessalation
@@ -1306,7 +1310,7 @@ class schism:
             self.global2local(**kwargs)
             logger.info("... done \n")
 
-        # Create grid xarray Dataset
+        # Create mesh xarray Dataset
         grd = self.misc["grd"]
         gt3 = self.misc["gt3"]
 
@@ -1698,37 +1702,42 @@ class schism:
         z = self.__dict__.copy()
         tg = obs(**z)
 
+        self.obs = tg
+
         logger.info("get in-situ measurements locations \n")
 
         gpoints = np.array(
             list(
                 zip(
-                    self.grid.Dataset.SCHISM_hgrid_node_x.values,
-                    self.grid.Dataset.SCHISM_hgrid_node_y.values,
+                    self.mesh.Dataset.SCHISM_hgrid_node_x.values,
+                    self.mesh.Dataset.SCHISM_hgrid_node_y.values,
                 )
             )
         )
 
         stations = []
-        grid_index = []
+        mesh_index = []
         for l in range(tg.locations.shape[0]):
             plat, plon = tg.locations.loc[l, ["latitude", "longitude"]]
             cp = closest_node([plon, plat], gpoints)
-            grid_index.append(
+            mesh_index.append(
                 list(
                     zip(
-                        self.grid.Dataset.SCHISM_hgrid_node_x.values,
-                        self.grid.Dataset.SCHISM_hgrid_node_y.values,
+                        self.mesh.Dataset.SCHISM_hgrid_node_x.values,
+                        self.mesh.Dataset.SCHISM_hgrid_node_y.values,
                     )
                 ).index(tuple(cp))
             )
             stations.append(cp)
 
+        if stations == []:
+            logger.warning("no observations available\n")
+
         # to df
         stations = pd.DataFrame(stations, columns=["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y"])
         stations["z"] = 0
         stations.index += 1
-        stations["gindex"] = grid_index
+        stations["gindex"] = mesh_index
         stations["name"] = tg.locations.Name.values
         stations["id"] = tg.locations.ID.values
         stations["group"] = tg.locations.Group.values
@@ -1740,15 +1749,15 @@ class schism:
             logger.info("set land boundaries as observation points \n")
 
             # get land boundaries
-            coasts = [key for key in self.grid.Dataset.variables if "land_boundary" in key]
+            coasts = [key for key in self.mesh.Dataset.variables if "land_boundary" in key]
             # get index
             bnodes = []
             for i in range(len(coasts)):
-                bnodes = bnodes + list(self.grid.Dataset[coasts[i]].dropna("index").astype(int).values)
+                bnodes = bnodes + list(self.mesh.Dataset[coasts[i]].dropna("index").astype(int).values)
             bnodes = np.unique(bnodes)  # keep unique values
             # get x,y
-            xx = self.grid.Dataset.SCHISM_hgrid_node_x.to_dataframe().loc[bnodes]
-            yy = self.grid.Dataset.SCHISM_hgrid_node_y.to_dataframe().loc[bnodes]
+            xx = self.mesh.Dataset.SCHISM_hgrid_node_x.to_dataframe().loc[bnodes]
+            yy = self.mesh.Dataset.SCHISM_hgrid_node_y.to_dataframe().loc[bnodes]
             # put them in dataframe
             coastal_stations = pd.concat([xx, yy], axis=1, sort=False)
             coastal_stations["z"] = 0

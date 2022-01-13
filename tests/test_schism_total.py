@@ -38,7 +38,7 @@ def test_schism(tmpdir, window):
         "tag": "test",
         "start_date": "2017-10-1 0:0:0",
         "time_frame": "12H",
-        "grid_generator": "jigsaw",
+        "mesh_generator": "jigsaw",
         "meteo_source": [DATA_DIR / "erai.grib"],  # meteo file
         "dem_source": DEM_FILE,
         "update": ["all"],  # update only meteo, keep dem

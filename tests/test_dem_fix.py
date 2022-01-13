@@ -1,5 +1,5 @@
 import pyposeidon.dem as pdem
-import pyposeidon.grid as pg
+import pyposeidon.mesh as pmesh
 import pytest
 import numpy as np
 import geopandas as gp
@@ -42,35 +42,35 @@ def test_dem_adjust(natural_earth, dem_source, window):
     assert np.isnan(df.Dataset.adjusted.values).sum() == 0
 
 
-# Schism grid
+# Schism mesh
 @pytest.mark.schism
 @DEM_SOURCES
 @WINDOWS
-def test_schism_grid(tmpdir, natural_earth, dem_source, window):
-    grid = pg.grid(
+def test_schism_mesh(tmpdir, natural_earth, dem_source, window):
+    mesh = pmesh.set(
         type="tri2d",
         geometry=window,
         coastlines=natural_earth,
-        grid_generator="jigsaw",
+        mesh_generator="jigsaw",
         rpath=str(tmpdir) + "/",
     )
-    xg = grid.Dataset.SCHISM_hgrid_node_x.values
-    yg = grid.Dataset.SCHISM_hgrid_node_y.values
+    xg = mesh.Dataset.SCHISM_hgrid_node_x.values
+    yg = mesh.Dataset.SCHISM_hgrid_node_y.values
     dem = pdem.dem(**window, dem_source=dem_source, adjust_dem=False)  # get dem
-    dem.Dataset = pdem.dem_on_grid(dem.Dataset, grid_x=xg, grid_y=yg)  # get dem on grid
+    dem.Dataset = pdem.dem_on_mesh(dem.Dataset, grid_x=xg, grid_y=yg)  # get dem on mesh
     dem.adjust(natural_earth)
     assert np.isnan(dem.Dataset.fval.values).sum() == 0
 
 
-# D3D grid
+# D3D mesh
 @pytest.mark.delft
 @DEM_SOURCES
 @WINDOWS
-def test_d3d_grid(tmpdir, natural_earth, dem_source, window):
-    grid = pg.grid(type="r2d", geometry=window, resolution=0.1, rpath=str(tmpdir) + "/")
-    gr = grid.Dataset
+def test_d3d_mesh(tmpdir, natural_earth, dem_source, window):
+    mesh = pmesh.set(type="r2d", geometry=window, resolution=0.1, rpath=str(tmpdir) + "/")
+    gr = mesh.Dataset
     xp, yp = gr.lons.values, gr.lats.values
     dem = pdem.dem(**window, dem_source=dem_source, adjust_dem=False)  # get dem
-    dem.Dataset = pdem.dem_on_grid(dem.Dataset, grid_x=xg, grid_y=yg)  # get dem on grid
+    dem.Dataset = pdem.dem_on_mesh(dem.Dataset, grid_x=xp, grid_y=yp)  # get dem on mesh
     dem.adjust(natural_earth)
     assert np.isnan(dem.Dataset.fval.values).sum() == 0

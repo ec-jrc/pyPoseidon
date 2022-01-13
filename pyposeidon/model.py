@@ -29,7 +29,7 @@ from .d3d import *
 from .schism import *
 from pyposeidon.bnd import *
 import pyposeidon
-import pyposeidon.grid as pgrid
+import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.utils.get_value import get_value

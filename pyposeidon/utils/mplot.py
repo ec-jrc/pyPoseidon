@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import subprocess
 from pyposeidon.utils.stereo import to_3d
-from itkwidgets import view
+from itkwidgets import view, Viewer
 import os
 import sys
 
@@ -25,11 +25,6 @@ ffmpeg = sys.exec_prefix + "/bin/ffmpeg"
 os.environ["FFMPEG_BINARY"] = ffmpeg
 
 import moviepy.editor as mpy
-
-# try:
-#    mlab.init_notebook()
-# except:
-#    pass
 
 
 @xr.register_dataset_accessor("mplot")
@@ -67,6 +62,7 @@ class mplot(object):
 
         return sphere
 
+    #    @mlab.show
     def contourf(self, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
@@ -76,7 +72,7 @@ class mplot(object):
         except:
             pass
 
-        tri3 = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
+        tri3 = kwargs.get("tes", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
 
         it = kwargs.get("it", None)
 
@@ -89,9 +85,14 @@ class mplot(object):
 
         R = kwargs.get("R", 1.0)
 
-        px = np.cos(y / 180 * np.pi) * np.cos(x / 180 * np.pi) * R
-        py = np.cos(y / 180 * np.pi) * np.sin(x / 180 * np.pi) * R
-        pz = np.sin(y / 180 * np.pi) * R
+        dim = kwargs.get("dim", "2D")
+
+        if dim == "3D":
+            px, py, pz = to_3d(x, y, R=R)
+        else:
+            px = x
+            py = y
+            pz = np.zeros(x.shape[0])
 
         rep = kwargs.get("representation", "surface")
 
@@ -101,7 +102,7 @@ class mplot(object):
         mlab.clf()
 
         bcolor = kwargs.get("bcolor", (0.0, 0.0, 0.0))
-        self.globe(R - 0.002, bcolor=bcolor)
+        #        self.globe(R - 0.002, bcolor=bcolor)
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(
             px,
@@ -129,8 +130,18 @@ class mplot(object):
             src, lines = self.c3d(coast, R=R)
             mlab.pipeline.surface(src, color=(1, 0, 0), line_width=10, opacity=0.8)
 
-        mlab.show()
-        return
+        v = view(actors=grd, rotate=False, ui_collapsed=True)
+        v.geometries = [v.geometries[0]]
+        #        print(v.geometries)
+        #        print(v.geometries[0].keys())
+        #        print(v.geometries[0]['points'])
+        #        v.geometries[0]['pointData']['arrays'][1]['data']['name'] = 'elevation'
+        #        v.geometries[0]['metadata'] = {"name":"earth"}
+        #        print(v.geometries)
+        return v
+
+    #        mlab.show()
+    #        return
 
     def animate(self, **kwargs):
 
@@ -324,7 +335,7 @@ class mplot(object):
         return
 
     @mlab.show
-    def grid(self, **kwargs):
+    def mesh(self, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
@@ -333,7 +344,7 @@ class mplot(object):
         except:
             pass
 
-        tri3 = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
+        tri3 = kwargs.get("tes", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
 
         dim = kwargs.get("dim", "2D")
 
@@ -354,6 +365,7 @@ class mplot(object):
 
         # 3D triangular mesh surface (like trisurf)
         grd = mlab.triangular_mesh(px, py, pz, tri3, representation="wireframe", opacity=1.0)
+        #       grd.scalar.name = 'depth'
 
         coast = kwargs.get("coastlines", None)
 
@@ -373,8 +385,11 @@ class mplot(object):
         scene = engine.scenes[0]
         scene.scene.z_plus_view()
 
-        # mlab.show()
-        return view(actors=grd, rotate=True, ui_collapsed=True)
+        v = view(actors=grd, rotate=False, ui_collapsed=True)
+        v.geometries = [v.geometries[0]]
+
+        #        mlab.show()
+        return v
 
     @staticmethod
     def c3d(coastlines, R=1, **kwargs):

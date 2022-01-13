@@ -1,4 +1,4 @@
-import pyposeidon.grid as pg
+import pyposeidon.mesh as pmesh
 import pytest
 import os
 
@@ -8,21 +8,21 @@ from . import DATA_DIR
 def func(tmpdir, name):
 
     filename = DATA_DIR / name
-    # read grid file
-    grid = pg.grid(type="tri2d", grid_file=filename)
+    # read mesh file
+    mesh = pmesh.set(type="tri2d", mesh_file=filename)
 
     filename_ = str(tmpdir.join("hgrid_.gr3"))
-    # output to grid file
-    grid.to_file(filename_)
+    # output to mesh file
+    mesh.to_file(filename_)
 
-    # read again new grid
-    grid_ = pg.grid(type="tri2d", grid_file=filename_)
+    # read again new mesh
+    mesh_ = pmesh.set(type="tri2d", mesh_file=filename_)
 
     # cleanup
     os.remove(filename_)
 
     # compare
-    return grid.Dataset.equals(grid_.Dataset)
+    return mesh.Dataset.equals(mesh_.Dataset)
 
 
 def test_answer(tmpdir):

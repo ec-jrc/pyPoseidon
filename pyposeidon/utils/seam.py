@@ -133,24 +133,16 @@ def get_seam(x, y, z, tri3, **kwargs):
     return xx, yy, ges.values
 
 
-def to_2d(files=None, var=None, grid=None, **kwargs):
+def to_2d(dataset=None, var=None, mesh=None, **kwargs):
 
-    out = xr.open_mfdataset(files, combine="by_coords", concat_dim="time", data_vars="minimal")
+    x = dataset.SCHISM_hgrid_node_x[:].values
+    y = dataset.SCHISM_hgrid_node_y[:].values
+    tri3 = dataset.SCHISM_hgrid_face_nodes.values[:, :3].astype(int)
 
-    x = out.SCHISM_hgrid_node_x[:].values
-    y = out.SCHISM_hgrid_node_y[:].values
-    tri3 = out.SCHISM_hgrid_face_nodes.values[:, :3].astype(int)
-
-    if grid is not None:
-        [xn, yn, tri3n] = grid
+    if mesh is not None:
+        [xn, yn, tri3n] = mesh
     else:
         xn, yn, tri3n = get_seam(x, y, None, tri3)
-
-    save = kwargs.get("save", True)
-
-    if save is True:
-        logger.info("saving conversion to 2d attrs")
-        np.save("to2d", [xn, yn, tri3n])
 
     nps = xn.shape[0] - x.shape[0]  # number of extra nodes
     xi = xn[-nps:].copy()  # lat/lon of extra nodes
@@ -163,36 +155,60 @@ def to_2d(files=None, var=None, grid=None, **kwargs):
     a = pxi.min()
     b = pxi.max() - 360
 
-    xmask = (x < b) | (x > a)  # get a slice of the grid around IM
+    xmask = (x < b - 10) | (x > a + 10)  # get a slice of the mesh around IM
     # reposition to avoid -180/180 boundary
     px = reposition(x[xmask])
     py = y[xmask]
+
+    d = np.mean([px.max() - px.min(), pxi.max() - pxi.min()])
+
     # create swaths
-    orig = pyresample.geometry.SwathDefinition(lons=px, lats=py)
-    targ = pyresample.geometry.SwathDefinition(lons=pxi, lats=pyi)
+    orig = pyresample.geometry.SwathDefinition(lons=px - d, lats=py)
+    targ = pyresample.geometry.SwathDefinition(lons=pxi - d, lats=pyi)
 
     # Resample
-    xelev = []
-    for i in range(out.time.shape[0]):
-        z = out[var].values[i, :]
+    if len(dataset[var].shape) == 1:
+        z = dataset[var].values
         zm = z[xmask]
-        z_ = pyresample.kd_tree.resample_nearest(orig, zm, targ, radius_of_influence=100000, fill_value=0)
-        e = np.concatenate((z, z_))
-        xelev.append(e)
+        z_ = pyresample.kd_tree.resample_nearest(orig, zm, targ, radius_of_influence=200000)  # , fill_value=0)
+        xelev = np.concatenate((z, z_))
 
-    # create xarray
-    xe = xr.Dataset(
-        {
-            var: (["time", "nSCHISM_hgrid_node"], xelev),
-            "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
-            "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
-            "SCHISM_hgrid_face_nodes": (
-                ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
-                tri3n,
-            ),
-        },
-        coords={"time": ("time", out.time.values)},
-    )
+        # create xarray
+        xe = xr.Dataset(
+            {
+                var: (["nSCHISM_hgrid_node"], xelev),
+                "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
+                "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
+                "SCHISM_hgrid_face_nodes": (
+                    ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+                    tri3n,
+                ),
+            },
+        )
+
+    elif "time" in dataset[var].coords:
+
+        xelev = []
+        for i in range(dataset.time.shape[0]):
+            z = dataset[var].values[i, :]
+            zm = z[xmask]
+            z_ = pyresample.kd_tree.resample_nearest(orig, zm, targ, radius_of_influence=200000, fill_value=0)
+            e = np.concatenate((z, z_))
+            xelev.append(e)
+
+        # create xarray
+        xe = xr.Dataset(
+            {
+                var: (["time", "nSCHISM_hgrid_node"], xelev),
+                "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
+                "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
+                "SCHISM_hgrid_face_nodes": (
+                    ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+                    tri3n,
+                ),
+            },
+            coords={"time": ("time", dataset.time.values)},
+        )
 
     return xe
 
