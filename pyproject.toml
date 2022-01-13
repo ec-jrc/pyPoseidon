@@ -76,7 +76,7 @@ itkwidgets = { version = "^0.32.1", optional = true }
 moviepy = { version = "1.0.3", optional = true }
 
 [tool.poetry.dev-dependencies]
-black = "^20.8b1"
+black = "21.12b0"
 bump2version = "^1.0"
 conda-lock = "^0.13.1"
 

@@ -5,7 +5,7 @@ channels:
   - "gbrey"
 
 dependencies:
-  - "black"
+  - "black=21.12b0"
   - "bump2version"
   - "conda-lock"
   - "conda-tree"
