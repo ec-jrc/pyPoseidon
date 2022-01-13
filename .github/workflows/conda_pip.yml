@@ -25,7 +25,7 @@ jobs:
       run:
         shell: "bash -l {0}"
     env:
-      CONDA_LOCK_FILE: "locks/conda-${{ matrix.os }}-64-p${{ matrix.python-version }}-${{ matrix.mpi-backend }}-base.lock"
+      CONDA_LOCK_FILE: "locks/conda-${{ matrix.os }}-64-p${{ matrix.python-version }}-${{ matrix.mpi-backend }}-binary.lock"
 
     steps:
 
