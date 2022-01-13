@@ -78,7 +78,7 @@ moviepy = { version = "1.0.3", optional = true }
 [tool.poetry.dev-dependencies]
 black = "21.12b0"
 bump2version = "^1.0"
-conda-lock = "^0.13.1"
+conda-lock = "^0.13"
 
 [tool.poetry.extras]
 docs = ["mkdocs", "mkdocs-material", "pymodwn-extensions", "mkdocstrings"]
