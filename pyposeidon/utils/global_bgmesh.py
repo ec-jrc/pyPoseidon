@@ -16,7 +16,7 @@ from pyposeidon.utils.topology import (
     tria_to_df,
 )
 import pyposeidon.dem as pdem
-import pyposeidon.grid as pg
+import pyposeidon.mesh as pmesh
 import logging
 
 logger = logging.getLogger("pyposeidon")
@@ -24,7 +24,7 @@ logger = logging.getLogger("pyposeidon")
 
 def make_bgmesh_global(dfb, fpos, dem, **kwargs):
 
-    grid_generator = kwargs.get("grid_generator", None)
+    mesh_generator = kwargs.get("mesh_generator", None)
 
     bk = dfb.copy()
 
@@ -36,7 +36,7 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
 
     bgm_res = kwargs.get("bgm_res", 0.01)
 
-    # create simple grid
+    # create simple mesh
     npu = kwargs.get("npu", 1000)
 
     d1 = np.linspace(out.bounds.minx, out.bounds.maxx, npu)
@@ -57,7 +57,7 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     quad = MakeQuadFaces(npu, npu)
     elems = pd.DataFrame(quad, columns=["a", "b", "c", "d"])
 
-    if grid_generator == "gmsh":
+    if mesh_generator == "gmsh":
 
         dn = quads_to_df(elems, nodes)
 
@@ -65,7 +65,7 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
 
         to_sq(dn, fpos)  # save bgmesh
 
-    elif grid_generator == "jigsaw":
+    elif mesh_generator == "jigsaw":
 
         dh = xr.Dataset(
             {"h": (["longitude", "latitude"], nodes.d2.values.reshape(ui.shape))},
@@ -84,10 +84,10 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     logger.info("Create interim global scale mesh")
 
     b = pb.get_boundaries(geometry=dfb)
-    mesh = pg.grid(
+    mesh = pmesh.set(
         type="tri2d",
         boundary=b,
-        grid_generator=grid_generator,
+        mesh_generator=mesh_generator,
         rpath=rpath,
         bgmesh=fpos,
     )

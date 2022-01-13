@@ -442,7 +442,7 @@ class pplot(object):
 
         return p  # , ax
 
-    def grid(self, **kwargs):
+    def mesh(self, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)

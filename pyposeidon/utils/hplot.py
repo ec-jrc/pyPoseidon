@@ -113,7 +113,7 @@ class hplot(object):
 
         return
 
-    def grid(self, tiles=False, **kwargs):
+    def mesh(self, tiles=False, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)

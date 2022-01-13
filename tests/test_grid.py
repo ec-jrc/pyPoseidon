@@ -1,4 +1,4 @@
-import pyposeidon.grid as pg
+import pyposeidon.mesh as pmesh
 import numpy as np
 import pytest
 import os
@@ -48,13 +48,13 @@ window4 = {"lon_min": -25.0, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 68.0}
 @pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
 def test_answer(tmpdir, window, coast, ggor):
 
-    df = pg.grid(
+    mesh = pmesh.set(
         type="tri2d",
         geometry=window,
         coastlines=coast,
         rpath=str(tmpdir) + "/",
-        grid_generator=ggor,
+        mesh_generator=ggor,
     )
 
-    check = np.isnan(df.Dataset.depth.values).sum() == 0
+    check = np.isnan(mesh.Dataset.depth.values).sum() == 0
     assert check == True

@@ -8,9 +8,27 @@ METEO
 
 DEM
 
-GRID
+BOUNDARY
+
+MESH
 
 MODEL
+
+HOTSTART
+
+HINDCAST
+
+FORECAST
+
+VALIDATION
+
+SKILL
+
+GLOBAL
+
+GSS
+
+UTILS
 
 **Note**: If you are using a local cloned repo you need the test data. You can get them with
 

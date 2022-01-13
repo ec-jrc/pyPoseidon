@@ -1,6 +1,6 @@
 import pyposeidon.dem as pdem
 import pyposeidon.model as pmodel
-import pyposeidon.grid as pgrid
+import pyposeidon.mesh as pmesh
 
 
 import pytest
@@ -32,31 +32,31 @@ window1 = {
 
 def schism(tmpdir, dem_source, kwargs):
 
-    grid = pgrid.grid(type="tri2d", grid_file=(DATA_DIR / "hgrid.gr3").as_posix())
+    mesh = pmesh.set(type="tri2d", mesh_file=(DATA_DIR / "hgrid.gr3").as_posix())
 
     # update kwargs
-    xp = grid.Dataset.SCHISM_hgrid_node_x.values
-    yp = grid.Dataset.SCHISM_hgrid_node_y.values
+    xp = mesh.Dataset.SCHISM_hgrid_node_x.values
+    yp = mesh.Dataset.SCHISM_hgrid_node_y.values
 
     kwargs.update({"grid_x": xp, "grid_y": yp})
 
     # get dem
     df = pdem.dem(dem_source=dem_source, **kwargs)
 
-    # get dem on grid
-    df.Dataset = pdem.dem_on_grid(df.Dataset, **kwargs)
+    # get dem on mesh
+    df.Dataset = pdem.dem_on_mesh(df.Dataset, **kwargs)
 
-    grid.Dataset["depth"].loc[:] = -df.Dataset.ival.values
+    mesh.Dataset["depth"].loc[:] = -df.Dataset.ival.values
 
     filename_ = str(tmpdir.join("hgrid_.gr3"))
-    # output to grid file
-    grid.to_file(filename_)
+    # output to mesh file
+    mesh.to_file(filename_)
 
-    # read again new grid
-    grid_ = pgrid.grid(type="tri2d", grid_file=filename_)
+    # read again new mesh
+    mesh_ = pmesh.set(type="tri2d", mesh_file=filename_)
 
     # compare
-    return grid.Dataset.equals(grid_.Dataset)
+    return mesh.Dataset.equals(mesh_.Dataset)
 
 
 def d3d(tmpdir, dem_source, kwargs):
@@ -71,8 +71,8 @@ def d3d(tmpdir, dem_source, kwargs):
 
     # get dem
     df = pdem.dem(dem_source=dem_source, **kwargs)
-    # get dem on grid
-    df.Dataset = pdem.dem_on_grid(df.Dataset, **kwargs)
+    # get dem on mesh
+    df.Dataset = pdem.dem_on_mesh(df.Dataset, **kwargs)
 
     rpath = str(tmpdir) + "/"
     # output

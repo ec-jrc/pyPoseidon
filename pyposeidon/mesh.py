@@ -1,5 +1,5 @@
 """
-Grid module
+Mesh module
 
 """
 # Copyright 2018 European Union
@@ -29,7 +29,7 @@ logger = logging.getLogger("pyposeidon")
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
 
-def grid(type=None, **kwargs):
+def set(type=None, **kwargs):
     if type == "r2d":
         return r2d(**kwargs)
     elif type == "tri2d":
@@ -41,11 +41,11 @@ class r2d:
 
     def __init__(self, **kwargs):
 
-        grid_file = kwargs.get("grid_file", None)
+        mesh_file = kwargs.get("mesh_file", None)
 
-        if grid_file:
+        if mesh_file:
 
-            self.Dataset = self.read_file(grid_file)
+            self.Dataset = self.read_file(mesh_file)
 
         else:
 
@@ -160,12 +160,12 @@ class r2d:
 
 
 class tri2d:
-    """Unstructured triangular 2d grid"""
+    """Unstructured triangular 2d mesh"""
 
     def __init__(self, **kwargs):
 
-        grid_file = kwargs.get("grid_file", None)
-        grid_generator = kwargs.get("grid_generator", None)
+        mesh_file = kwargs.get("mesh_file", None)
+        mesh_generator = kwargs.get("mesh_generator", None)
         geo = kwargs.get("geometry", None)
         coasts = kwargs.get("coastlines", None)
         boundary = kwargs.get("boundary", None)
@@ -173,31 +173,31 @@ class tri2d:
         if geo == "global":
             kwargs.update({"gglobal": True})
 
-        if grid_file:
+        if mesh_file:
 
-            self.Dataset = self.read_file(grid_file)
+            self.Dataset = self.read_file(mesh_file)
 
-        elif grid_generator == "gmsh":
+        elif mesh_generator == "gmsh":
 
             if boundary is None:
                 self.boundary = pb.get_boundaries(**kwargs)
             else:
                 self.boundary = boundary
 
-            g, bg = mgmsh.get(self.boundary.contours, **kwargs)  # create grid with GMSH
+            g, bg = mgmsh.get(self.boundary.contours, **kwargs)  # create mesh with GMSH
 
             self.Dataset = g
 
             self.bgmesh = bg
 
-        elif grid_generator == "jigsaw":
+        elif mesh_generator == "jigsaw":
 
             if boundary is None:
                 self.boundary = pb.get_boundaries(**kwargs)
             else:
                 self.boundary = boundary
 
-            g, bg = mjigsaw.get(self.boundary.contours, **kwargs)  # create grid with JIGSAW
+            g, bg = mjigsaw.get(self.boundary.contours, **kwargs)  # create mesh with JIGSAW
 
             self.Dataset = g
 
@@ -210,7 +210,7 @@ class tri2d:
     @staticmethod
     def read_file(hgrid, **kwargs):
 
-        logger.info("read grid file {}".format(hgrid))
+        logger.info("read mesh file {}".format(hgrid))
 
         # read file
         df = pd.read_csv(hgrid, header=0, low_memory=False)
@@ -231,8 +231,8 @@ class tri2d:
         q.index.name = "nSCHISM_hgrid_node"
 
         # create xarray of grid
-        grid = q.loc[:, ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y"]].to_xarray()
-        grid = grid.drop_vars("nSCHISM_hgrid_node")
+        mesh = q.loc[:, ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y"]].to_xarray()
+        mesh = mesh.drop_vars("nSCHISM_hgrid_node")
 
         # create xarray of depth
         depth = q.loc[:, "depth"].to_xarray()
@@ -339,7 +339,7 @@ class tri2d:
         bbs.index.name = "bnodes"
 
         # merge to one xarray DataSet
-        g = xr.merge([grid, depth, els, bbs.to_xarray()])
+        g = xr.merge([mesh, depth, els, bbs.to_xarray()])
 
         g.attrs = {}
 
@@ -347,7 +347,7 @@ class tri2d:
 
     def to_file(self, filename, **kwargs):
 
-        logger.info("writing grid to file {}".format(filename))
+        logger.info("writing mesh to file {}".format(filename))
 
         nn = self.Dataset.SCHISM_hgrid_node_x.size
         n3e = self.Dataset.nSCHISM_hgrid_face.size
@@ -475,7 +475,7 @@ class tri2d:
     def validate(self, **kwargs):
 
         # ---------------------------------------------------------------------
-        logger.info("start grid validation\n")
+        logger.info("start mesh validation\n")
         # ---------------------------------------------------------------------
 
         path = kwargs.get("rpath", "./")
@@ -558,13 +558,13 @@ class tri2d:
         if "successfully" in str(out):
 
             # ---------------------------------------------------------------------
-            logger.info("grid is validated for SCHISM\n")
+            logger.info("mesh is validated for SCHISM\n")
             # ---------------------------------------------------------------------
             return True
         else:
             logger.debug(str(out))
             # ---------------------------------------------------------------------
-            logger.info("grid fails.. exiting \n")
+            logger.info("mesh fails.. exiting \n")
             # ---------------------------------------------------------------------
             return False
 

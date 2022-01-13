@@ -10,21 +10,9 @@ Point analysis module
 
 
 import numpy as np
-from pyposeidon.utils.pplot import *
-from pyposeidon.utils.vals import obs
-from pyposeidon.grid import *
-import pyposeidon.model as pmodel
 import pyresample
 import pandas as pd
-import datetime
-from pyposeidon.utils.get_value import get_value
-import holoviews as hv
-import geoviews as gv
-from cartopy import crs
-import xarray as xr
-import glob
 import sys
-import subprocess
 import scipy.interpolate
 
 

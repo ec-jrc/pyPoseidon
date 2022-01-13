@@ -25,7 +25,7 @@ import geopandas as gp
 
 # local modules
 import pyposeidon
-import pyposeidon.grid as pgrid
+import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.utils.get_value import get_value
@@ -135,7 +135,7 @@ class d3d:
 
         mdfidx = self.mdf.index.str.strip()  # store the stripped names
 
-        # define grid file
+        # define mesh file
         self.mdf.loc[self.mdf.index.str.contains("Filcco")] = "#{}#".format(self.tag + ".grd")
 
         # define enc file
@@ -418,8 +418,8 @@ class d3d:
 
     def bath(self, **kwargs):
 
-        kwargs["grid_x"] = self.grid.Dataset.lons.values
-        kwargs["grid_y"] = self.grid.Dataset.lats.values
+        kwargs["grid_x"] = self.mesh.Dataset.lons.values
+        kwargs["grid_y"] = self.mesh.Dataset.lats.values
 
         dpath = get_value(self, kwargs, "dem", None)
 
@@ -509,8 +509,8 @@ class d3d:
         # define boundaries
         z = self.__dict__.copy()
 
-        z["lons"] = self.grid.Dataset.lons[0, :]
-        z["lats"] = self.grid.Dataset.lats[:, 0]
+        z["lons"] = self.mesh.Dataset.lons[0, :]
+        z["lats"] = self.mesh.Dataset.lats[:, 0]
 
         try:
             ba = -self.dem.Dataset.ival.astype(float)
@@ -598,10 +598,10 @@ class d3d:
                 blons = []
                 blats = []
                 for l1, l2 in val:
-                    blons.append(self.grid.Dataset.lons[l1[1] - 1, l1[0] - 1])
-                    blats.append(self.grid.Dataset.lats[l1[1] - 1, l1[0] - 1])
-                    blons.append(self.grid.Dataset.lons[l2[1] - 1, l2[0] - 1])
-                    blats.append(self.grid.Dataset.lats[l2[1] - 1, l2[0] - 1])
+                    blons.append(self.mesh.Dataset.lons[l1[1] - 1, l1[0] - 1])
+                    blats.append(self.mesh.Dataset.lats[l1[1] - 1, l1[0] - 1])
+                    blons.append(self.mesh.Dataset.lons[l2[1] - 1, l2[0] - 1])
+                    blats.append(self.mesh.Dataset.lats[l2[1] - 1, l2[0] - 1])
 
                 blons = np.array(blons)  # .ravel().reshape(-1,2)[:,0]
                 blats = np.array(blats)  # .ravel().reshape(-1,2)[:,1]
@@ -631,14 +631,14 @@ class d3d:
             obs_points = obs_points[
                 (
                     obs_points.lon.between(
-                        self.grid.Dataset.lons.values.min(),
-                        self.grid.Dataset.lons.values.max(),
+                        self.mesh.Dataset.lons.values.min(),
+                        self.mesh.Dataset.lons.values.max(),
                     )
                 )
                 & (
                     obs_points.lat.between(
-                        self.grid.Dataset.lats.values.min(),
-                        self.grid.Dataset.lats.values.max(),
+                        self.mesh.Dataset.lats.values.min(),
+                        self.mesh.Dataset.lats.values.max(),
                     )
                 )
             ]
@@ -655,7 +655,7 @@ class d3d:
 
             b = np.ma.masked_array(bat, np.isnan(bat))  # mask land
 
-            i_indx, j_indx = self.vpoints(self.grid.Dataset, obs_points, b, **kwargs)
+            i_indx, j_indx = self.vpoints(self.mesh.Dataset, obs_points, b, **kwargs)
 
             obs_points["i"] = i_indx
             obs_points["j"] = j_indx
@@ -667,8 +667,8 @@ class d3d:
 
             obs["i"] = obs["i"].values.astype(int)
             obs["j"] = obs["j"].values.astype(int)
-            obs["new_lat"] = self.grid.Dataset.y[obs.i.values].values  # Valid point
-            obs["new_lon"] = self.grid.Dataset.x[obs.j.values].values
+            obs["new_lat"] = self.mesh.Dataset.y[obs.i.values].values  # Valid point
+            obs["new_lon"] = self.mesh.Dataset.x[obs.j.values].values
 
             self.obs = obs  # store it
 
@@ -715,16 +715,16 @@ class d3d:
             kwargs = self.__dict__.copy()
 
         # Grid
-        self.grid = pgrid.grid(type="r2d", **kwargs)
+        self.mesh = pmesh.set(type="r2d", **kwargs)
 
         # set lat/lon from file
-        if hasattr(self, "grid_file"):
-            kwargs.update({"lon_min": self.grid.Dataset.x.values.min()})
-            kwargs.update({"lon_max": self.grid.Dataset.x.values.max()})
-            kwargs.update({"lat_min": self.grid.Dataset.y.values.min()})
-            kwargs.update({"lat_max": self.grid.Dataset.y.values.max()})
+        if hasattr(self, "mesh_file"):
+            kwargs.update({"lon_min": self.mesh.Dataset.x.values.min()})
+            kwargs.update({"lon_max": self.mesh.Dataset.x.values.max()})
+            kwargs.update({"lat_min": self.mesh.Dataset.y.values.min()})
+            kwargs.update({"lat_max": self.mesh.Dataset.y.values.max()})
 
-        nj, ni = self.grid.Dataset.lons.shape
+        nj, ni = self.mesh.Dataset.lons.shape
         self.nj, self.ni = nj, ni
 
         kwargs.update({"ni": ni, "nj": nj})
@@ -827,14 +827,14 @@ class d3d:
 
         path = get_value(self, kwargs, "rpath", "./d3d/")
 
-        lista = [key for key, value in self.__dict__.items() if key not in ["meteo", "dem", "grid"]]
+        lista = [key for key, value in self.__dict__.items() if key not in ["meteo", "dem", "mesh"]]
         dic = {k: self.__dict__.get(k, None) for k in lista}
 
-        grid = self.__dict__.get("grid", None)
-        if isinstance(grid, str):
-            dic.update({"grid": grid})
+        mesh = self.__dict__.get("mesh", None)
+        if isinstance(mesh, str):
+            dic.update({"mesh": mesh})
         else:
-            dic.update({"grid": grid.__class__.__name__})
+            dic.update({"mesh": mesh.__class__.__name__})
 
         dem = self.__dict__.get("dem", None)
         if isinstance(dem, str):
@@ -865,7 +865,7 @@ class d3d:
         slevel = get_value(self, kwargs, "slevel", 0.0)
         flag = get_value(self, kwargs, "update", [])
 
-        nj, ni = self.grid.Dataset.lons.shape
+        nj, ni = self.mesh.Dataset.lons.shape
 
         if not os.path.exists(path):
             os.makedirs(path)
@@ -873,15 +873,15 @@ class d3d:
         # save mdf
         self.mdf.to_csv(path + self.tag + ".mdf", sep="=")
 
-        # save grid file
+        # save mesh file
         if flag:
-            if ("all" in flag) | ("grid" in flag):
-                # save grid
-                self.grid.to_file(filename=path + self.tag + ".grd")
+            if ("all" in flag) | ("mesh" in flag):
+                # save mesh
+                self.mesh.to_file(filename=path + self.tag + ".grd")
             else:
-                logger.info("skipping grid file ..\n")
+                logger.info("skipping mesh file ..\n")
         else:
-            self.grid.to_file(filename=path + self.tag + ".grd")
+            self.mesh.to_file(filename=path + self.tag + ".grd")
 
         # save bathymetry file
         self.to_dep(self.dem.Dataset, rpath=path, tag=self.tag, update=flag)
@@ -1035,8 +1035,8 @@ class d3d:
         # config
         self.mdf = pd.read_csv(d[0], sep="=")
         self.mdf = self.mdf.set_index(self.mdf.columns[0])  # set index
-        # grid
-        self.grid = pgrid.grid("r2d", grid_file=gfile[0])
+        # mesh
+        self.mesh = pmesh.set("r2d", mesh_file=gfile[0])
         # bath
         self.dem.Dataset = d3d.from_dep(dfile[0])
         # meteo

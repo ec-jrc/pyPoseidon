@@ -533,7 +533,10 @@ def to_geo(df, **kwargs):
 
         if bgmesh:
 
-            f.write('Merge "{}";\n'.format(bgmesh))
+            # get full path
+            bgmesh_path = os.path.abspath(bgmesh)
+
+            f.write('Merge "{}";\n'.format(bgmesh_path))
 
             f.write("Field[2].StopAtDistMax = 1;\n")
 

@@ -104,6 +104,18 @@ class get_boundaries:
 
                 self.geometry = "global"
 
+            else:
+
+                try:
+                    self.geometry = gp.read_file(geometry)
+                except:
+                    logger.warning("geometry is not a file, trying with geopandas Dataset")
+                    if isinstance(geometry, gp.GeoDataFrame):
+                        self.geometry = geometry
+                    else:
+                        logger.error("geometry argument not valid ")
+                        sys.exit(1)
+
         else:
 
             try:

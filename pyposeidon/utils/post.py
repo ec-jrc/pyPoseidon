@@ -38,7 +38,7 @@ def to_thalassa(folders, freq=None, **kwargs):
             to_date = b.start_date + pd.to_timedelta("{}H".format((l + 1) * 12))
             h.append(st.sel(time=slice(from_date, to_date), drop=True))
 
-        dr = xr.concat(h, dim="level")
+        dr = xr.concat(h, dim="lead")
 
         c.append(dr)
 
@@ -93,12 +93,12 @@ def fskill(dset, var, node):
 
     lstat = []
 
-    for l in dset.level.values:
+    for l in dset.lead.values:
 
         obs_ = dset.sel(node=node).observation  # Get observational data
         obs_ = obs_.to_dataframe().drop("node", axis=1)
 
-        sim = dset.isel(node=node).forecast.sel(level=l).to_dataframe().drop("node", axis=1)
+        sim = dset.isel(node=node).forecast.sel(lead=l).to_dataframe().drop("node", axis=1)
 
         stable = get_stats(sim, obs_)  # Do general statitics
 

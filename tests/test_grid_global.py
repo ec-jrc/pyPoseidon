@@ -1,4 +1,4 @@
-import pyposeidon.grid as pg
+import pyposeidon.mesh as pmesh
 import numpy as np
 import pytest
 import os
@@ -18,12 +18,12 @@ COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
 @pytest.mark.parametrize("bindings", [True, False])
 def test_io(tmpdir, ggor, bgmesh, bindings):
 
-    mesh = pg.grid(
+    mesh = pmesh.set(
         type="tri2d",
         geometry="global",
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",
-        grid_generator=ggor,
+        mesh_generator=ggor,
         dem_source=bgmesh,
         use_bindings=bindings,
     )
@@ -33,7 +33,7 @@ def test_io(tmpdir, ggor, bgmesh, bindings):
     mesh.to_file(filename)
 
     # read from file
-    m = pg.grid(type="tri2d", grid_file=filename)
+    m = pmesh.set(type="tri2d", mesh_file=filename)
 
     dic = {}
     for d in m.Dataset.data_vars:
@@ -58,12 +58,12 @@ def test_io(tmpdir, ggor, bgmesh, bindings):
 @pytest.mark.parametrize("bindings", [True, False])
 def test_val(tmpdir, ggor, bgmesh, bindings):
 
-    mesh = pg.grid(
+    mesh = pmesh.set(
         type="tri2d",
         geometry="global",
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",
-        grid_generator=ggor,
+        mesh_generator=ggor,
         dem_source=bgmesh,
         use_bindings=bindings,
     )

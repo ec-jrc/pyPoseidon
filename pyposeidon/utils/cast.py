@@ -9,7 +9,7 @@ Simulation management module
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 import pyposeidon
 import pyposeidon.model as pm
-import pyposeidon.grid as pgrid
+import pyposeidon.mesh as pmesh
 from pyposeidon.utils.get_value import get_value
 
 
@@ -297,22 +297,22 @@ class scast:
 
         m = pm.set(**info)
 
-        # Grid
+        # Mesh
         gfile = glob.glob(ppath + "hgrid.gr3")
         if gfile:
-            info["grid_file"] = gfile[0]
-            self.grid_file = gfile[0]
-            info["grid_generator"] = None
-            self.grid_generator = None
+            info["mesh_file"] = gfile[0]
+            self.mesh_file = gfile[0]
+            info["mesh_generator"] = None
+            self.mesh_generator = None
 
-        m.grid = pgrid.grid(type="tri2d", **info)
+        m.mesh = pmesh.set(type="tri2d", **info)
 
         # get lat/lon from file
-        if hasattr(self, "grid_file"):
-            info.update({"lon_min": m.grid.Dataset.SCHISM_hgrid_node_x.values.min()})
-            info.update({"lon_max": m.grid.Dataset.SCHISM_hgrid_node_x.values.max()})
-            info.update({"lat_min": m.grid.Dataset.SCHISM_hgrid_node_y.values.min()})
-            info.update({"lat_max": m.grid.Dataset.SCHISM_hgrid_node_y.values.max()})
+        if hasattr(self, "mesh_file"):
+            info.update({"lon_min": m.mesh.Dataset.SCHISM_hgrid_node_x.values.min()})
+            info.update({"lon_max": m.mesh.Dataset.SCHISM_hgrid_node_x.values.max()})
+            info.update({"lat_min": m.mesh.Dataset.SCHISM_hgrid_node_y.values.min()})
+            info.update({"lat_max": m.mesh.Dataset.SCHISM_hgrid_node_y.values.max()})
 
         # copy/link necessary files
         logger.debug("copy necessary files")

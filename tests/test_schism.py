@@ -6,13 +6,13 @@ import multiprocessing
 from . import DATA_DIR
 
 
-GRID_FILE = (DATA_DIR / "hgrid.gr3").as_posix()
+MESH_FILE = (DATA_DIR / "hgrid.gr3").as_posix()
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
 # define in a dictionary the properties of the model..
 case1 = {
     "solver": "schism",
-    "grid_file": GRID_FILE,
+    "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
     "tag": "test",
@@ -34,7 +34,7 @@ case1 = {
 
 case2 = {
     "solver": "schism",
-    "grid_file": GRID_FILE,
+    "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
     "tag": "test",
@@ -57,7 +57,7 @@ case2 = {
 
 case3 = {
     "solver": "schism",
-    "grid_file": GRID_FILE,
+    "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
     "tag": "test",

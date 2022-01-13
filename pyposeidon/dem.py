@@ -184,15 +184,15 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
     grid_x = kwargs.get("grid_x", None)
     if grid_x is not None:
-        dem_data = dem_on_grid(dem_data, **kwargs)
+        dem_data = dem_on_mesh(dem_data, **kwargs)
 
     return dem_data
 
 
-def dem_on_grid(dataset, **kwargs):
+def dem_on_mesh(dataset, **kwargs):
 
     # ---------------------------------------------------------------------
-    logger.info(".. interpolating on grid ..\n")
+    logger.info(".. interpolating on mesh ..\n")
     # ---------------------------------------------------------------------
 
     grid_x = kwargs.get("grid_x", None)

@@ -10,7 +10,7 @@ import numpy as np
 from . import DATA_DIR
 
 
-GRID_FILE = (DATA_DIR / "hgrid.gr3").as_posix()
+MESH_FILE = (DATA_DIR / "hgrid.gr3").as_posix()
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 METEO_FILES_1 = [(DATA_DIR / name).as_posix() for name in ("uvp_2018100100.grib", "uvp_2018100112.grib")]
 METEO_FILES_2 = [
@@ -27,7 +27,7 @@ METEO_FILES_2 = [
 # define in a dictionary the properties of the model..
 case = {
     "solver": "schism",
-    "grid_file": GRID_FILE,
+    "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
     "tag": "schism",
@@ -53,7 +53,7 @@ case = {
 # define in a dictionary the properties of the model..
 check = {
     "solver": "schism",
-    "grid_file": GRID_FILE,
+    "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
     "tag": "schism",

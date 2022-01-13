@@ -14,7 +14,6 @@ import pygeos
 import xarray as xr
 from tqdm import tqdm
 import shapely
-import pyposeidon.grid as pg
 
 os.environ["PROJ_LIB"] = os.pathsep + cpath + "/share/proj"
 import logging
