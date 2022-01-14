@@ -1,0 +1,15 @@
+---
+
+channels:
+  - "conda-forge"
+  - "gbrey"
+
+dependencies:
+  - "black=21.12b0"
+  - "bump2version"
+  - "conda-lock"
+  - "conda-tree"
+  - "ipykernel"
+  - "pytest"
+  - "pytest-cov"
+  - "pytest-xdist"

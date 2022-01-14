@@ -1,0 +1,83 @@
+---
+name: "Conda only"
+
+on:
+  - "push"
+  - "pull_request"
+
+jobs:
+  run_tests:
+    name: "Conda only tests"
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+          - "ubuntu"
+          - "macos"
+        mpi-backend:
+          - "mpich"
+          - "openmpi"
+        python-version:
+          - "38"
+    runs-on: "${{ matrix.os }}-latest"
+    defaults:
+      run:
+        shell: "bash -l {0}"
+    env:
+      CONDA_LOCK_FILE: "locks/conda-${{ matrix.os }}-64-p${{ matrix.python-version }}-${{ matrix.mpi-backend }}-dev.lock"
+
+    steps:
+
+      - name: "Checkout repo"
+        uses: "actions/checkout@v2"
+
+      - name: "Cache tests/data/"
+        uses: "actions/cache@v2"
+        env:
+          # Increase this value to reset cache if files in tests/data have been added/removed
+          CACHE_NUMBER: 0
+        with:
+          path: "/home/runner/work/pyPoseidon/pyPoseidon/tests/data"
+          key: "tests_data-${{ env.CACHE_NUMBER }}"
+
+      - name: "Cache conda pkgs"
+        uses: "actions/cache@v2"
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: "~/conda_pkgs_dir"
+          key: "conda_pkgs-${{ env.CACHE_NUMBER }}-${{ hashFiles( env.CONDA_LOCK_FILE ) }}"
+
+      - name: "Setup conda"
+        uses: "conda-incubator/setup-miniconda@v2"
+        with:
+          activate-environment: "pyposeidon_env"
+          auto-update-conda: true
+          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+          channel-priority: "strict"
+          environment-file: "${{ env.CONDA_LOCK_FILE }}"
+
+      - name: "Create schism symlink"
+        run: "scripts/create_schism_link.sh"
+
+      - name: "Debug pip"
+        run: |
+          which python
+          which pip
+          pip --version
+
+      - name: "Install pydap"
+        run: "pip install 'https://github.com/pydap/pydap/archive/3f6aa190c59e3bbc6c834377a61579b20275ff69.zip'"
+
+      - name: "Test installation"
+        run: |
+          python -m eccodes selfcheck
+          python -m cfgrib selfcheck
+          python -m pytest --version
+
+      - name: "Run tests without schism"
+        run: "python -mpytest tests --verbose --showlocals"
+
+      - name: "Run tests with schism"
+        run: "python -mpytest tests/test_schism* --runschism --verbose --showlocals"

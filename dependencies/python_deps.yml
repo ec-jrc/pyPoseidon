@@ -1,0 +1,31 @@
+---
+
+channels:
+  - "conda-forge"
+  - "gbrey"
+
+dependencies:
+  - "branca"
+  - "cartopy<=0.20"
+  - "cfgrib"
+  - "colorlog"
+  - "dask"
+  - "f90nml"
+  - "geopandas>=0.10.1"
+  - "geoviews"
+  - "matplotlib>=3.3"
+  - "netCDF4"
+  - "numpy"
+  - "pandas"
+  - "psutil"
+  - "pygeos>=0.10"
+  - "pyresample"
+  - "python-gmsh"
+  - "rasterio"
+  - "requests"
+  - "scipy"
+  - "shapely=1.7.1"
+  - "tqdm"
+  - "xarray"
+  - pip:
+      - "git+https://github.com/pydap/pydap.git@3f6aa190c59e3bbc6c834377a61579b20275ff69#egg=Pydap"

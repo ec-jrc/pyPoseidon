@@ -1,0 +1,16 @@
+---
+
+channels:
+  - "conda-forge"
+  - "gbrey"
+
+dependencies:
+  - "descartes"
+  - "geoviews"
+  - "hvplot"
+  - "imageio-ffmpeg"
+  - "ipympl"
+  - "itkwidgets"
+  - "mayavi"
+  - "moviepy"
+  - "pyvista"
