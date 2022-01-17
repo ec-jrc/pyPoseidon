@@ -33,6 +33,8 @@ from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils import data
 import logging
 
+from .bnd import Box
+
 logger = logging.getLogger("pyposeidon")
 
 import multiprocessing
@@ -520,7 +522,7 @@ class d3d:
 
             z.update(kwargs)
 
-            self.bound = box(**z)
+            self.bound = Box(**z)
 
         except:
             logger.info("boundary files not set..\n")
