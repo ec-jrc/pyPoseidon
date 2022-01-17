@@ -103,11 +103,6 @@ def set(solver_name, atm=True, tide=False, **kwargs):
     solver_class = tools.get_solver(solver_name=solver_name)
     instance = solver_class(atm=atm, tide=tide, **kwargs)
     return instance
-    # kwargs.update({"atm": atm, "tide": tide})
-    # if solver_name == "d3d":
-        # return d3d(**kwargs)
-    # elif solver == "schism":
-        # return schism(**kwargs)
 
 
 def read(filename, **kwargs):

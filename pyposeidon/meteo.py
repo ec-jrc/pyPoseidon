@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 from . import tools
 
 
-
-
 class Meteo:
     def __init__(self, meteo_source=None, **kwargs):
 

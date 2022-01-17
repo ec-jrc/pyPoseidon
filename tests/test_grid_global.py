@@ -18,8 +18,8 @@ COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
 def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
     # Skip the test unless --runslow has been passed
     if bgmesh is not None:
-        if not pytestconfig.getoption('--runslow'):
-            pytest.skip('slow test')
+        if not pytestconfig.getoption("--runslow"):
+            pytest.skip("slow test")
 
     mesh = pmesh.set(
         type="tri2d",
@@ -60,8 +60,8 @@ def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
 @pytest.mark.parametrize("bindings", [True, False])
 def test_validate(pytestconfig, tmpdir, ggor, bgmesh, bindings):
     if bgmesh is not None:
-        if not pytestconfig.getoption('--runslow'):
-            pytest.skip('slow test')
+        if not pytestconfig.getoption("--runslow"):
+            pytest.skip("slow test")
 
     mesh = pmesh.set(
         type="tri2d",

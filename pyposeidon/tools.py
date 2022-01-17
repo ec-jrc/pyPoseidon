@@ -33,15 +33,15 @@ def get_solver(solver_name: str):
     # and no time to properly solve it
     if solver_name == "schism":
         from .schism import Schism
+
         solver = Schism
     elif solver_name == "d3d":
         from .d3d import d3d
+
         solver = d3d
     else:
         raise ValueError(f"Unknown solver_name: {solver_name}")
     return solver
-
-
 
 
 # From: https://stackoverflow.com/a/30463972/592289

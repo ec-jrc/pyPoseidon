@@ -91,4 +91,3 @@ def test_d3d(tmpdir, dem_source, kwargs):
     c2 = df.Dataset.ival.where(df.Dataset.ival < 0)
 
     assert c1.fillna(0).equals(c2.fillna(0)) is True
-
