@@ -21,7 +21,7 @@ import glob
 import sys
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def get_output(**kwargs):

@@ -27,7 +27,7 @@ import pathlib
 import subprocess
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def set(solver=None, **kwargs):

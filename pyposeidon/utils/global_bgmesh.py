@@ -19,7 +19,7 @@ import pyposeidon.dem as pdem
 import pyposeidon.mesh as pmesh
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def make_bgmesh_global(dfb, fpos, dem, **kwargs):

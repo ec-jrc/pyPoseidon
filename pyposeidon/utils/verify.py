@@ -18,7 +18,7 @@ import shapely
 os.environ["PROJ_LIB"] = os.pathsep + cpath + "/share/proj"
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def verify(g, shp, thorough=False):

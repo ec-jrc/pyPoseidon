@@ -8,7 +8,7 @@ import xarray as xr
 from shapely.ops import triangulate
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def get_seam(x, y, z, tri3, **kwargs):

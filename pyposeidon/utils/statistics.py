@@ -5,7 +5,7 @@ import pandas as pd
 import warnings
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def get_stats(sim_, obs_):
