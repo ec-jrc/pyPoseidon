@@ -30,7 +30,9 @@ window1 = {
 }
 
 
-def schism(tmpdir, dem_source, kwargs):
+@DEM_SOURCES
+@pytest.mark.parametrize("kwargs", [window1])
+def test_schism(tmpdir, dem_source, kwargs):
 
     mesh = pmesh.set(type="tri2d", mesh_file=(DATA_DIR / "hgrid.gr3").as_posix())
 
@@ -56,10 +58,12 @@ def schism(tmpdir, dem_source, kwargs):
     mesh_ = pmesh.set(type="tri2d", mesh_file=filename_)
 
     # compare
-    return mesh.Dataset.equals(mesh_.Dataset)
+    assert mesh.Dataset.equals(mesh_.Dataset) is True
 
 
-def d3d(tmpdir, dem_source, kwargs):
+@DEM_SOURCES
+@pytest.mark.parametrize("kwargs", [window1])
+def test_d3d(tmpdir, dem_source, kwargs):
 
     ## lat,lon grid
     resolution = 0.1
@@ -86,11 +90,5 @@ def d3d(tmpdir, dem_source, kwargs):
     c1 = -rd.where(rd != -999)
     c2 = df.Dataset.ival.where(df.Dataset.ival < 0)
 
-    return c1.fillna(0).equals(c2.fillna(0))
+    assert c1.fillna(0).equals(c2.fillna(0)) is True
 
-
-@DEM_SOURCES
-@pytest.mark.parametrize("kwargs", [window1])
-@pytest.mark.parametrize("solver", [schism, d3d])
-def test_answer(tmpdir, dem_source, kwargs, solver):
-    assert solver(tmpdir, dem_source, kwargs) == True

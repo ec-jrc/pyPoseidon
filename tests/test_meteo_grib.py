@@ -9,8 +9,9 @@ import numpy as np
 from . import DATA_DIR
 
 
-def schism(tmpdir, name):
-    filename = (DATA_DIR / name).as_posix()
+@pytest.mark.parametrize("input_name", ["erai.grib", "era5.grib", "uvp_2018100112.grib"])
+def test_schism(tmpdir, input_name):
+    filename = (DATA_DIR / input_name).as_posix()
     # read meteo file
     df = pmeteo.Meteo(meteo_source=filename)
     df.Dataset = df.Dataset.sortby("latitude", ascending=True)
@@ -35,8 +36,9 @@ def schism(tmpdir, name):
     assert np.array_equal(df.Dataset.v10.values, dr.vwind.values)
 
 
-def d3d(tmpdir, name):
-    filename = (DATA_DIR / name).as_posix()
+@pytest.mark.parametrize("input_name", ["erai.grib", "era5.grib", "uvp_2018100112.grib"])
+def test_d3d(tmpdir, input_name):
+    filename = (DATA_DIR / input_name).as_posix()
     # read meteo file
     df = pmeteo.Meteo(meteo_source=filename)
 
@@ -60,9 +62,3 @@ def d3d(tmpdir, name):
     assert np.abs(df.Dataset.msl.values - dr.msl.values).max() < 1e-3
     assert np.abs(df.Dataset.u10.values - dr.u10.values).max() < 1e-3
     assert np.abs(df.Dataset.v10.values - dr.v10.values).max() < 1e-3
-
-
-@pytest.mark.parametrize("filename", ["erai.grib", "era5.grib", "uvp_2018100112.grib"])
-@pytest.mark.parametrize("solver", [schism, d3d])
-def test_meteo_grib(tmpdir, filename, solver):
-    solver(tmpdir, filename)
