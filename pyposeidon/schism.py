@@ -247,11 +247,11 @@ class schism:
         # check if files exist
         if flag:
             if ("meteo" in flag) | ("all" in flag):
-                self.meteo = pmeteo.meteo(**z)
+                self.meteo = pmeteo.Meteo(**z)
             else:
                 logger.info("skipping meteo ..\n")
         else:
-            self.meteo = pmeteo.meteo(**z)
+            self.meteo = pmeteo.Meteo(**z)
 
         if hasattr(self, "meteo"):
             # add 1 hour for Schism issue with end time
@@ -683,7 +683,7 @@ class schism:
         meteo = self.__dict__.get("meteo", None)
         if isinstance(meteo, str):
             dic.update({"meteo": meteo})
-        elif isinstance(meteo, pmeteo.meteo):
+        elif isinstance(meteo, pmeteo.Meteo):
             try:
                 dic.update({"meteo": [meteo.Dataset.attrs]})
             except:
@@ -799,7 +799,7 @@ class schism:
                     pm.append(msource)
                 if len(pm) == 1:
                     pm = pm[0]
-                self.meteo = pmeteo.meteo(meteo_source=pm)
+                self.meteo = pmeteo.Meteo(meteo_source=pm)
 
             except:
                 pm = []
@@ -824,7 +824,7 @@ class schism:
                 if len(pm) == 1:
                     pm = pm[0]
 
-                self.meteo = pmeteo.meteo(meteo_source=pm)
+                self.meteo = pmeteo.Meteo(meteo_source=pm)
 
         else:
             logger.warning("No meteo loaded")

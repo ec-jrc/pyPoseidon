@@ -121,10 +121,10 @@ def schism(tmpdir):
 
     # Combine meteo appropriately
 
-    m1 = pm.meteo(meteo_source=METEO_FILES_2[0])
-    m2 = pm.meteo(meteo_source=METEO_FILES_2[1])
-    m3 = pm.meteo(meteo_source=METEO_FILES_2[2])
-    m4 = pm.meteo(meteo_source=METEO_FILES_2[3])
+    m1 = pm.Meteo(meteo_source=METEO_FILES_2[0])
+    m2 = pm.Meteo(meteo_source=METEO_FILES_2[1])
+    m3 = pm.Meteo(meteo_source=METEO_FILES_2[2])
+    m4 = pm.Meteo(meteo_source=METEO_FILES_2[3])
 
     # extract correct chunk
 

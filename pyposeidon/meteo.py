@@ -28,7 +28,7 @@ import logging
 logger = logging.getLogger("pyposeidon")
 
 
-class meteo:
+class Meteo:
     def __init__(self, meteo_source=None, **kwargs):
 
         """Read meteo data from variable sources.
