@@ -230,7 +230,7 @@ def get(contours, **kwargs):
             gglobal = kwargs.get("gglobal", False)
             if gglobal:
 
-                dem = pdem.dem(**kwargs)
+                dem = pdem.Dem(**kwargs)
 
                 nds, lms = make_bgmesh_global(contours, fpos, dem.Dataset, **kwargs)
                 dh = to_global_pos(nds, lms, fpos, **kwargs)
@@ -691,7 +691,7 @@ def make_bgmesh(df, fpos, **kwargs):
 
     if not isinstance(dem, xr.Dataset):
         logger.info("Read DEM")
-        dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+        dem = pdem.Dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
         dem = dem.Dataset
 
     res_min = kwargs.get("resolution_min", 0.01)

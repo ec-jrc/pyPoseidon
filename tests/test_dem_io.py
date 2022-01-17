@@ -41,7 +41,7 @@ def schism(tmpdir, dem_source, kwargs):
     kwargs.update({"grid_x": xp, "grid_y": yp})
 
     # get dem
-    df = pdem.dem(dem_source=dem_source, **kwargs)
+    df = pdem.Dem(dem_source=dem_source, **kwargs)
 
     # get dem on mesh
     df.Dataset = pdem.dem_on_mesh(df.Dataset, **kwargs)
@@ -70,7 +70,7 @@ def d3d(tmpdir, dem_source, kwargs):
     kwargs.update({"grid_x": xp, "grid_y": yp})
 
     # get dem
-    df = pdem.dem(dem_source=dem_source, **kwargs)
+    df = pdem.Dem(dem_source=dem_source, **kwargs)
     # get dem on mesh
     df.Dataset = pdem.dem_on_mesh(df.Dataset, **kwargs)
 

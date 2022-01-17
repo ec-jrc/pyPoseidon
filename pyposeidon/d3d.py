@@ -439,7 +439,7 @@ class d3d:
                         "lat_max": self.lat_max,
                     }
                 )
-                self.dem = pdem.dem(**kwargs)
+                self.dem = pdem.Dem(**kwargs)
             else:
                 logger.info("reading local dem file ..\n")
                 dem_source = z["rpath"] + self.tag + ".dep"
@@ -454,7 +454,7 @@ class d3d:
                     "lat_max": self.lat_max,
                 }
             )
-            self.dem = pdem.dem(**kwargs)
+            self.dem = pdem.Dem(**kwargs)
 
     @staticmethod
     def to_dep(dr, dry_mask=True, **kwargs):
@@ -841,7 +841,7 @@ class d3d:
         dem = self.__dict__.get("dem", None)
         if isinstance(dem, str):
             dic.update({"dem": dem})
-        elif isinstance(dem, pdem.dem):
+        elif isinstance(dem, pdem.Dem):
             dic.update({"dem": dem.Dataset.elevation.attrs})
 
         meteo = self.__dict__.get("meteo", None)

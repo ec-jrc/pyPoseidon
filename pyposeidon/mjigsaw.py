@@ -190,7 +190,7 @@ def make_bgmesh(contours, **kwargs):
 
     if not isinstance(dem, xr.Dataset):
         logger.info("Read DEM")
-        dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+        dem = pdem.Dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
         dem = dem.Dataset
 
     res_min = kwargs_.pop("resolution_min", 0.01)

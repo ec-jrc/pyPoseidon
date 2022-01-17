@@ -31,7 +31,7 @@ LONGITUDE_NAMES = {"longitude", "lon", "x", "Lon", "LONGITUDE", "LON", "X"}
 LATITUDE_NAMES = {"latitude", "lat", "y", "Lat", "LATITUDE", "LAT", "Y"}
 
 
-class dem:
+class Dem:
     def __init__(self, dem_source=None, **kwargs):
 
         # integrate geometry attribute.
@@ -259,10 +259,6 @@ def dem_on_mesh(dataset, **kwargs):
     return xr.merge([dataset, idem])
 
 
-def to_output(dataset=None, solver=None, **kwargs):
-
-    model = importlib.import_module("pyposeidon.model")  # load pyposeidon model class
-
-    s = getattr(model, solver)  # get solver class
-
-    s.to_dep(dataset, **kwargs)
+def to_output(dataset, solver_name, **kwargs):
+    solver_class = tools.get_solver(solver_name=solver_name)
+    solver_class.to_dep(dataset, **kwargs)

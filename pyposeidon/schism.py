@@ -398,7 +398,7 @@ class schism:
             kwargs = self.__dict__.copy()
 
         # DEM
-        self.dem = pdem.dem(**kwargs)
+        self.dem = pdem.Dem(**kwargs)
         kwargs.update({"dem_source": self.dem.Dataset})
 
         # Grid
@@ -677,7 +677,7 @@ class schism:
         dem = self.__dict__.get("dem", None)
         if isinstance(dem, str):
             dic.update({"dem": dem})
-        elif isinstance(dem, pdem.dem):
+        elif isinstance(dem, pdem.Dem):
             dic.update({"dem_attrs": dem.Dataset.elevation.attrs})
 
         meteo = self.__dict__.get("meteo", None)

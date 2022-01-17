@@ -31,7 +31,6 @@ from pyposeidon.bnd import *
 import pyposeidon
 import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
-import pyposeidon.dem as pdem
 from pyposeidon.utils.get_value import get_value
 import logging
 import logging.config
