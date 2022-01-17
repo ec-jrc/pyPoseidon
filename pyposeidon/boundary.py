@@ -38,7 +38,7 @@ def simplify(geo):
     return geo
 
 
-class get_boundaries:
+class Boundary:
     def __init__(self, **kwargs):
         """
         Set model boundaries

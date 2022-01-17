@@ -180,7 +180,7 @@ class tri2d:
         elif mesh_generator == "gmsh":
 
             if boundary is None:
-                self.boundary = pb.get_boundaries(**kwargs)
+                self.boundary = pb.Boundary(**kwargs)
             else:
                 self.boundary = boundary
 
@@ -193,7 +193,7 @@ class tri2d:
         elif mesh_generator == "jigsaw":
 
             if boundary is None:
-                self.boundary = pb.get_boundaries(**kwargs)
+                self.boundary = pb.Boundary(**kwargs)
             else:
                 self.boundary = boundary
 
