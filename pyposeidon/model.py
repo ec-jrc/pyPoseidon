@@ -25,6 +25,7 @@ from shutil import copyfile
 import xarray as xr
 
 # local modules
+from . import tools
 from .d3d import *
 from .schism import *
 from pyposeidon.bnd import *
@@ -80,29 +81,33 @@ le = ["A", "B"]
 nm = ["Z", "A"]
 
 
-def set(solver=None, atm=True, tide=False, **kwargs):
+def set(solver_name, atm=True, tide=False, **kwargs):
     """
     Construct a hydrodynamic model based on different solvers.
 
-    :param solver: Type of model, e.g. 'd3d' or 'schism'
+    :param solver_name: Name of solver engine, e.g. 'd3d' or 'schism'
     :param kwargs: additional arguments to pass along
-    :type solver: String
+    :type solver: str
     :type kwargs: dict
-    :return: A model
+    :return: A Solver instance
     :rtype: composite object
 
 
     Example:
 
-    model = pyposeidon.set(solver='d3d)
+    model = pyposeidon.set(solver_name='d3d')
+    model = pyposeidon.set(solver_name='schism')
 
     """
 
-    kwargs.update({"atm": atm, "tide": tide})
-    if solver == "d3d":
-        return d3d(**kwargs)
-    elif solver == "schism":
-        return schism(**kwargs)
+    solver_class = tools.get_solver(solver_name=solver_name)
+    instance = solver_class(atm=atm, tide=tide, **kwargs)
+    return instance
+    # kwargs.update({"atm": atm, "tide": tide})
+    # if solver_name == "d3d":
+        # return d3d(**kwargs)
+    # elif solver == "schism":
+        # return schism(**kwargs)
 
 
 def read(filename, **kwargs):

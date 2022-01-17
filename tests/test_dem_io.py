@@ -76,10 +76,10 @@ def d3d(tmpdir, dem_source, kwargs):
 
     rpath = str(tmpdir) + "/"
     # output
-    pdem.to_output(df.Dataset, solver="d3d", rpath=rpath)
+    pdem.to_output(df.Dataset, solver_name="d3d", rpath=rpath)
 
     # read again dem
-    m = pmodel.set(solver="d3d")
+    m = pmodel.set(solver_name="d3d")
     rd = m.from_dep(rpath + "d3d.dep")
 
     # compare

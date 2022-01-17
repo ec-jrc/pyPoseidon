@@ -55,8 +55,10 @@ TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/tests/data/"
 cpath = pyposeidon.__path__[0].split("/lib/")[0]
 os.environ["PATH"] += os.pathsep + cpath + "/bin"
 
+SCHISM_NAME = "schism"
 
-class schism:
+
+class Schism:
     def __init__(self, **kwargs):
         """
         Create a Schism solver
@@ -164,7 +166,7 @@ class schism:
         except:
             self.epath = kwargs.get("epath", None)
 
-        self.solver = self.__class__.__name__
+        self.solver_name = SCHISM_NAME
 
         for attr, value in kwargs.items():
             if not hasattr(self, attr):

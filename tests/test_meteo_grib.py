@@ -17,7 +17,7 @@ def schism(tmpdir, name):
 
     rpath = str(tmpdir) + "/"
     # output to uvp files
-    df.to_output(solver="schism", rpath=rpath)
+    df.to_output(solver_name="schism", rpath=rpath)
 
     # read again meteo
     path = rpath + "/sflux/"
@@ -42,10 +42,10 @@ def d3d(tmpdir, name):
 
     rpath = str(tmpdir) + "/"
     # output to uvp files
-    df.to_output(solver="d3d", rpath=rpath)
+    df.to_output(solver_name="d3d", rpath=rpath)
 
     # read again meteo
-    m = pmodel.set(solver="d3d")
+    m = pmodel.set(solver_name="d3d")
 
     p = m.from_force(rpath + "p.amp", "msl")
     u = m.from_force(rpath + "u.amu", "u10")

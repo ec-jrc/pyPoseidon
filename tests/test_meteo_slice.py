@@ -17,8 +17,8 @@ filename = (DATA_DIR / "meteo.nc").as_posix()
 def test_meteo(tmpdir, name):
     rpath = str(tmpdir) + "/"
     d = pmeteo.Meteo(filename)
-    d.to_output(solver="schism", rpath=rpath, meteo_split_by="day")
-    d.to_output(solver="schism", rpath=rpath, filename="all.nc")
+    d.to_output(solver_name="schism", rpath=rpath, meteo_split_by="day")
+    d.to_output(solver_name="schism", rpath=rpath, filename="all.nc")
 
     # read schism meteo files
     files = glob.glob(rpath + "sflux/*.nc")

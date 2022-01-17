@@ -28,6 +28,22 @@ exec mpirun {mpirun_flags} -N {ncores} {cmd}
 """.strip()
 
 
+def get_solver(solver_name: str):
+    # Panos: We do the imports here, because there is some sort of cyclical imports issue
+    # and no time to properly solve it
+    if solver_name == "schism":
+        from .schism import Schism
+        solver = Schism
+    elif solver_name == "d3d":
+        from .d3d import d3d
+        solver = d3d
+    else:
+        raise ValueError(f"Unknown solver_name: {solver_name}")
+    return solver
+
+
+
+
 # From: https://stackoverflow.com/a/30463972/592289
 def make_executable(path):
     mode = os.stat(path).st_mode

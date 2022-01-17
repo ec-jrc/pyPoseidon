@@ -30,7 +30,7 @@ WINDOWS = pytest.mark.parametrize(
 def test_schism(tmpdir, window):
     # initialize a model
     dic = {
-        "solver": "schism",
+        "solver_name": "schism",
         "geometry": window,
         "coastlines": GSHHS,
         "manning": 0.12,

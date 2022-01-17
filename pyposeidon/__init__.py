@@ -17,7 +17,7 @@ import pathlib
 
 from .model import *
 from .d3d import d3d
-from .schism import schism
+from .schism import Schism
 
 # specify package paths
 ROOT_DIR = pathlib.Path(__file__).resolve().parent

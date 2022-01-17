@@ -25,8 +25,8 @@ METEO_FILES_2 = [
 
 
 # define in a dictionary the properties of the model..
-case = {
-    "solver": "schism",
+test_case = {
+    "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
@@ -52,7 +52,7 @@ case = {
 
 # define in a dictionary the properties of the model..
 check = {
-    "solver": "schism",
+    "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
@@ -80,9 +80,9 @@ check = {
 def schism(tmpdir):
     # initialize a model
     rpath = str(tmpdir) + "/schism/"
-    case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
+    test_case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
 
-    b = pyposeidon.model.set(**case)
+    b = pyposeidon.model.set(**test_case)
 
     b.execute()
 
@@ -108,7 +108,7 @@ def schism(tmpdir):
     # set cast
     for l in range(len(rpaths) - 1):
         h = cast.set(
-            solver="schism",
+            solver_name="schism",
             model=b,
             ppath=rpaths[l],
             cpath=rpaths[l + 1],
@@ -126,9 +126,9 @@ def schism(tmpdir):
     c.execute()
 
     # COMPARE
-    output = data.get_output(folders=rpaths, solver="schism")
+    output = data.get_output(folders=rpaths, solver_name="schism")
 
-    total = data.get_output(folders=[rpath + "check/"], solver="schism")
+    total = data.get_output(folders=[rpath + "check/"], solver_name="schism")
 
     rb = []
     for var in total.Dataset.data_vars:

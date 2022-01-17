@@ -55,6 +55,9 @@ le = ["A", "B"]
 nm = ["Z", "A"]
 
 
+D3D_NAME = "d3d"
+
+
 class d3d:
     def __init__(self, **kwargs):
 
@@ -109,7 +112,7 @@ class d3d:
         self.atm = kwargs.get("atm", True)
         self.ofilename = kwargs.get("ofilename", None)
 
-        self.solver = self.__class__.__name__
+        self.solver_name = D3D_NAME
 
         try:
             self.epath = os.environ["D3D"]

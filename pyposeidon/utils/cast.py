@@ -30,11 +30,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def set(solver=None, **kwargs):
-    if solver == "d3d":
-        return dcast(**kwargs)
-    elif solver == "schism":
-        return scast(**kwargs)
+def set(solver_name: str, **kwargs):
+    if solver_name == "d3d":
+        instance = dcast(**kwargs)
+    elif solver_name == "schism":
+        instance = scast(**kwargs)
+    else:
+        raise ValueError(f"Don't know how to handle solver: {solver_name}")
+    return instance
 
 
 class dcast:
