@@ -23,6 +23,7 @@ dependencies:
   - "python-gmsh"
   - "rasterio"
   - "requests"
+  - "rioxarray"
   - "scipy"
   - "shapely=1.7.1"
   - "tqdm"
