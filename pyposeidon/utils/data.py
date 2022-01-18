@@ -9,9 +9,10 @@ Data analysis module
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 
 import numpy as np
+import pandas as pd
 import os
 from pyposeidon.utils.vals import obs
-from pyposeidon.mesh import *
+from pyposeidon.mesh import r2d
 import pyposeidon.model as pm
 from pyposeidon.tools import flat_list
 from pyposeidon.utils.get_value import get_value

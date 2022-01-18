@@ -18,20 +18,18 @@ import subprocess
 from tqdm import tqdm
 import sys
 
+import pyposeidon.dem as pdem
 from pyposeidon.utils.stereo import to_lat_lon, to_stereo
 from pyposeidon.utils.global_bgmesh import make_bgmesh_global
-from pyposeidon.utils.sort import *
-import pyposeidon.dem as pdem
-from pyposeidon.utils.hfun import *
-from pyposeidon.utils.spline import *
-from pyposeidon.utils.tag import *
+from pyposeidon.utils.sort import clockwiseangle_and_distance
+from pyposeidon.utils.hfun import get_hfun
+from pyposeidon.utils.hfun import to_global_hfun
+from pyposeidon.utils.hfun import to_hfun_mesh
+from pyposeidon.utils.hfun import to_hfun_grid
+
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
-TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/tests/data/"
 
 
 def to_geo(df, path=".", tag="jigsaw"):

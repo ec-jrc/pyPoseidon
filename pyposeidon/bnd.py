@@ -1,6 +1,5 @@
 """Get boundaries"""
 import numpy as np
-from pyposeidon.tide import *
 
 
 def grouper(iterable):

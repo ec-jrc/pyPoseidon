@@ -26,9 +26,6 @@ import xarray as xr
 
 # local modules
 from . import tools
-from .d3d import *
-from .schism import *
-from pyposeidon.bnd import *
 import pyposeidon
 import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
@@ -71,9 +68,6 @@ LOGGING = {
 }
 
 logging.config.dictConfig(LOGGING)
-
-# retrieve the module path
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
 # strings to be used
 le = ["A", "B"]

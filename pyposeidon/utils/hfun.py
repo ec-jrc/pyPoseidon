@@ -3,7 +3,7 @@ import geopandas as gp
 import shapely
 import numpy as np
 import xarray as xr
-from .limgrad import *
+from .limgrad import limgrad2
 import matplotlib
 from pyposeidon.utils.stereo import to_lat_lon, to_stereo
 from pyposeidon.utils.topology import MakeTriangleFaces, MakeTriangleFaces_periodic

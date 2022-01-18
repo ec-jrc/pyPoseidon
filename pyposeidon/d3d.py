@@ -28,6 +28,7 @@ import pyposeidon
 import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
+from pyposeidon.paths import DATA_PATH
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils import data
@@ -40,9 +41,6 @@ logger = logging.getLogger(__name__)
 import multiprocessing
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
-
-# retrieve the module path
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 
 # add conda path to PATH
 cpath = pyposeidon.__path__[0].split("/lib/")[0]

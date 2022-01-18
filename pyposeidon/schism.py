@@ -33,6 +33,7 @@ import pyposeidon
 import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
+from pyposeidon.paths import DATA_PATH
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils.vals import obs
@@ -45,11 +46,6 @@ import logging
 from . import tools
 
 logger = logging.getLogger(__name__)
-
-
-# retrieve the module path
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
-TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/tests/data/"
 
 # add conda path to PATH
 cpath = pyposeidon.__path__[0].split("/lib/")[0]
