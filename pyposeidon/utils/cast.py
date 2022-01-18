@@ -32,15 +32,15 @@ logger = logging.getLogger(__name__)
 
 def set(solver_name: str, **kwargs):
     if solver_name == "d3d":
-        instance = dcast(**kwargs)
+        instance = D3DCast(**kwargs)
     elif solver_name == "schism":
-        instance = scast(**kwargs)
+        instance = SchismCast(**kwargs)
     else:
         raise ValueError(f"Don't know how to handle solver: {solver_name}")
     return instance
 
 
-class dcast:
+class D3DCast:
     def __init__(self, **kwargs):
 
         for attr, value in kwargs.items():
@@ -210,7 +210,7 @@ class dcast:
         os.chdir(pwd)
 
 
-class scast:
+class SchismCast:
     def __init__(self, **kwargs):
 
         for attr, value in kwargs.items():
