@@ -35,7 +35,7 @@ import logging
 
 from .bnd import Box
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 import multiprocessing
 

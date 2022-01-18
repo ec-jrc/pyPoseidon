@@ -40,7 +40,7 @@ NCORES = max(1, multiprocessing.cpu_count() - 1)
 
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def read_gmsh(mesh, **kwargs):

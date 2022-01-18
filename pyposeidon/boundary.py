@@ -13,7 +13,7 @@ from tqdm import tqdm
 import sys
 import matplotlib.pyplot as plt
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def simplify(geo):

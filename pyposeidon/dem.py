@@ -25,7 +25,7 @@ from pyposeidon import tools
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 LONGITUDE_NAMES = {"longitude", "lon", "x", "Lon", "LONGITUDE", "LON", "X"}
 LATITUDE_NAMES = {"latitude", "lat", "y", "Lat", "LATITUDE", "LAT", "Y"}

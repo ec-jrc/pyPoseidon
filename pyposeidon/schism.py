@@ -44,7 +44,7 @@ import logging
 
 from . import tools
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 # retrieve the module path

@@ -24,7 +24,7 @@ import pyposeidon.boundary as pb
 
 from . import tools
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
 

@@ -25,7 +25,7 @@ from pyposeidon.utils.get_value import get_value
 from pyposeidon import tools
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 class Meteo:
