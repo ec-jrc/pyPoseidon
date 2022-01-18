@@ -66,6 +66,7 @@ jobs:
           which python
           which pip
           pip --version
+          pip cache info
 
       - name: "Install pydap"
         run: "pip install 'https://github.com/pydap/pydap/archive/3f6aa190c59e3bbc6c834377a61579b20275ff69.zip'"
