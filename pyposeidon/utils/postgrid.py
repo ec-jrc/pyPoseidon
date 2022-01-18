@@ -3,10 +3,6 @@
 
 import os
 
-import pyposeidon
-
-cpath = pyposeidon.__path__[0].split("/lib/")[0]  # get the current kernel path
-os.environ["PATH"] += os.pathsep + cpath + "/bin"  # add to PATH
 import numpy as np
 import pandas as pd
 import geopandas as gp
@@ -14,9 +10,6 @@ import pygeos
 import xarray as xr
 from tqdm import tqdm
 import shapely
-import pyposeidon.grid as pg
-
-os.environ["PROJ_LIB"] = os.pathsep + cpath + "/share/proj"
 
 
 def nreduce(dnodes, delems, grid, elems, tag="tag"):

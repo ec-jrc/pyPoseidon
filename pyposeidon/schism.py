@@ -47,9 +47,6 @@ from . import tools
 
 logger = logging.getLogger(__name__)
 
-# add conda path to PATH
-cpath = pyposeidon.__path__[0].split("/lib/")[0]
-os.environ["PATH"] += os.pathsep + cpath + "/bin"
 
 SCHISM_NAME = "schism"
 

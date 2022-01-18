@@ -42,11 +42,6 @@ import multiprocessing
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
-# add conda path to PATH
-cpath = pyposeidon.__path__[0].split("/lib/")[0]
-os.environ["PATH"] += os.pathsep + cpath + "/bin"
-
-
 # strings to be used
 le = ["A", "B"]
 

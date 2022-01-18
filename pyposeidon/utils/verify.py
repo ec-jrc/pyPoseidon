@@ -3,10 +3,6 @@
 
 import os
 
-import pyposeidon
-
-cpath = pyposeidon.__path__[0].split("/lib/")[0]  # get the current kernel path
-os.environ["PATH"] += os.pathsep + cpath + "/bin"  # add to PATH
 import numpy as np
 import pandas as pd
 import geopandas as gp
@@ -15,7 +11,6 @@ import xarray as xr
 from tqdm import tqdm
 import shapely
 
-os.environ["PROJ_LIB"] = os.pathsep + cpath + "/share/proj"
 import logging
 
 logger = logging.getLogger(__name__)
