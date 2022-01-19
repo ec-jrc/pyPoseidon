@@ -33,6 +33,7 @@ import pyposeidon
 import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
+from pyposeidon.paths import DATA_PATH
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils.vals import obs
@@ -44,19 +45,13 @@ import logging
 
 from . import tools
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
-# retrieve the module path
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
-TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/tests/data/"
-
-# add conda path to PATH
-cpath = pyposeidon.__path__[0].split("/lib/")[0]
-os.environ["PATH"] += os.pathsep + cpath + "/bin"
+SCHISM_NAME = "schism"
 
 
-class schism:
+class Schism:
     def __init__(self, **kwargs):
         """
         Create a Schism solver
@@ -164,7 +159,7 @@ class schism:
         except:
             self.epath = kwargs.get("epath", None)
 
-        self.solver = self.__class__.__name__
+        self.solver_name = SCHISM_NAME
 
         for attr, value in kwargs.items():
             if not hasattr(self, attr):
@@ -247,11 +242,11 @@ class schism:
         # check if files exist
         if flag:
             if ("meteo" in flag) | ("all" in flag):
-                self.meteo = pmeteo.meteo(**z)
+                self.meteo = pmeteo.Meteo(**z)
             else:
                 logger.info("skipping meteo ..\n")
         else:
-            self.meteo = pmeteo.meteo(**z)
+            self.meteo = pmeteo.Meteo(**z)
 
         if hasattr(self, "meteo"):
             # add 1 hour for Schism issue with end time
@@ -398,7 +393,7 @@ class schism:
             kwargs = self.__dict__.copy()
 
         # DEM
-        self.dem = pdem.dem(**kwargs)
+        self.dem = pdem.Dem(**kwargs)
         kwargs.update({"dem_source": self.dem.Dataset})
 
         # Grid
@@ -677,13 +672,13 @@ class schism:
         dem = self.__dict__.get("dem", None)
         if isinstance(dem, str):
             dic.update({"dem": dem})
-        elif isinstance(dem, pdem.dem):
+        elif isinstance(dem, pdem.Dem):
             dic.update({"dem_attrs": dem.Dataset.elevation.attrs})
 
         meteo = self.__dict__.get("meteo", None)
         if isinstance(meteo, str):
             dic.update({"meteo": meteo})
-        elif isinstance(meteo, pmeteo.meteo):
+        elif isinstance(meteo, pmeteo.Meteo):
             try:
                 dic.update({"meteo": [meteo.Dataset.attrs]})
             except:
@@ -799,7 +794,7 @@ class schism:
                     pm.append(msource)
                 if len(pm) == 1:
                     pm = pm[0]
-                self.meteo = pmeteo.meteo(meteo_source=pm)
+                self.meteo = pmeteo.Meteo(meteo_source=pm)
 
             except:
                 pm = []
@@ -824,7 +819,7 @@ class schism:
                 if len(pm) == 1:
                     pm = pm[0]
 
-                self.meteo = pmeteo.meteo(meteo_source=pm)
+                self.meteo = pmeteo.Meteo(meteo_source=pm)
 
         else:
             logger.warning("No meteo loaded")

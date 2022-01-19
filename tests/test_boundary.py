@@ -39,7 +39,7 @@ DEM_SOURCES = pytest.mark.parametrize(
 @WINDOWS
 def test_window(tmpdir, window, input):
 
-    df = pb.get_boundaries(geometry=window, coastlines=input, rpath=str(tmpdir) + "/")
+    df = pb.Boundary(geometry=window, coastlines=input, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
 
@@ -47,7 +47,7 @@ def test_window(tmpdir, window, input):
 @INPUTS
 def test_global(tmpdir, input):
 
-    df = pb.get_boundaries(geometry="global", coastlines=input, rpath=str(tmpdir) + "/")
+    df = pb.Boundary(geometry="global", coastlines=input, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
 
@@ -56,7 +56,7 @@ def test_global(tmpdir, input):
 @WINDOWS
 def test_buffer(tmpdir, window, input):
 
-    df = pb.get_boundaries(geometry=window, coastlines=input, cbuffer=0.01, rpath=str(tmpdir) + "/")
+    df = pb.Boundary(geometry=window, coastlines=input, cbuffer=0.01, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
 
@@ -65,7 +65,7 @@ def test_buffer(tmpdir, window, input):
 @WINDOWS
 @DEM_SOURCES
 def test_isodem(tmpdir, window, input, dem_source):
-    df = pb.get_boundaries(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
+    df = pb.Boundary(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
     assert isinstance(df.contours, gp.GeoDataFrame)
 
 
@@ -74,13 +74,13 @@ def test_isodem_with_url(tmpdir):
     input = nland
     window = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
     dem_source = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus"
-    df = pb.get_boundaries(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
+    df = pb.Boundary(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
     assert isinstance(df.contours, gp.GeoDataFrame)
 
 
 @CUSTOM
 def test_custom(tmpdir, boundary):
 
-    df = pb.get_boundaries(geometry=boundary, rpath=str(tmpdir) + "/")
+    df = pb.Boundary(geometry=boundary, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)

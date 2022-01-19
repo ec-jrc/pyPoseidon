@@ -65,14 +65,14 @@ def test_meteo_dispatch_netcdf(expected_func, meteo_source):
     ],
 )
 def test_meteo_returns_dataset(meteo_source):
-    meteo = pmeteo.meteo(meteo_source)
-    assert isinstance(meteo, pmeteo.meteo)
+    meteo = pmeteo.Meteo(meteo_source)
+    assert isinstance(meteo, pmeteo.Meteo)
     assert isinstance(meteo.Dataset, xr.Dataset)
 
 
 def test_meteo_passthrough():
-    original_meteo = pmeteo.meteo(DATASET)
-    new_meteo = pmeteo.meteo(meteo_source=original_meteo.Dataset)
+    original_meteo = pmeteo.Meteo(DATASET)
+    new_meteo = pmeteo.Meteo(meteo_source=original_meteo.Dataset)
     assert new_meteo.Dataset.equals(original_meteo.Dataset)
 
 
@@ -90,15 +90,15 @@ def test_meteo_url():
     url = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_1hr/gfs{}/gfs_0p25_1hr_{:0>2d}z".format(
         cdate.strftime("%Y%m%d"), r[h]
     )
-    meteo = pmeteo.meteo(meteo_source=url, **geometry)
+    meteo = pmeteo.Meteo(meteo_source=url, **geometry)
     assert isinstance(meteo.Dataset, xr.Dataset)
 
 
 def test_meteo_empty():
-    meteo = pmeteo.meteo(meteo_source=None)
+    meteo = pmeteo.Meteo(meteo_source=None)
     assert meteo.Dataset == None
 
 
 def test_meteo_defaults():
-    meteo = pmeteo.meteo()
+    meteo = pmeteo.Meteo()
     assert meteo.Dataset == None

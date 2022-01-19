@@ -28,7 +28,7 @@ METEO_FILES_2 = [
 
 # define in a dictionary the properties of the model..
 case = {
-    "solver": "schism",
+    "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
@@ -55,7 +55,7 @@ case = {
 
 # define in a dictionary the properties of the model..
 check = {
-    "solver": "schism",
+    "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
@@ -107,7 +107,7 @@ def schism(tmpdir):
     # set cast
     for l in range(len(rpaths) - 1):
         h = cast.set(
-            solver="schism",
+            solver_name="schism",
             model=b,
             ppath=rpaths[l],
             cpath=rpaths[l + 1],
@@ -121,10 +121,10 @@ def schism(tmpdir):
 
     # Combine meteo appropriately
 
-    m1 = pm.meteo(meteo_source=METEO_FILES_2[0])
-    m2 = pm.meteo(meteo_source=METEO_FILES_2[1])
-    m3 = pm.meteo(meteo_source=METEO_FILES_2[2])
-    m4 = pm.meteo(meteo_source=METEO_FILES_2[3])
+    m1 = pm.Meteo(meteo_source=METEO_FILES_2[0])
+    m2 = pm.Meteo(meteo_source=METEO_FILES_2[1])
+    m3 = pm.Meteo(meteo_source=METEO_FILES_2[2])
+    m4 = pm.Meteo(meteo_source=METEO_FILES_2[3])
 
     # extract correct chunk
 
@@ -143,9 +143,9 @@ def schism(tmpdir):
     c.execute()
 
     # COMPARE
-    output = data.get_output(folders=rpaths, solver="schism")
+    output = data.get_output(folders=rpaths, solver_name="schism")
 
-    total = data.get_output(folders=[rpath + "check/"], solver="schism")
+    total = data.get_output(folders=[rpath + "check/"], solver_name="schism")
 
     r = output.Dataset.isel(time=slice(0, 36))
 

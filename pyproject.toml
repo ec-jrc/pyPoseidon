@@ -36,8 +36,8 @@ python = ">=3.8, <3.10"
 branca = "^0.4"
 Cartopy = "<0.20"
 cfgrib = "^0.9"
-colorlog = "^4.7"
-dask = "^2021.2"
+colorlog = "^6.6"
+dask = "^2022.1"
 f90nml = "^1.2"
 geopandas = "^0.10"
 gmsh = "^4.8"
@@ -63,7 +63,7 @@ mkdocstrings = { version = "^0.15", optional = true }
 mkdocs = { version = "^1.1", optional = true }
 pymdown-extensions = { version = "^8.1", optional = true }
 # Testing
-pytest-cov = { version = "^2.11", optional = true }
+pytest-cov = { version = "^3.0", optional = true }
 pytest = { version = "^6.2", optional = true }
 pytest-xdist = { version = "^2.2", optional = true }
 # viz
@@ -74,6 +74,7 @@ hvplot = { version = "^0.7.0", optional = true }
 ipykernel = { version = "^6.7", optional = true }
 itkwidgets = { version = "^0.32.1", optional = true }
 moviepy = { version = "1.0.3", optional = true }
+rioxarray = "^0.9.1"
 
 [tool.poetry.dev-dependencies]
 black = "21.12b0"

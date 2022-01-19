@@ -13,7 +13,7 @@ from tqdm import tqdm
 import sys
 import matplotlib.pyplot as plt
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def simplify(geo):
@@ -38,7 +38,7 @@ def simplify(geo):
     return geo
 
 
-class get_boundaries:
+class Boundary:
     def __init__(self, **kwargs):
         """
         Set model boundaries
@@ -134,7 +134,7 @@ class get_boundaries:
             if dsource is None:
                 logger.error("dem_source is required")
 
-            dem = pdem.dem(geometry=self.geometry, dem_source=dsource)
+            dem = pdem.Dem(geometry=self.geometry, dem_source=dsource)
             dem_ = dem.Dataset
 
             self.coasts = get_dem_contours(blevels, dem_)

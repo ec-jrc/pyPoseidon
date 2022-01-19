@@ -19,7 +19,7 @@ import pyposeidon.dem as pdem
 import pyposeidon.mesh as pmesh
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def make_bgmesh_global(dfb, fpos, dem, **kwargs):
@@ -83,7 +83,7 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
 
     logger.info("Create interim global scale mesh")
 
-    b = pb.get_boundaries(geometry=dfb)
+    b = pb.Boundary(geometry=dfb)
     mesh = pmesh.set(
         type="tri2d",
         boundary=b,

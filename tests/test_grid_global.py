@@ -12,11 +12,14 @@ DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
 @pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
 @pytest.mark.parametrize("bindings", [True, False])
-def test_io(tmpdir, ggor, bgmesh, bindings):
+def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
+    # Skip the test unless --runslow has been passed
+    if bgmesh is not None:
+        if not pytestconfig.getoption("--runslow"):
+            pytest.skip("slow test")
 
     mesh = pmesh.set(
         type="tri2d",
@@ -52,11 +55,13 @@ def test_io(tmpdir, ggor, bgmesh, bindings):
     assert all([c == True for c in [check1, check2]])
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
 @pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
 @pytest.mark.parametrize("bindings", [True, False])
-def test_val(tmpdir, ggor, bgmesh, bindings):
+def test_validate(pytestconfig, tmpdir, ggor, bgmesh, bindings):
+    if bgmesh is not None:
+        if not pytestconfig.getoption("--runslow"):
+            pytest.skip("slow test")
 
     mesh = pmesh.set(
         type="tri2d",

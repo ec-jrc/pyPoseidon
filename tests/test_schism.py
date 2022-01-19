@@ -11,7 +11,7 @@ DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
 # define in a dictionary the properties of the model..
 case1 = {
-    "solver": "schism",
+    "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
@@ -33,7 +33,7 @@ case1 = {
 }
 
 case2 = {
-    "solver": "schism",
+    "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,
@@ -56,7 +56,7 @@ case2 = {
 
 
 case3 = {
-    "solver": "schism",
+    "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "manning": 0.12,
     "windrot": 0.00001,

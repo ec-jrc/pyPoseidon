@@ -10,6 +10,7 @@ import psutil
 import xarray as xr
 import pandas as pd
 import numpy as np
+import rioxarray
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,22 @@ mkdir -p outputs
 
 exec mpirun {mpirun_flags} -N {ncores} {cmd}
 """.strip()
+
+
+def get_solver(solver_name: str):
+    # Panos: We do the imports here, because there is some sort of cyclical imports issue
+    # and no time to properly solve it
+    if solver_name == "schism":
+        from .schism import Schism
+
+        solver = Schism
+    elif solver_name == "d3d":
+        from .d3d import d3d
+
+        solver = d3d
+    else:
+        raise ValueError(f"Unknown solver_name: {solver_name}")
+    return solver
 
 
 # From: https://stackoverflow.com/a/30463972/592289
@@ -95,14 +112,12 @@ def create_mpirun_script(
 def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
     """
     A wrapper around `xr.open_dataset` that supports multiple engines
-
-    This function is needed because `xr.open_dataset()` is not yet supporting e.g. rasterio
     """
     logger.info("extracting dem from %s\n", source)
     if isinstance(source, pathlib.Path):
         source = source.as_posix()
     if source.lower().endswith("tif"):  # GeoTiff
-        data_array = xr.open_rasterio(source, parse_coordinates=True, **kwargs)
+        data_array = rioxarray.open_rasterio(source, parse_coordinates=True, **kwargs)
         dataset = data_array.to_dataset(name="elevation").squeeze().reset_coords(drop=True)
     else:
         if source.lower().startswith("http"):  # URL

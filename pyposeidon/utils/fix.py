@@ -23,7 +23,7 @@ import logging
 # logging setup
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def fix(dem, coastline, **kwargs):

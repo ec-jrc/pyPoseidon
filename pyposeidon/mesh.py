@@ -13,20 +13,19 @@ import datetime
 import xarray as xr
 import pandas as pd
 import sys
-from pyposeidon import mjigsaw
-from pyposeidon import mgmsh
 import logging
 import f90nml
 import os
 import subprocess
-from pyposeidon.utils.verify import *
-import pyposeidon.boundary as pb
 
+from . import mjigsaw
+from . import mgmsh
 from . import tools
+from .boundary import Boundary
+from .utils.verify import verify
+from .paths import DATA_PATH
 
-logger = logging.getLogger("pyposeidon")
-
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
+logger = logging.getLogger(__name__)
 
 
 def set(type=None, **kwargs):
@@ -180,7 +179,7 @@ class tri2d:
         elif mesh_generator == "gmsh":
 
             if boundary is None:
-                self.boundary = pb.get_boundaries(**kwargs)
+                self.boundary = Boundary(**kwargs)
             else:
                 self.boundary = boundary
 
@@ -193,7 +192,7 @@ class tri2d:
         elif mesh_generator == "jigsaw":
 
             if boundary is None:
-                self.boundary = pb.get_boundaries(**kwargs)
+                self.boundary = Boundary(**kwargs)
             else:
                 self.boundary = boundary
 

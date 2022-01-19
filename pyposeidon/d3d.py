@@ -28,29 +28,27 @@ import pyposeidon
 import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
+from pyposeidon.paths import DATA_PATH
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils import data
 import logging
 
-logger = logging.getLogger("pyposeidon")
+from .bnd import Box
+
+logger = logging.getLogger(__name__)
 
 import multiprocessing
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
 
-# retrieve the module path
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
-
-# add conda path to PATH
-cpath = pyposeidon.__path__[0].split("/lib/")[0]
-os.environ["PATH"] += os.pathsep + cpath + "/bin"
-
-
 # strings to be used
 le = ["A", "B"]
 
 nm = ["Z", "A"]
+
+
+D3D_NAME = "d3d"
 
 
 class d3d:
@@ -107,7 +105,7 @@ class d3d:
         self.atm = kwargs.get("atm", True)
         self.ofilename = kwargs.get("ofilename", None)
 
-        self.solver = self.__class__.__name__
+        self.solver_name = D3D_NAME
 
         try:
             self.epath = os.environ["D3D"]
@@ -437,7 +435,7 @@ class d3d:
                         "lat_max": self.lat_max,
                     }
                 )
-                self.dem = pdem.dem(**kwargs)
+                self.dem = pdem.Dem(**kwargs)
             else:
                 logger.info("reading local dem file ..\n")
                 dem_source = z["rpath"] + self.tag + ".dep"
@@ -452,7 +450,7 @@ class d3d:
                     "lat_max": self.lat_max,
                 }
             )
-            self.dem = pdem.dem(**kwargs)
+            self.dem = pdem.Dem(**kwargs)
 
     @staticmethod
     def to_dep(dr, dry_mask=True, **kwargs):
@@ -520,7 +518,7 @@ class d3d:
 
             z.update(kwargs)
 
-            self.bound = box(**z)
+            self.bound = Box(**z)
 
         except:
             logger.info("boundary files not set..\n")
@@ -839,7 +837,7 @@ class d3d:
         dem = self.__dict__.get("dem", None)
         if isinstance(dem, str):
             dic.update({"dem": dem})
-        elif isinstance(dem, pdem.dem):
+        elif isinstance(dem, pdem.Dem):
             dic.update({"dem": dem.Dataset.elevation.attrs})
 
         meteo = self.__dict__.get("meteo", None)

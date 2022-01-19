@@ -18,20 +18,18 @@ import subprocess
 from tqdm import tqdm
 import sys
 
+import pyposeidon.dem as pdem
 from pyposeidon.utils.stereo import to_lat_lon, to_stereo
 from pyposeidon.utils.global_bgmesh import make_bgmesh_global
-from pyposeidon.utils.sort import *
-import pyposeidon.dem as pdem
-from pyposeidon.utils.hfun import *
-from pyposeidon.utils.spline import *
-from pyposeidon.utils.tag import *
+from pyposeidon.utils.sort import clockwiseangle_and_distance
+from pyposeidon.utils.hfun import get_hfun
+from pyposeidon.utils.hfun import to_global_hfun
+from pyposeidon.utils.hfun import to_hfun_mesh
+from pyposeidon.utils.hfun import to_hfun_grid
+
 import logging
 
-logger = logging.getLogger("pyposeidon")
-
-
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
-TEST_DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/tests/data/"
+logger = logging.getLogger(__name__)
 
 
 def to_geo(df, path=".", tag="jigsaw"):
@@ -190,7 +188,7 @@ def make_bgmesh(contours, **kwargs):
 
     if not isinstance(dem, xr.Dataset):
         logger.info("Read DEM")
-        dem = pdem.dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+        dem = pdem.Dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
         dem = dem.Dataset
 
     res_min = kwargs_.pop("resolution_min", 0.01)

@@ -38,14 +38,14 @@ WINDOWS = pytest.mark.parametrize(
 @DEM_SOURCES
 @WINDOWS
 def test_dem(dem_source, kwargs, expected):
-    df = pdem.dem(dem_source=dem_source, **kwargs)
+    df = pdem.Dem(dem_source=dem_source, **kwargs)
     assert np.isnan(df.Dataset.elevation.values).sum() == 0
 
 
 @DEM_SOURCES
 @WINDOWS
 def test_dem_shape(dem_source, kwargs, expected):
-    df = pdem.dem(dem_source=dem_source, **kwargs)
+    df = pdem.Dem(dem_source=dem_source, **kwargs)
     assert df.Dataset.elevation.shape == expected
 
 
@@ -53,5 +53,5 @@ def test_dem_shape(dem_source, kwargs, expected):
 def test_dem_source_is_url():
     dem_source = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus"
     kwargs = {"lon_min": 176.5, "lon_max": 177.0, "lat_min": 16.0, "lat_max": 16.5}
-    df = pdem.dem(dem_source=dem_source, **kwargs)
+    df = pdem.Dem(dem_source=dem_source, **kwargs)
     assert np.isnan(df.Dataset.elevation.values).sum() == 0

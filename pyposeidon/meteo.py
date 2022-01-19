@@ -20,15 +20,15 @@ from typing import Callable
 import dask
 import xarray as xr
 import pandas as pd
-import importlib
 from pyposeidon.utils.get_value import get_value
 from pyposeidon import tools
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
+from . import tools
 
 
-class meteo:
+class Meteo:
     def __init__(self, meteo_source=None, **kwargs):
 
         """Read meteo data from variable sources.
@@ -57,11 +57,8 @@ class meteo:
         meteo_func = dispatch_meteo_source(meteo_source)
         self.Dataset = meteo_func(meteo_source=meteo_source, **kwargs)
 
-    def to_output(self, solver=None, **kwargs):
-
-        model = importlib.import_module("pyposeidon.model")  # load pyposeidon model class
-
-        s = getattr(model, solver)  # get solver class
+    def to_output(self, solver_name, **kwargs):
+        solver = tools.get_solver(solver_name)
         var_list = kwargs.pop("vars", ["msl", "u10", "v10"])
 
         m_index = get_value(self, kwargs, "m_index", 1)
@@ -71,9 +68,9 @@ class meteo:
             times, datasets = zip(*self.Dataset.groupby("time.{}".format(split_by)))
             mpaths = ["sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
             for das, mpath in list(zip(datasets, mpaths)):
-                s.to_force(das, vars=var_list, filename=mpath, **kwargs)
+                solver.to_force(das, vars=var_list, filename=mpath, **kwargs)
         else:
-            s.to_force(self.Dataset, vars=var_list, **kwargs)
+            solver.to_force(self.Dataset, vars=var_list, **kwargs)
 
 
 def passthrough(meteo_source, **kwargs):

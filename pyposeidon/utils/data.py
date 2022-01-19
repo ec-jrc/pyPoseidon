@@ -9,9 +9,10 @@ Data analysis module
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 
 import numpy as np
+import pandas as pd
 import os
 from pyposeidon.utils.vals import obs
-from pyposeidon.mesh import *
+from pyposeidon.mesh import r2d
 import pyposeidon.model as pm
 from pyposeidon.tools import flat_list
 from pyposeidon.utils.get_value import get_value
@@ -21,22 +22,23 @@ import glob
 import sys
 import logging
 
-logger = logging.getLogger("pyposeidon")
+from .. import tools
+
+logger = logging.getLogger(__name__)
 
 
-def get_output(**kwargs):
-
-    solver = kwargs.get("solver", None)
-    if solver == "d3d":
-        return d3d(**kwargs)
-    elif solver == "schism":
-        return schism(**kwargs)
+def get_output(solver_name: str, **kwargs):
+    if solver_name == "schism":
+        solver_class = SchismResults
+    elif solver_name == "d3d":
+        solver_class = D3DResults
     else:
-        logger.error("solver is not defined, exiting \n")
-        sys.exit(1)
+        raise ValueError(f"Unknown solver_name: {solver_name}")
+    instance = solver_class(**kwargs)
+    return instance
 
 
-class d3d:
+class D3DResults:
     def __init__(self, **kwargs):
 
         rpath = kwargs.get("rpath", "./d3d/")
@@ -149,7 +151,7 @@ class d3d:
             return quiver(xh, yh, v0, v1, self.Dataset.time.values, **kwargs)
 
 
-class schism:
+class SchismResults:
     def __init__(self, **kwargs):
 
         rpath = kwargs.get("rpath", "./schism/")

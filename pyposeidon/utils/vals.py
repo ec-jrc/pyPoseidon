@@ -14,15 +14,14 @@ from dateutil.parser import parse
 import numpy as np
 import pandas as pd
 import pyposeidon
-from pyposeidon.utils.norm import normalize_column_names
 import os
 import sys
 import logging
 
-logger = logging.getLogger("pyposeidon")
+from pyposeidon.utils.norm import normalize_column_names
+from pyposeidon.paths import DATA_PATH
 
-
-DATA_PATH = os.path.dirname(pyposeidon.__file__) + "/misc/"
+logger = logging.getLogger(__name__)
 
 
 class obs:

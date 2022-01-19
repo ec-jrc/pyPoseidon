@@ -16,9 +16,9 @@ filename = (DATA_DIR / "meteo.nc").as_posix()
 @pytest.mark.parametrize("name", [filename])
 def test_meteo(tmpdir, name):
     rpath = str(tmpdir) + "/"
-    d = pmeteo.meteo(filename)
-    d.to_output(solver="schism", rpath=rpath, meteo_split_by="day")
-    d.to_output(solver="schism", rpath=rpath, filename="all.nc")
+    d = pmeteo.Meteo(filename)
+    d.to_output(solver_name="schism", rpath=rpath, meteo_split_by="day")
+    d.to_output(solver_name="schism", rpath=rpath, filename="all.nc")
 
     # read schism meteo files
     files = glob.glob(rpath + "sflux/*.nc")

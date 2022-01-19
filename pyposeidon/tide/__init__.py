@@ -6,4 +6,4 @@ __license__ = "EUPL-1.2"
 __all__ = ["tpx07"]
 
 
-from .tide import *
+from .tide import tpx07

@@ -1,6 +1,5 @@
 """Get boundaries"""
 import numpy as np
-from pyposeidon.tide import *
 
 
 def grouper(iterable):
@@ -17,12 +16,12 @@ def grouper(iterable):
         yield group
 
 
-class bound:
+class Bound:
     def __init__(self, **kwargs):
         btype = kwargs.get("btype", None)
 
 
-class box(bound):
+class Box(Bound):
     def __init__(self, **kwargs):
 
         lons = kwargs.get("lons", None)

@@ -6,8 +6,6 @@ from shutil import copy2
 import logging
 import glob
 import pickle
-from pyposeidon.model import *
-from pyposeidon.util import *
 
 
 class nest:

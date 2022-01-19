@@ -67,6 +67,7 @@ jobs:
           which python
           which pip
           pip --version
+          pip cache info
 
       - name: "Get pip cache dir"
         id: "pip-cache"

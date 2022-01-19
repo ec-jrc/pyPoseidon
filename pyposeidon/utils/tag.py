@@ -5,7 +5,7 @@ import logging
 import shapely
 import sys
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def tag_(**kwargs):

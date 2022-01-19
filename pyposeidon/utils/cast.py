@@ -27,17 +27,20 @@ import pathlib
 import subprocess
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
-def set(solver=None, **kwargs):
-    if solver == "d3d":
-        return dcast(**kwargs)
-    elif solver == "schism":
-        return scast(**kwargs)
+def set(solver_name: str, **kwargs):
+    if solver_name == "d3d":
+        instance = D3DCast(**kwargs)
+    elif solver_name == "schism":
+        instance = SchismCast(**kwargs)
+    else:
+        raise ValueError(f"Don't know how to handle solver: {solver_name}")
+    return instance
 
 
-class dcast:
+class D3DCast:
     def __init__(self, **kwargs):
 
         for attr, value in kwargs.items():
@@ -207,7 +210,7 @@ class dcast:
         os.chdir(pwd)
 
 
-class scast:
+class SchismCast:
     def __init__(self, **kwargs):
 
         for attr, value in kwargs.items():

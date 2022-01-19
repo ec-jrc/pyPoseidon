@@ -10,7 +10,7 @@ from pyposeidon.utils.statistics import get_stats
 
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def to_thalassa(folders, freq=None, **kwargs):

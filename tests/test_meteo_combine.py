@@ -16,8 +16,8 @@ def meteo_paths() -> List[pathlib.Path]:
 
 
 @pytest.fixture(scope="session")
-def meteo_datasets(meteo_paths) -> List[pm.meteo]:
-    return [pm.meteo(meteo_source=path.as_posix()).Dataset for path in meteo_paths]
+def meteo_datasets(meteo_paths) -> List[pm.Meteo]:
+    return [pm.Meteo(meteo_source=path.as_posix()).Dataset for path in meteo_paths]
 
 
 def test_merge_strategy_last(meteo_paths, meteo_datasets):
@@ -31,7 +31,7 @@ def test_merge_strategy_last(meteo_paths, meteo_datasets):
         ],
         dim="time",
     )
-    merged = pm.meteo(
+    merged = pm.Meteo(
         meteo_source=meteo_paths,
         meteo_combine_by="nested",
         meteo_merge="last",
@@ -53,7 +53,7 @@ def test_merge_strategy_first(meteo_paths, meteo_datasets):
         ],
         dim="time",
     )
-    merged = pm.meteo(
+    merged = pm.Meteo(
         meteo_source=meteo_paths,
         meteo_combine_by="nested",
         meteo_merge="first",

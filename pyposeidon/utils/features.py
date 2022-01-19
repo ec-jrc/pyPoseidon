@@ -9,7 +9,7 @@ import os
 import json
 import logging
 
-logger = logging.getLogger("pyposeidon")
+logger = logging.getLogger(__name__)
 
 
 def create_geojson_features(gf, time):
