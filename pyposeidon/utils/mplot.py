@@ -24,8 +24,6 @@ import sys
 ffmpeg = sys.exec_prefix + "/bin/ffmpeg"
 os.environ["FFMPEG_BINARY"] = ffmpeg
 
-import moviepy.editor as mpy
-
 
 @xr.register_dataset_accessor("mplot")
 # @xr.register_dataarray_accessor('pplot')
@@ -219,118 +217,6 @@ class mplot(object):
 
         anim()
         mlab.show()
-
-        return
-
-    def to_file(self, **kwargs):
-
-        mlab.options.offscreen = True
-
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
-        try:
-            time = kwargs.get("t", self._obj.time.values.astype(str))
-        except:
-            pass
-
-        tri3 = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :3].astype(int))
-
-        var = kwargs.get("var", "depth")
-        z = kwargs.get("z", self._obj[var].values)
-        name = kwargs.get("name", self._obj[var].name)
-
-        vmin = kwargs.get("vmin", z.min())
-        vmax = kwargs.get("vmax", z.max())
-
-        R = kwargs.get("R", 1.0)
-
-        px = np.cos(y / 180 * np.pi) * np.cos(x / 180 * np.pi) * R
-        py = np.cos(y / 180 * np.pi) * np.sin(x / 180 * np.pi) * R
-        pz = np.sin(y / 180 * np.pi) * R
-
-        rep = kwargs.get("representation", "surface")
-
-        cmap = kwargs.get("cmap", "gist_earth")
-
-        mlab.figure(1, size=(3840, 2160), bgcolor=(0, 0, 0), fgcolor=(1.0, 1.0, 1.0))
-        mlab.clf()
-
-        bcolor = kwargs.get("bcolor", (0.0, 0.0, 0.0))
-        self.globe(R - 0.002, bcolor=bcolor)
-        # 3D triangular mesh surface (like trisurf)
-        grd = mlab.triangular_mesh(
-            px,
-            py,
-            pz,
-            tri3,
-            representation=rep,
-            opacity=1.0,
-            scalars=z[0, :],
-            colormap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-        )
-
-        grd.actor.mapper.scalar_visibility = True
-
-        title = kwargs.get("title", "{}".format(var))
-
-        mlab.colorbar(grd, title=name, orientation="vertical")
-
-        coast = kwargs.get("coastlines", None)
-
-        if coast is not None:
-            src, lines = self.c3d(coast, R=R)
-            mlab.pipeline.surface(src, color=(1, 0, 0), line_width=10, opacity=0.8)
-
-        date = mlab.text(0.8, 0.9, time[0], color=(1, 1, 1), width=0.2)
-
-        label = mlab.text(0.9, 0.03, "pyposeidon", color=(0, 0.2, 1), width=0.05)
-
-        distance = kwargs.get("distance", 4)
-
-        mlab.view(azimuth=x.mean(), distance=distance)
-
-        # Output path for you animation images
-        out_path = kwargs.get("out_path", "./tmp/")
-        out_path = os.path.abspath(out_path)
-        if not os.path.exists(out_path):
-            os.makedirs(out_path)
-
-        fps = kwargs.get("fps", 20)
-
-        padding = len(str(z.shape[0]))
-
-        rotate = kwargs.get("rotate", False)
-
-        f = mlab.gcf()
-        ms = grd.mlab_source
-
-        # ANIMATE THE FIGURE WITH MOVIEPY, WRITE AN ANIMATED GIF
-
-        def make_frame(t):
-            """Generates and returns the frame for time t."""
-            dt = 1.0 / fps
-            i = int(t / dt)
-            scalars = z[i, :]
-            ms.trait_set(scalars=scalars)
-            date.trait_set(text=time[i])
-
-            mlab.view(azimuth=2 * np.pi * t / duration, distance=distance)
-            return mlab.screenshot(antialiased=True)  # return a RGB image
-
-        filename = kwargs.get("filename", "anim.mp4")
-        form = filename.split(".")[-1]
-
-        duration = z.shape[0] / fps
-        animation = mpy.VideoClip(make_frame, duration=duration)
-        # Video generation takes 10 seconds, GIF generation takes 25s
-        if form == "mp4":
-            animation.write_videofile(filename, fps=fps)
-        if form == "gif":
-            animation.write_gif(filename, fps=fps)
-
-        mlab.options.offscreen = False
 
         return
 

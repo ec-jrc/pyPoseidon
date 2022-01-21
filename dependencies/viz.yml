@@ -12,5 +12,4 @@ dependencies:
   - "ipympl"
   - "itkwidgets"
   - "mayavi"
-  - "moviepy"
   - "pyvista"
