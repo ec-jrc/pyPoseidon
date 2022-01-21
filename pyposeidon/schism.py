@@ -62,21 +62,17 @@ class Schism:
 
         Args:
             rfolder (str): The path to a directory containing the results of a Model solved by Schism.
-            geometry (Union[dict, str]): A dictionary containing the the bounding box of the region
-                you want to solve or a shapefile.
+            geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+                a dict defining the lat/lon window.
             load_mesh (bool): Flag indicating whether to load the mesh or not. Defaults to `False`.
             load_meteo (bool): Flag indicating whether to load the meteo data or not. Defauls to
                 `False`.
             coastlines (Union[str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile which
                 describes the coastlines.
-            coast_resolution (str): If no coastlines have been provided, then Cartopy's
-                `NaturalEarthFeatures` are being used.  The resolution of the coastlines can be
-                controlled with this parameter.  Valid values are: `{"l", "i", "h"}` corresponding to
-                resolutions of `{110, 50, 10}` meters respectively. Defaults to `i`.
-            tag: (str): The solver's "tag". Defaults to `"schism"`. **Do we need this?**
-            tide: (str): Flag indicating whether to load "tide". Defaults to `False`.
+            tag (str): The model's "tag". Defaults to `"schism"`.
+            tide (str): Flag indicating whether to load "tide". Defaults to `False`.
             atm (bool): The solver's atm. Defaults to `True`.
-            monitor (bool: The solver's monitor. Defaults to `False`.
+            monitor (bool): The solver's monitor. Defaults to `False`.
             epath (str): The path to the schism executable. If the `SCHISM` env variable has been
                 set, then it overrides the value passed as the parameter.
             start_date (str): The date from which the analysis should start. It should be a string parseable
@@ -85,6 +81,27 @@ class Schism:
                 `pd.to_datetime()`.
             time_frame (str): The duration of the analysis. It should be a string parseable by
                 `pd.to_datetime()`.
+            date (str): Reference date of the run.
+            rpath (str): Path for output of the model. Defaults to `./schism/`.
+            m_index (int): Define the index of the meteo Dataset. Defaults to `1`.
+            filename (str): Path to output the meteo Dataset. Defaults to `sflux/`.
+            dstamp (str): Reference date for station data. Defaults to date.
+            parameters (dict): Overwrite default Schism's parameter values.
+            meteo_source (str): Path or url to meteo data.
+            dem_source (str): Path or url to bathymetric data.
+            update (str): Control the update of the model e.g `['dem']`-> updates only bathymetry.
+                Defaults to `["all"]`.
+            meteo_split_by (str): Split the meteo Dataset to multiple files by e.g. `"day"`.
+                Defaults to `None`.
+            manning_file (str): Path to manning file.
+            manning (float): Set constant value in the manning.gr3 file. Defaults to `0.12`.
+            windrot_file (str): Path to windrot file.
+            windrot (float): Set constant value in the windrot_geo2proj.gr3 file. Defaults to `0.00001`.
+            station_flags (list): Define the flag for station output. Defaults to `[1,0,0,0,0,0,0,0,0]`.
+            coastal_monitoring (bool): Flag for setting all land/island boundary nodes as stations.
+                Defaults to `False`.
+            obs (str): Path to csv file for station locations. Defaults to `misc/critech.csv`.
+            nspool_sta (int): Related to station nodes setup. Defaults to `1`.
         """
 
         rfolder = kwargs.get("rfolder", None)
@@ -684,12 +701,8 @@ class Schism:
             except:
                 dic.update({"meteo": [x.attrs for x in meteo.Dataset]})
 
-        coast = self.__dict__.get("coast_resolution", None)
         coastlines = self.__dict__.get("coastlines", None)
-        if isinstance(coast, str):
-            dic.update({"coastlines": coast})
-        elif isinstance(coastlines, gp.GeoDataFrame):
-            dic.update({"coastlines": coastlines})
+        dic.update({"coastlines": coastlines})
 
         dic["version"] = pyposeidon.__version__
 

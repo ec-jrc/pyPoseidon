@@ -6,13 +6,34 @@ repo_url: "https://github.com/ec-jrc/pyPoseidon"
 
 theme:
   name: "material"
+  palette:
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    primary: blue
+    accent: blue
+    toggle:
+      icon: material/lightbulb-outline
+      name: "Switch to dark mode"
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: blue
+    accent: blue
+    toggle:
+      icon: material/lightbulb
+      name: "Switch to light mode"
 
 nav:
-  - Overview : "index.md"
-  - Installation : "10_installation.md"
-  - Structure : "20_structure.md"
-  - User Guide : "30_usage.md"
-  - API : "50_API.md"
+  - Overview : index.md
+  - Installation : installation.md
+  - Structure : structure.md
+  - User Guide : 
+      - "Meteo": meteo.md
+      - "Dem": dem.md
+      - "Boundary": boundary.md
+      - "Mesh": mesh.md
+      - "Model": model.md
+      - "Utilities": utils.md
+  - API : api.md
 
 markdown_extensions:
   - "admonition"

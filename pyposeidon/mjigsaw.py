@@ -411,6 +411,22 @@ def to_dataset(**kwargs):
 
 def get(contours, **kwargs):
 
+    """
+    Create a `jigsaw` mesh.
+
+    !!! danger ""
+        Due to a limitation of the Library rendering the docstrings, all arguments are marked
+        as `required`, nevertheless they are all `Optional`.
+
+    Args:
+        contours (GeoDataFrame): Provide boundaries and metadata.
+        tag (str): Identifier. Defaults to `"jigsaw"`.
+        rpath (str): Path for output. Defaults to `"."`.
+        dem_source (str): Path or url to bathymetric data.
+        bgmesh (str): Path to a mesh scale file. Defaults to `None`.
+        setup_only (bool): Flag for setup only (no execution). Defaults to `False`.
+    """
+
     logger.info("Creating JIGSAW files\n")
 
     tag = kwargs.get("tag", "jigsaw")

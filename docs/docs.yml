@@ -4,34 +4,23 @@ channels:
   - conda-forge
 
 dependencies:
-  - python=3.8
-  - mayavi
-  - pyresample
-  - pydap
-  - dask
-  - pygeos>=0.6
-  - geoviews
+  - numpy
+  - pandas
+  - xarray
+  - rioxarray
   - geopandas
-  - rasterio
-  - hvplot
-  - descartes
-  - netCDF4
-  - cfgrib
-  - moviepy
-  - imageio-ffmpeg
-  - bump2version
-  - colorlog
+  - tqdm
+  - pyresample
+  - cartopy
+  - psutil
+  - gmsh
+  - python-gmsh
   - f90nml
-  - pytest
-  - pytest-cov
-  - ipympl
-  - zarr
-  - pip
+  - netCDF4
+  - dask
+  - colorlog
+  - pygeos
   - mkdocs
   - mkdocs-material
   - pymdown-extensions
   - mkdocstrings
-  - black
-  - pip:
-    - gmsh
-    - -e ..

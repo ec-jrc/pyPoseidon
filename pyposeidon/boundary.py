@@ -55,7 +55,7 @@ class Boundary:
             cbuffer (float): The buffer in arcs for extending the coastlines. Defaults to `None`.
             levels (list[floats]): The range of DEM values for extracting the boundaries.
                 When one valus is present it defines inner coastlines. When two values exist they define
-               the extent. Defaults to `None`.
+                the extent. Defaults to `None`.
             dem_source (str): Path or url to bathymetric data.
         """
 
