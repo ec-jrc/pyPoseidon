@@ -31,19 +31,32 @@ from . import tools
 class Meteo:
     def __init__(self, meteo_source=None, **kwargs):
 
-        """Read meteo data from variable sources.
+        """
+        Read meteo data from various sources.
 
-        Parameters
-        ----------
-        meteo_source : list of str or url
-            list of files, link
-        engine : str
-            Name of xarray backend to be used or 'url'
+        !!! danger ""
+            Due to a limitation of the Library rendering the docstrings, all arguments are marked
+            as `required`, nevertheless they are all `Optional` except geometry.
 
-        Returns
-        -------
-        retrieved : xarray DataSet
-
+        Args:
+            meteo_source (str): Path or url to meteo data.
+            lon_min (float) : Minimum longitude.
+            lon_max (float) : Maximum longitude.
+            lat_min (float) : Minimum latitude.
+            lat_max (float) : Maximum latitude.
+            geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+                a dict defining the lat/lon window.
+            meteo_merge (bool) : Flag for performing data merging. Defaults to `False`.
+            meteo_combine_by (str): Define option for data merging. Defaults to `by_coords`.
+            start_date (str): The date from which the analysis should start. It should be a string parseable
+                by `pd.to_datetime()`.
+            end_date (str): The date at which the analysis should end. It should be a string parseable by
+                `pd.to_datetime()`.
+            time_frame (str): The duration of the analysis. It should be a string parseable by
+                `pd.to_datetime()`.
+            meteo_backend_kwargs (dict): Args passed to `xarray`. Defaults to `{"indexpath": ""}`.
+            meteo_xr_kwargs (dict) : Args passed to `xarray`. Defaults to `{}`.
+            meteo_irange (list) : Select the range and step of time coordinate to be used. Defaults to `[0, -1, 1]`.
         """
 
         # integrate geometry attribute.

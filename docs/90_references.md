@@ -165,8 +165,3 @@ GSHHS (NOAA) : https://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html
 # OPERATIONAL SYSTEMS
 
 Mediterranean Forecasting System (MFS) : http://medforecast.bo.ingv.it
-
-
-```python
-
-```

@@ -1,3 +1,0 @@
-# Reference
-
-::: pyposeidon.schism

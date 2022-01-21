@@ -173,7 +173,7 @@ class SchismResults:
 
         for folder in self.folders:
 
-            logger.info("Combining output for folder {}\n".format(folder))
+            logger.info(" Combining output for folder {}\n".format(folder))
 
             xdat = glob.glob(folder + "/outputs/schout_[!0]*.nc")
             xdat.sort(key=lambda f: int("".join(filter(str.isdigit, f))))

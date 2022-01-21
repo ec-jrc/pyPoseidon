@@ -159,7 +159,22 @@ class r2d:
 
 
 class tri2d:
-    """Unstructured triangular 2d mesh"""
+    """
+    Handle an Unstructured triangular 2d mesh.
+
+    !!! danger ""
+        Due to a limitation of the Library rendering the docstrings, all arguments are marked
+        as `required`, nevertheless they are all `Optional` except geometry.
+
+    Args:
+        mesh_file (str): Path to hgrid mesh file. Defaults to `None`.
+        mesh_generator (str): Use `jigsaw` or `gmsh`. Defaults to `None`.
+        geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+            a dict defining the lat/lon window.  Defaults to `None`.
+        coastlines (Union[str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile which
+            describes the coastlines. Defaults to `None`.
+        boundary (GeoDataFrame) : Defined mesh boundaries.  Defaults to `None`.
+    """
 
     def __init__(self, **kwargs):
 

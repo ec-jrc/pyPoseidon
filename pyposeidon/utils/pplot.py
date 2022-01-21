@@ -479,7 +479,7 @@ class pplot(object):
             y_ = [y[element[i]] for i in range(len(element))]
             plt.fill(x_, y_, edgecolor="green", fill=False, lw=lw)
 
-        title = kwargs.get("title", "Grid plot")
+        title = kwargs.get("title", "Mesh plot")
         ax.set_title(title, pad=30)
         ax.set_xlabel("Longitude (degrees)")
         ax.set_ylabel("Latitude (degrees)")

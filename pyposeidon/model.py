@@ -78,19 +78,15 @@ nm = ["Z", "A"]
 def set(solver_name, atm=True, tide=False, **kwargs):
     """
     Construct a hydrodynamic model based on different solvers.
+    !!! danger ""
+        Due to a limitation of the Library rendering the docstrings, all arguments are marked
+        as `required`, nevertheless they are all `Optional` except geometry.
 
-    :param solver_name: Name of solver engine, e.g. 'd3d' or 'schism'
-    :param kwargs: additional arguments to pass along
-    :type solver: str
-    :type kwargs: dict
-    :return: A Solver instance
-    :rtype: composite object
+    Args:
 
-
-    Example:
-
-    model = pyposeidon.set(solver_name='d3d')
-    model = pyposeidon.set(solver_name='schism')
+        solver_name (str): Name of solver used, e.g. `d3d` or `schism`.
+        atm (bool) : Flag for using meteo forcing.  Defaults to `True`.
+        tide (bool) : Flag for using tidal configuration.  Defaults to `False`.
 
     """
 
