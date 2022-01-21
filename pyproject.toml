@@ -98,6 +98,8 @@ testpaths = [
 ]
 filterwarnings = [
     'ignore:`np.*` is a deprecated alias for .* `np.*`.*:DeprecationWarning',
+    'ignore:distutils Version classes are deprecated. Use packaging.version instead:DeprecationWarning',
+    "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc':DeprecationWarning",
 ]
 markers = [
     "schism: mark a test as a Schism based test. Needs --runschism to run",
