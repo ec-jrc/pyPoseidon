@@ -32,17 +32,17 @@ LATITUDE_NAMES = {"latitude", "lat", "y", "Lat", "LATITUDE", "LAT", "Y"}
 
 
 class Dem:
-    def __init__(self, dem_source=None, **kwargs):
+    def __init__(self, dem_source: str, **kwargs):
 
         """
         Read bathymetric data from various sources.
 
         !!! danger ""
             Due to a limitation of the Library rendering the docstrings, all arguments are marked
-            as `required`, nevertheless they are all `Optional` except geometry.
+            as `required`, nevertheless they are all `Optional` except `dem_source`.
 
         Args:
-            dem_source (str): Path or url to bathymetric data.
+            dem_source: Path or url to bathymetric data.
             lon_min (float) : Minimum longitude.
             lon_max (float) : Maximum longitude.
             lat_min (float) : Minimum latitude.
@@ -62,11 +62,7 @@ class Dem:
         if isinstance(geometry, dict):
             kwargs.update(**geometry)
 
-        if not dem_source:
-            logger.error("dem_source is required\n")
-            sys.exit(1)
-        else:
-            self.Dataset = dem_(source=dem_source, **kwargs)
+        self.Dataset = dem_(source=dem_source, **kwargs)
 
         #        print('CHECK2  :','adjusted' in self.Dataset.data_vars.keys())
         #        print(self.Dataset.data_vars.keys())
