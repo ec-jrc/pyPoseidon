@@ -64,7 +64,7 @@ def fix(dem, coastline, **kwargs):
         for idx, poly in block2.iterrows():
             block2.loc[idx, "geometry"] = shapely.ops.transform(lambda x, y, z=None: (x + 360.0, y), poly.geometry)
 
-        block = block1.append(block2)
+        block = pd.concat([block1, block2])
 
     elif flag == -1:
 
@@ -74,7 +74,7 @@ def fix(dem, coastline, **kwargs):
         for idx, poly in block1.iterrows():
             block1.loc[idx, "geometry"] = shapely.ops.transform(lambda x, y, z=None: (x - 360.0, y), poly.geometry)
 
-        block = block1.append(block2)
+        block = pd.concat([block1, block2])
 
     else:
         block = shp.cx[minlon:maxlon, minlat:maxlat]
