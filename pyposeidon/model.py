@@ -84,9 +84,9 @@ def set(solver_name, atm=True, tide=False, **kwargs):
 
     Args:
 
-        solver_name (str): Name of solver used, e.g. `d3d` or `schism`.
-        atm (bool) : Flag for using meteo forcing.  Defaults to `True`.
-        tide (bool) : Flag for using tidal configuration.  Defaults to `False`.
+        solver_name str: Name of solver used, e.g. `d3d` or `schism`.
+        atm bool: Flag for using meteo forcing.  Defaults to `True`.
+        tide bool: Flag for using tidal configuration.  Defaults to `False`.
 
     """
 

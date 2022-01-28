@@ -62,32 +62,32 @@ class d3d:
             as `required`, nevertheless they are all `Optional`.
 
         Args:
-            geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+            geometry Union[dict, str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile or
                 a dict defining the lat/lon window.
-            start_date (str): The date from which the analysis should start. It should be a string parseable
+            start_date str: The date from which the analysis should start. It should be a string parseable
                 by `pd.to_datetime()`.
-            end_date (str): The date at which the analysis should end. It should be a string parseable by
+            end_date str: The date at which the analysis should end. It should be a string parseable by
                 `pd.to_datetime()`.
-            time_frame (str): The duration of the analysis. It should be a string parseable by
+            time_frame str: The duration of the analysis. It should be a string parseable by
                 `pd.to_datetime()`.
-            date (str): Reference date of the run.
-            meteo_source (str): Path or url to meteo data.
-            dem_source (str): Path or url to bathymetric data.
-            argfile (str): Path to `_hydro.xml` file.
-            update (str): Control the update of the model e.g `['dem']`-> updates only bathymetry.
+            date str: Reference date of the run.
+            meteo_source str: Path or url to meteo data.
+            dem_source str: Path or url to bathymetric data.
+            argfile str: Path to `_hydro.xml` file.
+            update str: Control the update of the model e.g `['dem']`-> updates only bathymetry.
                 Defaults to `["all"]`.
-            rpath (str): Path for output of the model. Defaults to `./d3d/`.
-            tide (str): Flag indicating whether to load "tide". Defaults to `False`.
-            atm (bool): The solver's atm. Defaults to `True`.
-            tag (str): The model's "tag". Defaults to `"d3d"`.
-            resolution (float): size of the regular grid. Defaults to `0.1`.
-            ofilename (str): Path to station file. Defaults to `None`.
-            epath (str): The path to the schism executable. If the `D3D` env variable has been
+            rpath str: Path for output of the model. Defaults to `./d3d/`.
+            tide str: Flag indicating whether to load "tide". Defaults to `False`.
+            atm bool: The solver's atm. Defaults to `True`.
+            tag str: The model's "tag". Defaults to `"d3d"`.
+            resolution float: size of the regular grid. Defaults to `0.1`.
+            ofilename str: Path to station file. Defaults to `None`.
+            epath str: The path to the schism executable. If the `D3D` env variable has been
                 set, then it overrides the value passed as the parameter.
-            config_file (str): Path to mdf file. Defaults to `None`.
-            config (dict): Parameter options passed to mdf file.
-            output (bool): Flag for saving to file. Defaults to `False`.
-            update (str): Control the update of the model e.g `['dem']`-> updates only bathymetry.
+            config_file str: Path to mdf file. Defaults to `None`.
+            config dict: Parameter options passed to mdf file.
+            output bool: Flag for saving to file. Defaults to `False`.
+            update list[str]: Control the update of the model e.g `['dem']`-> updates only bathymetry.
                 Defaults to `["all"]`.
         """
 

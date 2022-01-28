@@ -61,47 +61,47 @@ class Schism:
             as `required`, nevertheless they are all `Optional`.
 
         Args:
-            rfolder (str): The path to a directory containing the results of a Model solved by Schism.
-            geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+            rfolder str: The path to a directory containing the results of a Model solved by Schism.
+            geometry Union[dict, str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile or
                 a dict defining the lat/lon window.
-            load_mesh (bool): Flag indicating whether to load the mesh or not. Defaults to `False`.
-            load_meteo (bool): Flag indicating whether to load the meteo data or not. Defauls to
+            load_mesh bool: Flag indicating whether to load the mesh or not. Defaults to `False`.
+            load_meteo bool: Flag indicating whether to load the meteo data or not. Defauls to
                 `False`.
-            coastlines (Union[str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile which
+            coastlines Union[str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile which
                 describes the coastlines.
-            tag (str): The model's "tag". Defaults to `"schism"`.
-            tide (str): Flag indicating whether to load "tide". Defaults to `False`.
-            atm (bool): The solver's atm. Defaults to `True`.
-            monitor (bool): The solver's monitor. Defaults to `False`.
-            epath (str): The path to the schism executable. If the `SCHISM` env variable has been
+            tag str: The model's "tag". Defaults to `"schism"`.
+            tide str: Flag indicating whether to load "tide". Defaults to `False`.
+            atm bool: The solver's atm. Defaults to `True`.
+            monitor bool: The solver's monitor. Defaults to `False`.
+            epath str: The path to the schism executable. If the `SCHISM` env variable has been
                 set, then it overrides the value passed as the parameter.
-            start_date (str): The date from which the analysis should start. It should be a string parseable
+            start_date str: The date from which the analysis should start. It should be a string parseable
                 by `pd.to_datetime()`.
-            end_date (str): The date at which the analysis should end. It should be a string parseable by
+            end_date str: The date at which the analysis should end. It should be a string parseable by
                 `pd.to_datetime()`.
-            time_frame (str): The duration of the analysis. It should be a string parseable by
+            time_frame str: The duration of the analysis. It should be a string parseable by
                 `pd.to_datetime()`.
-            date (str): Reference date of the run.
-            rpath (str): Path for output of the model. Defaults to `./schism/`.
-            m_index (int): Define the index of the meteo Dataset. Defaults to `1`.
-            filename (str): Path to output the meteo Dataset. Defaults to `sflux/`.
-            dstamp (str): Reference date for station data. Defaults to date.
-            parameters (dict): Overwrite default Schism's parameter values.
-            meteo_source (str): Path or url to meteo data.
-            dem_source (str): Path or url to bathymetric data.
-            update (str): Control the update of the model e.g `['dem']`-> updates only bathymetry.
+            date str: Reference date of the run.
+            rpath str: Path for output of the model. Defaults to `./schism/`.
+            m_index int: Define the index of the meteo Dataset. Defaults to `1`.
+            filename str: Path to output the meteo Dataset. Defaults to `sflux/`.
+            dstamp str: Reference date for station data. Defaults to date.
+            parameters dict: Overwrite default Schism's parameter values.
+            meteo_source str: Path or url to meteo data.
+            dem_source str: Path or url to bathymetric data.
+            update list[str]: Control the update of the model e.g `['dem']`-> updates only bathymetry.
                 Defaults to `["all"]`.
-            meteo_split_by (str): Split the meteo Dataset to multiple files by e.g. `"day"`.
+            meteo_split_by str: Split the meteo Dataset to multiple files by e.g. `"day"`.
                 Defaults to `None`.
-            manning_file (str): Path to manning file.
-            manning (float): Set constant value in the manning.gr3 file. Defaults to `0.12`.
-            windrot_file (str): Path to windrot file.
-            windrot (float): Set constant value in the windrot_geo2proj.gr3 file. Defaults to `0.00001`.
-            station_flags (list): Define the flag for station output. Defaults to `[1,0,0,0,0,0,0,0,0]`.
-            coastal_monitoring (bool): Flag for setting all land/island boundary nodes as stations.
+            manning_file str: Path to manning file.
+            manning float: Set constant value in the manning.gr3 file. Defaults to `0.12`.
+            windrot_file str: Path to windrot file.
+            windrot float: Set constant value in the windrot_geo2proj.gr3 file. Defaults to `0.00001`.
+            station_flags list[int]: Define the flag for station output. Defaults to `[1,0,0,0,0,0,0,0,0]`.
+            coastal_monitoring bool: Flag for setting all land/island boundary nodes as stations.
                 Defaults to `False`.
-            obs (str): Path to csv file for station locations. Defaults to `misc/critech.csv`.
-            nspool_sta (int): Related to station nodes setup. Defaults to `1`.
+            obs str: Path to csv file for station locations. Defaults to `misc/critech.csv`.
+            nspool_sta int: Related to station nodes setup. Defaults to `1`.
         """
 
         rfolder = kwargs.get("rfolder", None)
