@@ -61,12 +61,12 @@ def test_buffer(tmpdir, window, input):
     assert isinstance(df.contours, gp.GeoDataFrame)
 
 
-@INPUTS
-@WINDOWS
-@DEM_SOURCES
-def test_isodem(tmpdir, window, input, dem_source):
-    df = pb.Boundary(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
-    assert isinstance(df.contours, gp.GeoDataFrame)
+#@INPUTS
+#@WINDOWS
+#@DEM_SOURCES
+#def test_isodem(tmpdir, window, input, dem_source):
+#    df = pb.Boundary(geometry=window, dem_source=dem_source, blevels=[-100], rpath=str(tmpdir) + "/")
+#    assert isinstance(df.contours, gp.GeoDataFrame)
 
 
 @pytest.mark.slow
