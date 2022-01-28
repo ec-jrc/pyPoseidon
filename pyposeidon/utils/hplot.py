@@ -14,7 +14,6 @@ import holoviews as hv
 import geoviews as gv
 from holoviews import opts
 from holoviews.operation.datashader import datashade, rasterize
-from datashader.colors import viridis
 import geoviews.feature as gf
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature

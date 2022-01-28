@@ -5,12 +5,9 @@ channels:
   - "gbrey"
 
 dependencies:
-  - "descartes"
   - "geoviews"
+  - "holoviews"
   - "hvplot"
-  - "imageio-ffmpeg"
   - "ipympl"
   - "itkwidgets"
   - "mayavi"
-  - "moviepy"
-  - "pyvista"

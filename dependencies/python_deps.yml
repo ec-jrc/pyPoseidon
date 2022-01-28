@@ -12,7 +12,6 @@ dependencies:
   - "dask"
   - "f90nml"
   - "geopandas>=0.10.1"
-  - "geoviews"
   - "matplotlib>=3.3"
   - "netCDF4"
   - "numpy"

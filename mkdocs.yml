@@ -26,19 +26,21 @@ nav:
   - Overview : index.md
   - Installation : installation.md
   - Structure : structure.md
-  - User Guide : 
+  - User Guide :
       - "Meteo": meteo.md
       - "Dem": dem.md
       - "Boundary": boundary.md
       - "Mesh": mesh.md
       - "Model": model.md
       - "Utilities": utils.md
+  - Development: development.md
   - API : api.md
 
 markdown_extensions:
   - "admonition"
   - "codehilite"
   - "pymdownx.tilde"
+  - "pymdownx.details"
   - "pymdownx.superfences"
   - toc:
       permalink: true
@@ -46,3 +48,9 @@ markdown_extensions:
 plugins:
   - "search"
   - "mkdocstrings":
+      handlers:
+        python:
+          rendering:
+            show_root_heading: true
+            show_object_full_path: false
+            show_root_members_full_path: false

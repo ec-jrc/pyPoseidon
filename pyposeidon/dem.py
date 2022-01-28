@@ -32,29 +32,30 @@ LATITUDE_NAMES = {"latitude", "lat", "y", "Lat", "LATITUDE", "LAT", "Y"}
 
 
 class Dem:
-    def __init__(self, dem_source=None, **kwargs):
+    """
+    Read bathymetric data from various sources.
+    """
 
+    def __init__(self, dem_source: str, **kwargs):
         """
-        Read bathymetric data from various sources.
-
         !!! danger ""
             Due to a limitation of the Library rendering the docstrings, all arguments are marked
-            as `required`, nevertheless they are all `Optional` except geometry.
+            as `required`, nevertheless they are all `Optional` except `dem_source`.
 
         Args:
-            dem_source (str): Path or url to bathymetric data.
-            lon_min (float) : Minimum longitude.
-            lon_max (float) : Maximum longitude.
-            lat_min (float) : Minimum latitude.
-            lat_max (float) : Maximum latitude.
-            geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+            dem_source: Path or url to bathymetric data.
+            lon_min float: Minimum longitude.
+            lon_max float: Maximum longitude.
+            lat_min float: Minimum latitude.
+            lat_max float: Maximum latitude.
+            geometry Union[dict, str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile or
                 a dict defining the lat/lon window.
-            coastlines (Union[str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile which
+            coastlines Union[str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile which
                 describes the coastlines. Defaults to `None`.
-            adjust_dem (bool) :  Option to match dem with coastlines, Defaults to `True`.
-            grid_x (list) : Array of longitude of mesh nodes.
-            grid_y (list) : Array of latitude of mesh nodes.
-            wet_only (bool) : Flag to mask dry values when interpolating on mesh. Defaults to `False`.
+            adjust_dem bool:  Option to match dem with coastlines, Defaults to `True`.
+            grid_x list: Array of longitude of mesh nodes.
+            grid_y list: Array of latitude of mesh nodes.
+            wet_only bool: Flag to mask dry values when interpolating on mesh. Defaults to `False`.
         """
 
         # integrate geometry attribute.
@@ -62,11 +63,7 @@ class Dem:
         if isinstance(geometry, dict):
             kwargs.update(**geometry)
 
-        if not dem_source:
-            logger.error("dem_source is required\n")
-            sys.exit(1)
-        else:
-            self.Dataset = dem_(source=dem_source, **kwargs)
+        self.Dataset = dem_(source=dem_source, **kwargs)
 
         #        print('CHECK2  :','adjusted' in self.Dataset.data_vars.keys())
         #        print(self.Dataset.data_vars.keys())
