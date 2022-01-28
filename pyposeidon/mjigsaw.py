@@ -136,7 +136,7 @@ def to_geo(df, path=".", tag="jigsaw"):
         edges.to_csv(f, index=False, header=0, sep=";")
 
 
-def read_msh(fmsh):
+def parse_msh(fmsh):
 
     grid = pd.read_csv(fmsh, header=0, names=["data"], index_col=None, low_memory=False)
     npoints = int(grid.loc[2].str.split("=")[0][1])
@@ -219,14 +219,11 @@ def make_bgmesh(contours, **kwargs):
     return dh
 
 
-def to_dataset(**kwargs):
+def read_msh(filename, **kwargs):
 
     logger.info("..reading mesh\n")
 
-    tag = kwargs.get("tag", "jigsaw")
-    rpath = kwargs.get("rpath", ".")
-
-    [nodes, edges, tria] = read_msh(rpath + "/jigsaw/" + tag + ".msh")
+    [nodes, edges, tria] = parse_msh(filename)
     nodes = nodes.apply(pd.to_numeric)
     tria = tria.apply(pd.to_numeric)
     edges = edges.apply(pd.to_numeric)
@@ -419,12 +416,15 @@ def get(contours, **kwargs):
         as `required`, nevertheless they are all `Optional`.
 
     Args:
-        contours (GeoDataFrame): Provide boundaries and metadata.
-        tag (str): Identifier. Defaults to `"jigsaw"`.
-        rpath (str): Path for output. Defaults to `"."`.
-        dem_source (str): Path or url to bathymetric data.
-        bgmesh (str): Path to a mesh scale file. Defaults to `None`.
-        setup_only (bool): Flag for setup only (no execution). Defaults to `False`.
+        contours GeoDataFrame: Provide boundaries and metadata.
+        tag str: Identifier. Defaults to `"jigsaw"`.
+        rpath str: Path for output. Defaults to `"."`.
+        dem_source str: Path or url to bathymetric data.
+        bgmesh str: Path to a mesh scale file. Defaults to `None`.
+        setup_only bool: Flag for setup only (no execution). Defaults to `False`.
+        hfun_scal str: Mesh scale option either "RELATIVE" or "ABSOLUTE". Defaults to "ABSOLUTE".
+        hfun_min float: Minimum mesh size. Defaults to `0.0`.
+        hfun_max float: Maximum mesh size. Defaults to `1000.`.
     """
 
     logger.info("Creating JIGSAW files\n")
@@ -484,14 +484,18 @@ def get(contours, **kwargs):
     # JIG FILE
     fjig = path + "/" + tag + ".jig"
 
+    hfun_scal = kwargs.get("hfun_scal", "ABSOLUTE")
+    hfun_min = kwargs.get("hfun_min", 0.0)
+    hfun_max = kwargs.get("hfun_max", 1000.0)
+
     with open(fjig, "w") as f:
         f.write("GEOM_FILE ={}\n".format(tag + "-geo.msh"))
         f.write("MESH_FILE ={}\n".format(tag + ".msh"))
         if bgmesh:
             f.write("HFUN_FILE ={}\n".format(tag + "-hfun.msh"))
-        f.write("HFUN_SCAL = ABSOLUTE\n")
-        f.write("HFUN_HMAX = Inf\n")
-        f.write("HFUN_HMIN = 0.0\n")
+        f.write("HFUN_SCAL = {}\n".format(hfun_scal))
+        f.write("HFUN_HMAX = {}\n".format(hfun_max))
+        f.write("HFUN_HMIN = {}\n".format(hfun_min))
         f.write("MESH_DIMS = 2\n")
         f.write("MESH_TOP1 = TRUE\n")
         #        f.write('MESH_TOP2 = TRUE\n')
@@ -536,7 +540,7 @@ def get(contours, **kwargs):
         logger.info("Jigsaw FINISHED\n")
         # ---------------------------------
 
-        gr = to_dataset(**kwargs)
+        gr = read_msh(calc_dir + tag + ".msh", **kwargs)
 
         logger.info("..done creating mesh\n")
 
