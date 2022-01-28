@@ -275,11 +275,11 @@ class d3d:
 
         if flag:
             if ("meteo" in flag) | ("all" in flag):
-                self.meteo = pmeteo.meteo(**z)
+                self.meteo = pmeteo.Meteo(**z)
             else:
                 logger.info("skipping meteo files ..\n")
         else:
-            self.meteo = pmeteo.meteo(**z)
+            self.meteo = pmeteo.Meteo(**z)
 
     @staticmethod
     def from_force(filename=None, name=None):
@@ -880,7 +880,7 @@ class d3d:
         meteo = self.__dict__.get("meteo", None)
         if isinstance(meteo, str):
             dic.update({"meteo": meteo})
-        elif isinstance(meteo, pmeteo.meteo):
+        elif isinstance(meteo, pmeteo.Meteo):
             dic.update({"meteo": meteo.Dataset.attrs})
 
         dic["version"] = pyposeidon.__version__

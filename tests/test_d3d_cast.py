@@ -27,7 +27,7 @@ case = {
     "geometry": {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
     "start_date": "2018-10-1",
     "time_frame": "12H",
-    "solver": "d3d",
+    "solver_name": "d3d",
     "resolution": 0.1,  # grid resoltuion
     "map_step": 60,  # step for output of map field in d3d
     "restart_step": 720,  # when to output restart file
@@ -43,7 +43,7 @@ check = {
     "geometry": {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
     "start_date": "2018-10-1",
     "time_frame": "36H",
-    "solver": "d3d",
+    "solver_name": "d3d",
     "resolution": 0.1,  # grid resoltuion
     "map_step": 60,  # step for output of map field in d3d
     "restart_step": 720,  # when to output restart file
@@ -86,7 +86,7 @@ def d3d(tmpdir):
     # set cast
     for l in range(len(rpaths) - 1):
         h = cast.set(
-            solver="d3d",
+            solver_name="d3d",
             model=b,
             ppath=rpaths[l],
             cpath=rpaths[l + 1],
@@ -101,8 +101,8 @@ def d3d(tmpdir):
     c.execute()
 
     # COMPARE
-    output = data.get_output(folders=rpaths, solver="d3d")
-    total = data.get_output(folders=[rpath + "check/"], solver="d3d")
+    output = data.get_output(folders=rpaths, solver_name="d3d")
+    total = data.get_output(folders=[rpath + "check/"], solver_name="d3d")
 
     test = True
     rb = []
