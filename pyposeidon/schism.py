@@ -22,7 +22,6 @@ import geopandas as gp
 import glob
 from shutil import copyfile
 import xarray as xr
-import cartopy.feature as cf
 import geopandas as gp
 import f90nml
 import errno
