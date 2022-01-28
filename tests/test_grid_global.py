@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 import os
 import geopandas as gp
-import cartopy.feature as cf
 
 from . import DATA_DIR
 
@@ -21,6 +20,11 @@ def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
         if not pytestconfig.getoption("--runslow"):
             pytest.skip("slow test")
 
+    if ggor == "jigsaw":
+        cb = 0.001
+    else:
+        cb = None
+
     mesh = pmesh.set(
         type="tri2d",
         geometry="global",
@@ -29,6 +33,7 @@ def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
         mesh_generator=ggor,
         dem_source=bgmesh,
         use_bindings=bindings,
+        cbuffer=cb,
     )
 
     # save to file
@@ -63,6 +68,11 @@ def test_validate(pytestconfig, tmpdir, ggor, bgmesh, bindings):
         if not pytestconfig.getoption("--runslow"):
             pytest.skip("slow test")
 
+    if ggor == "jigsaw":
+        cb = 0.001
+    else:
+        cb = None
+
     mesh = pmesh.set(
         type="tri2d",
         geometry="global",
@@ -71,6 +81,7 @@ def test_validate(pytestconfig, tmpdir, ggor, bgmesh, bindings):
         mesh_generator=ggor,
         dem_source=bgmesh,
         use_bindings=bindings,
+        cbuffer=cb,
     )
 
     rpath = str(tmpdir) + "/"
