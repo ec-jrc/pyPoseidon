@@ -442,7 +442,7 @@ class pplot(object):
 
         return p  # , ax
 
-    def mesh(self, **kwargs):
+    def mesh(self, lw: float = 0.5, markersize: float = 1.0, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
@@ -469,8 +469,7 @@ class pplot(object):
         # ax.background_patch.set_facecolor('k')
 
         ax.set_aspect("equal")
-
-        g = plt.triplot(x, y, tri3, "go-", **kwargs)  # , lw=.5, markersize=5)#, transform=ccrs.PlateCarree() )
+        g = plt.triplot(x, y, tri3, "go-", lw=lw, markersize=markersize, **kwargs)  # transform=ccrs.PlateCarree() )
 
         lw = kwargs.get("lw", plt.rcParams["lines.linewidth"])
         # https://stackoverflow.com/questions/52202014/how-can-i-plot-2d-fem-results-using-matplotlib
