@@ -59,7 +59,7 @@ def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
 
     assert all([c == True for c in [check1, check2]])
 
-
+@pytest.mark.schism
 @pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
 @pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
 @pytest.mark.parametrize("bindings", [True, False])
