@@ -29,10 +29,10 @@ def test_d3d(tmpdir, dic):
     dic.update({"rpath": rpath})  # use tmpdir for running the model
     b = pyposeidon.model.set(**dic)
     b.execute()
-    out_b = data.get_output(**dic)
+    b.get_output_data()
 
-    a = pyposeidon.read(rpath + "d3d_model.json")  # read model
+    a = pyposeidon.model.read(rpath + "d3d_model.json")  # read model
     a.execute()
-    out_a = data.get_output(**dic)
+    a.get_output_data()
 
-    assert out_a == out_b
+    assert a.data.Dataset.equals(b.data.Dataset)

@@ -798,8 +798,6 @@ class d3d:
             # ------------------------------------------------------------------------------
             logger.warning("D3D executable path (epath) not given -> using default \n")
             # ------------------------------------------------------------------------------
-            bin_path = os.pathsep + cpath
-            lib_path = bin_path
 
         ncores = get_value(self, kwargs, "ncores", NCORES)
 
@@ -1086,7 +1084,7 @@ class d3d:
         sys.exit(1)
         # ---------------------------------------------------------------------
 
-    def get_data(self, **kwargs):
+    def get_output_data(self, **kwargs):
 
         dic = self.__dict__
 
