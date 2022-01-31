@@ -5,7 +5,6 @@ channels:
   - "gbrey"
 
 dependencies:
-  - "branca"
   - "cartopy<=0.20"
   - "cfgrib"
   - "colorlog"
