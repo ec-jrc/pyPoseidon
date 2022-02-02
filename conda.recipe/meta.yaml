@@ -20,8 +20,8 @@ outputs:
       noarch: python
     requirements:
       build:
-        - python                                 # [build_platform != target_platform]
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+#       - python                                 # [build_platform != target_platform]
+#       - cross-python_{{ target_platform }}     # [build_platform != target_platform]
       host:
         - pip
         - python
@@ -49,6 +49,7 @@ outputs:
         - netCDF4
         - dask
         - shapely =1.7.1
+        - pydap >=3.3.0
 
       test:
         imports:

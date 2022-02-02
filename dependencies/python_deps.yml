@@ -26,5 +26,4 @@ dependencies:
   - "shapely=1.7.1"
   - "tqdm"
   - "xarray"
-  - pip:
-      - "git+https://github.com/pydap/pydap.git@3f6aa190c59e3bbc6c834377a61579b20275ff69#egg=Pydap"
+  - "pydap>=3.3.0"
