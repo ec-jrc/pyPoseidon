@@ -1,6 +1,6 @@
 <style>body {text-align: justify}</style>
 
-This module handles mesh boundary extraction from coastlines or user provided shapefiles. It underpins the [Mesh](mesh.md) module.
+This module handles mesh boundary extraction from coastlines or user provided shapefiles. It underpins the [mesh](mesh.md) module.
 
 
 
@@ -23,12 +23,13 @@ iGSHHS = gp.GeoDataFrame(geometry=[x for x in gi.geometries()])
 - geometry 
 
 ```py
-#define in a dictionary the properties of the model..
-window={'lon_min':-25., # lat/lon window
-     	'lon_max':-9.,
-     	'lat_min':56.,
-     	'lat_max':74.,
-    	}
+# define in a dictionary the properties of the model..
+extend = {
+    "lon_min": -25.0,  # lat/lon window
+    "lon_max": -9.0,
+    "lat_min": 56.0,
+    "lat_max": 74.0,
+}
 ```
 
 Using the module as
@@ -36,11 +37,11 @@ Using the module as
 ```py
 import pyposeidon.boundary as pb
 
-a = pb.Boundary(geometry=window, coastlines = iGSHHS)
+a = pb.Boundary(geometry=extend, coastlines = iGSHHS)
 ```
 
 
-the contours with corresponding attributes are
+the contours with their corresponding attributes are
 
 ```py
 a.contours
@@ -60,7 +61,7 @@ a.contours
 
 ```
 
-where they can be visualized as 
+and they can be visualized as 
 
 ![output of show](./img/boundary_show.png)
 
@@ -73,6 +74,9 @@ Setting
 ```py
 b = pb.Boundary(geometry=window, coastlines=iGSHHS, cbuffer = .01)
 ```
+!!! note
+
+	The units of `cbuffer` are those of the coastlines.  
 
 it can be seen that the boundaries are simplified accordingly 
 

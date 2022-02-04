@@ -1,5 +1,5 @@
 """
-Schism model of pyposeidon. It controls the creation, output & execution of a complete simulation based on schism
+Schism model of pyposeidon. It controls the creation, execution & output  of a complete simulation based on SCHISM.
 
 """
 # Copyright 2018 European Union

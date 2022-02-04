@@ -1,5 +1,5 @@
 """
-Main model module of pyposeidon. It controls the creation, output & execution of a complete simulation based on different hydrological models
+Main model module of pyposeidon. It controls the creation, execution & output of a complete simulation based on different hydrodynamic models
 
 Currently supported : DELFT3D , SCHISM
 

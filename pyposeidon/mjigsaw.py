@@ -1,5 +1,5 @@
 """
-Jigsaw module
+jigsaw module
 
 """
 # Copyright 2018 European Union

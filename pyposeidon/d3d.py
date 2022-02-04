@@ -1,5 +1,5 @@
 """
-Main d3d module of pyposeidon. It controls the creation, output & execution of a complete simulation based on DELFT3D
+Main d3d module of pyposeidon. It controls the creation, output & execution of a complete simulation based on DELFT3D.
 
 """
 # Copyright 2018 European Union
