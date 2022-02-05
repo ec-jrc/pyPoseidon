@@ -36,6 +36,8 @@ import logging
 
 from .bnd import Box
 
+from . import tools
+
 logger = logging.getLogger(__name__)
 
 import multiprocessing
@@ -799,9 +801,15 @@ class d3d:
             logger.warning("D3D executable path (epath) not given -> using default \n")
             # ------------------------------------------------------------------------------
 
-        ncores = get_value(self, kwargs, "ncores", NCORES)
+        ncores = get_value(self, kwargs, "ncores", 0)
 
         argfile = get_value(self, kwargs, "argfile", self.tag + "_hydro.xml")
+
+        tools.create_d3d_mpirun_script(
+            target_dir=calc_dir,
+            #            cmd=bin_path,
+            script_name="run_flow2d3d.sh",
+        )
 
         # ---------------------------------------------------------------------
         logger.info("executing model\n")
@@ -809,7 +817,7 @@ class d3d:
 
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(
-            args=["./run_flow2d3d.sh {} {} {}".format(argfile, ncores, bin_path, lib_path)],
+            args=["./run_flow2d3d.sh {} {} {}".format(argfile, bin_path, lib_path)],
             cwd=calc_dir,
             shell=True,
             stderr=subprocess.PIPE,

@@ -629,7 +629,7 @@ class Schism:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
-        tools.create_mpirun_script(
+        tools.create_schism_mpirun_script(
             target_dir=calc_dir,
             cmd=bin_path,
             script_name="launchSchism.sh",

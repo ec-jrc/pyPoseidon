@@ -559,7 +559,7 @@ class tri2d:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
-        tools.create_mpirun_script(
+        tools.create_schism_mpirun_script(
             target_dir=path,
             cmd=bin_path,
             script_name="launchSchism.sh",
