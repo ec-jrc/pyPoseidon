@@ -62,7 +62,7 @@ libdir=$LD3D/lib
 
     # Set some (environment) parameters
 export LD_LIBRARY_PATH=$exedir:$libdir:$LD_LIBRARY_PATH
-export PATH=$execdir:$PATH
+export PATH=$exedir:$PATH
 
     # Run
 mpiexec {mpirun_flags} -np {ncores} d_hydro $argfile

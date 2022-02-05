@@ -11,7 +11,7 @@ fi
 
 #if [ -z $D3D ];then
 #   echo 'no executable'
-#   exit 1 
+#   exit 1
 #fi
 
     #
@@ -19,14 +19,14 @@ fi
     #
 exedir=$D3D/bin
 libdir=$LD3D/lib
- 
+
     #
     # No adaptions needed below
     #
 
     # Set some (environment) parameters
-export LD_LIBRARY_PATH=$exedir:$libdir:$LD_LIBRARY_PATH 
-export PATH=$execdir:$PATH
+export LD_LIBRARY_PATH=$exedir:$libdir:$LD_LIBRARY_PATH
+export PATH=$exedir:$PATH
 
     # Run
 mpiexec -np $ncores d_hydro $argfile

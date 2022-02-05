@@ -48,7 +48,7 @@ def test_create_schism_mpirun_script_ncores(tmp_path, ncores):
         pytest.param(DATA_DIR / "dem.tif", id="geotiff - pathlib"),
         pytest.param((DATA_DIR / "dem.nc").as_posix(), id="netcdf- str"),
         pytest.param((DATA_DIR / "dem.tif").as_posix(), id="geotiff - str"),
-        pytest.param("https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus", id="URL"),
+        #        pytest.param("https://coastwatch.pfeg.noaa.gov/erddap/griddap/srtm30plus", id="URL"),
     ],
 )
 def test_open_dataset(source) -> None:
