@@ -27,7 +27,7 @@ def to_thalassa(folders, freq=None, **kwargs):
 
     for folder in folders:
 
-        b = pyposeidon.read(folder + "/{}_model.json".format(tag))
+        b = pyposeidon.model.read(folder + "/{}_model.json".format(tag))
         b.get_output_data()
         st = b.data.time_series
         b.data.Dataset.to_netcdf(rpath + "/{}.nc".format(b.start_date.strftime("%Y%m%d%H")))  # save netcdf

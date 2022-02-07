@@ -1,5 +1,5 @@
 """
-Main model module of pyposeidon. It controls the creation, output & execution of a complete simulation based on different hydrological models
+Main model module of pyposeidon. It controls the creation, execution & output of a complete simulation based on different hydrodynamic models
 
 Currently supported : DELFT3D , SCHISM
 
@@ -84,9 +84,9 @@ def set(solver_name, atm=True, tide=False, **kwargs):
 
     Args:
 
-        solver_name (str): Name of solver used, e.g. `d3d` or `schism`.
-        atm (bool) : Flag for using meteo forcing.  Defaults to `True`.
-        tide (bool) : Flag for using tidal configuration.  Defaults to `False`.
+        solver_name str: Name of solver used, e.g. `d3d` or `schism`.
+        atm bool: Flag for using meteo forcing.  Defaults to `True`.
+        tide bool: Flag for using tidal configuration.  Defaults to `False`.
 
     """
 

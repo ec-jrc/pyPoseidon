@@ -91,8 +91,8 @@ class D3DResults:
         self.dem = xr.Dataset(
             {"bathymetry": (["latitude", "longitude"], -b)},
             coords={
-                "longitude": ("longitude", grid.lons[0, :]),
-                "latitude": ("latitude", grid.lats[:, 0]),
+                "longitude": ("longitude", grid.lons[0, :].values),
+                "latitude": ("latitude", grid.lats[:, 0].values),
             },
         )
 

@@ -43,14 +43,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def read_gmsh(mesh, **kwargs):
+def read_msh(filename, **kwargs):
 
     model = gmsh.model
     factory = model.geo
 
     gmsh.initialize()
 
-    gmsh.open(mesh)
+    gmsh.open(filename)
 
     logger.info("Analyze grid")
 
@@ -203,12 +203,12 @@ def get(contours, **kwargs):
         as `required`, nevertheless they are all `Optional`.
 
     Args:
-        contours (GeoDataFrame): Provide boundaries and metadata.
-        rpath (str): Path for output. Defaults to `"."`.
-        use_bindings (bool): Flag for using python API as opposed to binary. Defaults to `True`.
-        dem_source (str): Path or url to bathymetric data.
-        bgmesh (str): Path to a mesh scale file. Defaults to `None`.
-        setup_only (bool): Flag for setup only (no execution). Defaults to `False`.
+        contours GeoDataFrame: Provide boundaries and metadata.
+        rpath str: Path for output. Defaults to `"."`.
+        use_bindings bool: Flag for using python API as opposed to binary. Defaults to `True`.
+        dem_source str: Path or url to bathymetric data.
+        bgmesh str: Path to a mesh scale file. Defaults to `None`.
+        setup_only bool: Flag for setup only (no execution). Defaults to `False`.
     """
 
     logger.info("Creating grid with GMSH\n")
@@ -271,7 +271,7 @@ def get(contours, **kwargs):
             gmsh_execute(**kwargs)
 
     if not setup_only:
-        gr = read_gmsh(rpath + "/gmsh/mymesh.msh", **kwargs)
+        gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
 
     try:
         bg = dh

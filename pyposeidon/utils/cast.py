@@ -96,9 +96,12 @@ class D3DCast:
             info[info.isnull().values] = None
             info = info.to_dict()[0]
 
-        args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
-        for attr in list(args):
-            info[attr] = kwargs[attr]
+        try:
+            args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
+            for attr in list(args):
+                info[attr] = kwargs[attr]
+        except:
+            pass
 
         # update the properties
         info["date"] = self.date

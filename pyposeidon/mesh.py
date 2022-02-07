@@ -167,13 +167,13 @@ class tri2d:
         as `required`, nevertheless they are all `Optional` except geometry.
 
     Args:
-        mesh_file (str): Path to hgrid mesh file. Defaults to `None`.
-        mesh_generator (str): Use `jigsaw` or `gmsh`. Defaults to `None`.
-        geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+        mesh_file str: Path to `hgrid.gr3`, `jigsaw.msh` or `gmsh.msh` file. Defaults to `None`.
+        mesh_generator str: Use `jigsaw` or `gmsh`. Defaults to `None`.
+        geometry Union[dict, str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile or
             a dict defining the lat/lon window.  Defaults to `None`.
-        coastlines (Union[str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile which
+        coastlines Union[str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile which
             describes the coastlines. Defaults to `None`.
-        boundary (GeoDataFrame) : Defined mesh boundaries.  Defaults to `None`.
+        boundary GeoDataFrame: Defined mesh boundaries.  Defaults to `None`.
     """
 
     def __init__(self, **kwargs):
@@ -189,7 +189,15 @@ class tri2d:
 
         if mesh_file:
 
-            self.Dataset = self.read_file(mesh_file)
+            if mesh_file.endswith(".gr3"):
+                self.Dataset = self.read_file(mesh_file)
+            elif mesh_file.endswith(".msh"):
+                if mesh_generator == "jigsaw":
+                    self.Dataset = mjigsaw.read_msh(mesh_file)
+                elif mesh_generator == "gmsh":
+                    self.Dataset = mgmsh.read_msh(mesh_file)
+                else:
+                    raise ValueError("Please define 'mesh_genarator' argument")
 
         elif mesh_generator == "gmsh":
 
@@ -551,7 +559,7 @@ class tri2d:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
-        tools.create_mpirun_script(
+        tools.create_schism_mpirun_script(
             target_dir=path,
             cmd=bin_path,
             script_name="launchSchism.sh",

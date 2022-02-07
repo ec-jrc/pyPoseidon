@@ -4,7 +4,6 @@ import shapely
 import numpy as np
 import xarray as xr
 from .limgrad import limgrad2
-import matplotlib
 from pyposeidon.utils.stereo import to_lat_lon, to_stereo
 from pyposeidon.utils.topology import MakeTriangleFaces, MakeTriangleFaces_periodic
 from pyposeidon.utils.scale import scale_dem
@@ -12,32 +11,50 @@ import pyposeidon
 import math
 
 
+def get_edges(nrows: int, ncols: int) -> np.array:
+    array = np.arange(nrows * ncols).reshape(nrows, ncols)
+    pairs = np.row_stack(
+        (
+            *[
+                np.column_stack(
+                    (
+                        array[row],
+                        np.roll(array[row], -1),
+                    )
+                )[:-1]
+                for row in range(nrows)
+            ],
+            *[np.column_stack((array[:, col], np.roll(array[:, col], -1)))[:-1] for col in range(ncols)],
+            *[
+                np.row_stack(
+                    (
+                        array[row],
+                        np.roll(array[row + 1], 1),
+                    )
+                )[:, 1:].T
+                for row in range(nrows - 1)
+            ],
+        )
+    )
+    return pairs
+
+
 def get_hfun(dem, path=".", tag="jigsaw", resolution_min=0.01, resolution_max=0.5, dhdx=0.15, imax=100, **kwargs):
 
     # scale bathymetry
-    try:
-        b = dem.adjusted.to_dataframe()
-    except:
-        b = dem.elevation.to_dataframe()
+    if "adjusted" in dem.data_vars:
+        bathymetry = dem.adjusted.to_dataframe().reset_index()
+        shape = dem.adjusted.shape
+    else:
+        bathymetry = dem.elevation.to_dataframe().reset_index()
+        shape = dem.elevation.shape
+    bathymetry.columns = ["longitude", "latitude", "z"]
 
-    b = b.reset_index()
-    b.columns = ["longitude", "latitude", "z"]
-
-    nodes = scale_dem(b, resolution_min, resolution_max, **kwargs)
-
-    x = dem.longitude.values
-    y = dem.latitude.values
-
-    tria = MakeTriangleFaces(y.shape[0], x.shape[0])
-
+    nodes = scale_dem(bathymetry, resolution_min, resolution_max, **kwargs)
     points = np.column_stack([nodes.longitude, nodes.latitude])
-    tria3 = pd.DataFrame(tria, columns=["a", "b", "c"])
 
-    # Use Matplotlib for triangulation
-    triang = matplotlib.tri.Triangulation(points[:, 0], points[:, 1], tria)
-    #    tri3 = triang.triangles
-    edges = triang.edges
-    # edge lengths
+    edges = get_edges(*shape)
+
     ptdiff = lambda p: (p[0][0] - p[1][0], p[0][1] - p[1][1])
     diffs = map(ptdiff, points[edges])
     elen = [math.hypot(d1, d2) for d1, d2 in diffs]
@@ -47,11 +64,11 @@ def get_hfun(dem, path=".", tag="jigsaw", resolution_min=0.01, resolution_max=0.
 
     [fun, flag] = limgrad2(edges, elen, hfun, dhdx, imax)
 
-    cfun = fun.flatten().reshape((y.shape[0], x.shape[0]))
+    cfun = fun.flatten().reshape(shape)
 
     dh = xr.Dataset(
         {"h": (["latitude", "longitude"], cfun)},
-        coords={"longitude": ("longitude", x), "latitude": ("latitude", y)},
+        coords={"longitude": ("longitude", dem.longitude.values), "latitude": ("latitude", dem.latitude.values)},
     )
 
     return dh

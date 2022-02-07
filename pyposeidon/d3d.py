@@ -1,5 +1,5 @@
 """
-Main d3d module of pyposeidon. It controls the creation, output & execution of a complete simulation based on DELFT3D
+Main d3d module of pyposeidon. It controls the creation, output & execution of a complete simulation based on DELFT3D.
 
 """
 # Copyright 2018 European Union
@@ -36,6 +36,8 @@ import logging
 
 from .bnd import Box
 
+from . import tools
+
 logger = logging.getLogger(__name__)
 
 import multiprocessing
@@ -62,32 +64,32 @@ class d3d:
             as `required`, nevertheless they are all `Optional`.
 
         Args:
-            geometry (Union[dict, str, GeoDataFrame]): A `GeoDataFrame` or the path to a shapefile or
+            geometry Union[dict, str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile or
                 a dict defining the lat/lon window.
-            start_date (str): The date from which the analysis should start. It should be a string parseable
+            start_date str: The date from which the analysis should start. It should be a string parseable
                 by `pd.to_datetime()`.
-            end_date (str): The date at which the analysis should end. It should be a string parseable by
+            end_date str: The date at which the analysis should end. It should be a string parseable by
                 `pd.to_datetime()`.
-            time_frame (str): The duration of the analysis. It should be a string parseable by
+            time_frame str: The duration of the analysis. It should be a string parseable by
                 `pd.to_datetime()`.
-            date (str): Reference date of the run.
-            meteo_source (str): Path or url to meteo data.
-            dem_source (str): Path or url to bathymetric data.
-            argfile (str): Path to `_hydro.xml` file.
-            update (str): Control the update of the model e.g `['dem']`-> updates only bathymetry.
+            date str: Reference date of the run.
+            meteo_source str: Path or url to meteo data.
+            dem_source str: Path or url to bathymetric data.
+            argfile str: Path to `_hydro.xml` file.
+            update str: Control the update of the model e.g `['dem']`-> updates only bathymetry.
                 Defaults to `["all"]`.
-            rpath (str): Path for output of the model. Defaults to `./d3d/`.
-            tide (str): Flag indicating whether to load "tide". Defaults to `False`.
-            atm (bool): The solver's atm. Defaults to `True`.
-            tag (str): The model's "tag". Defaults to `"d3d"`.
-            resolution (float): size of the regular grid. Defaults to `0.1`.
-            ofilename (str): Path to station file. Defaults to `None`.
-            epath (str): The path to the schism executable. If the `D3D` env variable has been
+            rpath str: Path for output of the model. Defaults to `./d3d/`.
+            tide str: Flag indicating whether to load "tide". Defaults to `False`.
+            atm bool: The solver's atm. Defaults to `True`.
+            tag str: The model's "tag". Defaults to `"d3d"`.
+            resolution float: size of the regular grid. Defaults to `0.1`.
+            ofilename str: Path to station file. Defaults to `None`.
+            epath str: The path to the schism executable. If the `D3D` env variable has been
                 set, then it overrides the value passed as the parameter.
-            config_file (str): Path to mdf file. Defaults to `None`.
-            config (dict): Parameter options passed to mdf file.
-            output (bool): Flag for saving to file. Defaults to `False`.
-            update (str): Control the update of the model e.g `['dem']`-> updates only bathymetry.
+            config_file str: Path to mdf file. Defaults to `None`.
+            config dict: Parameter options passed to mdf file.
+            output bool: Flag for saving to file. Defaults to `False`.
+            update list[str]: Control the update of the model e.g `['dem']`-> updates only bathymetry.
                 Defaults to `["all"]`.
         """
 
@@ -798,12 +800,16 @@ class d3d:
             # ------------------------------------------------------------------------------
             logger.warning("D3D executable path (epath) not given -> using default \n")
             # ------------------------------------------------------------------------------
-            bin_path = os.pathsep + cpath
-            lib_path = bin_path
 
-        ncores = get_value(self, kwargs, "ncores", NCORES)
+        ncores = get_value(self, kwargs, "ncores", 0)
 
         argfile = get_value(self, kwargs, "argfile", self.tag + "_hydro.xml")
+
+        tools.create_d3d_mpirun_script(
+            target_dir=calc_dir,
+            #            cmd=bin_path,
+            script_name="run_flow2d3d.sh",
+        )
 
         # ---------------------------------------------------------------------
         logger.info("executing model\n")
@@ -811,7 +817,7 @@ class d3d:
 
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(
-            args=["./run_flow2d3d.sh {} {} {}".format(argfile, ncores, bin_path, lib_path)],
+            args=["./run_flow2d3d.sh {} {} {}".format(argfile, bin_path, lib_path)],
             cwd=calc_dir,
             shell=True,
             stderr=subprocess.PIPE,
@@ -1086,7 +1092,7 @@ class d3d:
         sys.exit(1)
         # ---------------------------------------------------------------------
 
-    def get_data(self, **kwargs):
+    def get_output_data(self, **kwargs):
 
         dic = self.__dict__
 

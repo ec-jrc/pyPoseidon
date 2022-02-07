@@ -1,3 +1,9 @@
+# Copyright 2018 European Union
+# This file is part of pyposeidon.
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
+# Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and limitations under the Licence.
+
 import logging
 import os
 import shlex
@@ -26,6 +32,40 @@ set -euo pipefail
 mkdir -p outputs
 
 exec mpirun {mpirun_flags} -N {ncores} {cmd}
+""".strip()
+
+
+LAUNCH_D3D_TEMPLATE = """
+#!/bin/bash
+
+export argfile=$1
+
+if [ $# -gt 1 ]; then
+       D3D="$2"
+       LD3D="$3"
+fi
+
+#if [ -z $D3D ];then
+#   echo 'no executable'
+#   exit 1 
+#fi
+
+    #
+    # Set the directory containing delftflow.exe here
+    #
+exedir=$D3D/bin
+libdir=$LD3D/lib
+
+    #
+    # No adaptions needed below
+    #
+
+    # Set some (environment) parameters
+export LD_LIBRARY_PATH=$exedir:$libdir:$LD_LIBRARY_PATH
+export PATH=$exedir:$PATH
+
+    # Run
+mpiexec {mpirun_flags} -np {ncores} d_hydro $argfile
 """.strip()
 
 
@@ -75,7 +115,7 @@ def is_openmpi() -> bool:
     return "Open MPI" in proc.stdout
 
 
-def create_mpirun_script(
+def create_schism_mpirun_script(
     target_dir: str,
     cmd: str,
     use_threads: bool = True,
@@ -100,6 +140,40 @@ def create_mpirun_script(
         mpirun_flags=mpirun_flags,
         ncores=ncores,
         cmd=cmd,
+    )
+    # Write to disk and make executable
+    script_path = target_dir + "/" + script_name
+    with open(script_path, "w") as fd:
+        fd.write(content)
+    make_executable(script_path)
+    return script_path
+
+
+def create_d3d_mpirun_script(
+    target_dir: str,
+    #    cmd: str,
+    use_threads: bool = True,
+    script_name: str = "run_flow2d3d.sh",
+    ncores: int = 0,
+) -> str:
+    """
+    Create a script for launching d3d.
+
+    - if `use_threads is True`, and the MPI implementation is `OpenMPI`, then the CPU threads are
+      being used and `--use-hwthreaded_cpus` is passed to `mpirun`.
+    - if `use_threads is False` or the MPI implementation is `mpich`, then only physical CPU cores
+      are being used.
+    """
+    if ncores < 1:
+        ncores = psutil.cpu_count(logical=use_threads)
+    if use_threads and is_openmpi():
+        mpirun_flags = "--use-hwthread-cpus"
+    else:
+        mpirun_flags = ""
+    content = LAUNCH_D3D_TEMPLATE.format(
+        mpirun_flags=mpirun_flags,
+        ncores=ncores,
+        #        cmd=cmd,
     )
     # Write to disk and make executable
     script_path = target_dir + "/" + script_name

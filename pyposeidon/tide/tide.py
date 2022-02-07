@@ -1,6 +1,6 @@
 """Setting the tidal boundary conditions"""
 import numpy as np
-from netCDF4 import Dataset
+import xarray as xr
 from scipy import interpolate
 
 
@@ -23,7 +23,7 @@ class tpx07(tide):
 
         filename = kwargs.get("tpath", None)
 
-        dmed = Dataset(filename)
+        dmed = xr.open_dataset(filename)
 
         lat = dmed["lat"][:]
         lon = dmed["lon"][:]

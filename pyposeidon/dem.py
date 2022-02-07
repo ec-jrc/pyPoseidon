@@ -43,7 +43,7 @@ class Dem:
             as `required`, nevertheless they are all `Optional` except `dem_source`.
 
         Args:
-            dem_source: Path or url to bathymetric data.
+            dem_source str: Path or url to bathymetric data.
             lon_min float: Minimum longitude.
             lon_max float: Maximum longitude.
             lat_min float: Minimum latitude.
@@ -53,8 +53,8 @@ class Dem:
             coastlines Union[str, GeoDataFrame]: A `GeoDataFrame` or the path to a shapefile which
                 describes the coastlines. Defaults to `None`.
             adjust_dem bool:  Option to match dem with coastlines, Defaults to `True`.
-            grid_x list: Array of longitude of mesh nodes.
-            grid_y list: Array of latitude of mesh nodes.
+            grid_x list[float]: Array of longitude of mesh nodes.
+            grid_y list[float]: Array of latitude of mesh nodes.
             wet_only bool: Flag to mask dry values when interpolating on mesh. Defaults to `False`.
         """
 
@@ -280,5 +280,16 @@ def dem_on_mesh(dataset, **kwargs):
 
 
 def to_output(dataset, solver_name, **kwargs):
+    """
+    !!! danger ""
+        Due to a limitation of the Library rendering the docstrings, all arguments are marked
+        as `required`, nevertheless they are all `Optional` except `dem_source`.
+
+    Args:
+        dataset Dataset: An `xarray` Dataset.
+        solver_name str: Name of solver used, e.g. `d3d` or `schism`.
+    """
+
     solver_class = tools.get_solver(solver_name=solver_name)
-    solver_class.to_dep(dataset, **kwargs)
+    if solver_name == "d3d":
+        solver_class.to_dep(dataset, **kwargs)

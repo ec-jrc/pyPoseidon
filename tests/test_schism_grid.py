@@ -7,7 +7,7 @@ from . import DATA_DIR
 
 def func(tmpdir, name):
 
-    filename = DATA_DIR / name
+    filename = str(DATA_DIR / name)
     # read mesh file
     mesh = pmesh.set(type="tri2d", mesh_file=filename)
 

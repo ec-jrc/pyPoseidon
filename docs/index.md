@@ -46,7 +46,7 @@ Currently two numerical solvers are supported.
 - *Delft3D* which uses a structured grid. For more info see
   [here](http://oss.deltares.nl/web/delft3d/source-code).
 
-- *SCHISM* which relies on an unstructured grid. For more info see [here](http://ccrm.vims.edu/schismweb/).
+- *SCHISM* which relies on an unstructured mesh. For more info see [here](http://ccrm.vims.edu/schismweb/).
 
 ## Origin
 

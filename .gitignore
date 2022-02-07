@@ -3,6 +3,7 @@
 
 # mac files
 *.DS_Store
+docs/img/.DS_Store
 
 # cfgrib idx
 *.idx

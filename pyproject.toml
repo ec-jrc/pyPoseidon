@@ -47,7 +47,7 @@ netCDF4 = "^1.5"
 numpy = ">=1.20, <2.0"
 pandas = "^1.3"
 psutil = "^5.8"
-Pydap = { url = "https://github.com/pydap/pydap/archive/3f6aa190c59e3bbc6c834377a61579b20275ff69.zip" }
+pydap = ">=3.3.0"
 pygeos = ">=0.10, <1.0"
 pyresample = "^1.17"
 rasterio = "^1.2"
