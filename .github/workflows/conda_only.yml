@@ -58,9 +58,6 @@ jobs:
           channel-priority: "strict"
           environment-file: "${{ env.CONDA_LOCK_FILE }}"
 
-      - name: "Create schism symlink"
-        run: "scripts/create_schism_link.sh"
-
       - name: "Debug pip"
         run: |
           which python
@@ -68,17 +65,11 @@ jobs:
           pip --version
           pip cache info
 
-      - name: "Install pydap"
-        run: "pip install 'https://github.com/pydap/pydap/archive/3f6aa190c59e3bbc6c834377a61579b20275ff69.zip'"
 
       - name: "Test installation"
         run: |
-          python -m eccodes selfcheck
           python -m cfgrib selfcheck
           python -m pytest --version
 
-      - name: "Run tests without schism"
-        run: "python -mpytest tests --verbose --showlocals"
-
-      - name: "Run tests with schism"
-        run: "python -mpytest tests/test_schism* --runschism --verbose --showlocals"
+      - name: "Run tests "
+        run: "python -mpytest tests --verbose --showlocals --runschism --rundelft"

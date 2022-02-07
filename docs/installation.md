@@ -88,7 +88,7 @@ Alternatively, you can download and compile them for your system:
 
 ## Mesh generation binaries
 
-When installing `pyposeidon` via `PyPI` the mesh generation binaries are required and can be installed with  conda: 
+When installing `pyposeidon` via `PyPI` the mesh generation binaries are required and can be installed with  conda:
 
 ```
 conda install -c conda-forge gmesh

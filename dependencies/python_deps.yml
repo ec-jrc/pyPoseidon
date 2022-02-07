@@ -5,13 +5,12 @@ channels:
   - "gbrey"
 
 dependencies:
-  - "cartopy<=0.20"
+  - "cartopy<0.20"
   - "cfgrib"
   - "colorlog"
   - "dask"
   - "f90nml"
   - "geopandas>=0.10.1"
-  - "matplotlib>=3.3"
   - "netCDF4"
   - "numpy"
   - "pandas"

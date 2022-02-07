@@ -5,10 +5,12 @@ channels:
   - "gbrey"
 
 dependencies:
+  - "ffmpeg"
   - "geoviews"
   - "holoviews"
   - "hvplot"
   - "ipympl"
   - "itkwidgets"
+  - "matplotlib>=3.3"
   - "mayavi"
   - "spatialpandas"

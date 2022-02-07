@@ -35,7 +35,10 @@ def test_create_schism_mpirun_script_ncores(tmp_path, ncores):
     cmd = "/bin/schism"
     script_name = "launchSchism.sh"
     script_path = tools.create_schism_mpirun_script(
-        target_dir=target_dir, script_name=script_name, cmd=cmd, ncores=ncores,
+        target_dir=target_dir,
+        script_name=script_name,
+        cmd=cmd,
+        ncores=ncores,
     )
     assert script_path == (tmp_path / script_name).as_posix(), "script was not created"
     assert os.access(script_path, os.X_OK), "script is not executable"
@@ -52,7 +55,10 @@ def test_create_d3d_mpirun_script_ncores(tmp_path, ncores):
     cmd = "d_hydro"
     script_name = "run_flow2d3d.sh"
     script_path = tools.create_d3d_mpirun_script(
-        target_dir=target_dir, script_name=script_name, cmd=cmd, ncores=ncores,
+        target_dir=target_dir,
+        script_name=script_name,
+        cmd=cmd,
+        ncores=ncores,
     )
     assert script_path == (tmp_path / script_name).as_posix(), "script was not created"
     assert os.access(script_path, os.X_OK), "script is not executable"

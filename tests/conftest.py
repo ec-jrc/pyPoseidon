@@ -5,31 +5,48 @@ import pathlib
 import pytest
 import requests
 
+from _pytest.mark import Mark
+
 from . import DATA_DIR
+
+
+EMPTY_MARK = Mark("", [], {})
+RUNLAST_MARK = "runlast"
 
 
 def pytest_addoption(parser):
     parser.addoption("--runschism", action="store_true", default=False, help="run schism tests")
     parser.addoption("--rundelft", action="store_true", default=False, help="run delft tests")
     parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
+    parser.addoption("--runviz", action="store_true", default=False, help="run viz tests")
 
 
 def pytest_collection_modifyitems(config, items):
     should_run_schism = config.getoption("--runschism")
     should_run_delft = config.getoption("--rundelft")
     should_run_slow = config.getoption("--runslow")
+    should_run_viz = config.getoption("--runviz")
 
     skip_schism = pytest.mark.skip(reason="need --runshism option to run")
     skip_delft = pytest.mark.skip(reason="need --rundelft option to run")
     skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    skip_viz = pytest.mark.skip(reason="need --runviz option to run")
 
+    run_last_marks = ("schism", "delft", "slow")
     for item in items:
+        if any(mark in item.keywords for mark in run_last_marks):
+            item.add_marker(RUNLAST_MARK)
         if "schism" in item.keywords and not should_run_schism:
             item.add_marker(skip_schism)
         if "delft" in item.keywords and not should_run_delft:
             item.add_marker(skip_delft)
         if "slow" in item.keywords and not should_run_slow:
             item.add_marker(skip_slow)
+        if "viz" in item.keywords and not should_run_viz:
+            item.add_marker(skip_viz)
+
+    run_last = lambda item: item.get_closest_marker(RUNLAST_MARK, default=EMPTY_MARK)
+    items.sort(key=run_last, reverse=False)
 
 
 def download_file_in_chunks(url: str, chunk_size: int = 1024):

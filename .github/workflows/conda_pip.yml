@@ -59,9 +59,6 @@ jobs:
           channel-priority: "strict"
           environment-file: "${{ env.CONDA_LOCK_FILE }}"
 
-      - name: "Create schism symlink"
-        run: "scripts/create_schism_link.sh"
-
       - name: "Debug pip"
         run: |
           which python
@@ -88,12 +85,8 @@ jobs:
 
       - name: "Test installation"
         run: |
-          python -m eccodes selfcheck
           python -m cfgrib selfcheck
           python -m pytest --version
 
-      - name: "Run tests without schism"
-        run: "python -mpytest tests --verbose --showlocals"
-
-      - name: "Run tests with schism"
-        run: "python -mpytest tests/test_schism* --runschism --verbose --showlocals"
+      - name: "Run tests "
+        run: "python -mpytest tests --verbose --showlocals --runschism --rundelft"

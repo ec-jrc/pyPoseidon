@@ -5,8 +5,9 @@ channels:
   - "gbrey"
 
 dependencies:
-  - "eccodes>2.20"
+  - "eccodes"
+  - "ffmpeg"
   - "geos"
-  - "gmsh=4.8.4"
-  - "jigsaw=0.9.12"
+  - "gmsh>=4.9.3"
+  - "jigsaw>=0.9.12"
   - "proj<8"

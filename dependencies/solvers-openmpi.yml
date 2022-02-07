@@ -6,3 +6,4 @@ channels:
 
 dependencies:
   - "pschism=5.9*=mpi_openmpi*"
+  - "delft3d4=65936*=mpi_openmpi*"

@@ -31,14 +31,13 @@ with just the binary dependencies. After you create the environment you should u
 [poetry](https://python-poetry.org/) to install the python dependencies.
 
 ```
-env_name=pyposeidon_base
+env_name=pyposeidon_binary
 conda create -n "${env_name}" --file conda-ubuntu-64-p38-openmpi-binary.lock
 conda activate "${env_name}"
-poetry install
+poetry install -E all
 ```
 
 You are ready to go!
-
 
 ### Tests
 
@@ -51,21 +50,15 @@ In order to execute the main test suite, it should be enough to use:
 pytest
 ```
 
-In order to test also the solver integration, use the following
+In order to also test the solver integration, use one of the following:
 
 ```
 pytest --runschism
-```
-
- for testing `schism` or 
-
-```
 pytest --rundelft
+pytest --runschism --rundelft
 ```
 
-for `delft3d` or both.
-
-Some test are slow and can be invoked with 
+Some test are slow and can be invoked with
 
 ```
 pytest --runslow
