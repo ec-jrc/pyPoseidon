@@ -237,6 +237,13 @@ class pplot(object):
         except:
             tri3 = tes.astype(int)
 
+        if tri3.min() > 0:
+            tri3 = tri3 - 1
+            try:
+                quads = quads - 1
+            except:
+                pass
+
         fig, ax = plt.subplots(figsize=(12, 8))
         vmin = kwargs.get("vmin", z.min())
         vmax = kwargs.get("vmax", z.max())
@@ -315,6 +322,13 @@ class pplot(object):
                 tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
+
+        if tri3.min() > 0:
+            tri3 = tri3 - 1
+            try:
+                quads = quads - 1
+            except:
+                pass
 
         var = kwargs.get("var", "depth")
         z = kwargs.get("z", self._obj[var].values[it, :].flatten())
@@ -451,11 +465,19 @@ class pplot(object):
         # sort out quads
         try:
             mask = np.isnan(tes)[:, 3]
-            tri3 = tes[mask][:, :3].astype(int).tolist()
-            quads = tes[~mask].astype(int).tolist()
+            tri3 = tes[mask][:, :3].astype(int)
+            quads = tes[~mask].astype(int)
+
         except:
             tri3 = tes.astype(int)
             quads = []
+
+        if tri3.min() > 0:
+            tri3 = tri3 - 1
+            try:
+                quads = quads - 1
+            except:
+                pass
 
         for val in ["x", "y", "tes"]:
             try:

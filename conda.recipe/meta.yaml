@@ -20,8 +20,8 @@ outputs:
       noarch: python
     requirements:
       build:
-        - python                                 # [build_platform != target_platform]
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+#       - python                                 # [build_platform != target_platform]
+#       - cross-python_{{ target_platform }}     # [build_platform != target_platform]
       host:
         - pip
         - python
@@ -72,6 +72,7 @@ outputs:
         - matplotlib >=3.3
         - cartopy <=0.20
         - ffmpeg
+        - spatialpandas
 
       test:
         imports:
