@@ -13,12 +13,15 @@ import numpy as np
 import holoviews as hv
 import geoviews as gv
 from holoviews import opts
-from holoviews.operation.datashader import datashade, rasterize
+from holoviews.operation.datashader import datashade, rasterize, dynspread
 import geoviews.feature as gf
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import pandas as pd
+import pygeos
+import spatialpandas
+import geopandas as gp
 from hvplot import xarray
 from pyposeidon.utils.quads2tr import quads_to_tris
 
@@ -58,6 +61,9 @@ class hplot(object):
                 tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
+
+        if tri3.min() > 0:
+            tri3 = tri3 - 1
 
         z = kwargs.get("z", self._obj[var].values[it, :].flatten())
 
@@ -126,11 +132,14 @@ class hplot(object):
 
         nodes = pd.DataFrame({"longitude": x, "latitude": y})
 
-        points = gv.operation.project_points(gv.Points(nodes))
+        points = gv.operation.project_points(gv.Points(nodes), projection=ccrs.PlateCarree())
 
         if tes.shape[1] == 3:
 
             elems = pd.DataFrame(tes, columns=["a", "b", "c"])
+
+            if elems.min().min() > 0:
+                elems = elems - 1
 
             trimesh = gv.TriMesh((elems, points)).edgepaths
 
@@ -143,6 +152,9 @@ class hplot(object):
 
             elems = pd.DataFrame(tes, columns=["a", "b", "c", "d"])
 
+            if elems.min().min() > 0:
+                elems = elems - 1
+
             quads = elems.loc[~elems.d.isna()].copy()
             quads = quads.reset_index(drop=True)
             ap = nodes.loc[quads.a, ["longitude", "latitude"]]
@@ -154,20 +166,32 @@ class hplot(object):
             quads["cp"] = cp.values.tolist()
             quads["dp"] = dp.values.tolist()
 
-            q = gv.Polygons([quads.loc[i, ["ap", "bp", "cp", "dp"]].tolist() for i in range(quads.shape[0])]).options(
-                fill_alpha=0, line_color="black"
-            )
+            n = 2
+            al = quads.ap + quads.bp + quads.cp + quads.dp + quads.ap
+            coords = [[l[i : i + n] for i in range(0, len(l), n)] for l in al]
+
+            quads["coordinates"] = coords
+
+            qpolys = pygeos.polygons(quads.coordinates.to_list())
+
+            df = gp.GeoDataFrame(geometry=qpolys)
+
+            df_ = spatialpandas.GeoDataFrame(df)
+
+            q = gv.Path(df_)
+
+            qdf = dynspread(rasterize(q, precompute=True).options(cmap=["black"]))
 
             triangles = elems.loc[elems.d.isna()]
 
             trimesh = gv.TriMesh((triangles, points)).edgepaths
 
-            g1 = datashade(trimesh, precompute=True, cmap=["black"])
+            wireframe = dynspread(rasterize(trimesh, precompute=True).opts(cmap=["black"]))
 
             if tiles:
-                return tile * g1 * q
+                return tile * wireframe * qdf
             else:
-                return g1 * q
+                return wireframe.opts(cmap=["green"]) * qdf.opts(cmap=["green"])
 
     def qframes(self, **kwargs):
 
@@ -194,6 +218,9 @@ class hplot(object):
                 tri3 = tr3.astype(int)
         except:
             tri3 = tes.astype(int)
+
+        if tri3.min() > 0:
+            tri3 = tri3 - 1
 
         times = kwargs.get("times", self._obj.time.values)
 

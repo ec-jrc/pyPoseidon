@@ -217,7 +217,7 @@ class SchismResults:
 
             if hasattr(p, "stations"):
 
-                logger.info("Retrieve station timeseries\n")
+                logger.info(" Retrieve station timeseries\n")
 
                 dstamp = kwargs.get("dstamp", info["date"])
 
@@ -235,7 +235,7 @@ class SchismResults:
 
                 if hasattr(p, "stations"):
 
-                    logger.info("Retrieve station timeseries\n")
+                    logger.info(" Retrieve station timeseries\n")
 
                     dstamp = kwargs.get("dstamp", p.date)
 
