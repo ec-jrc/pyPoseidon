@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   - python=3.8
-  - pyposeidon=0.5.2
+  - pyposeidon=0.6.0
   - pschism
   - delft3d4
   - xorg-libxcursor
