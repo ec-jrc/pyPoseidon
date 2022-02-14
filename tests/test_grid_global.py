@@ -61,18 +61,13 @@ def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
 
 
 @pytest.mark.schism
-@pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
+@pytest.mark.parametrize("ggor,cbuffer", [("jigsaw", 0.001), ("gmsh", None)])
 @pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
 @pytest.mark.parametrize("bindings", [True, False])
-def test_validate(pytestconfig, tmpdir, ggor, bgmesh, bindings):
+def test_validate(pytestconfig, tmpdir, ggor, cbuffer, bgmesh, bindings):
     if bgmesh is not None:
         if not pytestconfig.getoption("--runslow"):
             pytest.skip("slow test")
-
-    if ggor == "jigsaw":
-        cb = 0.001
-    else:
-        cb = None
 
     mesh = pmesh.set(
         type="tri2d",
@@ -82,7 +77,7 @@ def test_validate(pytestconfig, tmpdir, ggor, bgmesh, bindings):
         mesh_generator=ggor,
         dem_source=bgmesh,
         use_bindings=bindings,
-        cbuffer=cb,
+        cbuffer=cbuffer,
     )
 
     rpath = str(tmpdir) + "/"
