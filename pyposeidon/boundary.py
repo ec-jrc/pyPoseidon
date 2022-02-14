@@ -156,9 +156,9 @@ class Boundary:
             df = self.geometry
 
         # line tag
-        df.loc[df.tag == "island", "lindex"] = np.arange(-df[df.tag == "island"].shape[0], 0)
-        df.loc[df.tag == "land", "lindex"] = 1000 + np.arange(1, df[df.tag == "land"].shape[0] + 1)
-        df.loc[df.tag == "open", "lindex"] = np.arange(1, df[df.tag == "open"].shape[0] + 1)
+        df.loc[df.tag == "island", "lindex"] = np.arange(-df[df.tag == "island"].shape[0], 0).tolist() or 0
+        df.loc[df.tag == "land", "lindex"] = (1000 + np.arange(1, df[df.tag == "land"].shape[0] + 1)).tolist() or 0
+        df.loc[df.tag == "open", "lindex"] = np.arange(1, df[df.tag == "open"].shape[0] + 1).tolist() or 0
         df = df.sort_values("lindex", ascending=False)
         df.lindex = df.lindex.astype(int)
 
