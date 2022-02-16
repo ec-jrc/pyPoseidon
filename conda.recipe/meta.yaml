@@ -51,9 +51,9 @@ outputs:
         - shapely =1.7.1
         - pydap >=3.3.0
 
-      test:
-        imports:
-          - pyposeidon
+    test:
+      imports:
+        - pyposeidon
 
   - name: pyposeidon
     requirements:
@@ -69,14 +69,14 @@ outputs:
         - ipympl
         - itkwidgets
         - mayavi
-        - matplotlib >=3.3
+        - matplotlib-base >=3.3
         - cartopy <=0.20
         - ffmpeg
         - spatialpandas
 
-      test:
-        imports:
-          - pyposeidon
+    test:
+      imports:
+        - pyposeidon
 
 
 about:
