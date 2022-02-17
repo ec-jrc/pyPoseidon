@@ -2,6 +2,10 @@
 
 # Install a JupyterLab extension for demonstration purposes
 
+jupyter labextension install @jupyter-widgets/jupyterlab-manager jupyter-matplotlib jupyterlab-datawidgets itkwidgets ipyevents
+
+# Download data
+
 cd Tutorial
 
 curl -L url https://www.dropbox.com/sh/nd2b012wrpt6qnq/AAAD7aA_qXztUhlT39YK2yBua?dl=1 > data.zip
@@ -10,8 +14,8 @@ unzip data.zip -d data/
 
 rm data.zip
 
-wget https://github.com/SciTools/cartopy/raw/master/tools/feature_download.py
-python feature_download.py physical
-python feature_download.py cultural
+wget https://raw.githubusercontent.com/SciTools/cartopy/main/tools/cartopy_feature_download.py
+python cartopy_feature_download.py physical
+python cartopy_feature_download.py cultural
 
-rm feature_download.py
+rm cartopy_feature_download.py

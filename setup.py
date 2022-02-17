@@ -38,7 +38,6 @@ CLASSIFIERS = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
 ]
@@ -54,7 +53,7 @@ INSTALL_REQUIRES = ""
 SETUP_REQUIRES = ""
 
 
-TESTS_REQUIRE = ["pytest >= 3.6"]
+TESTS_REQUIRE = ["pytest >= 3.8"]
 
 URL = ""
 
