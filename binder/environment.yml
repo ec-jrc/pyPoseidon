@@ -12,11 +12,12 @@ dependencies:
   - xorg-libxcursor
   - xorg-libxft
   - xorg-libxinerama
+  - xorg-libxcb
   - fltk
   - nodejs
   - ipympl
   - pyviz_comms
-  - pip
-  - pip:
-    - gmsh
-    - "--editable=git+https://github.com/pydap/pydap.git@3f6aa190c59e3bbc6c834377a61579b20275ff69#egg=Pydap"
+  - jupyterlab<3
+  - ipyevents=0.9.0
+  - xvfbwrapper
+  - geoviews=1.9.3
