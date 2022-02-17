@@ -16,17 +16,21 @@ jobs:
           - "macos"
         mpi-backend:
           - "mpich"
-          - "openmpi"
+          #- "openmpi"
         python-version:
           - "38"
+          #- "39"
     runs-on: "${{ matrix.os }}-latest"
     defaults:
       run:
         shell: "bash -l {0}"
     env:
-      CONDA_LOCK_FILE: "locks/conda-${{ matrix.os }}-64-p${{ matrix.python-version }}-${{ matrix.mpi-backend }}-dev.lock"
+      CONDA_LOCK_FILE: "locks/conda-${{ matrix.os }}-64-p${{ matrix.python-version }}-${{ matrix.mpi-backend }}-full.lock"
 
     steps:
+
+      - name: "Debug env"
+        run: "env | sort"
 
       - name: "Checkout repo"
         uses: "actions/checkout@v2"
@@ -58,6 +62,9 @@ jobs:
           channel-priority: "strict"
           environment-file: "${{ env.CONDA_LOCK_FILE }}"
 
+      - name: "Debug conda"
+        run: conda env export
+
       - name: "Debug pip"
         run: |
           which python
@@ -65,11 +72,15 @@ jobs:
           pip --version
           pip cache info
 
-
       - name: "Test installation"
         run: |
           python -m cfgrib selfcheck
           python -m pytest --version
+
+      - name: "Test lock generation"
+        run: |
+          make generate_envs
+          [[ -z $(git status --porcelain) ]]  # https://stackoverflow.com/a/62768943/592289
 
       - name: "Run tests "
         run: "python -mpytest tests --verbose --showlocals --runschism --rundelft"

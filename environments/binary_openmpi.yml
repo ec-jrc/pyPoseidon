@@ -1,0 +1,15 @@
+channels:
+  - conda-forge
+  - gbrey
+dependencies:
+  - delft3d4=65936*=mpi_openmpi*
+  - eccodes
+  - ffmpeg
+  - gdal=3.2.1
+  - geos
+  - gmsh>=4.9.3
+  - jigsaw>=0.9.12
+  - pip
+  - proj<8
+  - pschism=5.9*=mpi_openmpi*
+  - python=3.8

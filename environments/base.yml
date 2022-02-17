@@ -1,0 +1,37 @@
+channels:
+  - conda-forge
+  - gbrey
+dependencies:
+  - cartopy<0.20
+  - cfgrib
+  - colorlog
+  - dask
+  - delft3d4=65936*=mpi_mpich*
+  - eccodes
+  - f90nml
+  - ffmpeg
+  - gdal=3.2.1
+  - geopandas>=0.10.1
+  - geos
+  - gmsh>=4.9.3
+  - jigsaw>=0.9.12
+  - netCDF4
+  - numpy
+  - pandas
+  - pip
+  - proj<8
+  - pschism=5.9*=mpi_mpich*
+  - psutil
+  - pydap>=3.3.0
+  - pygeos>=0.10
+  - pyresample
+  - python-gmsh
+  - python=3.8
+  - rasterio
+  - requests
+  - rioxarray
+  - ruamel.yaml
+  - scipy
+  - shapely=1.7.1
+  - tqdm
+  - xarray

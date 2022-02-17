@@ -1,9 +1,0 @@
----
-
-channels:
-  - "conda-forge"
-  - "gbrey"
-
-dependencies:
-  - "pip"
-  - "python=3.8"
