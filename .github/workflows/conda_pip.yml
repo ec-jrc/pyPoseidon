@@ -19,7 +19,7 @@ jobs:
           - "openmpi"
         python-version:
           - "38"
-          - "39"
+          #- "39"
     runs-on: "${{ matrix.os }}-latest"
     defaults:
       run:
@@ -28,6 +28,9 @@ jobs:
       CONDA_LOCK_FILE: "locks/conda-${{ matrix.os }}-64-p${{ matrix.python-version }}-${{ matrix.mpi-backend }}-binary.lock"
 
     steps:
+
+      - name: "Debug env"
+        run: "env | sort"
 
       - name: "Checkout repo"
         uses: "actions/checkout@v2"
@@ -59,17 +62,20 @@ jobs:
           channel-priority: "strict"
           environment-file: "${{ env.CONDA_LOCK_FILE }}"
 
+      - name: "Debug conda"
+        run: conda env export
+
+      - name: "Get pip cache dir"
+        id: "pip-cache"
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
       - name: "Debug pip"
         run: |
           which python
           which pip
           pip --version
           pip cache info
-
-      - name: "Get pip cache dir"
-        id: "pip-cache"
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
 
       - name: "Cache pip"
         uses: "actions/cache@v2"
@@ -78,15 +84,31 @@ jobs:
           CACHE_NUMBER: 0
         with:
           path: "${{ steps.pip-cache.outputs.dir }}"
-          key: "${{ runner.os }}-pip-${{ env.CACHE_NUMBER }}-${{ hashFiles('locks/requirements-testing.txt') }}"
+          key: "${{ runner.os }}-pip-${{ env.CACHE_NUMBER }}-${{ hashFiles('locks/requirements-full.txt') }}"
 
       - name: "Install dependencies"
-        run: "pip install -r locks/requirements-testing.txt"
+        run: |
+          # gmsh is pulling occt, which is pulling an old version of vtk which is distutils-based
+          # and cannot be uninstalled by pip. Therefore we have to remove it manually and reinstall
+          # it using the version we have in the requirements file.
+          # If we don't reinstall, then there may be problems when we try to create the wheel file for
+          # mayavi later in the main `pip install -r ...` step
+          rm -rf $(dirname $(python -c 'import vtk; print(vtk.__path__[0])'))/vtk*
+          pip install $(grep vtk locks/requirements-full.txt)
+          pip install -r locks/requirements-full.txt
+
+      - name: "Debug installed python packages"
+        run: pip freeze
 
       - name: "Test installation"
         run: |
           python -m cfgrib selfcheck
           python -m pytest --version
+
+      - name: "Test lock generation"
+        run: |
+          make generate_envs
+          [[ -z $(git status --porcelain) ]]  # https://stackoverflow.com/a/62768943/592289
 
       - name: "Run tests "
         run: "python -mpytest tests --verbose --showlocals --runschism --rundelft"

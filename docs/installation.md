@@ -26,10 +26,11 @@ conda install -c conda-forge pyposeidon-base
 
 In order to install from `PyPI` please note that your system needs to have:
 
-- `python>=3.8`
+- `python=3.8`
 - `geos`
+- `gdal=3.2.1`
 - `proj<8`
-- `eccodes > 2.20`
+- `eccodes`
 
 Once you have those, you just need to run:
 
@@ -71,15 +72,8 @@ There are two flavours depending on the `mpi` option used. This can be explicitl
 
 ```
 conda install -c gbrey pschism=5.9=mpi_mpich_*
-```
-
-or
-
-```
 conda install -c gbrey pschism=5.9=mpi_openmpi_*
 ```
-
-respectively.
 
 Alternatively, you can download and compile them for your system:
 

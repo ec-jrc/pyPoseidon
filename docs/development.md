@@ -20,7 +20,7 @@ As an example, the following command will create a new conda environment named `
 
 ```
 env_name=pyposeidon_dev
-conda create -n "${env_name}" --file conda-ubuntu-64-p38-openmpi-dev.lock
+conda create -n "${env_name}" --file conda-ubuntu-64-p38-mpich-full.lock
 conda activate "${env_name}"
 ```
 
@@ -32,7 +32,7 @@ with just the binary dependencies. After you create the environment you should u
 
 ```
 env_name=pyposeidon_binary
-conda create -n "${env_name}" --file conda-ubuntu-64-p38-openmpi-binary.lock
+conda create -n "${env_name}" --file conda-ubuntu-64-p38-mpich-binary.lock
 conda activate "${env_name}"
 poetry install -E all
 ```
