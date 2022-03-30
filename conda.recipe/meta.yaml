@@ -7,7 +7,8 @@ package:
   version: {{ version }}
 
 source:
-  path: ../
+  url: https://github.com/ec-jrc/pyPoseidon/archive/{{ version }}.tar.gz
+  sha256: d2eba8d0710e17b57c7578a4a0433b8e1451b8f19847a36343a0fe57e8b085c7
 
 build:
   noarch: python
@@ -15,18 +16,16 @@ build:
 
 outputs:
   - name: pyposeidon-base
-    script: build_base.sh
     build:
       noarch: python
+      script: ${PYTHON} -m pip install . --no-deps -vv --no-build-isolation
     requirements:
-      build:
-        - python                                 # [build_platform != target_platform]
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
       host:
         - pip
-        - python
+        - python >=3.8,<3.9
+        - poetry-core >=1.0.0
       run:
-        - python
+        - python >=3.8,<3.9
         - pyresample
         - pygeos >=0.10
         - rasterio
@@ -46,7 +45,7 @@ outputs:
         - psutil
         - requests
         - scipy
-        - netCDF4
+        - netcdf4
         - dask
         - shapely =1.7.1
         - pydap >=3.3.0
@@ -56,15 +55,16 @@ outputs:
         - pyposeidon
 
   - name: pyposeidon
+    build:
+      noarch: python
     requirements:
       host:
-        - pip
-        - python
+        - python >=3.8,<3.9
       run:
-        - python
-        - {{ pin_subpackage('pyposeidon-base', exact=True) }}
+        - python >=3.8,<3.9
+        - {{ pin_subpackage("pyposeidon-base", exact=True) }}
         - holoviews
-        - geoviews
+        - geoviews >=1.9.4
         - hvplot
         - ipympl
         - itkwidgets
