@@ -7,10 +7,14 @@ This is a development project utilising multiple solvers (currently `DELFT3D` & 
 
 ## Installation
 
+There are two packages available. The base package which can be installed with
+
+`conda install -c conda-forge pyposeidon-base`
+
+while the full version which includes also the visualization dependencies needs
 
 `conda install -c conda-forge pyposeidon`
 
-**Note**: Due to an upstream issue, `pydap` needs to be installed manually. See `dependencies/python_deps10.yml` for info.
 
 ### Prerequisities
 
