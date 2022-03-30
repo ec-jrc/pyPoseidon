@@ -20,4 +20,4 @@ dependencies:
   - jupyterlab<3
   - ipyevents=0.9.0
   - xvfbwrapper
-  - geoviews=1.9.3
+  - geoviews >=1.9.4
