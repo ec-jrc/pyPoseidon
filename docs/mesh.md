@@ -21,7 +21,7 @@ gi = cf.GSHHSFeature(scale="intermediate", levels=[1])
 iGSHHS = gp.GeoDataFrame(geometry=[x for x in gi.geometries()])
 
 # define the geometry as dict
-extend = {
+geometry = {
     "lon_min": -25.0,  # lat/lon window
     "lon_max": -9.0,
     "lat_min": 56.0,
