@@ -23,9 +23,11 @@ import glob
 from shutil import copyfile
 import xarray as xr
 import geopandas as gp
+import shapely
 import f90nml
 import errno
-from tqdm import tqdm
+from searvey import ioc
+from tqdm.auto import tqdm
 
 # local modules
 import pyposeidon
@@ -35,10 +37,12 @@ import pyposeidon.dem as pdem
 from pyposeidon.paths import DATA_PATH
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
-from pyposeidon.utils.vals import obs
 from pyposeidon.utils.cpoint import closest_node
 from pyposeidon.utils.unml import unml
 from pyposeidon.utils import data
+from pyposeidon.utils.norm import normalize_column_names
+from pyposeidon.utils.obs import get_obs_data
+
 
 import logging
 
@@ -99,7 +103,7 @@ class Schism:
             station_flags list[int]: Define the flag for station output. Defaults to `[1,0,0,0,0,0,0,0,0]`.
             coastal_monitoring bool: Flag for setting all land/island boundary nodes as stations.
                 Defaults to `False`.
-            obs str: Path to csv file for station locations. Defaults to `misc/critech.csv`.
+            obs str: Path to csv file for station locations. Defaults to `searvey`.
             nspool_sta int: Related to station nodes setup. Defaults to `1`.
         """
 
@@ -116,6 +120,8 @@ class Schism:
                 self.lon_max = self.geometry["lon_max"]
                 self.lat_min = self.geometry["lat_min"]
                 self.lat_max = self.geometry["lat_max"]
+            elif self.geometry == "global":
+                logger.warning("geometry is 'global'")    
             elif isinstance(self.geometry, str):
 
                 try:
@@ -129,7 +135,9 @@ class Schism:
                     self.lat_min,
                     self.lon_max,
                     self.lat_max,
-                ) = geo.total_bounds
+                ) = geo.total_bounds            
+            else:
+                logger.warning("no geometry given")
 
         # coastlines
         coastlines = kwargs.get("coastlines", None)
@@ -1686,7 +1694,28 @@ class Schism:
 
         path = get_value(self, kwargs, "rpath", "./schism/")
         nspool_sta = get_value(self, kwargs, "nspool_sta", 1)
-        tg_database = get_value(self, kwargs, "obs", DATA_PATH + "critech.csv")
+        tg_database = get_value(self, kwargs, "obs", None)
+
+        if tg_database == None:
+            geometry = get_value(self, kwargs, "geometry", None)
+            if geometry == "global":
+                tg = ioc.get_ioc_stations()
+            else:
+                geo_box = shapely.geometry.box(self.lon_min, self.lat_min, self.lon_max, self.lat_max)
+                tg = ioc.get_ioc_stations(region=geo_box)
+        else:
+            tg = pd.read_csv(tg_database)
+
+        tg = tg.reset_index(drop=True)
+        ### save in compatible to searvey format
+        tg['country']=tg.country.values.astype('str') # fix an issue with searvey see #43 
+        logger.info("save station DataFrame \n")
+        tg.to_file(path + "stations.json")
+        self.obs = tg
+
+        ##### normalize to be used inside pyposeidon
+        tgn = normalize_column_names(tg.copy())
+
         coastal_monitoring = get_value(self, kwargs, "coastal_monitoring", False)
         flags = get_value(self, kwargs, "station_flags", [1] + [0] * 8)
 
@@ -1706,12 +1735,8 @@ class Schism:
         )
 
         ## FOR TIDE GAUGE MONITORING
-        z = self.__dict__.copy()
-        tg = obs(**z)
 
-        self.obs = tg
-
-        logger.info("get in-situ measurements locations \n")
+        logger.info("set in-situ measurements locations \n")
 
         gpoints = np.array(
             list(
@@ -1724,8 +1749,8 @@ class Schism:
 
         stations = []
         mesh_index = []
-        for l in range(tg.locations.shape[0]):
-            plat, plon = tg.locations.loc[l, ["latitude", "longitude"]]
+        for l in range(tgn.shape[0]):
+            plat, plon = tgn.loc[l, ["latitude", "longitude"]]
             cp = closest_node([plon, plat], gpoints)
             mesh_index.append(
                 list(
@@ -1745,11 +1770,14 @@ class Schism:
         stations["z"] = 0
         stations.index += 1
         stations["gindex"] = mesh_index
-        stations["name"] = tg.locations.Name.values
-        stations["id"] = tg.locations.ID.values
-        stations["group"] = tg.locations.Group.values
-        stations["longitude"] = tg.locations.longitude.values
-        stations["latitude"] = tg.locations.latitude.values
+        try:
+            stations["location"] = self.obs.location.values
+            stations["provider_id"] = self.obs.ioc_code.values
+            stations["provider"] = "ioc"
+            stations["longitude"] = self.obs.longitude.values
+            stations["latitude"] = self.obs.latitude.values
+        except:
+            pass
 
         if coastal_monitoring:
             ## FOR COASTAL MONITORING
@@ -1794,7 +1822,7 @@ class Schism:
             f.write("{}\n".format(stations.shape[0]))
             stations.loc[:, ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "z"]].to_csv(f, header=None, sep=" ")
 
-    def get_station_data(self, **kwargs):
+    def get_station_sim_data(self, **kwargs):
 
         path = get_value(self, kwargs, "rpath", "./schism/")
 
@@ -1843,7 +1871,7 @@ class Schism:
 
             dfs.append(r.to_xarray())
 
-        self.time_series = xr.combine_by_coords(dfs)
+        self.station_sim_data = xr.combine_by_coords(dfs)
 
     def get_output_data(self, **kwargs):
 
@@ -1852,6 +1880,10 @@ class Schism:
         dic.update(kwargs)
 
         self.data = data.get_output(**dic)
+
+    def get_station_obs_data(self, **kwargs):
+
+        self.station_obs_data = get_obs_data(self.obs, self.start_date, self.end_date)
 
     def open_thalassa(self, **kwargs):
         # open a Thalassa instance to visualize the output

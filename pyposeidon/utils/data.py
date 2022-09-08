@@ -11,7 +11,6 @@ Data analysis module
 import numpy as np
 import pandas as pd
 import os
-from pyposeidon.utils.vals import obs
 from pyposeidon.mesh import r2d
 import pyposeidon.model as pm
 from pyposeidon.tools import flat_list
@@ -118,8 +117,6 @@ class D3DResults:
         if "se_date" not in dic.keys():
             dic.update({"se_date": self.Dataset.time.values[-1]})
 
-        self.obs = obs(**dic)
-
     def frames(self, var, **kwargs):
 
         X, Y = self.Dataset.XZ.values[1:-1, 1:-1], self.Dataset.YZ.values[1:-1, 1:-1]
@@ -208,38 +205,5 @@ class SchismResults:
             datai = flat_list(datai)
             self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
 
-            with open(self.folders[-1] + "/" + tag + "_model.json", "r") as f:
-                info = pd.read_json(f, lines=True).T
-                info[info.isnull().values] = None
-                info = info.to_dict()[0]
-
-            p = pm.set(**info)
-
-            if hasattr(p, "stations"):
-
-                logger.info(" Retrieve station timeseries\n")
-
-                dstamp = kwargs.get("dstamp", info["date"])
-
-                p.get_station_data(dstamp=dstamp)
-                self.time_series = p.time_series
-
         else:
             self.Dataset = [xr.open_mfdataset(x, combine="by_coords", data_vars="minimal") for x in datai]
-
-            ts = []
-
-            for folder in self.folders:
-
-                p = pm.read_model(folder + "/{}_model.json".format(tag))  # read model
-
-                if hasattr(p, "stations"):
-
-                    logger.info(" Retrieve station timeseries\n")
-
-                    dstamp = kwargs.get("dstamp", p.date)
-
-                    p.get_station_data(dstamp=dstamp)
-                    ts.append(p.time_series)
-
-            self.time_series = ts
