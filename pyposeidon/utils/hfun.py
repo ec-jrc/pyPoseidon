@@ -81,7 +81,7 @@ def to_global_hfun(nodes, elems, fpos, **kwargs):
 
     R = kwargs.get("R", 1.0)
 
-    sv = 4 * R ** 2 / (nodes.u ** 2 + nodes.v ** 2 + 4 * R ** 2)
+    sv = 4 * R**2 / (nodes.u**2 + nodes.v**2 + 4 * R**2)
     nodes["h"] = nodes.d2 / sv
 
     out = xr.merge([nodes.to_xarray(), elems.to_xarray()])

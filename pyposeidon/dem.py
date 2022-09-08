@@ -242,14 +242,14 @@ def dem_on_mesh(dataset, **kwargs):
     wet = kwargs.get("wet_only", False)
     if wet:
         # mask positive bathymetry
-        vals = np.ma.masked_array(dataset, dataset[var].values > 0)
+        vals = np.ma.masked_array(dataset[var].values, dataset[var].values > 0)
     else:
         vals = dataset[var].values
 
     # with nearest using only the water values
 
     itopo = pyresample.kd_tree.resample_nearest(
-        orig, dataset[var].values, targ, radius_of_influence=100000, fill_value=np.nan
+        orig, vals, targ, radius_of_influence=100000, fill_value=np.nan
     )  # ,nprocs=ncores)
 
     if len(grid_x.shape) > 1:

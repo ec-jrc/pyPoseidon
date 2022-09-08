@@ -45,7 +45,7 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     ui, vi = np.meshgrid(d1, d2)
 
     # stereo->2D scale
-    ci = 4 * R ** 2 / (ui ** 2 + vi ** 2 + 4 * R ** 2)
+    ci = 4 * R**2 / (ui**2 + vi**2 + 4 * R**2)
 
     # set weight field
     scale = bgm_res / ci.flatten()

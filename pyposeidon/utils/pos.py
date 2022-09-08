@@ -89,7 +89,7 @@ def to_global_pos(nodes, elems, fpos, **kwargs):
 
         elems["d"] = 0
 
-        sv = 4 * R ** 2 / (nodes.u ** 2 + nodes.v ** 2 + 4 * R ** 2)
+        sv = 4 * R**2 / (nodes.u**2 + nodes.v**2 + 4 * R**2)
         nodes["d2"] = nodes.d2 / sv
 
         dout = tria_to_df(elems, nodes, x="u", y="v")
