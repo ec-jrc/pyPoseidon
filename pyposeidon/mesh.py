@@ -190,12 +190,12 @@ class tri2d:
         if mesh_file:
 
             if mesh_file.endswith(".gr3"):
-                self.Dataset = self.read_file(mesh_file)
+                self.Dataset = self.read_file(mesh_file, **kwargs)
             elif mesh_file.endswith(".msh"):
                 if mesh_generator == "jigsaw":
-                    self.Dataset = mjigsaw.read_msh(mesh_file)
+                    self.Dataset = mjigsaw.read_msh(mesh_file, **kwargs)
                 elif mesh_generator == "gmsh":
-                    self.Dataset = mgmsh.read_msh(mesh_file)
+                    self.Dataset = mgmsh.read_msh(mesh_file, **kwargs)
                 else:
                     raise ValueError("Please define 'mesh_genarator' argument")
 
