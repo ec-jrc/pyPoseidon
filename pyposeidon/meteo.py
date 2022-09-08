@@ -64,7 +64,11 @@ class Meteo:
         # integrate geometry attribute.
         geometry = kwargs.get("geometry", None)
         if geometry:
-            kwargs.update(**geometry)
+            if geometry == "global":
+                # fix the meteo to -180/180 for global mesh
+                kwargs.update(**{"lon_min": -180, "lon_max": 180})
+            elif isinstance(geometry, dict):
+                kwargs.update(**geometry)
 
         if isinstance(meteo_source, pathlib.Path):
             meteo_source = meteo_source.as_posix()
