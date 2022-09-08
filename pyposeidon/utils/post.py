@@ -1,12 +1,13 @@
 import os
 import pandas as pd
+import geopandas as gp
 import xarray as xr
 import numpy as np
 
 import pyposeidon
 from pyposeidon.utils import data
-from pyposeidon.utils.vals import obs
 from pyposeidon.utils.statistics import get_stats
+from pyposeidon.utils.obs import get_obs_data
 
 import logging
 
@@ -29,7 +30,8 @@ def to_thalassa(folders, freq=None, **kwargs):
 
         b = pyposeidon.model.read(folder + "/{}_model.json".format(tag))
         b.get_output_data()
-        st = b.data.time_series
+        b.get_station_sim_data()
+        st = b.station_sim_data
         b.data.Dataset.to_netcdf(rpath + "/{}.nc".format(b.start_date.strftime("%Y%m%d%H")))  # save netcdf
 
         h = []
@@ -44,45 +46,45 @@ def to_thalassa(folders, freq=None, **kwargs):
 
     cc = xr.concat(c, dim="time")
 
+    cf = cc.rename({"elev": "forecast", "time": "ftime"})
+
     # Observation/Stats
     logger.info("Retrieve observation data for station points\n")
-    odata = obs(**b.__dict__, sa_date=b.date, se_date=b.end_date)
+    stations = gp.GeoDataFrame(b.obs)
+    odata = get_obs_data(stations=stations, start_date=b.date, end_date=b.end_date)
 
     logger.info("Compute general statistics for station points\n")
-    tgs = []
     sts = []
-    for idx, val in odata.locations.iterrows():
+    for inode in st.node:
 
-        obs_ = odata.iloc(idx)  # Get observational data
+        obs = (
+            odata.isel(ioc_code=inode).prs.to_dataframe().drop(["ioc_code", "node"], axis=1)
+        )  # Get observational data
 
-        sim = st.isel(node=idx).elev.to_dataframe().drop("node", axis=1)
+        sim = st.isel(node=inode).elev.to_dataframe().drop("node", axis=1)
 
-        stable = get_stats(sim, obs_)  # Do general statitics
+        stable = get_stats(sim, obs)  # Do general statitics
 
-        tgs.append(obs_.Surge)  # store
         sts.append(stable)
 
     logger.info("Construct station data output\n")
     # Construct Thalassa file
-    stations = pd.DataFrame(b.stations)
-    stations = stations.reset_index(drop=True)
-    stations.index.name = "node"
-    stations["id"] = odata.locations.ID.values
-    stations["group"] = odata.locations.Group.values
-    stations["longitude"] = odata.locations.longitude.values
-    stations["latitude"] = odata.locations.latitude.values
-
-    sd = b.data.time_series.rename({"elev": "elevation"})
-
-    oo = pd.concat(tgs, keys=np.arange(len(tgs)), names=["node", "time"])
-    oo.name = "observation"
-
     stats = pd.DataFrame(sts)
     stats.index.name = "node"
 
-    cf = cc.rename({"elev": "forecast", "time": "ftime"})
+    stp = stations.to_xarray().rename({"index": "node"})
 
-    vdata = xr.merge([oo.to_xarray(), stats.to_xarray(), stations.to_xarray(), sd, cf])
+    od = odata.rename({"prs": "observations"}).swap_dims({"ioc_code": "node"})
+
+    sd = st.rename({"elev": "elevation"})
+
+    vdata = xr.merge([od, stats.to_xarray(), cf, sd])
+
+    vdata = vdata.reset_coords("ioc_code")
+
+    vdata = xr.merge([vdata, stp])
+
+    vdata = vdata.drop_vars("geometry")
 
     logger.info("Save station data output\n")
     vdata.to_netcdf(rpath + "/fskill.nc")
