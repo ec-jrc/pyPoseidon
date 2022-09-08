@@ -15,7 +15,7 @@ import xarray as xr
 import os
 import shapely
 import subprocess
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import sys
 
 import pyposeidon.dem as pdem
@@ -40,7 +40,6 @@ def to_geo(df, path=".", tag="jigsaw"):
         f.write("#{}; created by pyposeidon\n".format(tag + "-geo.msh"))
         f.write("MSHID=2;EUCLIDEAN-MESH\n")
         f.write("NDIMS=2\n")
-        f.write("POINT={}\n".format(df.nps.sum()))
 
     # outer contour
     df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
@@ -73,8 +72,9 @@ def to_geo(df, path=".", tag="jigsaw"):
             outer["z"] = 0
             outer = outer.drop_duplicates(["x", "y"])
             # nodes
-            outer.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
-            # compute edges
+            points = outer
+        #            outer.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
+        # compute edges
 
         edges = [
             list(a)
@@ -105,6 +105,7 @@ def to_geo(df, path=".", tag="jigsaw"):
     else:
 
         edges = []
+        points = pd.DataFrame({})
 
     # the rest to file
     with open(fgeo, "a") as f:
@@ -114,7 +115,8 @@ def to_geo(df, path=".", tag="jigsaw"):
             out = out.drop_duplicates(["x", "y"])
 
             # nodes
-            out.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
+            points = pd.concat([points, out], ignore_index=True)
+            #            out.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
             # compute edges
             i0 = len(edges)
             ie = out.shape[0] + len(edges)
@@ -127,6 +129,11 @@ def to_geo(df, path=".", tag="jigsaw"):
             edges[-1][1] = i0
 
     edges = pd.DataFrame(edges)  # convert to pandas
+
+    # write nodes
+    with open(fgeo, "a") as f:
+        f.write("POINT={}\n".format(points.shape[0]))
+        points.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
 
     # write header
     with open(fgeo, "a") as f:
