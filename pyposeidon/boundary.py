@@ -14,7 +14,7 @@ import numpy as np
 import geopandas as gp
 import logging
 import shapely
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import sys
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def simplify(geo):
 
     if (geo.geom_type == "Polygon").all():
         try:
-            geo_ = list(geo.buffer(0).unary_union)
+            geo_ = list(geo.buffer(0).unary_union.geoms)
         except TypeError:
             geo_ = [geo.buffer(0).unary_union]
 
@@ -205,7 +205,7 @@ def buffer_(coasts, cbuffer):
     for pos, pol in w_.itertuples():
         bb = pol.boundary
         try:
-            len(bb)
+            len(bb.geoms)
             mls.append(pos)
         except:
             pass
@@ -336,7 +336,9 @@ def tag(geometry, coasts, cbuffer, blevels):
     # polygonize if need be for getting the symetric difference
     if (block.geom_type == "LineString").all():
         gg = shapely.ops.polygonize_full(block.geometry.values)
-        block = gp.GeoDataFrame(geometry=list(gg[0])).explode(index_parts=True).droplevel(0).reset_index(drop=True)
+        block = (
+            gp.GeoDataFrame(geometry=list(gg[0].geoms)).explode(index_parts=True).droplevel(0).reset_index(drop=True)
+        )
 
     # bypass blocks in case of isodem
     if blevels:
@@ -515,10 +517,10 @@ def global_tag(geo, cbuffer, blevels, R=1):
     # join the split polygons
     ww = w.loc[mm]  # split entities
     qq = shapely.ops.polygonize_full(ww.geometry.values)  # polygonize in case of LineStrings
-    if len(qq[0]) > 0:
-        ww = gp.GeoDataFrame(geometry=list(qq[0]))  # convert to gp
-    elif len(qq[2]) > 0:
-        ww = gp.GeoDataFrame(geometry=list(qq[2]))  # convert to gp
+    if len(qq[0].geoms) > 0:
+        ww = gp.GeoDataFrame(geometry=list(qq[0].geoms))  # convert to gp
+    elif len(qq[2].geoms) > 0:
+        ww = gp.GeoDataFrame(geometry=list(qq[2].geoms))  # convert to gp
 
     cs = []  # adjust values around zero (in projection - international line in Platee Carree)
     for idx, line in ww.itertuples():
@@ -534,7 +536,7 @@ def global_tag(geo, cbuffer, blevels, R=1):
     ww = gp.GeoDataFrame(geometry=cs)
 
     gw = gp.GeoDataFrame(
-        geometry=list(ww.buffer(0).unary_union)
+        geometry=list(ww.buffer(0).unary_union.geoms)
     )  # merge the polygons that are split (around -180/180)
 
     gw = gp.GeoDataFrame(geometry=gw.boundary.values)
