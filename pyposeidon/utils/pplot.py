@@ -66,6 +66,8 @@ class gplot(object):
 
         title = kwargs.get("title", None)
 
+        coasts = kwargs.get("coastlines", False)
+
         vrange = np.linspace(vmin, vmax, nv, endpoint=True)
         ## CHOOSE YOUR PROJECTION
         #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
@@ -93,7 +95,8 @@ class gplot(object):
         if title:
             ax.set_title(title)
         # ax.set_global()
-        ax.coastlines("50m")
+        if coasts:
+            ax.coastlines("50m")
         ax.set_extent([grid_x.min(), grid_x.max(), grid_y.min(), grid_y.max()])
         ax.gridlines(draw_labels=True)
 

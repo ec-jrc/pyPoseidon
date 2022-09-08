@@ -36,7 +36,7 @@ def stereo_to_3d(u, v, R=1):
     #    y=c*v
     #    z=2*c*R-R
 
-    rp2 = u ** 2 + v ** 2
+    rp2 = u**2 + v**2
     x = -2 * R * u / (1 + rp2)
     y = -2 * R * v / (1 + rp2)
     z = R * (1 - rp2) / (1 + rp2)
@@ -50,7 +50,7 @@ def to_lat_lon(x, y, z=None, R=1):
         x, y, z = stereo_to_3d(x, y, R=R)
 
     # to lat/lon
-    rad = x ** 2 + y ** 2 + z ** 2
+    rad = x**2 + y**2 + z**2
     rad = np.sqrt(rad)
 
     rad[rad == 0] = rad.max()

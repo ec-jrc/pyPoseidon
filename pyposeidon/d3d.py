@@ -1029,7 +1029,7 @@ class d3d:
 
                 rlon = grid.lons[i - 5 : i + 6, j - 5 : j + 6] - lon
                 rlat = grid.lats[i - 5 : i + 6, j - 5 : j + 6] - lat
-                rad = np.sqrt(rlon ** 2 + rlat ** 2)  # radial distance from the obs point
+                rad = np.sqrt(rlon**2 + rlat**2)  # radial distance from the obs point
 
                 rmask = rad.values[bnear.mask == False]  # mask the distance array with the valid mask from dem
 
