@@ -36,7 +36,7 @@ from pyposeidon.tools import orient
 
 import multiprocessing
 
-NCORES = max(1, multiprocessing.cpu_count() - 1)
+NCORES = max(1, min(multiprocessing.cpu_count() - 1, 20))
 
 from joblib import Parallel, delayed, parallel_backend
 
