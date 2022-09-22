@@ -422,7 +422,6 @@ def to_geo(df, **kwargs):
     ptag0 = 1
     ltag = 0
     loops = []
-    pl = 2000 if gglobal else 100
 
     # ... and save it to disk
     rpath = kwargs.get("rpath", ".")
@@ -457,7 +456,17 @@ def to_geo(df, **kwargs):
             )
             points.append(ptag)
 
+<<<<<<< Updated upstream
+        if points:
+            
+=======
+<<<<<<< Updated upstream
         try:
+=======
+        if points:
+
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
             points = points + [points[0]]
 
             if not bspline:
@@ -485,18 +494,55 @@ def to_geo(df, **kwargs):
 
             loops.append(ltag)
 
+<<<<<<< Updated upstream
+
+        ## Group open boundaries lines
+        for key, values in open_lines.items():
+            f.write("Physical Line  ({}) = {}".format(key, "{"))
+            f.write(",".join(map(str, values + 1)))
+=======
+<<<<<<< Updated upstream
             pl += 1
             #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
             f.write("Physical Line  ({}) = {}".format(pl, "{"))
             f.write(",".join(map(str, lines)))
+>>>>>>> Stashed changes
             f.write("{};\n".format("}"))
+            
 
+<<<<<<< Updated upstream
+=======
         #
         except:
 
             pass
 
         # The rest
+=======
+        ## Group open boundaries lines
+        for key, values in open_lines.items():
+            f.write("Physical Line  ({}) = {}".format(key, "{"))
+            f.write(",".join(map(str, values + 1)))
+            f.write("{};\n".format("}"))
+
+>>>>>>> Stashed changes
+        ## Group land boundaries lines
+        for key, values in land_lines.items():
+            f.write("Physical Line  ({}) = {}".format(key, "{"))
+            f.write(",".join(map(str, values + 1)))
+            f.write("{};\n".format("}"))
+<<<<<<< Updated upstream
+ 
+        # The rest (islands)
+        pl = 2000
+        
+=======
+
+        # The rest (islands)
+        pl = 2000
+
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
         for k, d in df.loc[df.tag == "island"].iterrows():
 
             points = []
@@ -626,7 +672,7 @@ def gmsh_execute(**kwargs):
         bin_path = os.environ["GMSH"]
     except:
         bin_path = kwargs.get("gpath", None)
-
+    
     if bin_path is None:
         # ------------------------------------------------------------------------------
         logger.warning("gmsh executable path (gpath) not given -> using default \n")
@@ -639,30 +685,54 @@ def gmsh_execute(**kwargs):
         logger.info("Executing gmsh\n")
         # ---------------------------------
 
-        myoutput = open(calc_dir + "myoutput.txt", "w+")
-
         gglobal = kwargs.get("gglobal", False)
         if gglobal:
             dim = -3
         else:
             dim = -2
 
-        # execute jigsaw
-        ex = subprocess.Popen(
+        # execute gmsh
+        with subprocess.Popen(
             #            ["{} -bin -tol {} {} {}".format(bin_path, 1e-20, dim, "mymesh.geo")],
             ["{} -tol {} {} {}".format(bin_path, 1e-20, dim, "mymesh.geo")],
             cwd=calc_dir,
             shell=True,
-            stderr=myoutput,
-            stdout=myoutput,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
             universal_newlines=True,
+<<<<<<< Updated upstream
+            #bufsize=1,
+        )  as ex:
+            output = ex.stdout.read()
+            error = ex.stderr.read()
+            
+            lines = [l for l in error.splitlines() if l and l[:4] not in ["Info","Warn"]]        
+        
+=======
+<<<<<<< Updated upstream
         )  # , bufsize=1)
+=======
+            # bufsize=1,
+        ) as ex:
+            output = ex.stdout.read()
+            error = ex.stderr.read()
 
-        output, errors = ex.communicate()
+            lines = [l for l in error.splitlines() if l and l[:4] not in ["Info", "Warn"]]
 
-        # ---------------------------------
-        logger.info("Gmsh FINISHED\n")
-        # ---------------------------------
+>>>>>>> Stashed changes
+        if lines:
+            logger.error("Gmsh FAILED\n")
+            logger.debug(lines)
+        else:
+            logger.info("Gmsh FINISHED\n")
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+
+        with open(calc_dir + "myoutput.txt", "w") as f:
+            f.write(output)
+            f.write(error)
 
     return
 

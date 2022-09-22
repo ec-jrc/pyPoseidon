@@ -523,12 +523,21 @@ def get(contours, **kwargs):
         # ---------------------------------
 
         # execute jigsaw
-        ex = subprocess.Popen(
+        with subprocess.Popen(
             args=["jigsaw {}".format(tag + ".jig")],
             cwd=calc_dir,
             shell=True,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
+<<<<<<< Updated upstream
+#            bufsize=1,
+        ) as ex:
+            output = ex.stdout.read()
+            error = ex.stderr.read()
+
+        if error :
+=======
+<<<<<<< Updated upstream
         )  # , bufsize=1)
 
         with open(calc_dir + "err.log", "w") as f:
@@ -536,22 +545,47 @@ def get(contours, **kwargs):
                 f.write(line.decode(sys.stdout.encoding))
         #        logger.info(line.decode(sys.stdout.encoding))
         ex.stderr.close()
+=======
+            #            bufsize=1,
+        ) as ex:
+            output = ex.stdout.read()
+            error = ex.stderr.read()
 
-        with open(calc_dir + "run.log", "w") as f:
-            for line in iter(ex.stdout.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-        #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stdout.close()
+        if error:
+>>>>>>> Stashed changes
+            logger.error("Jigsaw FAILED\n")
+            with open(calc_dir + "err.log", "w") as f:
+                for line in error.splitlines():
+                    f.write(line.decode(sys.stdout.encoding))
+                    logger.debug(line.decode(sys.stdout.encoding))
+<<<<<<< Updated upstream
+                    
+            gr = None
+            
+            return gr, bg
+                        
+        else:
+            
+            logger.info("Jigsaw FINISHED\n")
+                
+            gr = read_msh(calc_dir + tag + ".msh", **kwargs)
+=======
 
-        # ---------------------------------
-        logger.info("Jigsaw FINISHED\n")
-        # ---------------------------------
+            gr = None
 
-        gr = read_msh(calc_dir + tag + ".msh", **kwargs)
+            return gr, bg
 
-        logger.info("..done creating mesh\n")
+        else:
 
-        return gr, bg
+            logger.info("Jigsaw FINISHED\n")
+
+            gr = read_msh(calc_dir + tag + ".msh", **kwargs)
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+
+            logger.info("..done creating mesh\n")
+
+            return gr, bg
 
     else:
 
