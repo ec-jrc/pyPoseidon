@@ -298,18 +298,17 @@ def get(contours, **kwargs):
             gr = make_gmsh_3d(contours, **kwargs)
         else:
             make_gmsh(contours, **kwargs)
-            if not setup_only:
-                gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
+            gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
 
     else:
         to_geo(contours, **kwargs)
         if not setup_only:
             logger.info("Using GMSH binary")
-            gmsh_execute(**kwargs)
-            gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
-
-    if not gr:
-        gr = None
+            status = gmsh_execute(**kwargs)
+            if status:
+                gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
+            else:
+                gr = None
 
     try:
         bg = dh
@@ -456,17 +455,8 @@ def to_geo(df, **kwargs):
             )
             points.append(ptag)
 
-<<<<<<< Updated upstream
-        if points:
-            
-=======
-<<<<<<< Updated upstream
-        try:
-=======
         if points:
 
->>>>>>> Stashed changes
->>>>>>> Stashed changes
             points = points + [points[0]]
 
             if not bspline:
@@ -494,55 +484,23 @@ def to_geo(df, **kwargs):
 
             loops.append(ltag)
 
-<<<<<<< Updated upstream
-
-        ## Group open boundaries lines
-        for key, values in open_lines.items():
-            f.write("Physical Line  ({}) = {}".format(key, "{"))
-            f.write(",".join(map(str, values + 1)))
-=======
-<<<<<<< Updated upstream
-            pl += 1
-            #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
-            f.write("Physical Line  ({}) = {}".format(pl, "{"))
-            f.write(",".join(map(str, lines)))
->>>>>>> Stashed changes
-            f.write("{};\n".format("}"))
-            
-
-<<<<<<< Updated upstream
-=======
-        #
-        except:
-
-            pass
-
         # The rest
-=======
+
         ## Group open boundaries lines
         for key, values in open_lines.items():
             f.write("Physical Line  ({}) = {}".format(key, "{"))
             f.write(",".join(map(str, values + 1)))
             f.write("{};\n".format("}"))
 
->>>>>>> Stashed changes
         ## Group land boundaries lines
         for key, values in land_lines.items():
             f.write("Physical Line  ({}) = {}".format(key, "{"))
             f.write(",".join(map(str, values + 1)))
             f.write("{};\n".format("}"))
-<<<<<<< Updated upstream
- 
-        # The rest (islands)
-        pl = 2000
-        
-=======
 
         # The rest (islands)
         pl = 2000
 
->>>>>>> Stashed changes
->>>>>>> Stashed changes
         for k, d in df.loc[df.tag == "island"].iterrows():
 
             points = []
@@ -672,7 +630,7 @@ def gmsh_execute(**kwargs):
         bin_path = os.environ["GMSH"]
     except:
         bin_path = kwargs.get("gpath", None)
-    
+
     if bin_path is None:
         # ------------------------------------------------------------------------------
         logger.warning("gmsh executable path (gpath) not given -> using default \n")
@@ -700,18 +658,6 @@ def gmsh_execute(**kwargs):
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
             universal_newlines=True,
-<<<<<<< Updated upstream
-            #bufsize=1,
-        )  as ex:
-            output = ex.stdout.read()
-            error = ex.stderr.read()
-            
-            lines = [l for l in error.splitlines() if l and l[:4] not in ["Info","Warn"]]        
-        
-=======
-<<<<<<< Updated upstream
-        )  # , bufsize=1)
-=======
             # bufsize=1,
         ) as ex:
             output = ex.stdout.read()
@@ -719,22 +665,23 @@ def gmsh_execute(**kwargs):
 
             lines = [l for l in error.splitlines() if l and l[:4] not in ["Info", "Warn"]]
 
->>>>>>> Stashed changes
         if lines:
             logger.error("Gmsh FAILED\n")
             logger.debug(lines)
+            status = False
         else:
             logger.info("Gmsh FINISHED\n")
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+            status = True
 
         with open(calc_dir + "myoutput.txt", "w") as f:
             f.write(output)
             f.write(error)
 
-    return
+    else:
+
+        status = True
+
+    return status
 
 
 def outer_boundary(df, **kwargs):
