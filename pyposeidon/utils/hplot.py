@@ -124,6 +124,12 @@ class hplot(object):
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         tes = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values)
 
+        try:
+            if np.isnan(tes[:, 3]).all():
+                tes = tes[:, :3]
+        except:
+            pass
+
         width = kwargs.get("width", 800)
         height = kwargs.get("height", 600)
         opts.defaults(opts.WMTS(width=width, height=height))
