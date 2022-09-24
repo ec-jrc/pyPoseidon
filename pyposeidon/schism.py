@@ -121,7 +121,7 @@ class Schism:
                 self.lat_min = self.geometry["lat_min"]
                 self.lat_max = self.geometry["lat_max"]
             elif self.geometry == "global":
-                logger.warning("geometry is 'global'")    
+                logger.warning("geometry is 'global'")
             elif isinstance(self.geometry, str):
 
                 try:
@@ -135,7 +135,7 @@ class Schism:
                     self.lat_min,
                     self.lon_max,
                     self.lat_max,
-                ) = geo.total_bounds            
+                ) = geo.total_bounds
             else:
                 logger.warning("no geometry given")
 
@@ -385,8 +385,9 @@ class Schism:
     def bath(self, **kwargs):
         #       z = self.__dict__.copy()
 
-        kwargs["grid_x"] = self.mesh.Dataset.SCHISM_hgrid_node_x.values
-        kwargs["grid_y"] = self.mesh.Dataset.SCHISM_hgrid_node_y.values
+        if self.mesh.Dataset is not None:
+            kwargs["grid_x"] = self.mesh.Dataset.SCHISM_hgrid_node_x.values
+            kwargs["grid_y"] = self.mesh.Dataset.SCHISM_hgrid_node_y.values
 
         dpath = get_value(self, kwargs, "dem_source", None)
 
@@ -416,15 +417,20 @@ class Schism:
         if not kwargs:
             kwargs = self.__dict__.copy()
 
-        # DEM
-        self.dem = pdem.Dem(**kwargs)
-        kwargs.update({"dem_source": self.dem.Dataset})
+        # Set background dem as scale for mesh generation
+        dpath = get_value(self, kwargs, "dem_source", None)
 
-        # Grid
+        if dpath:
+            self.dem = pdem.Dem(**kwargs)
+            kwargs.update({"dem_source": self.dem.Dataset})
+        else:
+            logger.info("no dem available\n")
+
+        # Mesh
         self.mesh = pmesh.set(type="tri2d", **kwargs)
 
         # set lat/lon from file
-        if hasattr(self, "mesh_file"):
+        if self.mesh.Dataset is not None:
             kwargs.update({"lon_min": self.mesh.Dataset.SCHISM_hgrid_node_x.values.min()})
             kwargs.update({"lon_max": self.mesh.Dataset.SCHISM_hgrid_node_x.values.max()})
             kwargs.update({"lat_min": self.mesh.Dataset.SCHISM_hgrid_node_y.values.min()})
@@ -1713,7 +1719,7 @@ class Schism:
 
         tg = tg.reset_index(drop=True)
         ### save in compatible to searvey format
-        tg['country']=tg.country.values.astype('str') # fix an issue with searvey see #43 
+        tg["country"] = tg.country.values.astype("str")  # fix an issue with searvey see #43 therein
         logger.info("save station DataFrame \n")
         tg.to_file(path + "stations.json")
         self.obs = tg
