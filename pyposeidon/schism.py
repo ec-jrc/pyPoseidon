@@ -436,7 +436,8 @@ class Schism:
             self.lat_max = self.mesh.Dataset.SCHISM_hgrid_node_y.values.max()
 
         # get bathymetry
-        self.bath(**kwargs)
+        if self.mesh.Dataset is not None:
+            self.bath(**kwargs)
 
         # get boundaries
         # self.bc()
@@ -468,143 +469,147 @@ class Schism:
             f.write("&sflux_inputs\n")
             f.write("/ \n\n")
 
-        # save bctides.in
-        bs = self.mesh.Dataset[["node", "id", "type"]].to_dataframe()
-        # open boundaries
-        number_of_open_boundaries = bs.loc[bs.type == "open"].id
-        if not number_of_open_boundaries.empty:
-            number_of_open_boundaries = number_of_open_boundaries.max()
-        else:
-            number_of_open_boundaries = 0
-        number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
-
-        with open(path + "bctides.in", "w") as f:
-            f.write("Header\n")
-            f.write("{} {}\n".format(0, 40.0))  #  ntip tip_dp
-            f.write("{}\n".format(0))  # nbfr
-            f.write("{}\n".format(number_of_open_boundaries))  # number of open boundaries
-            for i in range(1, number_of_open_boundaries + 1):
-                nnodes = bs.loc[bs.id == i, "node"].shape[0]
-                f.write(
-                    "{} {} {} {} {}\n".format(nnodes, 2, 0, 0, 0)
-                )  # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
-                f.write("{}\n".format(0))  # ethconst !constant elevation value for this segment
-
-        # save vgrid.in
-        with open(path + "vgrid.in", "w") as f:
-            f.write("{}\n".format(2))  # ivcor (1: LSC2; 2: SZ)
-            f.write(
-                "{} {} {}\n".format(2, 1, 1.0e6)
-            )  # nvrt(=Nz); kz (# of Z-levels); hs (transition depth between S and Z)
-            f.write("Z levels\n")  # Z levels !Z-levels in the lower portion
-            f.write(
-                "{} {}\n".format(1, -1.0e6)
-            )  #!level index, z-coordinates, z-coordinate of the last Z-level must match -hs
-            f.write("S levels\n")  # S-levels below
-            f.write(
-                "{} {} {}\n".format(40.0, 1.0, 1.0e-4)
-            )  # constants used in S-transformation: h_c, theta_b, theta_f
-            f.write("{} {}\n".format(1, -1.0))  # first S-level (sigma-coordinate must be -1)
-            f.write("{} {}\n".format(2, 0.0))  # levels index, sigma-coordinate, last sigma-coordinate must be 0
-
         # save params.in
 
         self.params.write(path + "param.nml", force=True)
 
-        # save hgrid.gr3
-        try:
+        # Mesh related files
+        if self.mesh.Dataset is not None:
 
+            # save bctides.in
+            bs = self.mesh.Dataset[["node", "id", "type"]].to_dataframe()
+            # open boundaries
+            number_of_open_boundaries = bs.loc[bs.type == "open"].id
+            if not number_of_open_boundaries.empty:
+                number_of_open_boundaries = number_of_open_boundaries.max()
+            else:
+                number_of_open_boundaries = 0
+            number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
+
+            with open(path + "bctides.in", "w") as f:
+                f.write("Header\n")
+                f.write("{} {}\n".format(0, 40.0))  #  ntip tip_dp
+                f.write("{}\n".format(0))  # nbfr
+                f.write("{}\n".format(number_of_open_boundaries))  # number of open boundaries
+                for i in range(1, number_of_open_boundaries + 1):
+                    nnodes = bs.loc[bs.id == i, "node"].shape[0]
+                    f.write(
+                        "{} {} {} {} {}\n".format(nnodes, 2, 0, 0, 0)
+                    )  # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity
+                    f.write("{}\n".format(0))  # ethconst !constant elevation value for this segment
+
+            # save vgrid.in
+            with open(path + "vgrid.in", "w") as f:
+                f.write("{}\n".format(2))  # ivcor (1: LSC2; 2: SZ)
+                f.write(
+                    "{} {} {}\n".format(2, 1, 1.0e6)
+                )  # nvrt(=Nz); kz (# of Z-levels); hs (transition depth between S and Z)
+                f.write("Z levels\n")  # Z levels !Z-levels in the lower portion
+                f.write(
+                    "{} {}\n".format(1, -1.0e6)
+                )  #!level index, z-coordinates, z-coordinate of the last Z-level must match -hs
+                f.write("S levels\n")  # S-levels below
+                f.write(
+                    "{} {} {}\n".format(40.0, 1.0, 1.0e-4)
+                )  # constants used in S-transformation: h_c, theta_b, theta_f
+                f.write("{} {}\n".format(1, -1.0))  # first S-level (sigma-coordinate must be -1)
+                f.write("{} {}\n".format(2, 0.0))  # levels index, sigma-coordinate, last sigma-coordinate must be 0
+
+
+            # save hgrid.gr3
             try:
 
-                bat = -self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
-                if np.isnan(bat).sum() != 0:
-                    raise Exception("Bathymetry contains NaNs")
-                    logger.warning("Bathymetric values fval contain NaNs, using ival values ..\n")
+                try:
 
-            except:
+                    bat = -self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
+                    if np.isnan(bat).sum() != 0:
+                        raise Exception("Bathymetry contains NaNs")
+                        logger.warning("Bathymetric values fval contain NaNs, using ival values ..\n")
 
-                bat = -self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
+                except:
 
-            self.mesh.Dataset.depth.loc[: bat.size] = bat
+                    bat = -self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
 
-            self.mesh.to_file(filename=path + "hgrid.gr3")
-            copyfile(path + "hgrid.gr3", path + "hgrid.ll")
+                self.mesh.Dataset.depth.loc[: bat.size] = bat
 
-            logger.info("updating bathymetry ..\n")
+                self.mesh.to_file(filename=path + "hgrid.gr3")
+                copyfile(path + "hgrid.gr3", path + "hgrid.ll")
 
-        except AttributeError as e:
+                logger.info("updating bathymetry ..\n")
 
-            logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
+            except AttributeError as e:
 
-            copyfile(self.mesh_file, path + "hgrid.gr3")  # copy original grid file
-            copyfile(path + "hgrid.gr3", path + "hgrid.ll")
+                logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
 
-        # manning file
-        manfile = path + "manning.gr3"
+                copyfile(self.mesh_file, path + "hgrid.gr3")  # copy original grid file
+                copyfile(path + "hgrid.gr3", path + "hgrid.ll")
 
-        if hasattr(self, "manning_file"):
-            copyfile(self.manning_file, manfile)  # copy original manning file
-            if self.manning_file == manfile:
-                logger.info("Keeping manning file ..\n")
+            # manning file
+            manfile = path + "manning.gr3"
 
-        manning = get_value(self, kwargs, "manning", 0.12)
-        nn = self.mesh.Dataset.nSCHISM_hgrid_node.size
-        n3e = self.mesh.Dataset.nSCHISM_hgrid_face.size
+            if hasattr(self, "manning_file"):
+                copyfile(self.manning_file, manfile)  # copy original manning file
+                if self.manning_file == manfile:
+                    logger.info("Keeping manning file ..\n")
 
-        with open(manfile, "w") as f:
-            f.write("\t 0 \n")
-            f.write("\t {} {}\n".format(n3e, nn))
+            manning = get_value(self, kwargs, "manning", 0.12)
+            nn = self.mesh.Dataset.nSCHISM_hgrid_node.size
+            n3e = self.mesh.Dataset.nSCHISM_hgrid_face.size
 
-        df = self.mesh.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
+            with open(manfile, "w") as f:
+                f.write("\t 0 \n")
+                f.write("\t {} {}\n".format(n3e, nn))
 
-        df["man"] = manning
+            df = self.mesh.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
 
-        df.index = np.arange(1, len(df) + 1)
+            df["man"] = manning
 
-        df.to_csv(
-            manfile,
-            index=True,
-            sep="\t",
-            header=None,
-            mode="a",
-            float_format="%.10f",
-            columns=["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "man"],
-        )
+            df.index = np.arange(1, len(df) + 1)
 
-        logger.info("Manning file created..\n")
+            df.to_csv(
+                manfile,
+                index=True,
+                sep="\t",
+                header=None,
+                mode="a",
+                float_format="%.10f",
+                columns=["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "man"],
+            )
 
-        # windrot_geo2proj
+            logger.info("Manning file created..\n")
 
-        windfile = path + "windrot_geo2proj.gr3"
+            # windrot_geo2proj
 
-        if hasattr(self, "windrot_file"):
-            copyfile(self.windrot_file, windfile)  # copy original grid file
-            if self.windrot_file != windfile:
-                logger.info("Keeping windrot_geo2proj file ..\n")
+            windfile = path + "windrot_geo2proj.gr3"
 
-        windrot = get_value(self, kwargs, "windrot", 0.00001)
+            if hasattr(self, "windrot_file"):
+                copyfile(self.windrot_file, windfile)  # copy original grid file
+                if self.windrot_file != windfile:
+                    logger.info("Keeping windrot_geo2proj file ..\n")
 
-        with open(windfile, "w") as f:
-            f.write("\t 0 \n")
-            f.write("\t {} {}\n".format(n3e, nn))
+            windrot = get_value(self, kwargs, "windrot", 0.00001)
 
-        df = self.mesh.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
+            with open(windfile, "w") as f:
+                f.write("\t 0 \n")
+                f.write("\t {} {}\n".format(n3e, nn))
 
-        df["windrot"] = windrot
+            df = self.mesh.Dataset[["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "depth"]].to_dataframe()
 
-        df.index = np.arange(1, len(df) + 1)
+            df["windrot"] = windrot
 
-        df.to_csv(
-            windfile,
-            index=True,
-            sep="\t",
-            header=None,
-            mode="a",
-            float_format="%.10f",
-            columns=["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "windrot"],
-        )
+            df.index = np.arange(1, len(df) + 1)
 
-        logger.info("Windrot_geo2proj file created..\n")
+            df.to_csv(
+                windfile,
+                index=True,
+                sep="\t",
+                header=None,
+                mode="a",
+                float_format="%.10f",
+                columns=["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "windrot"],
+            )
+
+            logger.info("Windrot_geo2proj file created..\n")
 
         # save meteo
         m_index = get_value(self, kwargs, "m_index", 1)

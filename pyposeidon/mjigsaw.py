@@ -529,47 +529,17 @@ def get(contours, **kwargs):
             shell=True,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-<<<<<<< Updated upstream
-#            bufsize=1,
-        ) as ex:
-            output = ex.stdout.read()
-            error = ex.stderr.read()
-
-        if error :
-=======
-<<<<<<< Updated upstream
-        )  # , bufsize=1)
-
-        with open(calc_dir + "err.log", "w") as f:
-            for line in iter(ex.stderr.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-        #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stderr.close()
-=======
             #            bufsize=1,
         ) as ex:
             output = ex.stdout.read()
             error = ex.stderr.read()
 
         if error:
->>>>>>> Stashed changes
             logger.error("Jigsaw FAILED\n")
             with open(calc_dir + "err.log", "w") as f:
                 for line in error.splitlines():
                     f.write(line.decode(sys.stdout.encoding))
                     logger.debug(line.decode(sys.stdout.encoding))
-<<<<<<< Updated upstream
-                    
-            gr = None
-            
-            return gr, bg
-                        
-        else:
-            
-            logger.info("Jigsaw FINISHED\n")
-                
-            gr = read_msh(calc_dir + tag + ".msh", **kwargs)
-=======
 
             gr = None
 
@@ -580,12 +550,10 @@ def get(contours, **kwargs):
             logger.info("Jigsaw FINISHED\n")
 
             gr = read_msh(calc_dir + tag + ".msh", **kwargs)
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+
+            return gr, bg
 
             logger.info("..done creating mesh\n")
-
-            return gr, bg
 
     else:
 
