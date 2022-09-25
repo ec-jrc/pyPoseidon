@@ -84,11 +84,11 @@ class Schism:
                 `pd.to_datetime()`.
             time_frame str: The duration of the analysis. It should be a string parseable by
                 `pd.to_datetime()`.
-            date str: Reference date of the run.
+            rdate str: Reference date of the run.
             rpath str: Path for output of the model. Defaults to `./schism/`.
             m_index int: Define the index of the meteo Dataset. Defaults to `1`.
             filename str: Path to output the meteo Dataset. Defaults to `sflux/`.
-            dstamp str: Reference date for station data. Defaults to date.
+            dstamp str: Reference date for station data. Defaults to rdate.
             parameters dict: Overwrite default Schism's parameter values.
             meteo_source str: Path or url to meteo data.
             dem_source str: Path or url to bathymetric data.
@@ -165,8 +165,8 @@ class Schism:
                 self.end_date = pd.to_datetime(end_date)
                 self.time_frame = self.end_date - self.start_date
 
-        if not hasattr(self, "date"):
-            self.date = get_value(self, kwargs, "date", self.start_date)
+        if not hasattr(self, "rdate"):
+            self.rdate = get_value(self, kwargs, "rdate", self.start_date)
 
         if not hasattr(self, "end_date"):
             # ---------------------------------------------------------------------
@@ -521,7 +521,6 @@ class Schism:
                 f.write("{} {}\n".format(1, -1.0))  # first S-level (sigma-coordinate must be -1)
                 f.write("{} {}\n".format(2, 0.0))  # levels index, sigma-coordinate, last sigma-coordinate must be 0
 
-
             # save hgrid.gr3
             try:
 
@@ -627,7 +626,7 @@ class Schism:
                     mpaths = ["sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
                     for das, mpath in list(zip(datasets, mpaths)):
                         self.to_force(
-                            das, vars=["msl", "u10", "v10"], rpath=path, filename=mpath, date=self.date, **kwargs
+                            das, vars=["msl", "u10", "v10"], rpath=path, filename=mpath, date=self.rdate, **kwargs
                         )
                 else:
                     self.to_force(self.meteo.Dataset, vars=["msl", "u10", "v10"], rpath=path, **kwargs)
@@ -1863,7 +1862,7 @@ class Schism:
                 logger.error("No station.in file present")
             return
 
-        dstamp = kwargs.get("dstamp", self.date)
+        dstamp = kwargs.get("dstamp", self.rdate)
 
         dfs = []
         for idx in vals.index:

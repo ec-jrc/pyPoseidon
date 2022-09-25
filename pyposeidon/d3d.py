@@ -72,7 +72,7 @@ class d3d:
                 `pd.to_datetime()`.
             time_frame str: The duration of the analysis. It should be a string parseable by
                 `pd.to_datetime()`.
-            date str: Reference date of the run.
+            rdate str: Reference date of the run.
             meteo_source str: Path or url to meteo data.
             dem_source str: Path or url to bathymetric data.
             argfile str: Path to `_hydro.xml` file.
@@ -129,8 +129,8 @@ class d3d:
             self.end_date = pd.to_datetime(end_date)
             self.time_frame = self.end_date - self.start_date
 
-        if not hasattr(self, "date"):
-            self.date = self.start_date
+        if not hasattr(self, "rdate"):
+            self.rdate = self.start_date
 
         if not hasattr(self, "end_date"):
             # ---------------------------------------------------------------------
@@ -192,7 +192,7 @@ class d3d:
         self.mdf.loc[self.mdf.index.str.contains("MNKmax")] = "{} {} {}".format(ni + 1, nj + 1, 1)  # add one like ddb
 
         # adjust iteration date
-        self.mdf.loc[self.mdf.index.str.contains("Itdate")] = "#{}#".format(self.date.strftime(format="%Y-%m-%d"))
+        self.mdf.loc[self.mdf.index.str.contains("Itdate")] = "#{}#".format(self.rdate.strftime(format="%Y-%m-%d"))
 
         # set time unit
         self.mdf.loc[self.mdf.index.str.contains("Tunit")] = "#M#"
