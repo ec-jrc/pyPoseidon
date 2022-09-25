@@ -70,7 +70,7 @@ class D3DCast:
         files_sym = [self.tag + ".grd", self.tag + ".dep"]
 
         self.origin = self.model.rpath
-        self.date0 = self.model.date
+        self.rdate = self.model.rdate
 
         if not os.path.exists(self.origin):
             sys.stdout.write("Initial folder not present {}\n".format(self.origin))
@@ -104,8 +104,8 @@ class D3DCast:
             pass
 
         # update the properties
-        info["date"] = self.date
-        info["start_date"] = self.date
+        info["rdate"] = self.rdate
+        info["start_date"] = self.start_date
         info["time_frame"] = self.time_frame
         info["meteo_source"] = self.meteo
         info["rpath"] = rpath
@@ -151,9 +151,9 @@ class D3DCast:
 
         # copy restart file
 
-        inresfile = "tri-rst." + m.tag + "." + datetime.datetime.strftime(self.date, "%Y%m%d.%H%M%M")
+        inresfile = "tri-rst." + m.tag + "." + datetime.datetime.strftime(self.rdate, "%Y%m%d.%H%M%M")
 
-        outresfile = "restart." + datetime.datetime.strftime(self.date, "%Y%m%d.%H%M%M")
+        outresfile = "restart." + datetime.datetime.strftime(self.rdate, "%Y%m%d.%H%M%M")
 
         #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
         try:
@@ -208,7 +208,7 @@ class D3DCast:
         # cleanup
         os.remove(rpath + "tri-rst." + outresfile)
 
-        logger.info("done for date :" + datetime.datetime.strftime(self.date, "%Y%m%d.%H"))
+        logger.info("done for date :" + datetime.datetime.strftime(self.rdate, "%Y%m%d.%H"))
 
         os.chdir(pwd)
 
@@ -261,7 +261,7 @@ class SchismCast:
         ]
 
         self.origin = self.model.rpath
-        self.date0 = self.model.date
+        self.rdate = self.model.rdate
 
         if not os.path.exists(self.origin):
             sys.stdout.write("Initial folder not present {}\n".format(self.origin))
@@ -294,7 +294,7 @@ class SchismCast:
 
         # update the properties
 
-        info["date"] = self.date0
+        info["rdate"] = self.rdate
         info["start_date"] = self.sdate
         info["time_frame"] = self.time_frame
         info["end_date"] = self.sdate + pd.to_timedelta(self.time_frame)
@@ -371,7 +371,7 @@ class SchismCast:
         logger.debug("create restart file")
 
         # check for combine hotstart
-        hotout = int((self.sdate - self.date0).total_seconds() / info["params"]["core"]["dt"])
+        hotout = int((self.sdate - self.rdate).total_seconds() / info["params"]["core"]["dt"])
         logger.debug("hotout_it = {}".format(hotout))
 
         resfile = glob.glob(ppath + "/outputs/hotstart_it={}.nc".format(hotout))
@@ -424,21 +424,21 @@ class SchismCast:
                         vars=["msl", "u10", "v10"],
                         rpath=rpath,
                         filename=mpath,
-                        date=self.date0,
+                        date=self.rdate,
                     )
             else:
                 m.to_force(
                     m.meteo.Dataset,
                     vars=["msl", "u10", "v10"],
                     rpath=rpath,
-                    date=self.date0,
+                    date=self.rdate,
                 )
 
         else:
             logger.warning("meteo files present\n")
 
         # modify param file
-        rnday_new = (self.sdate - self.date0).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
+        rnday_new = (self.sdate - self.rdate).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
             self.time_frame
         ).total_seconds() / (3600 * 24.0)
         hotout_write = int(rnday_new * 24 * 3600 / info["params"]["core"]["dt"])
@@ -446,10 +446,10 @@ class SchismCast:
             {
                 "ihot": 2,
                 "rnday": rnday_new,
-                "start_hour": self.date0.hour,
-                "start_day": self.date0.day,
-                "start_month": self.date0.month,
-                "start_year": self.date0.year,
+                "start_hour": self.rdate.hour,
+                "start_day": self.rdate.day,
+                "start_month": self.rdate.month,
+                "start_year": self.rdate.year,
             }
         )
 
