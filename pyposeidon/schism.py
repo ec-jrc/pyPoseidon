@@ -665,6 +665,10 @@ class Schism:
         logger.info("executing model\n")
         # ---------------------------------------------------------------------
 
+        if not tools.is_mpirun_installed():
+            logger.warning("mpirun is not installed, ending.. \n")
+            return
+
         # note that cwd is the folder where the executable is
         ex = subprocess.Popen(
             args=["./launchSchism.sh"],
@@ -1747,6 +1751,10 @@ class Schism:
         ## FOR TIDE GAUGE MONITORING
 
         logger.info("set in-situ measurements locations \n")
+
+        if not self.mesh.Dataset:
+            logger.warning("no mesh available skipping \n")
+            return
 
         gpoints = np.array(
             list(

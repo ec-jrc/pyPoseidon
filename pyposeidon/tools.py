@@ -11,6 +11,7 @@ import pathlib
 import subprocess
 from collections.abc import Iterable
 import time
+import shutil
 
 import psutil
 import xarray as xr
@@ -109,6 +110,10 @@ def run(cmd: str, quiet: bool = False, check: bool = True) -> subprocess.Complet
     return proc
 
 
+def is_mpirun_installed() -> bool:
+    return bool(shutil.which("mpirun"))
+
+
 def is_openmpi() -> bool:
     cmd = "mpirun --version"
     proc = run(cmd, quiet=True)
@@ -133,6 +138,9 @@ def create_mpirun_script(
     """
     if ncores < 1:
         ncores = psutil.cpu_count(logical=use_threads)
+    if not is_mpirun_installed():
+        logger.error(f"mpirun is missing. Please install it and try again \n")
+        return
     if use_threads and is_openmpi():
         mpirun_flags = "--use-hwthread-cpus"
     else:
