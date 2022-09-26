@@ -338,6 +338,12 @@ class Schism:
             "standard_name": "latitude",
         }
 
+        sout.lon.attrs = {
+            "units": "degrees_east",
+            "long_name": "Longitude",
+            "standard_name": "longitude",
+        }
+
         sout.prmsl.attrs = {
             "units": "Pa",
             "long_name": "Pressure reduced to MSL",
