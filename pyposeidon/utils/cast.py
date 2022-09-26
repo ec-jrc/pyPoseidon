@@ -290,6 +290,11 @@ class SchismCast:
         except:
             pass
 
+        # add optional additional kwargs
+        for attr in kwargs.keys():
+            if attr not in info.keys():
+                info[attr] = kwargs[attr]
+
         info["config_file"] = ppath + "param.nml"
 
         # update the properties

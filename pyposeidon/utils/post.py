@@ -46,12 +46,12 @@ def to_thalassa(folders, freq=None, **kwargs):
 
     cc = xr.concat(c, dim="time")
 
-    cf = cc.rename({"elev": "forecast", "time": "ftime"})
+    cf = cc.rename({"elev": "elev_fct", "time": "ftime"})
 
     # Observation/Stats
     logger.info("Retrieve observation data for station points\n")
-    stations = gp.GeoDataFrame(b.obs)
-    odata = get_obs_data(stations=stations, start_date=b.date, end_date=b.end_date)
+    stations = gp.GeoDataFrame.from_file(b.obs)
+    odata = get_obs_data(stations=stations, start_time=b.rdate, end_time=b.end_date)
 
     logger.info("Compute general statistics for station points\n")
     sts = []
@@ -74,9 +74,10 @@ def to_thalassa(folders, freq=None, **kwargs):
 
     stp = stations.to_xarray().rename({"index": "node"})
 
-    od = odata.rename({"prs": "observations"}).swap_dims({"ioc_code": "node"})
+    od = odata.rename({"prs": "elev_obs"}).swap_dims({"ioc_code": "node"})
+    od["elev_obs"] = od.elev_obs.transpose()
 
-    sd = st.rename({"elev": "elevation"})
+    sd = st.rename({"elev": "elev_sim", "time": "stime"})
 
     vdata = xr.merge([od, stats.to_xarray(), cf, sd])
 
@@ -91,16 +92,20 @@ def to_thalassa(folders, freq=None, **kwargs):
     logger.info("..done\n")
 
 
-def fskill(dset, var, node):
+def fskill(dset, var, node=None):
+
+    if not node:
+        logger.error("Specify node\n")
+        return
 
     lstat = []
 
     for l in dset.lead.values:
 
-        obs_ = dset.sel(node=node).observation  # Get observational data
-        obs_ = obs_.to_dataframe().drop("node", axis=1)
+        obs_ = dset.sel(node=node).elev_obs  # Get observational data
+        obs_ = obs_.dropna(dim="time").to_dataframe().drop("node", axis=1)
 
-        sim = dset.isel(node=node).forecast.sel(lead=l).to_dataframe().drop("node", axis=1)
+        sim = dset.isel(node=node).elev_fct.sel(lead=l).to_dataframe().drop("node", axis=1).dropna()
 
         stable = get_stats(sim, obs_)  # Do general statitics
 
