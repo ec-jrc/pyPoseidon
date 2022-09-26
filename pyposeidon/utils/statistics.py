@@ -12,9 +12,10 @@ def get_stats(sim_, obs_):
 
     # match time frames
     try:
+        start = max(obs_.index[0], sim_.index[0])
         end = min(obs_.index[-1], sim_.index[-1])
-        obs_ = obs_.loc[:end]
-        sim_ = sim_.loc[:end]
+        obs_ = obs_.loc[start:end]
+        sim_ = sim_.loc[start:end]
         obs_ = obs_.reindex(sim_.index, method="nearest")  # sample on simulation times
         return vtable(obs_.values, sim_.values)
     except:
