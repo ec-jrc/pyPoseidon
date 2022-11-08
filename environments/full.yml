@@ -2,9 +2,9 @@ channels:
   - conda-forge
   - gbrey
 dependencies:
-  - black=21.12b0
+  - black<24.0
   - bump2version
-  - cartopy<0.20
+  - cartopy
   - cfgrib
   - colorlog
   - conda-lock
@@ -14,8 +14,8 @@ dependencies:
   - eccodes
   - f90nml
   - ffmpeg
-  - gdal=3.2.1
-  - geopandas>=0.10.1
+  - gdal
+  - geopandas
   - geos
   - geoviews
   - gmsh>=4.9.3
@@ -23,7 +23,6 @@ dependencies:
   - hvplot
   - ipykernel
   - ipympl
-  - itkwidgets
   - jigsaw>=0.9.12
   - matplotlib>=3.3
   - mayavi
@@ -34,24 +33,25 @@ dependencies:
   - numpy
   - pandas
   - pip
-  - proj<8
-  - pschism=5.9*=mpi_mpich*
+  - proj
+  - pschism=5.10*=mpi_mpich*
   - psutil
   - pydap>=3.3.0
-  - pygeos>=0.10
+  - pygeos
   - pymdown-extensions
   - pyresample
   - pytest
   - pytest-cov
   - pytest-xdist
   - python-gmsh
-  - python=3.8
+  - python=3.10
   - rasterio
   - requests
   - rioxarray
   - ruamel.yaml
   - scipy
-  - shapely=1.7.1
+  - searvey
+  - shapely
   - spatialpandas
   - tqdm
   - xarray

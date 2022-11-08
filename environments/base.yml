@@ -2,7 +2,7 @@ channels:
   - conda-forge
   - gbrey
 dependencies:
-  - cartopy<0.20
+  - cartopy
   - cfgrib
   - colorlog
   - dask
@@ -10,8 +10,8 @@ dependencies:
   - eccodes
   - f90nml
   - ffmpeg
-  - gdal=3.2.1
-  - geopandas>=0.10.1
+  - gdal
+  - geopandas
   - geos
   - gmsh>=4.9.3
   - jigsaw>=0.9.12
@@ -19,19 +19,19 @@ dependencies:
   - numpy
   - pandas
   - pip
-  - proj<8
-  - pschism=5.9*=mpi_mpich*
+  - proj
+  - pschism=5.10*=mpi_mpich*
   - psutil
   - pydap>=3.3.0
-  - pygeos>=0.10
+  - pygeos
   - pyresample
   - python-gmsh
-  - python=3.8
+  - python=3.10
   - rasterio
   - requests
   - rioxarray
-  - ruamel.yaml
   - scipy
-  - shapely=1.7.1
+  - searvey
+  - shapely
   - tqdm
   - xarray

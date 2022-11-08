@@ -5,5 +5,5 @@ channels:
   - "conda-forge"
 
 dependencies:
-  - "pschism=5.9*=mpi_openmpi*"
+  - "pschism=5.10*=mpi_openmpi*"
   - "delft3d4=65936*=mpi_openmpi*"
