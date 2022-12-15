@@ -169,12 +169,12 @@ def read_msh(filename, **kwargs):
         bnodes.index.name = "bnodes"
 
         # check orientation
-        #        if use_bindings:
-        nodes, tria = orient(nodes, tria, x="x", y="y")
-    #        else:
-    #            bgmesh = kwargs.get("bgmesh", None)
-    #            if not bgmesh:
-    #                tria = tria.reindex(columns=["a", "c", "b"])
+        if use_bindings:
+            #            nodes, tria = orient(nodes, tria, x="x", y="y")
+            #        else:
+            #            bgmesh = kwargs.get("bgmesh", None)
+            #            if not bgmesh:
+            tria = tria.reindex(columns=["a", "c", "b"])
 
     # check if global and reproject
     if gglobal:  # convert to lat/lon
@@ -187,7 +187,7 @@ def read_msh(filename, **kwargs):
             nodes["x"] = xd
             nodes["y"] = yd
 
-    grid = pd.DataFrame({"lon": nodes.x, "lat": nodes.y})
+    mesh = pd.DataFrame({"lon": nodes.x, "lat": nodes.y})
 
     tri3 = tria.values
 
@@ -201,7 +201,7 @@ def read_msh(filename, **kwargs):
     )
 
     nod = (
-        grid.loc[:, ["lon", "lat"]]
+        mesh.loc[:, ["lon", "lat"]]
         .to_xarray()
         .rename(
             {
@@ -240,7 +240,7 @@ def get(contours, **kwargs):
         setup_only bool: Flag for setup only (no execution). Defaults to `False`.
     """
 
-    logger.info("Creating grid with GMSH\n")
+    logger.info("Creating mesh with GMSH\n")
 
     rpath = kwargs.get("rpath", ".")
 
@@ -309,6 +309,8 @@ def get(contours, **kwargs):
                 gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
             else:
                 gr = None
+        else:
+            gr = None
 
     try:
         bg = dh
@@ -484,24 +486,26 @@ def to_geo(df, **kwargs):
 
             loops.append(ltag)
 
-        # The rest
+        if not bspline:
 
-        ## Group open boundaries lines
-        for key, values in open_lines.items():
-            f.write("Physical Line  ({}) = {}".format(key, "{"))
-            f.write(",".join(map(str, values + 1)))
-            f.write("{};\n".format("}"))
+            ## Group open boundaries lines
+            for key, values in open_lines.items():
+                f.write("Physical Line  ({}) = {}".format(key, "{"))
+                f.write(",".join(map(str, values + 1)))
+                f.write("{};\n".format("}"))
 
-        ## Group land boundaries lines
-        for key, values in land_lines.items():
-            f.write("Physical Line  ({}) = {}".format(key, "{"))
-            f.write(",".join(map(str, values + 1)))
-            f.write("{};\n".format("}"))
+            ## Group land boundaries lines
+            for key, values in land_lines.items():
+                f.write("Physical Line  ({}) = {}".format(key, "{"))
+                f.write(",".join(map(str, values + 1)))
+                f.write("{};\n".format("}"))
 
         # The rest (islands)
         pl = 2000
 
-        for k, d in df.loc[df.tag == "island"].iterrows():
+        dfi = df.loc[df.tag == "island"]
+
+        for k, d in dfi.iterrows():
 
             points = []
 
@@ -554,11 +558,12 @@ def to_geo(df, **kwargs):
 
             loops.append(ltag)
 
-            pl += 1
-            #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
-            f.write("Physical Line  ({}) = {}".format(pl, "{"))
-            f.write(",".join(map(str, lines)))
-            f.write("{};\n".format("}"))
+            if not bspline:
+                pl += 1
+                #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
+                f.write("Physical Line  ({}) = {}".format(pl, "{"))
+                f.write(",".join(map(str, lines)))
+                f.write("{};\n".format("}"))
 
         f.write("Plane Surface (2) = {")
         f.write(",".join(map(str, loops)))
@@ -567,8 +572,13 @@ def to_geo(df, **kwargs):
         f.write("Physical Surface(1) = {2};\n")
         f.write("Field[1] = Distance;\n")
 
+        if not gglobal:
+            curve_list = [x for x in np.arange(1, ltag + 1) if x not in loops]
+        else:
+            curve_list = [x for x in np.arange(2, ltag + 1) if x not in loops]
+
         if not bspline:
-            f.write("Field[1].CurvesList = {{{}}};\n".format(",".join(map(str, np.arange(1, ltag + 1)))))
+            f.write("Field[1].CurvesList = {{{}}};\n".format(",".join(map(str, curve_list))))
         else:
             f.write("Field[1].NodesList =\n{")
             f.write(",".join(map(str, np.arange(ptag0, ptag + 1))))
@@ -1221,7 +1231,7 @@ def make_gmsh_3d(df, **kwargs):
         nodes["x"] = xd
         nodes["y"] = yd
 
-    grid = pd.DataFrame({"lon": nodes.x, "lat": nodes.y})
+    mesh = pd.DataFrame({"lon": nodes.x, "lat": nodes.y})
 
     tri3 = tria.values
 
@@ -1235,7 +1245,7 @@ def make_gmsh_3d(df, **kwargs):
     )
 
     nod = (
-        grid.loc[:, ["lon", "lat"]]
+        mesh.loc[:, ["lon", "lat"]]
         .to_xarray()
         .rename(
             {
