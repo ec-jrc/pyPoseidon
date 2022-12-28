@@ -194,15 +194,20 @@ def buffer_(coasts, cbuffer):
 
     # buffer
     w_ = gp.GeoDataFrame(geometry=de.buffer(cbuffer))  # in arcs
+    w_ = w_.buffer(-1.1 * cbuffer).buffer(cbuffer)
 
     # drop empty objects
     empty = w_.is_empty
     w_ = w_.loc[~empty]
     w_ = w_.reset_index(drop=True)
 
+    # deal with multi objects
+    ww_ = w_.explode(index_parts=False).reset_index(drop=True)
+    ww_ = gp.GeoDataFrame(geometry=ww_)
+
     # evaluate multiple boundaries
     mls = []
-    for pos, pol in w_.itertuples():
+    for pos, pol in ww_.itertuples():
         bb = pol.boundary
         try:
             len(bb.geoms)
@@ -211,12 +216,12 @@ def buffer_(coasts, cbuffer):
             pass
 
     # keep only exterior
-    for idx, val in w_.loc[mls].iterrows():
+    for idx, val in ww_.loc[mls].iterrows():
         b = shapely.geometry.Polygon(val.geometry.exterior)
-        w_.loc[idx] = b
+        ww_.loc[idx] = b
 
     # join
-    wu = w_.unary_union
+    wu = ww_.unary_union
     wu = gp.GeoDataFrame(geometry=[wu]).explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     rings = wu.boundary.is_ring  # get multiple boundaries instance
@@ -226,6 +231,16 @@ def buffer_(coasts, cbuffer):
     for idx, val in wi.iterrows():
         b = shapely.geometry.Polygon(val.geometry.exterior)
         wu.loc[idx] = b
+
+    # test for intersecting polygons
+    wu["area"] = wu["geometry"][:].area
+    wu = wu.sort_values(by="area", ascending=0)  # sort
+    wu = wu.reset_index(drop=True)
+
+    wc = wu.overlay(wu, how="intersection")
+    wint = wc.where(wc.area_1 != wc.area_2).dropna()
+    dinx = wu.loc[wu.area == wint.area_1.min()].index
+    wu = wu.drop(dinx).reset_index(drop=True)
 
     return wu
 
