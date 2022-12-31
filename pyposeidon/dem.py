@@ -76,7 +76,7 @@ class Dem:
             elif "fval" in self.Dataset.data_vars.keys():
                 logger.info("Dem already adjusted\n")
             else:
-                self.adjust(coastline)
+                self.adjust(coastline, **kwargs)
 
     def adjust(self, coastline, **kwargs):
 
