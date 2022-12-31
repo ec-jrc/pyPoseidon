@@ -263,6 +263,10 @@ class SchismCast:
         self.origin = self.model.rpath
         self.rdate = self.model.rdate
 
+        # control
+        if not isinstance(self.rdate, pd.Timestamp):
+            self.rdate = pd.to_datetime(self.rdate)
+
         if not os.path.exists(self.origin):
             sys.stdout.write("Initial folder not present {}\n".format(self.origin))
             sys.exit(1)
