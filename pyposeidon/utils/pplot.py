@@ -45,9 +45,10 @@ class gplot(object):
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
-    def contourf(self, x=None, y=None, z=None, tname="time", **kwargs):
+    def contourf(self, ax=None, x=None, y=None, z=None, tname="time", **kwargs):
 
-        fig = plt.figure(figsize=(12, 8))
+        if not ax:
+            fig = plt.figure(figsize=(12, 8))
 
         if len(self._obj[x].shape) > 2:
             grid_x = self._obj[x].values[0, :, :]
@@ -119,7 +120,7 @@ class gplot(object):
 
         return (Q,)
 
-    def quiver(self, x=None, y=None, z=None, tname="time", **kwargs):
+    def quiver(self, ax=None, x=None, y=None, z=None, tname="time", **kwargs):
 
         U = self._obj[z].values[:, :, :, 0]
         V = self._obj[z].values[:, :, :, 1]
@@ -131,8 +132,9 @@ class gplot(object):
             X = self._obj[x].values
             Y = self._obj[y].values
 
-        fig = plt.figure(figsize=(12, 8))
-        ax = plt.axes(projection=ccrs.PlateCarree())
+        if not ax:
+            fig = plt.figure(figsize=(12, 8))
+            ax = plt.axes(projection=ccrs.PlateCarree())
         crs = ccrs.PlateCarree()
         ax.set_aspect("equal")
 
@@ -214,7 +216,7 @@ class pplot(object):
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
-    def contour(self, it=None, **kwargs):
+    def contour(self, ax=None, it=None, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
@@ -247,21 +249,22 @@ class pplot(object):
             except:
                 pass
 
-        fig, ax = plt.subplots(figsize=(12, 8))
-        vmin = kwargs.get("vmin", z.min())
-        vmax = kwargs.get("vmax", z.max())
-
-        nv = kwargs.get("nv", 10)
-        xy = kwargs.get("xy", (0.3, 1.05))
-        title = kwargs.get("title", "contour plot for {}".format(var))
-
-        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
+        if not ax:
+            fig, ax = plt.subplots(figsize=(12, 8))
         ## CHOOSE YOUR PROJECTION
         #   ax = plt.axes(projection=ccrs.Orthographic(x.mean(), y.mean()))
         #   ax = plt.axes(projection=ccrs.PlateCarree())
         #   ax.background_patch.set_facecolor('k')
+        # ax = plt.axes()
 
-        ax = plt.axes()
+        vmin = kwargs.get("vmin", z.min())
+        vmax = kwargs.get("vmax", z.max())
+
+        nv = kwargs.get("nv", 10)
+        xy = kwargs.get("xy", (0.05, -0.1))
+        title = kwargs.get("title", "contour plot for {}".format(var))
+
+        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
 
         # optional mask for the data
         mask = kwargs.get("mask", None)
@@ -304,7 +307,7 @@ class pplot(object):
 
         return p  # , ax
 
-    def contourf(self, it=None, **kwargs):
+    def contourf(self, ax=None, it=None, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
@@ -350,8 +353,9 @@ class pplot(object):
         #    ax.set_extent([x.min(), x.max(), y.min(), y.max()])
         #     ax.background_patch.set_facecolor('k')
 
-        fig = plt.figure(figsize=(12, 8))
-        ax = plt.axes()
+        if not ax:
+            fig = plt.figure(figsize=(12, 8))
+            ax = plt.axes()
 
         # optional mask for the data
         mask = kwargs.get("mask", None)
@@ -359,7 +363,7 @@ class pplot(object):
             z = np.ma.masked_array(z, mask)
             z = z.filled(fill_value=-99999)
 
-        xy = kwargs.get("xy", (0.3, 1.05))
+        xy = kwargs.get("xy", (0.05, -0.1))
 
         for val in [
             "x",
@@ -385,7 +389,7 @@ class pplot(object):
         ax.set_aspect("equal")
 
         p = ax.tricontourf(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)  # , transform=ccrs.PlateCarree() )
-        cbar = fig.colorbar(p, ticks=vrange, orientation="vertical")
+        cbar = plt.colorbar(p, ticks=vrange, orientation="vertical")
         if it:
 
             text = "time={}".format(t[it])
@@ -395,9 +399,9 @@ class pplot(object):
         ax.set_xlabel("Longitude (degrees)")
         ax.set_ylabel("Latitude (degrees)")
 
-        return p  # fig, ax
+        return ax
 
-    def quiver(self, it=None, u=None, v=None, title=None, scale=0.1, color="k", **kwargs):
+    def quiver(self, ax=None, it=None, u=None, v=None, title=None, scale=0.1, color="k", **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
@@ -406,16 +410,16 @@ class pplot(object):
         except:
             pass
 
-        fig = plt.figure(figsize=(12, 8))
+        if not ax:
+            fig = plt.figure(figsize=(12, 8))
+            ## CHOOSE YOUR PROJECTION
+            #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
+            #   ax = plt.axes(projection=ccrs.PlateCarree())
+            #   ax.background_patch.set_facecolor('k')
+            ax = plt.gca()
+
         title = kwargs.get("title", "vector plot for {}".format(title))
         xy = kwargs.get("xy", (0.05, -0.1))
-
-        ## CHOOSE YOUR PROJECTION
-        #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
-        #   ax = plt.axes(projection=ccrs.PlateCarree())
-        #   ax.background_patch.set_facecolor('k')
-
-        ax = plt.gca()
 
         # optional mask for the data
         mask = kwargs.get("mask", None)
@@ -457,9 +461,9 @@ class pplot(object):
             text = "time={}".format(t[it])
             an = ax.annotate(text, xy=xy, xycoords="axes fraction")
 
-        return p  # , ax
+        return ax
 
-    def mesh(self, lw: float = 0.5, markersize: float = 1.0, **kwargs):
+    def mesh(self, ax=None, lw: float = 0.5, markersize: float = 1.0, **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
@@ -488,10 +492,24 @@ class pplot(object):
             except:
                 pass
 
-        fig = plt.figure(figsize=(12, 8))
-        ax = plt.gca()
-        # ax = plt.axes(projection=ccrs.PlateCarree())
-        # ax.background_patch.set_facecolor('k')
+        if not ax:
+            fig = plt.figure(figsize=(12, 8))
+            ax = plt.gca()
+            # ax = plt.axes(projection=ccrs.PlateCarree())
+            # ax.background_patch.set_facecolor('k')
+
+        # optionally plot boundary nodes
+        bnodes = kwargs.get("bnodes", False)
+        if bnodes:
+            bs = []
+            for group, ds in self._obj.groupby("id"):
+                xi, yi = x[ds.node], y[ds.node]
+                ib = shapely.geometry.MultiPoint(list(zip(xi, yi)))
+                bs.append(ib)
+            bls = gp.GeoDataFrame(geometry=bs)
+            bls = bls[::-1].reset_index(drop=True)
+            bls.plot(ax=ax, markersize=10, marker="x")
+            del kwargs["bnodes"]
 
         ax.set_aspect("equal")
         g = plt.triplot(x, y, tri3, "go-", lw=lw, markersize=markersize, **kwargs)  # transform=ccrs.PlateCarree() )
@@ -508,9 +526,9 @@ class pplot(object):
         ax.set_xlabel("Longitude (degrees)")
         ax.set_ylabel("Latitude (degrees)")
 
-        return g
+        return ax
 
-    def qframes(self, u=None, v=None, scale=0.01, color="k", **kwargs):
+    def qframes(self, ax=None, u=None, v=None, scale=0.01, color="k", **kwargs):
 
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
@@ -523,8 +541,9 @@ class pplot(object):
         #        ax = plt.axes(projection=ccrs.PlateCarree())
         #  ax.set_extent([x.min(), x.max(), y.min(), y.max()])
 
-        fig = plt.figure(figsize=(12, 8))
-        ax = plt.gca()
+        if not ax:
+            fig = plt.figure(figsize=(12, 8))
+            ax = plt.gca()
 
         ax.set_aspect("equal")
 
