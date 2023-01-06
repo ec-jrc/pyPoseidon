@@ -169,11 +169,11 @@ def read_msh(filename, **kwargs):
         bnodes.index.name = "bnodes"
 
         # check orientation
-        if use_bindings:
-            #            nodes, tria = orient(nodes, tria, x="x", y="y")
-            #        else:
-            #            bgmesh = kwargs.get("bgmesh", None)
-            #            if not bgmesh:
+        # if use_bindings:
+        # nodes, tria = orient(nodes, tria, x="x", y="y")
+        #        else:
+        bgmesh = kwargs.get("bgmesh", None)
+        if not bgmesh:
             tria = tria.reindex(columns=["a", "c", "b"])
 
     # check if global and reproject

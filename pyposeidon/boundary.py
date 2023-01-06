@@ -503,7 +503,7 @@ def global_tag(geo, cbuffer, blevels, R=1):
         },
         index=indx,
     )  # put together a LineString
-    geo.loc[indx] = shapely.geometry.LineString(anta.values)  # put it back to geo
+    geo.loc[indx, "geometry"] = shapely.geometry.LineString(anta.values)  # put it back to geo
 
     # International Meridian
     m1 = geo[geo.bounds.minx == geo.bounds.minx.min()].index
