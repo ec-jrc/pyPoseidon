@@ -59,7 +59,7 @@ def get_seam(x, y, z, tri3, **kwargs):
         cp = npol.intersection(l)  # find the intersection with the element
 
         try:
-            cpp = [(x.coords[0][0], x.coords[0][1]) for x in cp]  # get cross nodes
+            cpp = [(x.coords[0][0], x.coords[0][1]) for x in cp.geoms]  # get cross nodes
         except:
             cpp = []
 
@@ -80,7 +80,7 @@ def get_seam(x, y, z, tri3, **kwargs):
         nels = pd.DataFrame(tes, columns=["a", "b", "c"])
 
         if cpp:
-            de = de.append(de.loc[:1], ignore_index=True)  # replicate the meridian cross points
+            de = pd.concat([de, de.loc[:1]], ignore_index=True)  # replicate the meridian cross points
             de.lon[-2:] *= -1
 
         if de[de.lon > 180.0].size > 0:
@@ -120,11 +120,12 @@ def get_seam(x, y, z, tri3, **kwargs):
     ## drop the problematic elements
     ges = elems.drop(qq[gemask].index)
     ## append new nodes
-    mes = gr.append(ng)
+    mes = pd.concat([gr, ng])
+
     ## Make new elements index global
     nges = nge + si + 1
     # append new elements
-    ges = ges.append(nges)
+    ges = pd.concat([ges, nges])
     ges.reset_index(inplace=True, drop=True)
     mes.reset_index(inplace=True, drop=True)
 
