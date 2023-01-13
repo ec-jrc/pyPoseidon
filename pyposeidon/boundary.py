@@ -27,7 +27,7 @@ def simplify(geo):
 
     # Just in case merge
     if (geo.geom_type == "LineString").all():
-        geo_ = gp.GeoDataFrame(geometry=[shapely.ops.linemerge(geo.geometry.values)])
+        geo_ = gp.GeoDataFrame(geometry=[shapely.ops.linemerge(list(geo.geometry.values))])
         geo = geo_.explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     if (geo.geom_type == "Polygon").all():
@@ -364,10 +364,8 @@ def tag(geometry, coasts, cbuffer, blevels):
     else:
         g = grp
 
-    try:  # make geoDataFrame
-        t = gp.GeoDataFrame({"geometry": g})
-    except:
-        t = gp.GeoDataFrame({"geometry": [g]})
+    # make geoDataFrame
+    t = gp.GeoDataFrame({"geometry": [g]}).explode(index_parts=True).droplevel(0)
     t["length"] = t["geometry"][:].length  # get length
     t = t.sort_values(by="length", ascending=0)  # sort
     t = t.reset_index(drop=True)
@@ -520,7 +518,7 @@ def global_tag(geo, cbuffer, blevels, R=1):
             gy = np.array([y for (x, y) in gk.coords[:]])
             jj = np.argwhere(gy > -86)
             gx_, gy_ = to_stereo(gx[jj], gy[jj], R=1)  # project valid values only
-            geo.loc[idx, "geometry"] = shapely.geometry.LineString(list(zip(gx_, gy_)))
+            geo.loc[idx, "geometry"] = shapely.geometry.LineString(list(zip(gx_.flatten(), gy_.flatten())))
         else:
             geo.loc[idx, "geometry"] = shapely.ops.transform(
                 lambda x, y, z=None: to_stereo(x, y, R=R),

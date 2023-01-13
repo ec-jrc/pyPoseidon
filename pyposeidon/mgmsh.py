@@ -714,7 +714,7 @@ def outer_boundary(df, **kwargs):
 
     # Do linemerge of outer contours
     lss = df_.geometry.values
-    merged = shapely.ops.linemerge(lss)
+    merged = shapely.ops.linemerge(list(lss))
     o2 = pd.DataFrame({"lon": merged.xy[0], "lat": merged.xy[1]})  # convert to DataFrame
     o2 = o2.drop_duplicates()
 
