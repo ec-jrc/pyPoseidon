@@ -60,7 +60,7 @@ def to_geo(df, path=".", tag="jigsaw"):
 
         # Do linemerge of outer contours
         lss = df_.geometry.values
-        merged = shapely.ops.linemerge(lss)
+        merged = shapely.ops.linemerge(list(lss))
         o2 = pd.DataFrame({"x": merged.xy[0], "y": merged.xy[1]})  # convert to DataFrame
         o2 = o2.drop_duplicates()
 
