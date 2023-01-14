@@ -37,7 +37,6 @@ dependencies:
   - pschism=5.10*=mpi_mpich_py3.10*
   - psutil
   - pydap>=3.3.0
-  - pygeos
   - pymdown-extensions
   - pyresample
   - pytest
@@ -51,7 +50,7 @@ dependencies:
   - ruamel.yaml
   - scipy
   - searvey
-  - shapely
+  - shapely>=2
   - spatialpandas
   - tqdm
   - xarray

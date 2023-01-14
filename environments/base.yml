@@ -23,7 +23,6 @@ dependencies:
   - pschism=5.10*=mpi_mpich*
   - psutil
   - pydap>=3.3.0
-  - pygeos
   - pyresample
   - python-gmsh
   - python=3.10
@@ -32,6 +31,6 @@ dependencies:
   - rioxarray
   - scipy
   - searvey
-  - shapely
+  - shapely>=2
   - tqdm
   - xarray

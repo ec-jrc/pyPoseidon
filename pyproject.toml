@@ -48,18 +48,16 @@ netCDF4 = "*"
 numpy = ">=1.20, <2.0"
 pandas = "*"
 psutil = "*"
-pydap = {url = "https://github.com/pydap/pydap/archive/refs/tags/3.3.0.zip"}
-pygeos = "*"
-#pygeos = { url = "https://github.com/pygeos/pygeos/releases/download/0.12.0/pygeos-0.12.0.tar.gz" }
+pydap = ">=3.4.0"
 pyresample = "*"
 rasterio = "*"
 requests = "*"
 rioxarray = "*"
 scipy = "*"
 searvey = "*"
-Shapely = "> 1"
+Shapely = ">=2"
 #Shapely = { url = "https://github.com/shapely/shapely/archive/refs/tags/1.7.1.zip" }
-tornado = "< 6.2"
+tornado = "<6.2"
 tqdm = "*"
 xarray = "*"
 # docs
@@ -86,7 +84,7 @@ vtk = {version = "*", optional = true}
 [tool.poetry.dev-dependencies]
 black = "<24.0"
 bump2version = "^1.0"
-conda-lock = "^1.0"
+conda-lock = ">=2.0"
 "ruamel.yaml" = "<1.0"
 "ruamel.yaml.clib" = "0.2.7"
 
