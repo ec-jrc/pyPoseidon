@@ -19,7 +19,6 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import pandas as pd
-import pygeos
 import spatialpandas
 import geopandas as gp
 from hvplot import xarray
@@ -178,7 +177,7 @@ class hplot(object):
 
             quads["coordinates"] = coords
 
-            qpolys = pygeos.polygons(quads.coordinates.to_list())
+            qpolys = shapely.polygons(quads.coordinates.to_list())
 
             df = gp.GeoDataFrame(geometry=qpolys)
 

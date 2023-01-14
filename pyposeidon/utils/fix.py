@@ -11,7 +11,6 @@ Grid adjustment functions
 import numpy as np
 import geopandas as gp
 import shapely
-import pygeos
 import pyresample
 import pandas as pd
 import xarray as xr
@@ -95,10 +94,7 @@ def fix(dem, coastline, **kwargs):
 
     g = block.unary_union.symmetric_difference(grp)  # get the diff
 
-    try:
-        t = gp.GeoDataFrame({"geometry": g})
-    except:
-        t = gp.GeoDataFrame({"geometry": [g]})
+    t = gp.GeoDataFrame({"geometry": [g]}).explode(index_parts=True).droplevel(0)
 
     t["length"] = t["geometry"][:].length  # optional
 
@@ -145,21 +141,23 @@ def fix(dem, coastline, **kwargs):
         df = dem.elevation.to_dataframe().reset_index()
 
     # ---------------------------------------------------------------------
-    logger.debug("invoke pygeos\n")
+    logger.debug("invoke shapely\n")
     # ---------------------------------------------------------------------
 
-    spoints_ = pygeos.points(list(df.loc[:, ["longitude", "latitude"]].values))  # create pygeos objects for the points
+    spoints_ = shapely.points(
+        list(df.loc[:, ["longitude", "latitude"]].values)
+    )  # create shapely objects for the points
 
-    # Add land boundaries to a pygeos object
+    # Add land boundaries to a shapely object
     try:
         lbs = []
         for l in range(len(land.boundary.geoms)):
-            z = pygeos.linearrings(land.boundary.geoms[l].coords[:])
+            z = shapely.linearrings(land.boundary.geoms[l].coords[:])
             lbs.append(z)
     except:
-        lbs = pygeos.linearrings(land.boundary.coords[:])
+        lbs = shapely.linearrings(land.boundary.coords[:])
 
-    bp = pygeos.polygons(lbs)
+    bp = shapely.polygons(lbs)
 
     # ---------------------------------------------------------------------
     logger.debug("find wet and dry masks\n")
@@ -167,7 +165,7 @@ def fix(dem, coastline, **kwargs):
 
     # find the points on land
 
-    tree = pygeos.STRtree(spoints_)
+    tree = shapely.STRtree(spoints_)
 
     try:
         wl = []

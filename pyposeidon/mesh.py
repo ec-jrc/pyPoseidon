@@ -593,9 +593,10 @@ class tri2d:
     def verify(self, **kwargs):
 
         shp = kwargs.get("coastlines", None)
+        thorough = kwargs.get("thorough", False)
 
         if shp is not None:
-            r = verify(self, shp)
+            r = verify(self, shp, thorough)
             return r
         else:
             logger.warning("No coastlines provided")

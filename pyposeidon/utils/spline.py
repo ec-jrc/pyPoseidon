@@ -2,7 +2,6 @@ import pandas as pd
 import geopandas as gp
 import numpy as np
 import shapely
-import pygeos
 from scipy.interpolate import interp1d
 
 # based on https://stackoverflow.com/questions/52014197/how-to-interpolate-a-2d-curve-in-python
