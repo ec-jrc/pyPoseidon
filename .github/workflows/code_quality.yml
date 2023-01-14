@@ -19,7 +19,7 @@ jobs:
           python-version: 3.8
 
       - name: "Install Python dependencies"
-        run: "pip install black==21.12b0"
+        run: "pip install 'black<24'"
 
       - name: "Run linters"
         run: "black --check ./"

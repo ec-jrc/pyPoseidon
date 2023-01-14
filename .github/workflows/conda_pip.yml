@@ -94,7 +94,7 @@ jobs:
           # If we don't reinstall, then there may be problems when we try to create the wheel file for
           # mayavi later in the main `pip install -r ...` step
           rm -rf $(dirname $(python -c 'import vtk; print(vtk.__path__[0])'))/vtk*
-          pip install $(grep vtk locks/requirements-full.txt)
+          pip install $(grep vtk locks/requirements-full.txt | cut -d ';' -f 1)
           pip install -r locks/requirements-full.txt
 
       - name: "Debug installed python packages"
