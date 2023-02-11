@@ -59,7 +59,7 @@ ipydatawidgets==4.2.0
 ipykernel==6.9.1; python_version >= "3.7"
 ipympl==0.8.8
 ipython-genutils==0.2.0; python_version >= "3.7"
-ipython==8.1.0; python_version >= "3.8"
+ipython==8.10.0; python_version >= "3.8"
 ipywidgets==7.6.5; python_version >= "3.7"
 itk-core==5.2.1.post1
 itk-filtering==5.2.1.post1
