@@ -53,7 +53,6 @@ class tpx07(tide):
 
         k = 0
         for plon, plat in zip(lons, lats):
-
             i = np.abs(lon - np.float(plon)).argmin()
             j = np.abs(lat - np.float(plat)).argmin()
 
@@ -63,7 +62,6 @@ class tpx07(tide):
             yy = lat[j - 1 : j + 2]
 
             for m in range(amp.shape[-1]):
-
                 zz = amp[i - 1 : i + 2, j - 1 : j + 2, m]
                 fa = interpolate.RectBivariateSpline(xx, yy, zz, kx=2, ky=2)
 

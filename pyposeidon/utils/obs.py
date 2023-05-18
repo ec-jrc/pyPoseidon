@@ -10,7 +10,6 @@ from datetime import datetime
 
 
 def get_obs_data(stations: str | gp.GeoDataFrame, start_time=None, end_time=None, period=None, **kwargs):
-
     if isinstance(stations, str):
         df = gp.read_file(stations)
     elif isinstance(stations, gp.GeoDataFrame):

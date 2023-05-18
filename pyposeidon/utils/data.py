@@ -39,7 +39,6 @@ def get_output(solver_name: str, **kwargs):
 
 class D3DResults:
     def __init__(self, **kwargs):
-
         rpath = kwargs.get("rpath", "./d3d/")
 
         folders = kwargs.get(
@@ -118,13 +117,11 @@ class D3DResults:
             dic.update({"se_date": self.Dataset.time.values[-1]})
 
     def frames(self, var, **kwargs):
-
         X, Y = self.Dataset.XZ.values[1:-1, 1:-1], self.Dataset.YZ.values[1:-1, 1:-1]
         xh = np.ma.masked_array(X.T, self.w)  # mask land
         yh = np.ma.masked_array(Y.T, self.w)
 
         if len(var) == 1:
-
             var = self.Dataset[var[0]].transpose(
                 self.Dataset[var[0]].dims[0],
                 self.Dataset[var[0]].dims[2],
@@ -136,7 +133,6 @@ class D3DResults:
             return contour(xh, yh, v, self.Dataset.time.values, **kwargs)
 
         elif len(var) == 2:
-
             a0 = self.Dataset[var[0]].squeeze()
             var0 = a0.transpose(a0.dims[0], a0.dims[2], a0.dims[1])[:, 1:-1, 1:-1]
             a1 = self.Dataset[var[1]].squeeze()
@@ -150,7 +146,6 @@ class D3DResults:
 
 class SchismResults:
     def __init__(self, **kwargs):
-
         rpath = kwargs.get("rpath", "./schism/")
 
         folders = kwargs.get(
@@ -169,7 +164,6 @@ class SchismResults:
         misc = kwargs.get("misc", {})
 
         for folder in self.folders:
-
             logger.info(" Combining output for folder {}\n".format(folder))
 
             xdat = glob.glob(folder + "/outputs/schout_[!0]*.nc")
@@ -179,7 +173,6 @@ class SchismResults:
                 datai.append(xdat)  # append to list
 
             else:  # run merge output
-
                 with open(folder + "/" + tag + "_model.json", "r") as f:
                     info = pd.read_json(f, lines=True).T
                     info[info.isnull().values] = None
@@ -201,7 +194,6 @@ class SchismResults:
         merge = kwargs.get("merge", True)
 
         if merge:
-
             datai = flat_list(datai)
             self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
 

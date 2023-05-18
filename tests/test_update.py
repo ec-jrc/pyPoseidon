@@ -26,7 +26,6 @@ OPTS = pytest.mark.parametrize(
 
 @OPTS
 def test_update_selector(tmpdir, flag, dem, meteo, mesh):
-
     # define in a dictionary the properties of the model..
     dic = {
         "solver_name": "schism",

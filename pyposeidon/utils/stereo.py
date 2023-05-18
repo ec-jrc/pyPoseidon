@@ -4,7 +4,6 @@ import numpy as np
 
 
 def to_3d(x, y, R=1):
-
     lon = np.array(x)
     lat = np.array(y)
     # to 3D
@@ -16,7 +15,6 @@ def to_3d(x, y, R=1):
 
 
 def to_stereo(x, y, R=1):
-
     kx, ky, kz = to_3d(x, y, R)
 
     # to 2D in stereo
@@ -29,7 +27,6 @@ def to_stereo(x, y, R=1):
 
 
 def stereo_to_3d(u, v, R=1):
-
     # to 3D
     #    c=4*R**2/(u**2+v**2+4*R**2)
     #    x=c*u
@@ -45,7 +42,6 @@ def stereo_to_3d(u, v, R=1):
 
 
 def to_lat_lon(x, y, z=None, R=1):
-
     if z is None:
         x, y, z = stereo_to_3d(x, y, R=R)
 

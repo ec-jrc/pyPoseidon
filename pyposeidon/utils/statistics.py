@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_stats(sim_, obs_):
-
     # match time frames
     try:
         start = max(obs_.index[0], sim_.index[0])
@@ -40,7 +39,6 @@ def get_stats(sim_, obs_):
 
 
 def vtable(obsrv, model):
-
     if len(obsrv) != len(model):
         print("dimensions mismatch")
         return

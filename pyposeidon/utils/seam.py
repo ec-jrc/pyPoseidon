@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_seam(x, y, z, tri3, **kwargs):
-
     if z == None:
         z = 1.0
 
@@ -146,7 +145,6 @@ def get_seam(x, y, z, tri3, **kwargs):
 
 
 def to_2d(dataset=None, var=None, mesh=None, **kwargs):
-
     x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
     y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
     tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
@@ -203,7 +201,6 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
         )
 
     elif "time" in dataset[var].coords:
-
         xelev = []
         for i in range(dataset.time.shape[0]):
             z = dataset[var].values[i, :]
@@ -230,7 +227,6 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
 
 
 def reposition(px):
-
     px[px < 0] = px[px < 0] + 360.0
 
     return px

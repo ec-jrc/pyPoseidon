@@ -30,7 +30,6 @@ encoding = dict(
 
 
 def to_thalassa(folders, freq=None, **kwargs):
-
     # Retrieve data
     tag = kwargs.get("tag", "schism")
     rpath = kwargs.get("rpath", "./thalassa/")
@@ -44,7 +43,6 @@ def to_thalassa(folders, freq=None, **kwargs):
     c = []
 
     for folder in folders:
-
         b = pyposeidon.model.read(folder + "/{}_model.json".format(tag))
         b.get_output_data()
         b.get_station_sim_data()
@@ -63,7 +61,6 @@ def to_thalassa(folders, freq=None, **kwargs):
             out = xr.merge([sl, sd])
 
         else:
-
             out = out[["elev", "depth", "SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "SCHISM_hgrid_face_nodes"]]
 
         # save to mp4
@@ -103,7 +100,6 @@ def to_thalassa(folders, freq=None, **kwargs):
     sts = []
     od = []
     for inode in tqdm(odata.ioc_code.values):
-
         oi = odata.sel(ioc_code=inode)
 
         for var in oi.data_vars:
@@ -160,7 +156,6 @@ def to_thalassa(folders, freq=None, **kwargs):
 
 
 def fskill(dset, var, node=None):
-
     if not node:
         logger.error("Specify node\n")
         return
@@ -168,7 +163,6 @@ def fskill(dset, var, node=None):
     lstat = []
 
     for l in dset.lead.values:
-
         obs_ = dset.sel(node=node).elev_obs  # Get observational data
         obs_ = obs_.dropna(dim="time").to_dataframe().drop("node", axis=1)
 

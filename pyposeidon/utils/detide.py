@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_ss(obs, lat):
-
     obs["seconds"] = obs.index - obs.index[0]
     obs["seconds"] = obs.seconds.dt.total_seconds().astype(int)
     obs.columns = ["elev", "seconds"]

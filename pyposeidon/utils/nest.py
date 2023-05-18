@@ -24,7 +24,6 @@ class nest:
 
 class dnest(nest):
     def __init__(self, **kwargs):
-
         for attr, value in kwargs.iteritems():
             setattr(self, attr, value)
 
@@ -57,7 +56,6 @@ class dnest(nest):
 
         check = [os.path.exists(parent + f) for f in ["u.amu", "v.amv", "p.amp"]]
         if np.any(check) == False:
-
             nest.force()
             nest.uvp()  # write u,v,p files
 

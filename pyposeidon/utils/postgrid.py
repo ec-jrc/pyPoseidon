@@ -12,7 +12,6 @@ import shapely
 
 
 def nreduce(dnodes, delems, grid, elems, tag="tag"):
-
     ### Drop nodes
 
     grid = grid.drop(dnodes)  # drop nodes
@@ -41,7 +40,6 @@ def nreduce(dnodes, delems, grid, elems, tag="tag"):
 
 
 def drop(nodes, elems, bnodes, dq):
-
     nodes = nodes.drop(dq)  # drop nodes
     nodes = nodes.rename_axis("tag").reset_index()  # reset index
 
@@ -73,7 +71,6 @@ def drop(nodes, elems, bnodes, dq):
 
 
 def check(g, shp, bad):
-
     # ## Read Grid
     #    g = pg.grid(type='tri2d',grid_file='/eos/jeodpp/data/projects/FLOODS-COAST/floods-coast/OPER/grids/eur_fixed.gr3')
 

@@ -114,7 +114,6 @@ def cfgrib(
     meteo_combine_by="by_coords",
     **kwargs,
 ):
-
     backend_kwargs = kwargs.get("meteo_backend_kwargs", {"indexpath": ""})
     xr_kwargs = kwargs.get("meteo_xr_kwargs", {})  # {'concat_dim':'step'})
     minlon = lon_min
@@ -251,7 +250,6 @@ def cfgrib(
         lat_1 = min(data.latitude.size, j1 + 3)
 
     if i0 >= i1:
-
         sh = (
             data[["msl", "u10", "v10"]]
             .isel(
@@ -269,7 +267,6 @@ def cfgrib(
         tot = xr.concat([sh, sh1], dim="longitude")
 
     else:
-
         tot = (
             data[["msl", "u10", "v10"]]
             .isel(longitude=slice(lon_0, lon_1), latitude=slice(lat_0, lat_1))
@@ -302,7 +299,6 @@ def from_url(
     time_frame=None,
     **kwargs,
 ):
-
     if not start_date:
         start_date = pd.to_datetime(datetime.datetime.today())
     else:
@@ -361,7 +357,6 @@ def from_url(
     j1 = np.abs(data.latitude.data - lat_max).argmin()
 
     if i0 >= i1:
-
         sh = (
             data[["prmslmsl", "ugrd10m", "vgrd10m"]]
             .isel(longitude=slice(i0, data.longitude.size), latitude=slice(j0, j1 + 1))
@@ -378,7 +373,6 @@ def from_url(
         tot = xr.concat([sh, sh1], dim="longitude")
 
     else:
-
         tot = (
             data[["prmslmsl", "ugrd10m", "vgrd10m"]]
             .isel(longitude=slice(i0, i1 + 1), latitude=slice(j0, j1 + 1))
@@ -411,7 +405,6 @@ def netcdf(
     meteo_combine_by="by_coords",
     **kwargs,
 ):
-
     # ---------------------------------------------------------------------
     logger.info("extracting meteo\n")
     # ---------------------------------------------------------------------

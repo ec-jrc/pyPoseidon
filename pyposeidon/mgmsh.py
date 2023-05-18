@@ -46,7 +46,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_ibounds(df, mm):
-
     if df.shape[0] == 0:
         disable = True
     else:
@@ -55,7 +54,6 @@ def get_ibounds(df, mm):
     ibounds = []
 
     for row in tqdm(df.itertuples(index=True, name="Pandas"), total=df.shape[0], disable=disable):
-
         inodes, xyz = mm.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
         db = pd.DataFrame({"node": inodes - 1})
         db["type"] = "island"
@@ -67,7 +65,6 @@ def get_ibounds(df, mm):
 
 
 def read_msh(filename, **kwargs):
-
     model = gmsh.model
     factory = model.geo
 
@@ -223,7 +220,6 @@ def read_msh(filename, **kwargs):
 
 
 def get(contours, **kwargs):
-
     """
     Create a `gmsh` mesh.
 
@@ -262,9 +258,7 @@ def get(contours, **kwargs):
             kwargs.update({"bgmesh": "auto"})
 
     if bgmesh == "auto":
-
         try:
-
             rpath = kwargs.get("rpath", ".")
 
             if not os.path.exists(rpath + "/gmsh/"):  # check if run folder exists
@@ -274,7 +268,6 @@ def get(contours, **kwargs):
 
             gglobal = kwargs.get("gglobal", False)
             if gglobal:
-
                 dem = pdem.Dem(**kwargs)
 
                 nds, lms = make_bgmesh_global(contours, fpos, dem.Dataset, **kwargs)
@@ -285,7 +278,6 @@ def get(contours, **kwargs):
             kwargs.update({"bgmesh": fpos})
 
         except OSError as e:
-
             logger.warning("bgmesh failed... continuing without background mesh size")
             dh = None
             kwargs.update({"bgmesh": None})
@@ -321,7 +313,6 @@ def get(contours, **kwargs):
 
 
 def gset(df, **kwargs):
-
     logger.info("Interpolating coastal points")
 
     lc = kwargs.get("lc", 0.5)
@@ -391,7 +382,6 @@ def gset(df, **kwargs):
     r0 = ddf.loc["line0"]
 
     if not shapely.geometry.LinearRing(r0[["lon", "lat"]].values).is_ccw:
-
         rf0 = ddf.loc["line0"].iloc[::-1].reset_index(drop=True)
         ddf.loc["line0"] = rf0.values
 
@@ -401,7 +391,6 @@ def gset(df, **kwargs):
 
 
 def to_geo(df, **kwargs):
-
     gglobal = kwargs.get("gglobal", False)
 
     lc = kwargs.get("lc", 0.5)
@@ -431,9 +420,7 @@ def to_geo(df, **kwargs):
     filename = rpath + "/gmsh/mymesh.geo"
 
     with open(filename, "w") as f:
-
         if gglobal:
-
             f.write("Point(1) = {{0,0,0,{}}};\n".format(lc))
             f.write("Point(2) = {{1,0,0,{}}};\n".format(lc))
             f.write("PolarSphere (1) = {1,2};\n")
@@ -458,11 +445,9 @@ def to_geo(df, **kwargs):
             points.append(ptag)
 
         if points:
-
             points = points + [points[0]]
 
             if not bspline:
-
                 t2 = [[points[l], points[l + 1]] for l in range(0, len(points) - 1)]
                 lines = []
                 for [a, b] in t2:
@@ -472,7 +457,6 @@ def to_geo(df, **kwargs):
                 ltag += 1
 
             else:
-
                 ltag += 1
                 f.write("BSpline ({}) = {}".format(ltag, "{"))
                 f.write(",".join(map(str, points)))
@@ -487,7 +471,6 @@ def to_geo(df, **kwargs):
             loops.append(ltag)
 
         if not bspline:
-
             ## Group open boundaries lines
             for key, values in open_lines.items():
                 f.write("Physical Line  ({}) = {}".format(key, "{"))
@@ -506,7 +489,6 @@ def to_geo(df, **kwargs):
         dfi = df.loc[df.tag == "island"]
 
         for k, d in dfi.iterrows():
-
             points = []
 
             rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
@@ -534,7 +516,6 @@ def to_geo(df, **kwargs):
             points = points + [points[0]]
 
             if not bspline:
-
                 t2 = [[points[l], points[l + 1]] for l in range(0, len(points) - 1)]
                 lines = []
                 for [a, b] in t2:
@@ -544,7 +525,6 @@ def to_geo(df, **kwargs):
                 ltag += 1
 
             else:
-
                 ltag += 1
                 f.write("BSpline ({}) = {}".format(ltag, "{"))
                 f.write(",".join(map(str, points)))
@@ -599,7 +579,6 @@ def to_geo(df, **kwargs):
         bgmesh = kwargs.get("bgmesh", None)
 
         if bgmesh:
-
             # get full path
             bgmesh_path = os.path.abspath(bgmesh)
 
@@ -616,7 +595,6 @@ def to_geo(df, **kwargs):
             f.write("Background Field = 4;\n")
 
         else:
-
             f.write("Background Field = 2;\n")
 
         MeshSizeMin = kwargs.get("MeshSizeMin", SizeMin)
@@ -630,7 +608,6 @@ def to_geo(df, **kwargs):
 
 
 def gmsh_execute(**kwargs):
-
     rpath = kwargs.get("rpath", ".")
     setup_only = kwargs.get("setup_only", False)
     calc_dir = rpath + "/gmsh/"
@@ -648,7 +625,6 @@ def gmsh_execute(**kwargs):
         bin_path = "gmsh"
 
     if not setup_only:
-
         # ---------------------------------
         logger.info("Executing gmsh\n")
         # ---------------------------------
@@ -688,14 +664,12 @@ def gmsh_execute(**kwargs):
             f.write(error)
 
     else:
-
         status = True
 
     return status
 
 
 def outer_boundary(df, **kwargs):
-
     lc = kwargs.get("lc", 0.5)
 
     df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
@@ -724,7 +698,6 @@ def outer_boundary(df, **kwargs):
 
     # check orientation
     if not shapely.geometry.LinearRing(rb0[["lon", "lat"]].values).is_ccw:
-
         rb0_ = rb0.iloc[::-1].reset_index(drop=True)
         rb0 = rb0_
 
@@ -762,7 +735,6 @@ def outer_boundary(df, **kwargs):
 
 
 def make_bgmesh(df, fpos, **kwargs):
-
     lon_min = df.bounds.minx.min()
     lon_max = df.bounds.maxx.max()
     lat_min = df.bounds.miny.min()
@@ -825,7 +797,6 @@ def make_bgmesh(df, fpos, **kwargs):
 
 
 def make_gmsh(df, **kwargs):
-
     logger.info("Creating mesh")
 
     model = gmsh.model
@@ -849,7 +820,6 @@ def make_gmsh(df, **kwargs):
     df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
 
     if not df_.empty:
-
         rb0, land_lines, open_lines = outer_boundary(df, **kwargs)
         # join
         ols = [j for i in list(open_lines.values()) for j in i]
@@ -870,7 +840,6 @@ def make_gmsh(df, **kwargs):
     tag = 0
 
     if not df_.empty:
-
         for row in rb0.itertuples(index=True, name="Pandas"):
             factory.addPoint(
                 getattr(row, "lon"),
@@ -900,7 +869,6 @@ def make_gmsh(df, **kwargs):
         ltag += 1
 
     for k, d in df.loc[df.tag == "island"].iterrows():
-
         rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
         rb["z"] = 0
         rb["lc"] = lc
@@ -987,7 +955,6 @@ def make_gmsh(df, **kwargs):
     bgmesh = kwargs.get("bgmesh", None)
 
     if bgmesh:
-
         gmsh.merge(bgmesh)
 
         model.mesh.field.setNumber(2, "StopAtDistMax", 1)
@@ -1001,7 +968,6 @@ def make_gmsh(df, **kwargs):
         model.mesh.field.setAsBackgroundMesh(4)
 
     else:
-
         model.mesh.field.setAsBackgroundMesh(2)
 
     gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
@@ -1037,7 +1003,6 @@ def make_gmsh(df, **kwargs):
 
 
 def make_gmsh_3d(df, **kwargs):
-
     logger.info("Creating global mesh")
 
     model = gmsh.model
@@ -1069,7 +1034,6 @@ def make_gmsh_3d(df, **kwargs):
     curve_tag += 1
 
     for k, d in df.iterrows():
-
         rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
         rb["z"] = 1
         rb = rb.drop_duplicates(["lon", "lat"])
@@ -1141,7 +1105,6 @@ def make_gmsh_3d(df, **kwargs):
     bgmesh = kwargs.get("bgmesh", None)
 
     if bgmesh:
-
         gmsh.merge(bgmesh)
 
         model.mesh.field.setNumber(2, "StopAtDistMax", 1)
@@ -1155,7 +1118,6 @@ def make_gmsh_3d(df, **kwargs):
         model.mesh.field.setAsBackgroundMesh(4)
 
     else:
-
         model.mesh.field.setAsBackgroundMesh(2)
 
     gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)

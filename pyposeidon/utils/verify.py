@@ -60,7 +60,6 @@ def verify(g, shp, thorough=False):
     nels = 1
 
     if thorough:
-
         # ### Find invalid elements (that cross land)
 
         # cells to polygons

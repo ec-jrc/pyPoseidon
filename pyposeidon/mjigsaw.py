@@ -33,7 +33,6 @@ logger = logging.getLogger(__name__)
 
 
 def to_geo(df, path=".", tag="jigsaw"):
-
     fgeo = path + tag + "-geo.msh"
     # write header
     with open(fgeo, "w") as f:
@@ -45,7 +44,6 @@ def to_geo(df, path=".", tag="jigsaw"):
     df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
 
     if not df_.empty:
-
         # store xy in a DataFrame
         dic = {}
         for k, d in df_.iterrows():
@@ -103,7 +101,6 @@ def to_geo(df, path=".", tag="jigsaw"):
         edges = edges.values.tolist()
 
     else:
-
         edges = []
         points = pd.DataFrame({})
 
@@ -144,7 +141,6 @@ def to_geo(df, path=".", tag="jigsaw"):
 
 
 def parse_msh(fmsh):
-
     grid = pd.read_csv(fmsh, header=0, names=["data"], index_col=None, low_memory=False)
     npoints = int(grid.loc[2].str.split("=")[0][1])
 
@@ -171,7 +167,6 @@ def parse_msh(fmsh):
 
 
 def make_bgmesh(contours, **kwargs):
-
     gglobal = kwargs.get("gglobal", False)
 
     if gglobal:
@@ -207,14 +202,12 @@ def make_bgmesh(contours, **kwargs):
     fpos = rpath + "/jigsaw/" + tag + "-hfun.msh"
 
     if gglobal:
-
         logger.info("Evaluate global bgmesh")
         nds, lms = make_bgmesh_global(contours, fpos, dem, **kwargs)
         logger.info("Saving global background scale file")
         dh = to_global_hfun(nds, lms, fpos, **kwargs)
 
     else:
-
         logger.info("Evaluate bgmesh")
         dh = get_hfun(
             dem, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx, **kwargs_
@@ -227,7 +220,6 @@ def make_bgmesh(contours, **kwargs):
 
 
 def read_msh(filename, **kwargs):
-
     logger.info("..reading mesh\n")
 
     [nodes, edges, tria] = parse_msh(filename)
@@ -321,11 +313,9 @@ def read_msh(filename, **kwargs):
         wbs.append(bf)
 
     if wbs:
-
         openb = pd.concat(wbs)
 
         if openb.index.levels[0].shape[0] == 1:  # sort the nodes if open box
-
             pts = openb[["x", "y"]].values
 
             origin = [openb.mean()["x"], openb.mean()["y"]]
@@ -346,7 +336,6 @@ def read_msh(filename, **kwargs):
             openb = openb.iloc[idx]
 
     else:
-
         openb = pd.DataFrame([])
 
     # convert if global
@@ -414,7 +403,6 @@ def read_msh(filename, **kwargs):
 
 
 def get(contours, **kwargs):
-
     """
     Create a `jigsaw` mesh.
 
@@ -456,11 +444,9 @@ def get(contours, **kwargs):
             kwargs.update({"bgmesh": "auto"})
 
     if bgmesh is not None:
-
         logger.info("Set background scale")
 
         if bgmesh.endswith(".nc"):
-
             try:
                 dh = xr.open_dataset(bgmesh)
 
@@ -473,11 +459,9 @@ def get(contours, **kwargs):
                 bgmesh = None
 
         elif bgmesh == "auto":
-
             dh = make_bgmesh(contours, **kwargs)
 
         elif bgmesh.endswith(".msh"):
-
             pass
 
     try:
@@ -517,7 +501,6 @@ def get(contours, **kwargs):
     setup_only = kwargs.get("setup_only", False)
 
     if not setup_only:
-
         # ---------------------------------
         logger.info("executing jigsaw\n")
         # ---------------------------------
@@ -546,7 +529,6 @@ def get(contours, **kwargs):
             return gr, bg
 
         else:
-
             logger.info("Jigsaw FINISHED\n")
 
             gr = read_msh(calc_dir + tag + ".msh", **kwargs)
@@ -556,7 +538,6 @@ def get(contours, **kwargs):
             logger.info("..done creating mesh\n")
 
     else:
-
         gr = None
 
         return gr, bg

@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 class obs:
     def __init__(self, **kwargs):
-
         sdate = kwargs.get("start_date", None)
         edate = kwargs.get("end_date", None)
         sd = kwargs.get("sa_date", sdate)
@@ -68,17 +67,14 @@ class obs:
         self.locations = w.copy()
 
     def loc(self, name, **kwargs):
-
         point = self.locations[self.locations["Name"].str.contains(name)]["ID"].values[0]
         return self.webcritech(point=int(point))
 
     def iloc(self, idx, **kwargs):
-
         point = self.locations.iloc[idx, :]["ID"]
         return self.webcritech(point=int(point))
 
     def webcritech(self, **kwargs):
-
         sdate = kwargs.get("start_date", self.sdate)
         edate = kwargs.get("end_date", self.edate)
         point = kwargs.get("point", self.point)

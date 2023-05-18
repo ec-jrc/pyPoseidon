@@ -8,7 +8,6 @@ from scipy.interpolate import interp1d
 
 
 def use_spline(df, ds=0.001, method="slinear"):
-
     points = df.values  # a (nbre_points x nbre_dim) array
 
     # Linear length along the line:

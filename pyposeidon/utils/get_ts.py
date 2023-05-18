@@ -18,7 +18,6 @@ import scipy.interpolate
 
 class spot:
     def __init__(self, solver=None, lon=None, lat=None, dataset=None, **kwargs):
-
         self.lon = lon
         self.lat = lat
         self.data = dataset
@@ -32,7 +31,6 @@ class spot:
             sys.exit(1)
 
     def tseries(self, **kwargs):
-
         var = kwargs.get("var", None)
         method = kwargs.get("method", "nearest")
 
@@ -85,7 +83,6 @@ class spot:
         return pdata.set_index(["time"])
 
     def stseries(self, **kwargs):
-
         var = kwargs.get("var", None)
         method = kwargs.get("method", "nearest")
 

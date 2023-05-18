@@ -96,7 +96,6 @@ def set(solver_name, atm=True, tide=False, **kwargs):
 
 
 def read(filename, **kwargs):
-
     end = filename.split(".")[-1]
 
     if end in ["txt", "json"]:

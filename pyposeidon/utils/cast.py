@@ -42,12 +42,10 @@ def set(solver_name: str, **kwargs):
 
 class D3DCast:
     def __init__(self, **kwargs):
-
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     def run(self, **kwargs):
-
         if isinstance(self.model, str):
             self.model = pyposeidon.read_model(self.model)
 
@@ -183,7 +181,6 @@ class D3DCast:
         check = [os.path.exists(rpath + f) for f in ["u.amu", "v.amv", "p.amp"]]
 
         if (np.any(check) == False) or ("meteo" in flag):
-
             m.force()
             m.to_force(m.meteo.Dataset, vars=["msl", "u10", "v10"], rpath=rpath)  # write u,v,p files
 
@@ -215,12 +212,10 @@ class D3DCast:
 
 class SchismCast:
     def __init__(self, **kwargs):
-
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     def run(self, **kwargs):
-
         if isinstance(self.model, str):
             self.model = pyposeidon.read_model(self.model)
 
@@ -422,7 +417,6 @@ class SchismCast:
         check = [os.path.exists(rpath + "sflux/" + f) for f in ["sflux_air_1.0001.nc"]]
 
         if (np.any(check) == False) or ("meteo" in flag):
-
             m.force(**info)
             if hasattr(self, "meteo_split_by"):
                 times, datasets = zip(*m.meteo.Dataset.groupby("time.{}".format(self.meteo_split_by)))

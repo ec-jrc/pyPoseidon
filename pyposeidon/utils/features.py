@@ -33,7 +33,6 @@ def create_geojson_features(gf, time):
 
 
 def create_features(path="./", tag="schism"):
-
     logger.info("create geojson file for elevation")
     m = pyposeidon.read_model(path + tag + "_model.json")
     m.get_data()

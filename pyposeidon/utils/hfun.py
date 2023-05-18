@@ -40,7 +40,6 @@ def get_edges(nrows: int, ncols: int) -> np.array:
 
 
 def get_hfun(dem, path=".", tag="jigsaw", resolution_min=0.01, resolution_max=0.5, dhdx=0.15, imax=100, **kwargs):
-
     # scale bathymetry
     if "adjusted" in dem.data_vars:
         bathymetry = dem.adjusted.to_dataframe().reset_index()
@@ -75,7 +74,6 @@ def get_hfun(dem, path=".", tag="jigsaw", resolution_min=0.01, resolution_max=0.
 
 
 def to_global_hfun(nodes, elems, fpos, **kwargs):
-
     elems["d"] = 0
     nodes["z"] = 0
 
@@ -116,7 +114,6 @@ def to_global_hfun(nodes, elems, fpos, **kwargs):
 
 
 def to_hfun_mesh(dh, fhfun):
-
     dps = dh[["u", "v", "z"]].to_dataframe().dropna()
     hs = dh[["h"]].to_dataframe().dropna()
     trii = dh[["a", "b", "c", "d"]].to_dataframe().dropna()
