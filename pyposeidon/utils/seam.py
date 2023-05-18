@@ -16,23 +16,34 @@ def get_seam(x, y, z, tri3, **kwargs):
     if z == None:
         z = 1.0
 
+    # store lon/lat/elems
     gr = pd.DataFrame({"lon": x, "lat": y, "z": z})
-    tf = gr[(gr.lon < -90) | (gr.lon > 90.0) | (gr.lat > 80)]
-
     elems = pd.DataFrame(tri3, columns=["a", "b", "c"])
-    bes = elems[(elems.a.isin(tf.index.values)) & (elems.b.isin(tf.index.values)) & (elems.c.isin(tf.index.values))]
 
-    qq = bes.copy()
-    qq["ap"] = qq.apply(lambda x: tf.loc[x.a, ["lon", "lat"]].values, axis=1)
-    qq["bp"] = qq.apply(lambda x: tf.loc[x.b, ["lon", "lat"]].values, axis=1)
-    qq["cp"] = qq.apply(lambda x: tf.loc[x.c, ["lon", "lat"]].values, axis=1)
-    qq["geometry"] = qq.apply(lambda x: shapely.geometry.Polygon([x.ap, x.bp, x.cp]), axis=1)
+    # discover crossover elements
+    a, b, c = tri3.T
+    lon = x
+    lon_a = lon[a]
+    lon_b = lon[b]
+    lon_c = lon[c]
 
-    ge = gp.GeoDataFrame(qq.geometry)
-    gemask = ge.geometry.bounds.diff(axis=1, periods=2).maxx > 300  # Avoid seam for the 2D graph
+    max_lon = kwargs.get("max_lon", 340)
+    idl = np.where(
+        ((lon_a * lon_b < 0) & (np.abs(lon_a - lon_b) >= max_lon))
+        | ((lon_a * lon_c < 0) & (np.abs(lon_a - lon_c) >= max_lon))
+        | ((lon_b * lon_c < 0) & (np.abs(lon_b - lon_c) >= max_lon))
+    )[0]
 
-    mels = qq[gemask]
+    mels = elems.iloc[idl].copy().reset_index(drop=True)
 
+    # polygonize
+    mels["ap"] = mels.apply(lambda x: gr.loc[x.a, ["lon", "lat"]].values, axis=1)
+    mels["bp"] = mels.apply(lambda x: gr.loc[x.b, ["lon", "lat"]].values, axis=1)
+    mels["cp"] = mels.apply(lambda x: gr.loc[x.c, ["lon", "lat"]].values, axis=1)
+
+    mels["geometry"] = mels.apply(lambda x: shapely.geometry.Polygon([x.ap, x.bp, x.cp]), axis=1)
+
+    # Split crossing elements
     adv = 0
     p1 = []
     p2 = []
@@ -83,12 +94,12 @@ def get_seam(x, y, z, tri3, **kwargs):
             de = pd.concat([de, de.loc[:1]], ignore_index=True)  # replicate the meridian cross points
             de.lon[-2:] *= -1
 
-        if de[de.lon > 180.0].size > 0:
-            ids = de[de.lon > 180.0].index.values  # problematic nodes
-            de.loc[de.lon > 180.0, "lon"] -= 360.0
-        elif de[de.lon < -180.0].size > 0:
-            ids = de[de.lon < -180.0].index.values  # problematic nodes
-            de.loc[de.lon < -180.0, "lon"] += 360.0
+            if de[de.lon > 180.0].size > 0:
+                ids = de[de.lon > 180.0].index.values  # problematic nodes
+                de.loc[de.lon > 180.0, "lon"] -= 360.0
+            elif de[de.lon < -180.0].size > 0:
+                ids = de[de.lon < -180.0].index.values  # problematic nodes
+                de.loc[de.lon < -180.0, "lon"] += 360.0
 
         p1.append(de)
 
@@ -118,7 +129,7 @@ def get_seam(x, y, z, tri3, **kwargs):
 
     si = gr.index[-1]
     ## drop the problematic elements
-    ges = elems.drop(qq[gemask].index)
+    ges = elems.drop(idl)
     ## append new nodes
     mes = pd.concat([gr, ng])
 
@@ -136,9 +147,13 @@ def get_seam(x, y, z, tri3, **kwargs):
 
 def to_2d(dataset=None, var=None, mesh=None, **kwargs):
 
-    x = dataset.SCHISM_hgrid_node_x[:].values
-    y = dataset.SCHISM_hgrid_node_y[:].values
-    tri3 = dataset.SCHISM_hgrid_face_nodes.values[:, :3].astype(int)
+    x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+    y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+    tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
+
+    x = dataset[x_var][:].values
+    y = dataset[y_var][:].values
+    tri3 = dataset[tes_var].values[:, :3].astype(int)
 
     if mesh is not None:
         [xn, yn, tri3n] = mesh
