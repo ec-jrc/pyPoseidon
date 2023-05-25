@@ -188,7 +188,7 @@ testpath==0.6.0; python_version >= "3.7"
 toml==0.10.2; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.3.0" and python_version >= "3.6"
 tomli==1.2.3
 toolz==0.11.2
-tornado==6.1
+tornado==6.3.2
 tqdm==4.63.0; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.4.0")
 traitlets==5.1.1; python_full_version >= "3.7.0" and python_version >= "3.8"
 traits==6.3.2; python_version >= "3.6"
