@@ -114,7 +114,6 @@ class Schism:
         self.geometry = kwargs.get("geometry", None)
 
         if self.geometry:
-
             if isinstance(self.geometry, dict):
                 self.lon_min = self.geometry["lon_min"]
                 self.lon_max = self.geometry["lon_max"]
@@ -123,7 +122,6 @@ class Schism:
             elif self.geometry == "global":
                 logger.warning("geometry is 'global'")
             elif isinstance(self.geometry, str):
-
                 try:
                     geo = gp.GeoDataFrame.from_file(self.geometry)
                 except:
@@ -143,7 +141,6 @@ class Schism:
         coastlines = kwargs.get("coastlines", None)
 
         if coastlines is not None:
-
             try:
                 coast = gp.GeoDataFrame.from_file(coastlines)
             except:
@@ -156,7 +153,6 @@ class Schism:
             self.start_date = pd.to_datetime(start_date)
 
         if not hasattr(self, "end_date"):
-
             if "time_frame" in kwargs:
                 time_frame = kwargs.get("time_frame", None)
                 self.end_date = self.start_date + pd.to_timedelta(time_frame)
@@ -196,7 +192,6 @@ class Schism:
     # ============================================================================================
 
     def config(self, config_file=None, output=False, **kwargs):
-
         dic = get_value(self, kwargs, "parameters", None)
         #        param_file = get_value(self,kwargs,'config_file',None)
 
@@ -254,7 +249,6 @@ class Schism:
     # METEO
     # ============================================================================================
     def force(self, **kwargs):
-
         meteo_source = get_value(self, kwargs, "meteo_source", None)
 
         kwargs.update({"meteo_source": meteo_source})
@@ -281,7 +275,6 @@ class Schism:
 
     @staticmethod
     def to_force(ar0, **kwargs):
-
         logger.info("writing meteo files ..\n")
 
         path = kwargs.get("rpath", "./schism/")
@@ -412,6 +405,34 @@ class Schism:
                     }
                 )
                 self.dem.Dataset = pdem.dem_on_mesh(self.dem.Dataset, **kwargs)
+
+                if kwargs.get("adjust_dem", True):
+                    coastline = kwargs.get("coastlines", None)
+                    if coastline is None:
+                        logger.warning("coastlines not present, aborting adjusting dem\n")
+                    elif "adjusted" in self.dem.Dataset.data_vars.keys():
+                        logger.info("Dem already adjusted\n")
+                    elif "fval" in self.dem.Dataset.data_vars.keys():
+                        logger.info("Dem already adjusted\n")
+                    else:
+                        self.dem.adjust(coastline, **kwargs)
+                try:
+                    try:
+                        bat = -self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
+                        if np.isnan(bat).sum() != 0:
+                            raise Exception("Bathymetry contains NaNs")
+                            logger.warning("Bathymetric values fval contain NaNs, using ival values ..\n")
+
+                    except:
+                        bat = -self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
+
+                    self.mesh.Dataset.depth.loc[: bat.size] = bat
+
+                    logger.info("updating bathymetry ..\n")
+
+                except AttributeError as e:
+                    logger.info("Keeping bathymetry in hgrid.gr3 due to {}\n".format(e))
+
             else:
                 logger.info("dem from mesh file\n")
 
@@ -419,7 +440,6 @@ class Schism:
     # EXECUTION
     # ============================================================================================
     def create(self, **kwargs):
-
         if not kwargs:
             kwargs = self.__dict__.copy()
 
@@ -465,7 +485,6 @@ class Schism:
         self.config(**kwargs)
 
     def output(self, **kwargs):
-
         path = get_value(self, kwargs, "rpath", "./schism/")
         flag = get_value(self, kwargs, "update", ["all"])
         split_by = get_value(self, kwargs, "meteo_split_by", None)
@@ -487,7 +506,6 @@ class Schism:
 
         # Mesh related files
         if self.mesh.Dataset is not None:
-
             # save bctides.in
             bs = self.mesh.Dataset[["node", "id", "type"]].to_dataframe()
             # open boundaries
@@ -529,16 +547,13 @@ class Schism:
 
             # save hgrid.gr3
             try:
-
                 try:
-
                     bat = -self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
                     if np.isnan(bat).sum() != 0:
                         raise Exception("Bathymetry contains NaNs")
                         logger.warning("Bathymetric values fval contain NaNs, using ival values ..\n")
 
                 except:
-
                     bat = -self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
 
                 self.mesh.Dataset.depth.loc[: bat.size] = bat
@@ -549,7 +564,6 @@ class Schism:
                 logger.info("updating bathymetry ..\n")
 
             except AttributeError as e:
-
                 logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
 
                 copyfile(self.mesh_file, path + "hgrid.gr3")  # copy original grid file
@@ -653,10 +667,13 @@ class Schism:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
+        scribes = get_value(self, kwargs, "scribes", 0)
+
         tools.create_schism_mpirun_script(
             target_dir=calc_dir,
             cmd=bin_path,
             script_name="launchSchism.sh",
+            scribes = scribes
         )
 
         # ---------------------------------------------------------------------
@@ -664,7 +681,6 @@ class Schism:
         # ---------------------------------------------------------------------
 
     def run(self, **kwargs):
-
         calc_dir = get_value(self, kwargs, "rpath", "./schism/")
 
         # ---------------------------------------------------------------------
@@ -701,7 +717,6 @@ class Schism:
         # ---------------------------------------------------------------------
 
     def save(self, **kwargs):
-
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         lista = [key for key, value in self.__dict__.items() if key not in ["meteo", "dem", "mesh"]]
@@ -746,7 +761,6 @@ class Schism:
         json.dump(dic, open(path + self.tag + "_model.json", "w"), default=myconverter)
 
     def execute(self, **kwargs):
-
         flag = get_value(self, kwargs, "update", ["all"])
         if flag:
             self.create(**kwargs)
@@ -757,7 +771,6 @@ class Schism:
             self.run(**kwargs)
 
         else:
-
             self.save(**kwargs)
 
             calc_dir = get_value(self, kwargs, "rpath", "./schism/")
@@ -782,7 +795,6 @@ class Schism:
             self.run(**kwargs)
 
     def read_folder(self, rfolder, **kwargs):
-
         self.rpath = rfolder
         s = glob.glob(rfolder + "/param.nml")
         mfiles1 = glob.glob(rfolder + "/sflux/*_1*.nc")
@@ -826,7 +838,6 @@ class Schism:
 
         # meteo
         if load_meteo is True:
-
             try:
                 pm = []
                 for key, val in mfiles.items():
@@ -865,7 +876,6 @@ class Schism:
             logger.warning("No meteo loaded")
 
     def global2local(self, **kwargs):
-
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         # Read the global node index distribution to the cores
@@ -1144,7 +1154,6 @@ class Schism:
         )  # keep only one of the duplicates
 
     def hotstart(self, it=None, **kwargs):
-
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         if not "melems" in self.misc:
@@ -1229,7 +1238,6 @@ class Schism:
             return xr.DataArray(r.values, dims=list(out[0][var].dims), name=var)
 
     def xcombine(self, tfs):
-
         # Create dataset
         side = []
         node = []
@@ -1258,7 +1266,6 @@ class Schism:
         return xr.merge([side, el, node, single])
 
     def tcombine(self, hfiles, sdate, times):
-
         xall = []
         for k in range(times.shape[0]):
             tfs = []
@@ -1288,7 +1295,6 @@ class Schism:
                 yield item
 
     def read_vgrid(self, **kwargs):
-
         logger.info("Read vgrid.in\n")
 
         path = get_value(self, kwargs, "rpath", "./schism/")
@@ -1337,381 +1343,419 @@ class Schism:
         self.misc.update({"slevels": slevels})
 
     def results(self, **kwargs):
-
         path = get_value(self, kwargs, "rpath", "./schism/")
 
-        if len(self.misc) == 0:
-            logger.info("retrieving index references ... \n")
-            self.global2local(**kwargs)
-            logger.info("... done \n")
+        logger.info("Get combined 2D NetCDF files \n")
+        hfiles = glob.glob(path + "outputs/out2d_*.nc")
+        hfiles.sort()
 
-        # Create mesh xarray Dataset
-        grd = self.misc["grd"]
-        gt3 = self.misc["gt3"]
+        if hfiles:
+            x2d = xr.open_mfdataset(hfiles, data_vars="minimal")
 
-        # node based variables
-        grd.kbp00 = grd.kbp00.astype(int)
-        xnodes = grd.to_xarray().rename(
-            {
-                "lon": "SCHISM_hgrid_node_x",
-                "lat": "SCHISM_hgrid_node_y",
-                "kbp00": "node_bottom_index",
-                "index": "nSCHISM_hgrid_node",
-            }
-        )
+            # set timestamp
+            base_date = x2d.time.base_date
+            year, month, day, hour, tz = base_date.split()
+            hour = "{0:05.2f}".format(float(hour)).replace(".", ":")
+            tz = "{0:+06.2f}".format(float(tz)).replace(".", "")
+            date = "{}-{}-{} {} {}".format(year, month, day, hour, tz)
+            # set the start timestamp
+            sdate = pd.to_datetime(date, utc=True, format="%Y-%m-%d %H:%M %z")
 
-        xnodes = xnodes.drop_vars("nSCHISM_hgrid_node")
+            # fix fortran/python index
+            x2d["SCHISM_hgrid_face_nodes"][:, :3] = x2d["SCHISM_hgrid_face_nodes"].values[:, :3] - 1
+            # set time to Datetime
+            times = pd.to_datetime(x2d.time.values, unit="s", origin=sdate.tz_convert(None))
 
-        # element based variables
-        gt34 = gt3.loc[:, ["ga", "gb", "gc", "gd"]].values  # SCHISM_hgrid_face_nodes
-        xelems = xr.Dataset(
-            {
-                "SCHISM_hgrid_face_nodes": (
-                    ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
-                    gt34 - 1,
-                ),  # -> start index = 0
-                "SCHISM_hgrid_face_x": (
-                    ["nSCHISM_hgrid_face"],
-                    gt3.loc[:, "xc"].values,
-                ),
-                "SCHISM_hgrid_face_y": (
-                    ["nSCHISM_hgrid_face"],
-                    gt3.loc[:, "yc"].values,
-                ),
-                "ele_bottom_index": (["nSCHISM_hgrid_face"], gt3.kbe.values),
-            }
-        )
+            x2d = x2d.assign_coords({"time": ("time", times, x2d.time.attrs)})
 
-        logger.info("done with node based variables \n")
+            logger.info("Get combined 3D NetCDF files \n")
 
-        # edge based variables
-        sides = []
-        for [etype, ga, gb, gc, gd] in gt3.loc[:, ["type", "ga", "gb", "gc", "gd"]].values:
-            if etype == 3:
-                sides.append([gb, gc])
-                sides.append([gc, ga])
-                sides.append([ga, gb])
-            elif etype == 4:
-                sides.append([gb, gc])
-                sides.append([gc, gd])
-                sides.append([gd, ga])
-                sides.append([ga, gb])
+            xfiles = glob.glob(path + "outputs/[!out2d_, !hotstart_,]*.nc")
+            xfiles = [x for x in xfiles if not x.endswith("schout_1.nc")]
 
-        # removing duplicates
-        sides = list(self.remove_reversed_duplicates(sides))
+            if len(xfiles) > 0:
+                xfiles.sort()
+                # read
+                x3d = xr.open_mfdataset(xfiles, data_vars="minimal")
+                # set time to Datetime
+                x3d = x3d.assign_coords({"time": ("time", times, x3d.time.attrs)})
+                x3d.to_netcdf(path + "outputs/schout_2.nc")
 
-        ed = pd.DataFrame(sides, columns=["node1", "node2"])
+            # save 2D variables to file
+            x2d.to_netcdf(path + "outputs/schout_1.nc")
 
-        # mean x, y
-        ed["x1"] = grd.loc[ed["node1"].values - 1, "lon"].values  # lon of the index, -1 for python convention
-        ed["y1"] = grd.loc[ed["node1"].values - 1, "lat"].values  # lat of the index
-        ed["x2"] = grd.loc[ed["node2"].values - 1, "lon"].values
-        ed["y2"] = grd.loc[ed["node2"].values - 1, "lat"].values
+        else:
+            if len(self.misc) == 0:
+                logger.info("retrieving index references ... \n")
+                self.global2local(**kwargs)
+                logger.info("... done \n")
 
-        ed["xc"] = ed[["x1", "x2"]].mean(axis=1)  # mean of the edge index
-        ed["yc"] = ed[["y1", "y2"]].mean(axis=1)
+            # Create mesh xarray Dataset
+            grd = self.misc["grd"]
+            gt3 = self.misc["gt3"]
 
-        ## min bottom index
-        ed["kbs1"] = grd.loc[ed["node1"] - 1, "kbp00"].values
-        ed["kbs2"] = grd.loc[ed["node2"] - 1, "kbp00"].values
+            # node based variables
+            grd.kbp00 = grd.kbp00.astype(int)
+            xnodes = grd.to_xarray().rename(
+                {
+                    "lon": "SCHISM_hgrid_node_x",
+                    "lat": "SCHISM_hgrid_node_y",
+                    "kbp00": "node_bottom_index",
+                    "index": "nSCHISM_hgrid_node",
+                }
+            )
 
-        ed["kbs"] = ed[["kbs1", "kbs2"]].min(axis=1)
+            xnodes = xnodes.drop_vars("nSCHISM_hgrid_node")
 
-        xsides = xr.Dataset(
-            {
-                "SCHISM_hgrid_edge_nodes": (
-                    ["nSCHISM_hgrid_edge", "two"],
-                    [[x - 1, y - 1] for [x, y] in sides],
-                ),  # index from 0
-                "SCHISM_hgrid_edge_x": (["nSCHISM_hgrid_edge"], ed["xc"].values),
-                "SCHISM_hgrid_edge_y": (["nSCHISM_hgrid_edge"], ed["yc"].values),
-                "edge_bottom_index": (["nSCHISM_hgrid_edge"], ed.kbs.values),
-            }
-        )
+            # element based variables
+            gt34 = gt3.loc[:, ["ga", "gb", "gc", "gd"]].values  # SCHISM_hgrid_face_nodes
+            xelems = xr.Dataset(
+                {
+                    "SCHISM_hgrid_face_nodes": (
+                        ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+                        gt34 - 1,
+                    ),  # -> start index = 0
+                    "SCHISM_hgrid_face_x": (
+                        ["nSCHISM_hgrid_face"],
+                        gt3.loc[:, "xc"].values,
+                    ),
+                    "SCHISM_hgrid_face_y": (
+                        ["nSCHISM_hgrid_face"],
+                        gt3.loc[:, "yc"].values,
+                    ),
+                    "ele_bottom_index": (["nSCHISM_hgrid_face"], gt3.kbe.values),
+                }
+            )
 
-        logger.info("done with side based variables \n")
+            logger.info("done with node based variables \n")
 
-        # General properties
+            # edge based variables
+            sides = []
+            for [etype, ga, gb, gc, gd] in gt3.loc[:, ["type", "ga", "gb", "gc", "gd"]].values:
+                if etype == 3:
+                    sides.append([gb, gc])
+                    sides.append([gc, ga])
+                    sides.append([ga, gb])
+                elif etype == 4:
+                    sides.append([gb, gc])
+                    sides.append([gc, gd])
+                    sides.append([gd, ga])
+                    sides.append([ga, gb])
 
-        header2 = self.misc["header"].apply(pd.to_numeric)
-        nlist = [
-            "start_year",
-            "start_month",
-            "start_day",
-            "start_hour",
-            "utc_start",
-            "dtout",
-            "nspool",
-            "nvrt",
-            "kz",
-            "ics",
-        ]
-        header2[nlist] = header2[nlist].astype(int)
-        sigmas = [x for x in header2.columns if "sigma" in x]
-        sigms = header2.loc[:, sigmas].values.flatten()  # get sigmas
-        iwet_dry = 0  # defined by the user
-        ihgrid_id = -2147483647  # defined by user - 0,dummy_dim,ihgrid_id
-        one = xr.Dataset(
-            {
-                "dry_value_flag": (("one"), [iwet_dry]),
-                "SCHISM_hgrid": (("one"), [ihgrid_id]),
-            }
-        )
+            # removing duplicates
+            sides = list(self.remove_reversed_duplicates(sides))
 
-        # compute cs
-        klev = np.arange(header2.kz.values[0], header2.nvrt.values[0] + 1)
-        k = klev - header2.kz.values
+            ed = pd.DataFrame(sides, columns=["node1", "node2"])
 
-        cs = np.zeros(k)
+            # mean x, y
+            ed["x1"] = grd.loc[ed["node1"].values - 1, "lon"].values  # lon of the index, -1 for python convention
+            ed["y1"] = grd.loc[ed["node1"].values - 1, "lat"].values  # lat of the index
+            ed["x2"] = grd.loc[ed["node2"].values - 1, "lon"].values
+            ed["y2"] = grd.loc[ed["node2"].values - 1, "lat"].values
 
-        cs = (1 - header2.theta_b.values) * np.sinh(header2.theta_f.values * sigms[k]) / np.sinh(
-            header2.theta_f.values
-        ) + header2.theta_b.values * (
-            np.tanh(header2.theta_f.values * (sigms[k] + 0.5)) - np.tanh(header2.theta_f.values * 0.5)
-        ) / 2 / np.tanh(
-            header2.theta_f.values * 0.5
-        )
+            ed["xc"] = ed[["x1", "x2"]].mean(axis=1)  # mean of the edge index
+            ed["yc"] = ed[["y1", "y2"]].mean(axis=1)
 
-        Cs = xr.Dataset({"Cs": (("sigma"), cs)}, coords={"sigma": sigms})
+            ## min bottom index
+            ed["kbs1"] = grd.loc[ed["node1"] - 1, "kbp00"].values
+            ed["kbs2"] = grd.loc[ed["node2"] - 1, "kbp00"].values
 
-        header_list = ["ics", "h0", "h_c", "theta_b", "theta_f", "h_s"]
-        gen = header2[header_list].to_xarray()
-        gen = gen.rename({"index": "one"})
+            ed["kbs"] = ed[["kbs1", "kbs2"]].min(axis=1)
 
-        # merge
-        gen = xr.merge([gen, Cs, one])
+            xsides = xr.Dataset(
+                {
+                    "SCHISM_hgrid_edge_nodes": (
+                        ["nSCHISM_hgrid_edge", "two"],
+                        [[x - 1, y - 1] for [x, y] in sides],
+                    ),  # index from 0
+                    "SCHISM_hgrid_edge_x": (["nSCHISM_hgrid_edge"], ed["xc"].values),
+                    "SCHISM_hgrid_edge_y": (["nSCHISM_hgrid_edge"], ed["yc"].values),
+                    "edge_bottom_index": (["nSCHISM_hgrid_edge"], ed.kbs.values),
+                }
+            )
 
-        gen = gen.rename(
-            {
-                "ics": "coordinate_system_flag",
-                "h0": "minimum_depth",
-                "h_c": "sigma_h_c",
-                "theta_b": "sigma_theta_b",
-                "theta_f": "sigma_theta_f",
-                "h_s": "sigma_maxdepth",
-            }
-        )
+            logger.info("done with side based variables \n")
 
-        gen = gen.drop_vars("one")
+            # General properties
 
-        # set timestamp
-        date = header2.loc[:, ["start_year", "start_month", "start_day", "start_hour", "utc_start"]]
-        date = date.astype(int)
-        date.columns = ["year", "month", "day", "hour", "utc"]  # rename the columns
-        # set the start timestamp
-        sdate = pd.Timestamp(
-            year=date.year.values[0],
-            month=date.month.values[0],
-            day=date.day.values[0],
-            hour=date.hour.values[0],
-            tz=date.utc.values[0],
-        )
+            header2 = self.misc["header"].apply(pd.to_numeric)
+            nlist = [
+                "start_year",
+                "start_month",
+                "start_day",
+                "start_hour",
+                "utc_start",
+                "dtout",
+                "nspool",
+                "nvrt",
+                "kz",
+                "ics",
+            ]
+            header2[nlist] = header2[nlist].astype(int)
+            sigmas = [x for x in header2.columns if "sigma" in x]
+            sigms = header2.loc[:, sigmas].values.flatten()  # get sigmas
+            iwet_dry = 0  # defined by the user
+            ihgrid_id = -2147483647  # defined by user - 0,dummy_dim,ihgrid_id
+            one = xr.Dataset(
+                {
+                    "dry_value_flag": (("one"), [iwet_dry]),
+                    "SCHISM_hgrid": (("one"), [ihgrid_id]),
+                }
+            )
 
-        logger.info("done with generic variables \n")
+            # compute cs
+            klev = np.arange(header2.kz.values[0], header2.nvrt.values[0] + 1)
+            k = klev - header2.kz.values
 
-        # Read Netcdf output files
-        hfiles = glob.glob(path + "outputs/schout_*_*.nc")
+            cs = np.zeros(k)
 
-        irange_ = [int(x.split("_")[-1].split(".")[0]) for x in hfiles]
-        irange_ = np.unique(irange_)
+            cs = (1 - header2.theta_b.values) * np.sinh(header2.theta_f.values * sigms[k]) / np.sinh(
+                header2.theta_f.values
+            ) + header2.theta_b.values * (
+                np.tanh(header2.theta_f.values * (sigms[k] + 0.5)) - np.tanh(header2.theta_f.values * 0.5)
+            ) / 2 / np.tanh(
+                header2.theta_f.values * 0.5
+            )
 
-        irange = get_value(self, kwargs, "rlist", irange_)
+            Cs = xr.Dataset({"Cs": (("sigma"), cs)}, coords={"sigma": sigms})
 
-        self.read_vgrid()  # read grid attributes
+            header_list = ["ics", "h0", "h_c", "theta_b", "theta_f", "h_s"]
+            gen = header2[header_list].to_xarray()
+            gen = gen.rename({"index": "one"})
 
-        logger.info("Write combined NetCDF files \n")
-        #        total_xdat = []
-        for val in tqdm(irange):
-            hfiles = glob.glob(path + "outputs/schout_*_{}.nc".format(val))
-            hfiles.sort()
+            # merge
+            gen = xr.merge([gen, Cs, one])
 
-            times = xr.open_dataset(hfiles[0]).time
-            times = pd.to_datetime(times.values, unit="s", origin=sdate.tz_convert(None))
+            gen = gen.rename(
+                {
+                    "ics": "coordinate_system_flag",
+                    "h0": "minimum_depth",
+                    "h_c": "sigma_h_c",
+                    "theta_b": "sigma_theta_b",
+                    "theta_f": "sigma_theta_f",
+                    "h_s": "sigma_maxdepth",
+                }
+            )
 
-            if times.size == 0:
-                continue
+            gen = gen.drop_vars("one")
 
-            idat = self.tcombine(hfiles, sdate, times)
+            # set timestamp
+            date = header2.loc[:, ["start_year", "start_month", "start_day", "start_hour", "utc_start"]]
+            date = date.astype(int)
+            date.columns = ["year", "month", "day", "hour", "utc"]  # rename the columns
+            # set the start timestamp
+            sdate = pd.Timestamp(
+                year=date.year.values[0],
+                month=date.month.values[0],
+                day=date.day.values[0],
+                hour=date.hour.values[0],
+                tz=date.utc.values[0],
+            )
 
-            # MERGE
+            logger.info("done with generic variables \n")
 
-            xc = xr.merge([idat, gen, xnodes, xelems, xsides])
+            # Read Netcdf output files
+            hfiles = glob.glob(path + "outputs/schout_*_*.nc")
 
-            # Choose attrs
-            if header2.ics.values == 1:
-                lat_coord_standard_name = "projection_y_coordinate"
-                lon_coord_standard_name = "projection_x_coordinate"
-                x_units = "m"
-                y_units = "m"
-                lat_str_len = 23
-                lon_str_len = 23
-            else:
-                lat_coord_standard_name = "latitude"
-                lon_coord_standard_name = "longitude"
-                x_units = "degrees_east"
-                y_units = "degrees_north"
-                lat_str_len = 8
-                lon_str_len = 9
+            irange_ = [int(x.split("_")[-1].split(".")[0]) for x in hfiles]
+            irange_ = np.unique(irange_)
 
-            # set Attrs
-            xc.SCHISM_hgrid_node_x.attrs = {
-                "long_name": "node x-coordinate",
-                "standard_name": lon_coord_standard_name,
-                "units": x_units,
-                "mesh": "SCHISM_hgrid",
-            }
+            irange = get_value(self, kwargs, "rlist", irange_)
 
-            xc.SCHISM_hgrid_node_y.attrs = {
-                "long_name": "node y-coordinate",
-                "standard_name": lat_coord_standard_name,
-                "units": y_units,
-                "mesh": "SCHISM_hgrid",
-            }
+            self.read_vgrid()  # read grid attributes
 
-            xc.depth.attrs = {
-                "long_name": "Bathymetry",
-                "units": "meters",
-                "positive": "down",
-                "mesh": "SCHISM_hgrid",
-                "location": "node",
-            }
+            logger.info("Write combined NetCDF files \n")
+            #        total_xdat = []
+            for val in tqdm(irange):
+                hfiles = glob.glob(path + "outputs/schout_*_{}.nc".format(val))
+                hfiles.sort()
 
-            xc.sigma_h_c.attrs = {
-                "long_name": "ocean_s_coordinate h_c constant",
-                "units": "meters",
-                "positive": "down",
-            }
+                times = xr.open_dataset(hfiles[0]).time
+                times = pd.to_datetime(times.values, unit="s", origin=sdate.tz_convert(None))
 
-            xc.sigma_theta_b.attrs = {"long_name": "ocean_s_coordinate theta_b constant"}
+                if times.size == 0:
+                    continue
 
-            xc.sigma_theta_f.attrs = {"long_name": "ocean_s_coordinate theta_f constant"}
+                idat = self.tcombine(hfiles, sdate, times)
 
-            xc.sigma_maxdepth.attrs = {
-                "long_name": "ocean_s_coordinate maximum depth cutoff (mixed s over z boundary)",
-                "units": "meters",
-                "positive": "down",
-            }
+                # MERGE
 
-            xc.Cs.attrs = {
-                "long_name": "Function C(s) at whole levels",
-                "positive": "up",
-            }
+                xc = xr.merge([idat, gen, xnodes, xelems, xsides])
 
-            xc.dry_value_flag.attrs = {"values": "0: use last-wet value; 1: use junk"}
+                # Choose attrs
+                if header2.ics.values == 1:
+                    lat_coord_standard_name = "projection_y_coordinate"
+                    lon_coord_standard_name = "projection_x_coordinate"
+                    x_units = "m"
+                    y_units = "m"
+                    lat_str_len = 23
+                    lon_str_len = 23
+                else:
+                    lat_coord_standard_name = "latitude"
+                    lon_coord_standard_name = "longitude"
+                    x_units = "degrees_east"
+                    y_units = "degrees_north"
+                    lat_str_len = 8
+                    lon_str_len = 9
 
-            xc.SCHISM_hgrid_face_nodes.attrs = {
-                "long_name": "Horizontal Element Table",
-                "cf_role": "face_node_connectivity",
-                "start_index": 0,
-            }
+                # set Attrs
+                xc.SCHISM_hgrid_node_x.attrs = {
+                    "long_name": "node x-coordinate",
+                    "standard_name": lon_coord_standard_name,
+                    "units": x_units,
+                    "mesh": "SCHISM_hgrid",
+                }
 
-            xc.SCHISM_hgrid_edge_nodes.attrs = {
-                "long_name": "Map every edge to the two nodes that it connects",
-                "cf_role": "edge_node_connectivity",
-                "start_index": 0,
-            }
+                xc.SCHISM_hgrid_node_y.attrs = {
+                    "long_name": "node y-coordinate",
+                    "standard_name": lat_coord_standard_name,
+                    "units": y_units,
+                    "mesh": "SCHISM_hgrid",
+                }
 
-            xc.SCHISM_hgrid_edge_x.attrs = {
-                "long_name": "x_coordinate of 2D mesh edge",
-                "standard_name": lon_coord_standard_name,
-                "units": x_units,
-                "mesh": "SCHISM_hgrid",
-            }
+                xc.depth.attrs = {
+                    "long_name": "Bathymetry",
+                    "units": "meters",
+                    "positive": "down",
+                    "mesh": "SCHISM_hgrid",
+                    "location": "node",
+                }
 
-            xc.SCHISM_hgrid_edge_y.attrs = {
-                "long_name": "y_coordinate of 2D mesh edge",
-                "standard_name": lat_coord_standard_name,
-                "units": y_units,
-                "mesh": "SCHISM_hgrid",
-            }
+                xc.sigma_h_c.attrs = {
+                    "long_name": "ocean_s_coordinate h_c constant",
+                    "units": "meters",
+                    "positive": "down",
+                }
 
-            xc.SCHISM_hgrid_face_x.attrs = {
-                "long_name": "x_coordinate of 2D mesh face",
-                "standard_name": lon_coord_standard_name,
-                "units": x_units,
-                "mesh": "SCHISM_hgrid",
-            }
+                xc.sigma_theta_b.attrs = {"long_name": "ocean_s_coordinate theta_b constant"}
 
-            xc.SCHISM_hgrid_face_y.attrs = {
-                "long_name": "y_coordinate of 2D mesh face",
-                "standard_name": lat_coord_standard_name,
-                "units": y_units,
-                "mesh": "SCHISM_hgrid",
-            }
+                xc.sigma_theta_f.attrs = {"long_name": "ocean_s_coordinate theta_f constant"}
 
-            xc.SCHISM_hgrid.attrs = {
-                "long_name": "Topology data of 2d unstructured mesh",
-                "topology_dimension": 2,
-                "cf_role": "mesh_topology",
-                "node_coordinates": "SCHISM_hgrid_node_x SCHISM_hgrid_node_y",
-                "face_node_connectivity": "SCHISM_hgrid_face_nodes",
-                "edge_coordinates": "SCHISM_hgrid_edge_x SCHISM_hgrid_edge_y",
-                "face_coordinates": "SCHISM_hgrid_face_x SCHISM_hgrid_face_y",
-                "edge_node_connectivity": "SCHISM_hgrid_edge_nodes",
-            }
+                xc.sigma_maxdepth.attrs = {
+                    "long_name": "ocean_s_coordinate maximum depth cutoff (mixed s over z boundary)",
+                    "units": "meters",
+                    "positive": "down",
+                }
 
-            xc.node_bottom_index.attrs = {
-                "long_name": "bottom level index at each node",
-                "units": "non-dimensional",
-                "mesh": "SCHISM_hgrid",
-                "location": "node",
-                "start_index": 0,
-            }
+                xc.Cs.attrs = {
+                    "long_name": "Function C(s) at whole levels",
+                    "positive": "up",
+                }
 
-            xc.ele_bottom_index.attrs = {
-                "long_name": "bottom level index at each element",
-                "units": "non-dimensional",
-                "mesh": "SCHISM_hgrid",
-                "location": "elem",
-                "start_index": 0,
-            }
+                xc.dry_value_flag.attrs = {"values": "0: use last-wet value; 1: use junk"}
 
-            xc.edge_bottom_index.attrs = {
-                "long_name": "bottom level index at each edge",
-                "units": "non-dimensional",
-                "mesh": "SCHISM_hgrid",
-                "location": "edge",
-                "start_index": 0,
-            }
+                xc.SCHISM_hgrid_face_nodes.attrs = {
+                    "long_name": "Horizontal Element Table",
+                    "cf_role": "face_node_connectivity",
+                    "start_index": 0,
+                }
 
-            base_date = " ".join([str(x) for x in date.T.values.flatten()])
-            xc.time.attrs = {
-                "long_name": "Time",
-                "base_date": base_date,
-                "standard_name": "time",
-            }
+                xc.SCHISM_hgrid_edge_nodes.attrs = {
+                    "long_name": "Map every edge to the two nodes that it connects",
+                    "cf_role": "edge_node_connectivity",
+                    "start_index": 0,
+                }
 
-            xc.sigma.attrs = {
-                "long_name": "S coordinates at whole levels",
-                "units": "1",
-                "standard_name": "ocean_s_coordinate",
-                "positive": "up",
-                "h_s": self.misc["hs"],
-                "h_c": self.misc["h_c"],
-                "theta_b": self.misc["theta_b"],
-                "theta_f": self.misc["theta_f"],
-                "formula_terms": "s: sigma eta: elev depth: depth a: sigma_theta_f b: sigma_theta_b depth_c: sigma_h_c",
-            }
+                xc.SCHISM_hgrid_edge_x.attrs = {
+                    "long_name": "x_coordinate of 2D mesh edge",
+                    "standard_name": lon_coord_standard_name,
+                    "units": x_units,
+                    "mesh": "SCHISM_hgrid",
+                }
 
-            # Dataset Attrs
+                xc.SCHISM_hgrid_edge_y.attrs = {
+                    "long_name": "y_coordinate of 2D mesh edge",
+                    "standard_name": lat_coord_standard_name,
+                    "units": y_units,
+                    "mesh": "SCHISM_hgrid",
+                }
 
-            xc.attrs = {
-                "Conventions": "CF-1.0, UGRID-1.0",
-                "title": "SCHISM Model output",
-                "source": "SCHISM model output version v10",
-                "references": "http://ccrm.vims.edu/schismweb/",
-                "history": "created by pyposeidon",
-                "comment": "SCHISM Model output",
-                "type": "SCHISM Model output",
-                "VisIT_plugin": "https://schism.water.ca.gov/library/-/document_library/view/3476283",
-            }
+                xc.SCHISM_hgrid_face_x.attrs = {
+                    "long_name": "x_coordinate of 2D mesh face",
+                    "standard_name": lon_coord_standard_name,
+                    "units": x_units,
+                    "mesh": "SCHISM_hgrid",
+                }
 
-            xc.to_netcdf(path + "outputs/schout_{}.nc".format(val))
+                xc.SCHISM_hgrid_face_y.attrs = {
+                    "long_name": "y_coordinate of 2D mesh face",
+                    "standard_name": lat_coord_standard_name,
+                    "units": y_units,
+                    "mesh": "SCHISM_hgrid",
+                }
+
+                xc.SCHISM_hgrid.attrs = {
+                    "long_name": "Topology data of 2d unstructured mesh",
+                    "topology_dimension": 2,
+                    "cf_role": "mesh_topology",
+                    "node_coordinates": "SCHISM_hgrid_node_x SCHISM_hgrid_node_y",
+                    "face_node_connectivity": "SCHISM_hgrid_face_nodes",
+                    "edge_coordinates": "SCHISM_hgrid_edge_x SCHISM_hgrid_edge_y",
+                    "face_coordinates": "SCHISM_hgrid_face_x SCHISM_hgrid_face_y",
+                    "edge_node_connectivity": "SCHISM_hgrid_edge_nodes",
+                }
+
+                xc.node_bottom_index.attrs = {
+                    "long_name": "bottom level index at each node",
+                    "units": "non-dimensional",
+                    "mesh": "SCHISM_hgrid",
+                    "location": "node",
+                    "start_index": 0,
+                }
+
+                xc.ele_bottom_index.attrs = {
+                    "long_name": "bottom level index at each element",
+                    "units": "non-dimensional",
+                    "mesh": "SCHISM_hgrid",
+                    "location": "elem",
+                    "start_index": 0,
+                }
+
+                xc.edge_bottom_index.attrs = {
+                    "long_name": "bottom level index at each edge",
+                    "units": "non-dimensional",
+                    "mesh": "SCHISM_hgrid",
+                    "location": "edge",
+                    "start_index": 0,
+                }
+
+                base_date = " ".join([str(x) for x in date.T.values.flatten()])
+                xc.time.attrs = {
+                    "long_name": "Time",
+                    "base_date": base_date,
+                    "standard_name": "time",
+                }
+
+                xc.sigma.attrs = {
+                    "long_name": "S coordinates at whole levels",
+                    "units": "1",
+                    "standard_name": "ocean_s_coordinate",
+                    "positive": "up",
+                    "h_s": self.misc["hs"],
+                    "h_c": self.misc["h_c"],
+                    "theta_b": self.misc["theta_b"],
+                    "theta_f": self.misc["theta_f"],
+                    "formula_terms": "s: sigma eta: elev depth: depth a: sigma_theta_f b: sigma_theta_b depth_c: sigma_h_c",
+                }
+
+                # Dataset Attrs
+
+                xc.attrs = {
+                    "Conventions": "CF-1.0, UGRID-1.0",
+                    "title": "SCHISM Model output",
+                    "source": "SCHISM model output version v10",
+                    "references": "http://ccrm.vims.edu/schismweb/",
+                    "history": "created by pyposeidon",
+                    "comment": "SCHISM Model output",
+                    "type": "SCHISM Model output",
+                    "VisIT_plugin": "https://schism.water.ca.gov/library/-/document_library/view/3476283",
+                }
+
+                xc.to_netcdf(path + "outputs/schout_{}.nc".format(val))
 
         logger.info("done with output netCDF files \n")
 
     def set_obs(self, **kwargs):
-
         path = get_value(self, kwargs, "rpath", "./schism/")
         nspool_sta = get_value(self, kwargs, "nspool_sta", 1)
         tg_database = get_value(self, kwargs, "obs", None)
@@ -1847,7 +1891,6 @@ class Schism:
             stations.loc[:, ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "z"]].to_csv(f, header=None, sep=" ")
 
     def get_station_sim_data(self, **kwargs):
-
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         # locate the station files
@@ -1898,7 +1941,6 @@ class Schism:
         self.station_sim_data = xr.combine_by_coords(dfs)
 
     def get_output_data(self, **kwargs):
-
         dic = self.__dict__
 
         dic.update(kwargs)
@@ -1906,7 +1948,6 @@ class Schism:
         self.data = data.get_output(**dic)
 
     def get_station_obs_data(self, **kwargs):
-
         self.station_obs_data = get_obs_data(self.obs, self.start_date, self.end_date)
 
     def open_thalassa(self, **kwargs):

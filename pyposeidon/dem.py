@@ -20,7 +20,7 @@ import numpy as np
 import pyresample
 import xarray as xr
 
-from pyposeidon.utils.fix import fix
+from pyposeidon.utils.fix import fix, resample
 from pyposeidon import tools
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
@@ -63,10 +63,18 @@ class Dem:
         if isinstance(geometry, dict):
             kwargs.update(**geometry)
 
+        # set bounds in case of present mesh
+        grid_x = kwargs.get("grid_x", None)
+        grid_y = kwargs.get("grid_y", None)
+
+        if grid_x is not None and geometry is None:
+            kwargs.update(**{"lon_min": grid_x.min(), "lon_max": grid_x.max()})
+
+        if grid_y is not None and geometry is None:
+            kwargs.update(**{"lat_min": grid_y.min(), "lat_max": grid_y.max()})
+
         self.Dataset = dem_(source=dem_source, **kwargs)
 
-        #        print('CHECK2  :','adjusted' in self.Dataset.data_vars.keys())
-        #        print(self.Dataset.data_vars.keys())
         if kwargs.get("adjust_dem", True):
             coastline = kwargs.get("coastlines", None)
             if coastline is None:
@@ -79,17 +87,20 @@ class Dem:
                 self.adjust(coastline, **kwargs)
 
     def adjust(self, coastline, **kwargs):
-
-        self.Dataset = fix(self.Dataset, coastline, **kwargs)
-        try:
-            check = np.isnan(self.Dataset.adjusted).sum() == 0
-        except:
-            check = np.isnan(self.Dataset.fval).sum() == 0
-
+        self.Dataset, check = fix(self.Dataset, coastline, **kwargs)
+        
         if not check:
             logger.warning("Adjusting dem failed, keeping original values\n")
-            self.Dataset = self.Dataset.drop_vars("adjusted")
-
+            try:
+                self.Dataset = self.Dataset.drop_vars("adjusted")
+            except:
+                pass
+            try:    
+                self.Dataset = self.Dataset.drop_vars("fval")
+            except:
+                pass
+                
+        return check
 
 def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
     """Return a dataset with coords containing "longitude" and "latitude" """
@@ -106,7 +117,10 @@ def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
             break
     else:
         raise ValueError(f"Couldn't normalize latitude: {coords}")
-    dataset = dataset.rename({lon_name: "longitude", lat_name: "latitude"})
+    if lon_name != "longitude":
+        dataset = dataset.rename({lon_name: "longitude"})
+    if lat_name != "latitude":
+        dataset = dataset.rename({lat_name: "latitude"})
     return dataset
 
 
@@ -120,7 +134,6 @@ def normalize_elevation_name(dataset: xr.Dataset) -> xr.Dataset:
 
 
 def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwargs) -> xr.Dataset:
-
     if isinstance(source, xr.Dataset):
         data = source
     else:
@@ -135,7 +148,6 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
     # recenter the window
     if dlon1 - dlon0 == 360.0:
-
         lon0 = lon_min + 360.0 if lon_min < data.longitude.min() else lon_min
         lon1 = lon_max + 360.0 if lon_max < data.longitude.min() else lon_max
 
@@ -143,7 +155,6 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         lon1 = lon1 - 360.0 if lon1 > data.longitude.max() else lon1
 
     else:
-
         lon0 = lon_min
         lon1 = lon_max
 
@@ -179,7 +190,6 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         lat_1 = min(data.latitude.size, j1 + 3)
 
     if i0 > i1:
-
         p1 = data.elevation.isel(longitude=slice(lon_0, data.longitude.size), latitude=slice(lat_0, lat_1))
 
         p1 = p1.assign_coords({"longitude": p1.longitude.values - 360.0})
@@ -189,7 +199,6 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
         dem = xr.concat([p1, p2], dim="longitude")
 
     else:
-
         dem = data.elevation.isel(longitude=slice(lon_0, lon_1), latitude=slice(lat_0, lat_1))
 
     if np.abs(np.mean(dem.longitude) - np.mean([lon_min, lon_max])) > 170.0:
@@ -210,28 +219,12 @@ def dem_(source=None, lon_min=-180, lon_max=180, lat_min=-90, lat_max=90, **kwar
 
 
 def dem_on_mesh(dataset, **kwargs):
-
     # ---------------------------------------------------------------------
     logger.info(".. interpolating on mesh ..\n")
     # ---------------------------------------------------------------------
 
     grid_x = kwargs.get("grid_x", None)
     grid_y = kwargs.get("grid_y", None)
-    # resample on the given grid
-    xx, yy = np.meshgrid(dataset.longitude, dataset.latitude)  # original grid
-
-    # Translate for pyresample
-    if xx.mean() < 0 and xx.min() < -180.0:
-        xx = xx + 180.0
-        gx = grid_x + 180.0
-    elif xx.mean() > 0 and xx.max() > 180.0:
-        xx = xx - 180.0
-        gx = grid_x - 180.0
-    else:
-        gx = grid_x
-
-    orig = pyresample.geometry.SwathDefinition(lons=xx, lats=yy)  # original points
-    targ = pyresample.geometry.SwathDefinition(lons=gx, lats=grid_y)  # target grid
 
     var = "adjusted" if "adjusted" in dataset.data_vars.keys() else "elevation"
 
@@ -239,18 +232,14 @@ def dem_on_mesh(dataset, **kwargs):
     logger.info(".. using {} values ..\n".format(var))
     # ---------------------------------------------------------------------
 
-    wet = kwargs.get("wet_only", False)
-    if wet:
-        # mask positive bathymetry
-        vals = np.ma.masked_array(dataset[var].values, dataset[var].values > 0)
+    if dataset.longitude.mean() < 0 and dataset.longitude.min() < -180.0:
+        flag = -1
+    elif dataset.longitude.mean() > 0 and dataset.longitude.max() > 180.0:
+        flag = 1
     else:
-        vals = dataset[var].values
+        flag = 0
 
-    # with nearest using only the water values
-
-    itopo = pyresample.kd_tree.resample_nearest(
-        orig, vals, targ, radius_of_influence=100000, fill_value=np.nan
-    )  # ,nprocs=ncores)
+    itopo = resample(dataset, grid_x, grid_y, var=var, wet=True, flag=flag)
 
     if len(grid_x.shape) > 1:
         idem = xr.Dataset(
@@ -259,9 +248,7 @@ def dem_on_mesh(dataset, **kwargs):
                 "ilons": (["k", "l"], grid_x),
                 "ilats": (["k", "l"], grid_y),
             }
-        )  # ,
-    #                           coords={'ilon': ('ilon', grid_x[0,:]),
-    #                                   'ilat': ('ilat', grid_y[:,0])})
+        )
 
     elif len(grid_x.shape) == 1:
         idem = xr.Dataset(
@@ -273,7 +260,7 @@ def dem_on_mesh(dataset, **kwargs):
         )
 
     # ---------------------------------------------------------------------
-    logger.info("dem on grid done\n")
+    logger.info("dem on mesh done\n")
     # ---------------------------------------------------------------------
 
     return xr.merge([dataset, idem])

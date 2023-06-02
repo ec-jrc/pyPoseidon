@@ -15,31 +15,10 @@ import geopandas as gp
 import logging
 import shapely
 from tqdm.auto import tqdm
+from pyposeidon.utils.coastfix import simplify
 import sys
 
 logger = logging.getLogger(__name__)
-
-
-def simplify(geo):
-
-    logger.info("simplify coastalines dataset")
-    geo = geo.loc[:, ["geometry"]].explode(index_parts=True).droplevel(0).reset_index(drop=True)
-
-    # Just in case merge
-    if (geo.geom_type == "LineString").all():
-        geo_ = gp.GeoDataFrame(geometry=[shapely.ops.linemerge(list(geo.geometry.values))])
-        geo = geo_.explode(index_parts=True).droplevel(0).reset_index(drop=True)
-
-    if (geo.geom_type == "Polygon").all():
-        try:
-            geo_ = list(geo.buffer(0).unary_union.geoms)
-        except TypeError:
-            geo_ = [geo.buffer(0).unary_union]
-
-        geo = gp.GeoDataFrame(geometry=geo_)
-        geo = gp.GeoDataFrame(geometry=geo.buffer(0))
-
-    return geo
 
 
 class Boundary:
@@ -77,11 +56,20 @@ class Boundary:
         elif isinstance(coastlines, str):
             logger.info("reading {}".format(coastlines))
             coasts = gp.GeoDataFrame.from_file(coastlines)
-            self.coasts = simplify(coasts)
+            # check coastlines
+            if coasts.buffer(0).is_valid.all() and (coasts.buffer(0).boundary.geom_type == "LineString").all():
+                self.coasts = gp.GeoDataFrame(geometry=coasts.buffer(0))
+            else:
+                self.coasts = simplify(coasts)
         elif isinstance(coastlines, gp.GeoDataFrame):
             logger.warning("coastlines is not a file, trying with geopandas Dataset")
             try:
-                self.coasts = simplify(coastlines)
+                coasts = coastlines
+                # check coastlines
+                if coasts.buffer(0).is_valid.all() and (coasts.buffer(0).boundary.geom_type == "LineString").all():
+                    self.coasts = gp.GeoDataFrame(geometry=coasts.buffer(0))
+                else:
+                    self.coasts = simplify(coasts)
             except:
                 logger.error("coastlines argument not valid ")
                 sys.exit(1)
@@ -93,23 +81,19 @@ class Boundary:
                 sys.exit(1)
 
         if isinstance(geometry, dict):
-
             if self.coasts is None:
                 logger.warning("coastlines might be required")
 
             self.geometry = geometry
 
         elif isinstance(geometry, str):
-
             if geometry == "global":
-
                 if self.coasts is None:
                     logger.warning("coastlines might be required")
 
                 self.geometry = "global"
 
             else:
-
                 try:
                     self.geometry = gp.read_file(geometry)
                 except:
@@ -121,7 +105,6 @@ class Boundary:
                         sys.exit(1)
 
         else:
-
             try:
                 self.geometry = gp.read_file(geometry)
             except:
@@ -168,7 +151,6 @@ class Boundary:
         self.contours = df.reset_index(drop=True)
 
     def show(self):
-
         return self.contours.plot(
             column="tag",
             legend=True,
@@ -183,7 +165,6 @@ class Boundary:
 
 
 def buffer_(coasts, cbuffer):
-
     # check
     if coasts.empty:
         return coasts
@@ -246,7 +227,6 @@ def buffer_(coasts, cbuffer):
 
 
 def tag(geometry, coasts, cbuffer, blevels):
-
     try:
         lon_min = geometry["lon_min"]
         lon_max = geometry["lon_max"]
@@ -279,7 +259,6 @@ def tag(geometry, coasts, cbuffer, blevels):
         flag = 0
 
     try:
-
         # adjust and mask based on lat/lon window
         if flag == 1:
             block1 = coasts.cx[lon_min:180, lat_min:lat_max].copy()
@@ -291,7 +270,6 @@ def tag(geometry, coasts, cbuffer, blevels):
             block = pd.concat([block1, block2])
 
         elif flag == -1:
-
             block1 = coasts.cx[lon_min + 360 : 180, lat_min:lat_max].copy()
             block2 = coasts.cx[-180:lon_max, lat_min:lat_max].copy()
 
@@ -305,7 +283,6 @@ def tag(geometry, coasts, cbuffer, blevels):
 
         # Fix polygons around international line
         if flag != 0:
-
             wc = block[(block.bounds.maxx == flag * 180) | (block.bounds.minx == flag * 180)]
 
             cs = []  # adjust values around zero (in projection - international line in Platee Carree)
@@ -469,7 +446,6 @@ def tag(geometry, coasts, cbuffer, blevels):
 
 
 def global_tag(geo, cbuffer, blevels, R=1):
-
     # Manage coastlines
     logger.info("preparing coastlines")
 

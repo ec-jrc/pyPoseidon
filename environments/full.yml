@@ -34,7 +34,7 @@ dependencies:
   - pandas
   - pip
   - proj
-  - pschism=5.10*=mpi_mpich*
+  - pschism=5.10*=mpi_mpich_py3.10*
   - psutil
   - pydap>=3.3.0
   - pygeos

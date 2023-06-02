@@ -285,7 +285,7 @@ class d3d:
         tlines = df[df.data.str.contains("TIME")].index  # rows which start with TIME
 
         # get attrs
-        d1 = df.loc[0 : tlines[0] - 1, "data"].str.split("=", 2, expand=True)
+        d1 = df.loc[0 : tlines[0] - 1, "data"].str.split("=", n=2, expand=True)
         d1.columns = ["key", "value"]  # assign column names
         d1.key = d1.key.str.strip()  # cleanup spaces
         d1.value = d1.value.str.strip()
@@ -297,10 +297,10 @@ class d3d:
             attrs[key] = float(attrs[key])
 
         # get time reference
-        d2 = df.loc[tlines, "data"].str.split("=", 2, expand=True)
+        d2 = df.loc[tlines, "data"].str.split("=", n=2, expand=True)
         d2 = d2.drop(d2.columns[0], axis=1)
         d2.columns = ["data"]
-        d2 = d2.loc[:, "data"].str.split(" ", 4, expand=True)
+        d2 = d2.loc[:, "data"].str.split(" ", n=4, expand=True)
         d2 = d2.drop(d2.columns[[0, 2, 3]], axis=1)
         d2.columns = ["hours", "time0"]
         d2.hours = d2.hours.apply(pd.to_numeric)
@@ -323,7 +323,7 @@ class d3d:
         #        data.append(row)
         #    data = np.array(data) # make array
 
-        data = d3[d3.columns[0]].str.split(" ", attrs["n_cols"], expand=True).to_numpy().astype(float)
+        data = d3[d3.columns[0]].str.split(" ", n=attrs["n_cols"], expand=True).to_numpy().astype(float)
 
         data = data.reshape(d2.shape[0], attrs["n_rows"], attrs["n_cols"])  # reshape
 

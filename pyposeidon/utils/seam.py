@@ -3,6 +3,7 @@ import geopandas as gp
 import numpy as np
 import shapely
 import glob
+from tqdm.auto import tqdm
 import pyresample
 import xarray as xr
 from shapely.ops import triangulate
@@ -201,27 +202,36 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
         )
 
     elif "time" in dataset[var].coords:
-        xelev = []
-        for i in range(dataset.time.shape[0]):
+                
+        it_start = kwargs.get("it_start", 0)
+        it_end = kwargs.get("it_end", dataset.time.shape[0])
+        
+#        xelev = []
+        
+        for i in tqdm(range(it_start, it_end)):
             z = dataset[var].values[i, :]
             zm = z[xmask]
             z_ = pyresample.kd_tree.resample_nearest(orig, zm, targ, radius_of_influence=200000, fill_value=0)
             e = np.concatenate((z, z_))
-            xelev.append(e)
+#            xelev.append(e)
 
-        # create xarray
-        xe = xr.Dataset(
-            {
-                var: (["time", "nSCHISM_hgrid_node"], xelev),
-                "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
-                "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
-                "SCHISM_hgrid_face_nodes": (
-                    ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
-                    tri3n,
-                ),
-            },
-            coords={"time": ("time", dataset.time.values)},
-        )
+            # create xarray
+            xi = xr.Dataset(
+                {
+                    var: (["time", "nSCHISM_hgrid_node"], e),
+                    "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
+                    "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
+                    "SCHISM_hgrid_face_nodes": (
+                        ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+                        tri3n,
+                    ),
+                },
+                coords={"time": ("time", dataset.time.values[i])},
+            )
+
+            xi.to_netcdf('./tmp/x{:03d}.nc')
+            
+        xe = xr.open_mfdataset('./tmp/*.nc')
 
     return xe
 

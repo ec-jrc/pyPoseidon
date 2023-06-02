@@ -6,7 +6,6 @@ from pyposeidon.utils.stereo import stereo_to_3d
 
 
 def to_sq(df, fpos):
-
     with open(fpos, "w") as f:
         f.write("//*********************************************************************\n")
         f.write("// *\n")
@@ -45,7 +44,6 @@ def to_sq(df, fpos):
 
 
 def to_st(df, fpos):
-
     with open(fpos, "w") as f:
         f.write("//*********************************************************************\n")
         f.write("// *\n")
@@ -80,8 +78,6 @@ def to_st(df, fpos):
 
 
 def to_global_pos(nodes, elems, fpos, **kwargs):
-
-    use_bindings = kwargs.get("use_bindings", True)
     R = kwargs.get("R", 1.0)
 
     # use 3D

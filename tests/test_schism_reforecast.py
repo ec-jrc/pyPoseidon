@@ -50,6 +50,7 @@ case = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
+    "scribes": 2,
 }
 
 
@@ -73,6 +74,7 @@ check = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
+    "scribes": 2,
 }
 
 

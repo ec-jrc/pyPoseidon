@@ -34,7 +34,6 @@ plt.rcParams["animation.embed_limit"] = "200."
 
 
 def __init__(dark_background=False):
-
     # set plt style
     if dark_background:
         plt.style.use("dark_background")
@@ -46,7 +45,6 @@ class gplot(object):
         self._obj = xarray_obj
 
     def contourf(self, ax=None, x=None, y=None, z=None, tname="time", **kwargs):
-
         if not ax:
             fig = plt.figure(figsize=(12, 8))
 
@@ -121,7 +119,6 @@ class gplot(object):
         return (Q,)
 
     def quiver(self, ax=None, x=None, y=None, z=None, tname="time", **kwargs):
-
         U = self._obj[z].values[:, :, :, 0]
         V = self._obj[z].values[:, :, :, 1]
 
@@ -217,22 +214,37 @@ class pplot(object):
         self._obj = xarray_obj
 
     def contour(self, ax=None, it=None, **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
+        t_var = kwargs.get("t", "time")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
         try:
-            t = kwargs.get("t", self._obj.time.values)
+            t = self._obj[t_var][:].values
         except:
             pass
 
-        tes = kwargs.get("tes", self._obj.SCHISM_hgrid_face_nodes.values[:, :4])
+        tes = self._obj[tes_var].values[:, :4]
+
+        # check tesselation
+
+        if tes.max() == x.size:
+            tes = tes - 1  # fortran/python conversion
+
+        try:
+            tes = tes.fillna(-1.0)  # adapt to schism >=5.10
+            tes = tes.values
+        except:
+            pass  # given as numpy array
 
         var = kwargs.get("var", "depth")
         z = kwargs.get("z", self._obj[var].values[it, :].flatten())
 
         # sort out quads
         try:
-            mask = np.isnan(tes)[:, 3]
+            mask = tes[:, 3] == -1
             tr3 = tes[mask][:, :3]
             tr3_ = quads_to_tris(tes[~mask])
             if tr3_:
@@ -240,7 +252,7 @@ class pplot(object):
             else:
                 tri3 = tr3.astype(int)
         except:
-            tri3 = tes.astype(int)
+            tri3 = tes[:, :3].astype(int)
 
         if tri3.min() > 0:
             tri3 = tri3 - 1
@@ -257,20 +269,26 @@ class pplot(object):
         #   ax.background_patch.set_facecolor('k')
         # ax = plt.axes()
 
-        vmin = kwargs.get("vmin", z.min())
-        vmax = kwargs.get("vmax", z.max())
-
         nv = kwargs.get("nv", 10)
         xy = kwargs.get("xy", (0.05, -0.1))
         title = kwargs.get("title", "contour plot for {}".format(var))
 
-        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
-
         # optional mask for the data
         mask = kwargs.get("mask", None)
+        fv = kwargs.get("fv", -99999)
         if "mask" in kwargs:
             z = np.ma.masked_array(z, mask)
-            z = z.filled(fill_value=-99999)
+            z = z.filled(fill_value=fv)
+
+        # check for nans
+        imask = np.isnan(z)
+        if imask.sum() > 0:
+            z = np.ma.masked_array(z, imask)
+            z = z.filled(fill_value=fv)
+
+        vmin = kwargs.get("vmin", z.min())
+        vmax = kwargs.get("vmax", z.max())
+        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
 
         for val in [
             "x",
@@ -285,6 +303,8 @@ class pplot(object):
             "mask",
             "xy",
             "z",
+            "e",
+            "fv",
             "var",
         ]:
             try:
@@ -297,7 +317,6 @@ class pplot(object):
         p = plt.tricontour(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)
         cbar = fig.colorbar(p, ticks=vrange, orientation="vertical")
         if it:
-
             text = "time={}".format(t[it])
             an = ax.annotate(text, xy=xy, xycoords="axes fraction")
 
@@ -308,18 +327,34 @@ class pplot(object):
         return p  # , ax
 
     def contourf(self, ax=None, it=None, **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
+        t_var = kwargs.get("t", "time")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
         try:
-            t = kwargs.get("t", self._obj.time.values)
+            t = self._obj[t_var][:].values
         except:
             pass
-        tes = kwargs.get("tes", self._obj.SCHISM_hgrid_face_nodes.values[:, :4])
+
+        tes = self._obj[tes_var].values[:, :4]
+
+        # check tesselation
+
+        if tes.max() == x.size:
+            tes = tes - 1  # fortran/python conversion
+
+        try:
+            tes = tes.fillna(-1.0)  # adapt to schism >=5.10
+            tes = tes.values
+        except:
+            pass  # given as numpy array
 
         # sort out quads
         try:
-            mask = np.isnan(tes)[:, 3]
+            mask = tes[:, 3] == -1
             tr3 = tes[mask][:, :3]
             tr3_ = quads_to_tris(tes[~mask])
             if tr3_:
@@ -327,7 +362,7 @@ class pplot(object):
             else:
                 tri3 = tr3.astype(int)
         except:
-            tri3 = tes.astype(int)
+            tri3 = tes[:, :3].astype(int)
 
         if tri3.min() > 0:
             tri3 = tri3 - 1
@@ -339,14 +374,10 @@ class pplot(object):
         var = kwargs.get("var", "depth")
         z = kwargs.get("z", self._obj[var].values[it, :].flatten())
 
-        vmin = kwargs.get("vmin", z.min())
-        vmax = kwargs.get("vmax", z.max())
-
         nv = kwargs.get("nv", 10)
 
         title = kwargs.get("title", "contourf plot for {}".format(var))
 
-        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
         ## CHOOSE YOUR PROJECTION
         #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))
         #    [fig,ax] = kwargs.get('figure',[plt.figure(figsize=(12,8)),plt.axes(projection=ccrs.PlateCarree())])
@@ -359,9 +390,21 @@ class pplot(object):
 
         # optional mask for the data
         mask = kwargs.get("mask", None)
+        fv = kwargs.get("fv", -99999)
         if "mask" in kwargs:
             z = np.ma.masked_array(z, mask)
-            z = z.filled(fill_value=-99999)
+            z = z.filled(fill_value=fv)
+
+        # check for nans
+        imask = np.isnan(z)
+        if imask.sum() > 0:
+            z = np.ma.masked_array(z, imask)
+            z = z.filled(fill_value=fv)
+
+        vmin = kwargs.get("vmin", z.min())
+        vmax = kwargs.get("vmax", z.max())
+
+        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
 
         xy = kwargs.get("xy", (0.05, -0.1))
 
@@ -379,6 +422,8 @@ class pplot(object):
             "mask",
             "xy",
             "var",
+            "e",
+            "fv",
             "figure",
         ]:
             try:
@@ -391,7 +436,6 @@ class pplot(object):
         p = ax.tricontourf(x, y, tri3, z, vrange, vmin=vmin, vmax=vmax, **kwargs)  # , transform=ccrs.PlateCarree() )
         cbar = plt.colorbar(p, ticks=vrange, orientation="vertical")
         if it:
-
             text = "time={}".format(t[it])
             an = ax.annotate(text, xy=xy, xycoords="axes fraction")
 
@@ -402,11 +446,14 @@ class pplot(object):
         return ax
 
     def quiver(self, ax=None, it=None, u=None, v=None, title=None, scale=0.1, color="k", **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        t_var = kwargs.get("t", "time")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
         try:
-            t = kwargs.get("t", self._obj.time.values)
+            t = self._obj[t_var][:].values
         except:
             pass
 
@@ -423,11 +470,12 @@ class pplot(object):
 
         # optional mask for the data
         mask = kwargs.get("mask", None)
+        fv = kwargs.get("fv", -99999)
         if "mask" in kwargs:
             u = np.ma.masked_array(u, mask)
             v = np.ma.masked_array(v, mask)
-            v = v.filled(fill_value=-99999)
-            u = u.filled(fill_value=-99999)
+            v = v.filled(fill_value=fv)
+            u = u.filled(fill_value=fv)
 
         for val in [
             "x",
@@ -436,6 +484,7 @@ class pplot(object):
             "it",
             "u",
             "v",
+            "fv",
             "title",
             "tes",
             "xy",
@@ -457,26 +506,35 @@ class pplot(object):
         ax.set_title(title, pad=30)
 
         if it:
-
             text = "time={}".format(t[it])
             an = ax.annotate(text, xy=xy, xycoords="axes fraction")
 
         return ax
 
     def mesh(self, ax=None, lw: float = 0.5, markersize: float = 1.0, **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
-        tes = kwargs.get("tes", self._obj.SCHISM_hgrid_face_nodes.values[:, :4])
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
+        tes = self._obj[tes_var].values[:, :4]
+
+        # check tesselation
+
+        try:
+            tes = tes.fillna(-1.0)  # adapt to schism >=5.10
+            tes = tes.values
+        except:
+            pass  # given as numpy array
 
         # sort out quads
         try:
-            mask = np.isnan(tes)[:, 3]
+            mask = tes[:, 3] == -1
             tri3 = tes[mask][:, :3].astype(int)
             quads = tes[~mask].astype(int)
-
         except:
-            tri3 = tes.astype(int)
+            tri3 = tes[:, :3].astype(int)
             quads = []
 
         if tri3.min() > 0:
@@ -486,7 +544,7 @@ class pplot(object):
             except:
                 pass
 
-        for val in ["x", "y", "tes"]:
+        for val in ["x", "y", "e"]:
             try:
                 del kwargs[val]
             except:
@@ -529,14 +587,16 @@ class pplot(object):
         return ax
 
     def qframes(self, ax=None, u=None, v=None, scale=0.01, color="k", **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        t_var = kwargs.get("t", "time")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
+        t = self._obj[t_var][:].values
 
         cr = kwargs.get("coastlines", None)
         c_attrs = kwargs.get("coastlines_attrs", {})
-
-        t = kwargs.get("t", self._obj.time.values)
 
         #        ax = plt.axes(projection=ccrs.PlateCarree())
         #  ax.set_extent([x.min(), x.max(), y.min(), y.max()])
@@ -591,18 +651,30 @@ class pplot(object):
         return v
 
     def frames(self, **kwargs):
-
         cr = kwargs.get("coastlines", None)
         c_attrs = kwargs.get("coastlines_attrs", {})
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
-        t = kwargs.get("t", self._obj.time.values)
-        tes = kwargs.get("tes", self._obj.SCHISM_hgrid_face_nodes.values[:, :4])
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
+        t_var = kwargs.get("t", "time")
+
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
+        t = self._obj[t_var][:].values
+        tes = self._obj[tes_var].values[:, :4]
+
+        # check tesselation
+
+        try:
+            tes = tes.fillna(-1.0)  # adapt to schism >=5.10
+            tes = tes.values
+        except:
+            pass  # given as numpy array
 
         # sort out quads
         try:
-            mask = np.isnan(tes)[:, 3]
+            mask = tes[:, 3] == -1
             tr3 = tes[mask][:, :3]
             tr3_ = quads_to_tris(tes[~mask])
             if tr3_:
@@ -610,7 +682,10 @@ class pplot(object):
             else:
                 tri3 = tr3.astype(int)
         except:
-            tri3 = tes.astype(int)
+            tri3 = tes[:, :3].astype(int)
+
+        if tri3.min() > 0:
+            tri3 = tri3 - 1  # fortran/python conversion
 
         var = kwargs.get("var", "depth")
         z = kwargs.get("z", self._obj[var].values)
@@ -623,20 +698,27 @@ class pplot(object):
         yf = np.ceil(12 * ratio).astype(int)
 
         fig = plt.figure(figsize=(xf, yf))
-        vmin = kwargs.get("vmin", z.min())
-        vmax = kwargs.get("vmax", z.max())
 
         nv = kwargs.get("nv", 10)
 
         title = kwargs.get("title", None)
 
-        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
-
         # optional mask for the data
         mask = kwargs.get("mask", None)
+        fv = kwargs.get("fv", -99999)
         if "mask" in kwargs:
             z = np.ma.masked_array(z, mask)
-            z = z.filled(fill_value=-99999)
+            z = z.filled(fill_value=fv)
+
+        # check for nans
+        imask = np.isnan(z)
+        if imask.sum() > 0:
+            z = np.ma.masked_array(z, imask)
+            z = z.filled(fill_value=fv)
+
+        vmin = kwargs.get("vmin", z.min())
+        vmax = kwargs.get("vmax", z.max())
+        vrange = np.linspace(vmin, vmax, nv, endpoint=True)
 
         ## CHOOSE YOUR PROJECTION
         #   ax = plt.axes(projection=ccrs.Orthographic(grid_x.mean(), grid_y.mean()))

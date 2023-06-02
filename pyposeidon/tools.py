@@ -32,7 +32,7 @@ set -euo pipefail
 
 mkdir -p outputs
 
-exec mpirun {mpirun_flags} -N {ncores} {cmd}
+exec mpirun {mpirun_flags} -N {ncores} {cmd} {scribes}
 """.strip()
 
 
@@ -127,6 +127,7 @@ def create_mpirun_script(
     cmd: str,
     use_threads: bool = True,
     ncores: int = 0,
+    scribes: int = 0,
 ) -> str:
     """
     Create a script for launching schism.
@@ -145,11 +146,20 @@ def create_mpirun_script(
         mpirun_flags = "--use-hwthread-cpus"
     else:
         mpirun_flags = ""
-    content = template.format(
-        mpirun_flags=mpirun_flags,
-        ncores=ncores,
-        cmd=cmd,
-    )
+    if scribes != 0:
+        content = template.format(
+            mpirun_flags=mpirun_flags,
+            ncores=ncores,
+            cmd=cmd,
+            scribes=scribes,
+        )
+    else:
+        content = template.format(
+            mpirun_flags=mpirun_flags,
+            ncores=ncores,
+            cmd=cmd,
+            scribes="",
+        ).rstrip()
     # Write to disk and make executable
     script_path = target_dir + "/" + script_name
     with open(script_path, "w") as fd:
@@ -165,6 +175,7 @@ def create_schism_mpirun_script(
     script_name: str = "launchSchism.sh",
     template: str = LAUNCH_SCHISM_TEMPLATE,
     ncores: int = 0,
+    scribes: int = 0,
 ) -> str:
     script_path = create_mpirun_script(
         target_dir=target_dir,
@@ -172,6 +183,7 @@ def create_schism_mpirun_script(
         use_threads=use_threads,
         script_name=script_name,
         ncores=ncores,
+        scribes=scribes,
         template=template,
     )
     return script_path
@@ -231,7 +243,6 @@ def flat_list(outer):
 
 
 def orient(nodes, tria, x="lon", y="lat"):
-
     # compute area
     ax = nodes.loc[tria.a, x].values
     bx = nodes.loc[tria.b, x].values

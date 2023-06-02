@@ -47,7 +47,7 @@ class D3DCast:
 
     def run(self, **kwargs):
         if isinstance(self.model, str):
-            self.model = pyposeidon.read_model(self.model)
+            self.model = pyposeidon.model.read(self.model)
 
         for attr, value in self.model.__dict__.items():
             if not hasattr(self, attr):
@@ -217,7 +217,7 @@ class SchismCast:
 
     def run(self, **kwargs):
         if isinstance(self.model, str):
-            self.model = pyposeidon.read_model(self.model)
+            self.model = pyposeidon.model.read(self.model)
 
         for attr, value in self.model.__dict__.items():
             if not hasattr(self, attr):

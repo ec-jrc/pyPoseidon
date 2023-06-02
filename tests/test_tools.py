@@ -13,38 +13,39 @@ from . import DATA_DIR
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
 @pytest.mark.parametrize("use_threads", [True, False])
-def test_create_schism_mpirun_script(tmp_path, use_threads):
+@pytest.mark.parametrize("scribes", [0, 1])
+def test_create_schism_mpirun_script(tmp_path, use_threads, scribes):
     target_dir = tmp_path.as_posix()
     cmd = "/bin/schism"
     script_name = "launchSchism.sh"
     script_path = tools.create_schism_mpirun_script(
-        target_dir=target_dir, script_name=script_name, cmd=cmd, use_threads=use_threads
+        target_dir=target_dir, script_name=script_name, cmd=cmd, use_threads=use_threads, scribes=scribes
     )
     assert script_path == (tmp_path / script_name).as_posix(), "script was not created"
     assert os.access(script_path, os.X_OK), "script is not executable"
     assert not (tmp_path / "outputs").exists(), "outputs subdirectory has not been created"
     content = pathlib.Path(script_path).read_text()
-    assert content.endswith(cmd), "the cmd is not being used"
+    scr = "" if scribes == 0 else scribes
+    assert content.endswith(cmd + " {}".format(scr).rstrip()), "the cmd is not being used"
     assert f"-N {psutil.cpu_count(logical=use_threads)}" in content
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
-@pytest.mark.parametrize("ncores", [1, 2, 44])
-def test_create_schism_mpirun_script_ncores(tmp_path, ncores):
+@pytest.mark.parametrize("ncores", [2, 4, 44])
+@pytest.mark.parametrize("scribes", [0, 1])
+def test_create_schism_mpirun_script_ncores(tmp_path, ncores, scribes):
     target_dir = tmp_path.as_posix()
     cmd = "/bin/schism"
     script_name = "launchSchism.sh"
     script_path = tools.create_schism_mpirun_script(
-        target_dir=target_dir,
-        script_name=script_name,
-        cmd=cmd,
-        ncores=ncores,
+        target_dir=target_dir, script_name=script_name, cmd=cmd, ncores=ncores, scribes=scribes
     )
     assert script_path == (tmp_path / script_name).as_posix(), "script was not created"
     assert os.access(script_path, os.X_OK), "script is not executable"
     assert not (tmp_path / "outputs").exists(), "outputs subdirectory has not been created"
     content = pathlib.Path(script_path).read_text()
-    assert content.endswith(cmd), "the cmd is not being used"
+    scr = "" if scribes == 0 else scribes
+    assert content.endswith(cmd + " {}".format(scr).rstrip()), "the cmd is not being used"
     assert f"-N {ncores}" in content
 
 
