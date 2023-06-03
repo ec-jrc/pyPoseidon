@@ -875,7 +875,7 @@ class d3d:
                 dic[attr] = dic[attr].isoformat()
             if isinstance(value, pd.DataFrame):
                 dic[attr] = dic[attr].to_dict()
-        json.dump(dic, open(path + self.tag + "_model.json", "w"), default=myconverter)
+        json.dump(dic, open(path + self.tag + "_model.json", "w"), indent=4, default=myconverter)
 
     def output(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./d3d/")

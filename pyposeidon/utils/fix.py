@@ -254,31 +254,29 @@ def fix(dem, coastline, **kwargs):
 
     logger.info("{} points on the boundary, setting to zero".format(len(on_coast)))
 
-    if "fval" in cdem.data_vars:    
-        
+    if "fval" in cdem.data_vars:
         tt = len(cdem.fval.shape)
-                
+
         if tt == 1:
             cdem.fval[on_coast] = 0.0
-            
+
         elif tt == 2:
-            bmask = np.zeros(cdem.fval.shape, dtype=bool) #create mask
-            for idx, [i,j] in enumerate(on_coast):
-                bmask[i,j] = True
-            cdem.fval.values[bmask] = 0.0 # set value
-            
+            bmask = np.zeros(cdem.fval.shape, dtype=bool)  # create mask
+            for idx, [i, j] in enumerate(on_coast):
+                bmask[i, j] = True
+            cdem.fval.values[bmask] = 0.0  # set value
+
     elif "adjusted" in cdem.data_vars:
-        
-        bmask = np.zeros(cdem.adjusted.shape, dtype=bool) #create mask
-        for idx, [i,j] in enumerate(on_coast):
-            bmask[i,j] = True
-        cdem.adjusted.values[bmask] = 0.0 # set value
-        
+        bmask = np.zeros(cdem.adjusted.shape, dtype=bool)  # create mask
+        for idx, [i, j] in enumerate(on_coast):
+            bmask[i, j] = True
+        cdem.adjusted.values[bmask] = 0.0  # set value
+
     if len(nanp) == 0:
         valid = True
     else:
-        valid = False    
-        
+        valid = False
+
     return cdem, valid
 
 
@@ -286,46 +284,40 @@ def check1(dataset, water):
     # check it
 
     if "fval" in dataset.data_vars:
-        
         tt = len(dataset.fval.shape)
 
-        if tt == 1 :
-            
+        if tt == 1:
             ids = np.argwhere(dataset.fval.values.flatten() > 0).flatten()
 
             xp = dataset.ilons.values.flatten()[ids]
             yp = dataset.ilats.values.flatten()[ids]
-            
 
-        elif tt == 2 :
-    
+        elif tt == 2:
             xy = np.argwhere(dataset.fval.values > 0)
 
             xx = [x for [x, y] in xy]
             yy = [y for [x, y] in xy]
 
             smask = dataset.fval.values > 0
-            
+
             xp = dataset.ilons.values[smask]
             yp = dataset.ilats.values[smask]
 
-
     elif "adjusted" in dataset.data_vars:
-        
-            xy = np.argwhere(dataset.adjusted.values > 0)
+        xy = np.argwhere(dataset.adjusted.values > 0)
 
-            coords=[0,0]
+        coords = [0, 0]
 
-            coords[0] = [x for [x, y] in xy]
-            coords[1] = [y for [x, y] in xy]
+        coords[0] = [x for [x, y] in xy]
+        coords[1] = [y for [x, y] in xy]
 
-            dims = list(dataset.adjusted.dims)
+        dims = list(dataset.adjusted.dims)
 
-            match1 = dims.index('longitude')
-            match2 = dims.index('latitude')
+        match1 = dims.index("longitude")
+        match2 = dims.index("latitude")
 
-            xp = dataset.longitude[coords[match1]].values
-            yp = dataset.latitude[coords[match2]].values
+        xp = dataset.longitude[coords[match1]].values
+        yp = dataset.latitude[coords[match2]].values
 
     wet = gp.GeoDataFrame(geometry=[water])
 
@@ -344,47 +336,42 @@ def check2(dataset, coastline):
     tt = None
 
     if "fval" in dataset.data_vars:
-
         tt = len(dataset.fval.shape)
 
-        if tt == 1 :
-            
+        if tt == 1:
             ids = np.argwhere(dataset.fval.values.flatten() > 0).flatten()
 
             xp = dataset.ilons.values.flatten()[ids]
             yp = dataset.ilats.values.flatten()[ids]
-            
 
-        elif tt == 2 :
-    
+        elif tt == 2:
             xy = np.argwhere(dataset.fval.values > 0)
 
             xx = [x for [x, y] in xy]
             yy = [y for [x, y] in xy]
 
             smask = dataset.fval.values > 0
-            
+
             xp = dataset.ilons.values[smask]
             yp = dataset.ilats.values[smask]
 
     elif "adjusted" in dataset.data_vars:
-        
-            tt = 0
-        
-            xy = np.argwhere(dataset.adjusted.values > 0)
+        tt = 0
 
-            coords=[0,0]
+        xy = np.argwhere(dataset.adjusted.values > 0)
 
-            coords[0] = [x for [x, y] in xy]
-            coords[1] = [y for [x, y] in xy]
+        coords = [0, 0]
 
-            dims = list(dataset.adjusted.dims)
+        coords[0] = [x for [x, y] in xy]
+        coords[1] = [y for [x, y] in xy]
 
-            match1 = dims.index('longitude')
-            match2 = dims.index('latitude')
+        dims = list(dataset.adjusted.dims)
 
-            xp = dataset.longitude[coords[match1]].values
-            yp = dataset.latitude[coords[match2]].values
+        match1 = dims.index("longitude")
+        match2 = dims.index("latitude")
+
+        xp = dataset.longitude[coords[match1]].values
+        yp = dataset.latitude[coords[match2]].values
 
     cpoints = [shapely.Point([x, y]) for (x, y) in zip(xp, yp)]
 
@@ -404,21 +391,17 @@ def check2(dataset, coastline):
     wn.sort()
 
     if tt == 0:
-        
         bps = xy[wn].tolist()
-    
+
     elif tt == 1:
-        
         bps = ids[wn]
-    
+
     elif tt == 2:
-        
-        bps = [[xx[i],yy[i]] for i in wn]
-    
+        bps = [[xx[i], yy[i]] for i in wn]
+
     elif tt == None:
-        
         bps = None
- 
+
     return bps
 
 

@@ -221,6 +221,7 @@ class Schism:
         # update
         if dic:
             params = unml(params, dic)
+            self.parameters.update(dic)
 
         # test rnday
         if float(params["CORE"]["rnday"]) * 24 * 3600 > (self.end_date - self.start_date).total_seconds():
@@ -670,10 +671,7 @@ class Schism:
         scribes = get_value(self, kwargs, "scribes", 0)
 
         tools.create_schism_mpirun_script(
-            target_dir=calc_dir,
-            cmd=bin_path,
-            script_name="launchSchism.sh",
-            scribes = scribes
+            target_dir=calc_dir, cmd=bin_path, script_name="launchSchism.sh", scribes=scribes
         )
 
         # ---------------------------------------------------------------------
@@ -758,7 +756,7 @@ class Schism:
             if isinstance(value, gp.GeoDataFrame):
                 dic[attr] = value.to_json()
 
-        json.dump(dic, open(path + self.tag + "_model.json", "w"), default=myconverter)
+        json.dump(dic, open(path + self.tag + "_model.json", "w"), indent=4, default=myconverter)
 
     def execute(self, **kwargs):
         flag = get_value(self, kwargs, "update", ["all"])

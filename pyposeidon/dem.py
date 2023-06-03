@@ -88,19 +88,20 @@ class Dem:
 
     def adjust(self, coastline, **kwargs):
         self.Dataset, check = fix(self.Dataset, coastline, **kwargs)
-        
+
         if not check:
             logger.warning("Adjusting dem failed, keeping original values\n")
             try:
                 self.Dataset = self.Dataset.drop_vars("adjusted")
             except:
                 pass
-            try:    
+            try:
                 self.Dataset = self.Dataset.drop_vars("fval")
             except:
                 pass
-                
+
         return check
+
 
 def normalize_coord_names(dataset: xr.Dataset) -> xr.Dataset:
     """Return a dataset with coords containing "longitude" and "latitude" """

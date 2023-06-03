@@ -23,6 +23,7 @@ import pandas as pd
 import glob
 from shutil import copyfile
 import xarray as xr
+import json
 
 # local modules
 from . import tools
@@ -100,9 +101,9 @@ def read(filename, **kwargs):
 
     if end in ["txt", "json"]:
         with open(filename, "rb") as f:
-            info = pd.read_json(f, lines=True).T
-            info[info.isnull().values] = None
-            info = info.to_dict()[0]
+            data = json.load(f)
+            data = pd.json_normalize(data, max_level=0)
+            info = data.to_dict(orient="records")[0]
     else:
         logger.error("Model file should be .txt or .json")
         sys.exit(0)

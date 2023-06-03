@@ -22,6 +22,7 @@ from shutil import copy2
 import glob
 import pandas as pd
 import pathlib
+import json
 
 # from pyposeidon.utils import data
 import subprocess
@@ -90,9 +91,9 @@ class D3DCast:
 
         # load model
         with open(rpath + self.tag + "_model.json", "rb") as f:
-            info = pd.read_json(f, lines=True).T
-            info[info.isnull().values] = None
-            info = info.to_dict()[0]
+            data = json.load(f)
+            data = pd.json_normalize(data, max_level=0)
+            info = data.to_dict(orient="records")[0]
 
         try:
             args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
@@ -225,6 +226,8 @@ class SchismCast:
 
         execute = get_value(self, kwargs, "execute", True)
 
+        copy = get_value(self, kwargs, "copy", False)
+
         pwd = os.getcwd()
 
         files = [
@@ -278,9 +281,9 @@ class SchismCast:
 
         # load model
         with open(rpath + self.tag + "_model.json", "rb") as f:
-            info = pd.read_json(f, lines=True).T
-            info[info.isnull().values] = None
-            info = info.to_dict()[0]
+            data = json.load(f)
+            data = pd.json_normalize(data, max_level=0)
+            info = data.to_dict(orient="records")[0]
 
         try:
             args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
@@ -353,22 +356,42 @@ class SchismCast:
                     copy2(ppath + filename, rpath + filename)
         logger.debug(".. done")
 
-        # symlink the big files
-        logger.debug("symlink model files")
-        for filename in files_sym:
-            ipath = glob.glob(self.origin + filename)
-            if ipath:
-                try:
-                    os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
-                except OSError as e:
-                    if e.errno == errno.EEXIST:
-                        logger.warning("Restart link present\n")
-                        logger.warning("overwriting\n")
-                        os.remove(rpath + filename)
-                        os.symlink(
-                            pathlib.Path(ipath[0]).resolve(strict=True),
-                            rpath + filename,
-                        )
+        if copy:
+            # copy the big files
+            logger.debug("copy model files")
+            for filename in files_sym:
+                ipath = glob.glob(self.origin + filename)
+                if ipath:
+                    try:
+                        copy2(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
+                    except OSError as e:
+                        if e.errno == errno.EEXIST:
+                            logger.warning("Restart file present\n")
+                            logger.warning("overwriting\n")
+                            os.remove(rpath + filename)
+                            copy2(
+                                pathlib.Path(ipath[0]).resolve(strict=True),
+                                rpath + filename,
+                            )
+
+        else:
+            # symlink the big files
+            logger.debug("symlink model files")
+            for filename in files_sym:
+                ipath = glob.glob(self.origin + filename)
+                if ipath:
+                    try:
+                        os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
+                    except OSError as e:
+                        if e.errno == errno.EEXIST:
+                            logger.warning("Restart link present\n")
+                            logger.warning("overwriting\n")
+                            os.remove(rpath + filename)
+                            os.symlink(
+                                pathlib.Path(ipath[0]).resolve(strict=True),
+                                rpath + filename,
+                            )
+
         logger.debug(".. done")
 
         # create restart file
@@ -382,9 +405,9 @@ class SchismCast:
         if not resfile:
             # load model model from ppath
             with open(ppath + self.tag + "_model.json", "rb") as f:
-                ph = pd.read_json(f, lines=True).T
-                ph[ph.isnull().values] = None
-                ph = ph.to_dict()[0]
+                data = json.load(f)
+                data = pd.json_normalize(data, max_level=0)
+                ph = data.to_dict(orient="records")[0]
             p = pm.set(**ph)
             p.hotstart(it=hotout)
 
@@ -394,19 +417,35 @@ class SchismCast:
 
         logger.info("set restart\n")
 
-        try:
-            os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                logger.warning("Restart link present\n")
-                logger.warning("overwriting\n")
-                os.remove(rpath + outresfile)
-                os.symlink(
-                    pathlib.Path(ppath + inresfile).resolve(strict=True),
-                    rpath + outresfile,
-                )
-            else:
-                raise e
+        if copy:
+            try:
+                os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    logger.warning("Restart file present\n")
+                    logger.warning("overwriting\n")
+                    os.remove(rpath + outresfile)
+                    copy2(
+                        pathlib.Path(ppath + inresfile).resolve(strict=True),
+                        rpath + outresfile,
+                    )
+                else:
+                    raise e
+
+        else:
+            try:
+                os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    logger.warning("Restart link present\n")
+                    logger.warning("overwriting\n")
+                    os.remove(rpath + outresfile)
+                    os.symlink(
+                        pathlib.Path(ppath + inresfile).resolve(strict=True),
+                        rpath + outresfile,
+                    )
+                else:
+                    raise e
 
         # get new meteo
 

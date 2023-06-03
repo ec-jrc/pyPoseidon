@@ -20,6 +20,7 @@ import xarray as xr
 import glob
 import sys
 import logging
+import json
 
 from .. import tools
 
@@ -70,9 +71,9 @@ class D3DResults:
         # ---------------------------------------------------------------------
 
         with open(ifile, "rb") as f:
-            info = pd.read_json(f, lines=True).T
-            info[info.isnull().values] = None
-            self.info = info.to_dict()[0]
+            data = json.load(f)
+            data = pd.json_normalize(data, max_level=0)
+            self.info = data.to_dict(orient="records")[0]
 
         grid = r2d.read_file(self.folders[0] + "/" + self.info["tag"] + ".grd")
 
@@ -174,9 +175,9 @@ class SchismResults:
 
             else:  # run merge output
                 with open(folder + "/" + tag + "_model.json", "r") as f:
-                    info = pd.read_json(f, lines=True).T
-                    info[info.isnull().values] = None
-                    info = info.to_dict()[0]
+                    data = json.load(f)
+                    data = pd.json_normalize(data, max_level=0)
+                    info = data.to_dict(orient="records")[0]
 
                 p = pm.set(**info)
 

@@ -34,7 +34,7 @@ def create_geojson_features(gf, time):
 
 def create_features(path="./", tag="schism"):
     logger.info("create geojson file for elevation")
-    m = pyposeidon.read_model(path + tag + "_model.json")
+    m = pyposeidon.model.read(path + tag + "_model.json")
     m.get_data()
 
     d = m.data.Dataset
@@ -79,7 +79,7 @@ def create_features(path="./", tag="schism"):
     if not os.path.exists(path + "server"):
         os.makedirs(path + "server")
 
-    json.dump(tf, open(path + "server/anim.json", "w"))
+    json.dump(tf, open(path + "server/anim.json", "w"), indent=4)
 
     gf_.to_file(path + "server/grid.geojson", driver="GeoJSON")
 

@@ -202,18 +202,17 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
         )
 
     elif "time" in dataset[var].coords:
-                
         it_start = kwargs.get("it_start", 0)
         it_end = kwargs.get("it_end", dataset.time.shape[0])
-        
-#        xelev = []
-        
+
+        #        xelev = []
+
         for i in tqdm(range(it_start, it_end)):
             z = dataset[var].values[i, :]
             zm = z[xmask]
             z_ = pyresample.kd_tree.resample_nearest(orig, zm, targ, radius_of_influence=200000, fill_value=0)
             e = np.concatenate((z, z_))
-#            xelev.append(e)
+            #            xelev.append(e)
 
             # create xarray
             xi = xr.Dataset(
@@ -229,9 +228,9 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
                 coords={"time": ("time", dataset.time.values[i])},
             )
 
-            xi.to_netcdf('./tmp/x{:03d}.nc')
-            
-        xe = xr.open_mfdataset('./tmp/*.nc')
+            xi.to_netcdf("./tmp/x{:03d}.nc")
+
+        xe = xr.open_mfdataset("./tmp/*.nc")
 
     return xe
 
