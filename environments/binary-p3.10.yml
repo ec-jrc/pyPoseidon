@@ -2,7 +2,6 @@ channels:
   - conda-forge
   - gbrey
 dependencies:
-  - delft3d4=65936*=mpi_mpich*
   - eccodes
   - ffmpeg
   - gdal
@@ -11,5 +10,4 @@ dependencies:
   - jigsaw>=0.9.12
   - pip
   - proj
-  - pschism=5.10*=mpi_mpich*
   - python=3.10

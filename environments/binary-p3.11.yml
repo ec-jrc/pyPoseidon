@@ -1,6 +1,6 @@
 channels:
-  - gbrey
   - conda-forge
+  - gbrey
 dependencies:
   - eccodes
   - ffmpeg
@@ -10,3 +10,4 @@ dependencies:
   - jigsaw>=0.9.12
   - pip
   - proj
+  - python=3.11

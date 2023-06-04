@@ -7,8 +7,6 @@ channels:
 dependencies:
   - "black<24.0"
   - "bump2version"
-  - "conda-lock"
-  - "conda-tree"
   - "ipykernel"
   - "pytest"
   - "pytest-cov"

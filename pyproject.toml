@@ -33,7 +33,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 # python = ">=3.10, <3.11"
-python = ">=3.8, <4"
+python = ">=3.9, <4"
 setuptools = "*"
 Cartopy = "*"
 cfgrib = "*"
@@ -57,18 +57,8 @@ scipy = "*"
 searvey = "*"
 Shapely = ">=2"
 #Shapely = { url = "https://github.com/shapely/shapely/archive/refs/tags/1.7.1.zip" }
-tornado = "<6.2"
 tqdm = "*"
 xarray = "*"
-# docs
-mkdocs-material = { version = "*", optional = true }
-mkdocstrings = { version = "*", optional = true }
-mkdocs = { version = "*", optional = true }
-pymdown-extensions = { version = "*", optional = true }
-# Testing
-pytest-cov = { version = "*", optional = true }
-pytest = { version = "*", optional = true }
-pytest-xdist = { version = "*", optional = true }
 # viz
 geoviews = { version = "*", optional = true, extras = ['recommended'] }
 holoviews = { version = "*", optional = true }
@@ -81,16 +71,7 @@ numba = { version = ">=0.51", optional = true }
 spatialpandas = { version = "*", optional = true }
 vtk = {version = "*", optional = true}
 
-[tool.poetry.dev-dependencies]
-black = "<24.0"
-bump2version = "^1.0"
-conda-lock = ">=2.0"
-"ruamel.yaml" = "<1.0"
-"ruamel.yaml.clib" = "0.2.7"
-
 [tool.poetry.extras]
-docs = ["mkdocs", "mkdocs-material", "pymodwn-extensions", "mkdocstrings"]
-testing = ["pytest", "pytest-cov", "pytest-xdist"]
 viz = [
     "geoviews",
     "holoviews",
@@ -101,25 +82,25 @@ viz = [
     "mayavi",
     "numba",
     "spatialpandas",
+    "vtk",
 ]
-all = [
-    "mkdocs",
-    "mkdocs-material",
-    "pymodwn-extensions",
-    "mkdocstrings",
-    "pytest",
-    "pytest-cov",
-    "pytest-xdist",
-    "geoviews",
-    "holoviews",
-    "hvplot",
-    "ipykernel",
-    "itkwidgets",
-    "matplotlib",
-    "mayavi",
-    "numba",
-    "spatialpandas",
-]
+
+[tool.poetry.group.dev.dependencies]
+black = "<24.0"
+bump2version = "^1.0"
+"ruamel.yaml" = "<1.0"
+"ruamel.yaml.clib" = "0.2.7"
+
+[tool.poetry.group.test.dependencies]
+pytest-cov = "*"
+pytest = "*"
+pytest-xdist = "*"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = "*"
+mkdocstrings = "*"
+mkdocs = "*"
+pymdown-extensions = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -148,4 +129,4 @@ markers = [
 
 [tool.black]
 line-length = 119
-target-version = ['py38']
+target-version = ['py39']

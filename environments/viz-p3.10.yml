@@ -6,7 +6,6 @@ dependencies:
   - cfgrib
   - colorlog
   - dask
-  - delft3d4=65936*=mpi_mpich*
   - eccodes
   - f90nml
   - ffmpeg
@@ -26,7 +25,6 @@ dependencies:
   - pandas
   - pip
   - proj
-  - pschism=5.10*=mpi_mpich*
   - psutil
   - pydap>=3.3.0
   - pyresample
