@@ -127,7 +127,7 @@ def create_mpirun_script(
     cmd: str,
     use_threads: bool = True,
     ncores: int = 0,
-    scribes: int = 0,
+    scribes: int = -1,
 ) -> str:
     """
     Create a script for launching schism.
@@ -146,20 +146,16 @@ def create_mpirun_script(
         mpirun_flags = "--use-hwthread-cpus"
     else:
         mpirun_flags = ""
-    if scribes != 0:
-        content = template.format(
-            mpirun_flags=mpirun_flags,
-            ncores=ncores,
-            cmd=cmd,
-            scribes=scribes,
-        )
+    if scribes < 0:
+        scribes = ""
     else:
-        content = template.format(
-            mpirun_flags=mpirun_flags,
-            ncores=ncores,
-            cmd=cmd,
-            scribes="",
-        ).rstrip()
+        scribes = str(scribes)
+    content = template.format(
+        mpirun_flags=mpirun_flags,
+        ncores=ncores,
+        cmd=cmd,
+        scribes=scribes,
+    ).rstrip()
     # Write to disk and make executable
     script_path = target_dir + "/" + script_name
     with open(script_path, "w") as fd:
@@ -175,7 +171,7 @@ def create_schism_mpirun_script(
     script_name: str = "launchSchism.sh",
     template: str = LAUNCH_SCHISM_TEMPLATE,
     ncores: int = 0,
-    scribes: int = 0,
+    scribes: int = -1,
 ) -> str:
     script_path = create_mpirun_script(
         target_dir=target_dir,

@@ -250,7 +250,7 @@ def fix(dem, coastline, **kwargs):
 
     logger.info("Nan value for {} points".format(len(nanp)))
 
-    on_coast = check2(cdem, coastline)
+    on_coast = check2(cdem, shp)
 
     logger.info("{} points on the boundary, setting to zero".format(len(on_coast)))
 

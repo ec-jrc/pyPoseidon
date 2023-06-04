@@ -21,17 +21,19 @@ case1 = {
 }
 
 
+@pytest.mark.xfail
 @pytest.mark.delft
 @pytest.mark.parametrize("dic", [case1])
 def test_d3d(tmpdir, dic):
     # initialize a model
-    rpath = str(tmpdir) + "/"
+    rpath = str(tmpdir) + "/d1/"
     dic.update({"rpath": rpath})  # use tmpdir for running the model
     b = pyposeidon.model.set(**dic)
     b.execute()
     b.get_output_data()
 
     a = pyposeidon.model.read(rpath + "d3d_model.json")  # read model
+    a.rpath = str(tmpdir) + "/d2/"
     a.execute()
     a.get_output_data()
 

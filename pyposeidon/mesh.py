@@ -540,11 +540,10 @@ class tri2d:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
+        scribes = kwargs.get("scribes", -1)
+
         tools.create_schism_mpirun_script(
-            target_dir=path,
-            cmd=bin_path,
-            script_name="launchSchism.sh",
-            ncores=1,
+            target_dir=path, cmd=bin_path, script_name="launchSchism.sh", ncores=1, scribes=scribes
         )
 
         # note that cwd is the folder where the executable is

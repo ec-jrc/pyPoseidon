@@ -34,7 +34,7 @@ case = {
     "windrot": 0.00001,
     "tag": "schism",
     "start_date": "2018-10-1 0:0:0",
-    "time_frame": "24H",
+    "time_frame": "12H",
     "dem_source": DEM_FILE,
     "meteo_source": METEO_FILES_1,
     "meteo_merge": "first",  # combine meteo

@@ -82,4 +82,4 @@ def test_validate(pytestconfig, tmpdir, ggor, cbuffer, bgmesh, bindings):
 
     rpath = str(tmpdir) + "/"
 
-    assert mesh.validate(rpath=rpath)
+    assert mesh.validate(rpath=rpath, scribes=0)
