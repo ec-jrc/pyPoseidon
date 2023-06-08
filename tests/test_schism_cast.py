@@ -48,6 +48,7 @@ test_case = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
+    "scribes": 2,
 }
 
 # define in a dictionary the properties of the model..
@@ -74,6 +75,7 @@ check = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
+    "scribes": 2,
 }
 
 

@@ -11,6 +11,7 @@ import pathlib
 import subprocess
 from collections.abc import Iterable
 import time
+import shutil
 
 import psutil
 import xarray as xr
@@ -31,7 +32,7 @@ set -euo pipefail
 
 mkdir -p outputs
 
-exec mpirun {mpirun_flags} -N {ncores} {cmd}
+exec mpirun {mpirun_flags} -N {ncores} {cmd} {scribes}
 """.strip()
 
 
@@ -109,6 +110,10 @@ def run(cmd: str, quiet: bool = False, check: bool = True) -> subprocess.Complet
     return proc
 
 
+def is_mpirun_installed() -> bool:
+    return bool(shutil.which("mpirun"))
+
+
 def is_openmpi() -> bool:
     cmd = "mpirun --version"
     proc = run(cmd, quiet=True)
@@ -122,6 +127,7 @@ def create_mpirun_script(
     cmd: str,
     use_threads: bool = True,
     ncores: int = 0,
+    scribes: int = -1,
 ) -> str:
     """
     Create a script for launching schism.
@@ -133,15 +139,23 @@ def create_mpirun_script(
     """
     if ncores < 1:
         ncores = psutil.cpu_count(logical=use_threads)
+    if not is_mpirun_installed():
+        logger.error(f"mpirun is missing. Please install it and try again \n")
+        return
     if use_threads and is_openmpi():
         mpirun_flags = "--use-hwthread-cpus"
     else:
         mpirun_flags = ""
+    if scribes < 0:
+        scribes = ""
+    else:
+        scribes = str(scribes)
     content = template.format(
         mpirun_flags=mpirun_flags,
         ncores=ncores,
         cmd=cmd,
-    )
+        scribes=scribes,
+    ).rstrip()
     # Write to disk and make executable
     script_path = target_dir + "/" + script_name
     with open(script_path, "w") as fd:
@@ -157,6 +171,7 @@ def create_schism_mpirun_script(
     script_name: str = "launchSchism.sh",
     template: str = LAUNCH_SCHISM_TEMPLATE,
     ncores: int = 0,
+    scribes: int = -1,
 ) -> str:
     script_path = create_mpirun_script(
         target_dir=target_dir,
@@ -164,6 +179,7 @@ def create_schism_mpirun_script(
         use_threads=use_threads,
         script_name=script_name,
         ncores=ncores,
+        scribes=scribes,
         template=template,
     )
     return script_path
@@ -223,7 +239,6 @@ def flat_list(outer):
 
 
 def orient(nodes, tria, x="lon", y="lat"):
-
     # compute area
     ax = nodes.loc[tria.a, x].values
     bx = nodes.loc[tria.b, x].values

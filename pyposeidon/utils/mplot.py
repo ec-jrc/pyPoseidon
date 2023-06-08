@@ -62,7 +62,6 @@ class mplot(object):
 
     #    @mlab.show
     def contourf(self, **kwargs):
-
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         try:
@@ -142,7 +141,6 @@ class mplot(object):
     #        return
 
     def animate(self, **kwargs):
-
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         try:
@@ -222,7 +220,6 @@ class mplot(object):
 
     @mlab.show
     def mesh(self, **kwargs):
-
         x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
         y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
         try:
@@ -279,7 +276,6 @@ class mplot(object):
 
     @staticmethod
     def c3d(coastlines, R=1, **kwargs):
-
         bo = coastlines.geometry.values
 
         dic = {}
@@ -311,14 +307,12 @@ class mplot(object):
         dim = kwargs.get("dim", "2D")
 
         if dim == "3D":
-
             # add 3D coordinates
             dff["x"] = np.cos(dff.lat / 180 * np.pi) * np.cos(dff.lon / 180 * np.pi) * R
             dff["y"] = np.cos(dff.lat / 180 * np.pi) * np.sin(dff.lon / 180 * np.pi) * R
             dff["z"] = np.sin(dff.lat / 180 * np.pi) * R
 
         else:
-
             dff.columns = ["x", "y", "z"]
 
         # We create a list of positions and connections, each describing a line.

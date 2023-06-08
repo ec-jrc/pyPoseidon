@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 def make_bgmesh_global(dfb, fpos, dem, **kwargs):
-
     mesh_generator = kwargs.get("mesh_generator", None)
 
     bk = dfb.copy()
@@ -45,7 +44,7 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     ui, vi = np.meshgrid(d1, d2)
 
     # stereo->2D scale
-    ci = 4 * R ** 2 / (ui ** 2 + vi ** 2 + 4 * R ** 2)
+    ci = 4 * R**2 / (ui**2 + vi**2 + 4 * R**2)
 
     # set weight field
     scale = bgm_res / ci.flatten()
@@ -58,7 +57,6 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     elems = pd.DataFrame(quad, columns=["a", "b", "c", "d"])
 
     if mesh_generator == "gmsh":
-
         dn = quads_to_df(elems, nodes)
 
         logger.info("Save pre-process bgmesh to {}".format(fpos))
@@ -66,7 +64,6 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
         to_sq(dn, fpos)  # save bgmesh
 
     elif mesh_generator == "jigsaw":
-
         dh = xr.Dataset(
             {"h": (["longitude", "latitude"], nodes.d2.values.reshape(ui.shape))},
             coords={

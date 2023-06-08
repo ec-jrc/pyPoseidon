@@ -14,6 +14,21 @@ EMPTY_MARK = Mark("", [], {})
 RUNLAST_MARK = "runlast"
 
 
+def should_run_last(item) -> bool:
+    closest_marker = item.get_closest_marker(RUNLAST_MARK, default=EMPTY_MARK)
+    return closest_marker is RUNLAST_MARK
+
+
+def move_tests_to_the_end(items):
+    start, end = [], []
+    for item in items:
+        if should_run_last(item):
+            end.append(item)
+        else:
+            start.append(item)
+    return start + end
+
+
 def pytest_addoption(parser):
     parser.addoption("--runschism", action="store_true", default=False, help="run schism tests")
     parser.addoption("--rundelft", action="store_true", default=False, help="run delft tests")
@@ -45,8 +60,7 @@ def pytest_collection_modifyitems(config, items):
         if "viz" in item.keywords and not should_run_viz:
             item.add_marker(skip_viz)
 
-    run_last = lambda item: item.get_closest_marker(RUNLAST_MARK, default=EMPTY_MARK)
-    items.sort(key=run_last, reverse=False)
+    items[:] = move_tests_to_the_end(items)
 
 
 def download_file_in_chunks(url: str, chunk_size: int = 1024):

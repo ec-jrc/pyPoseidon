@@ -13,7 +13,7 @@ import numpy as np
 import geopandas as gp
 import xarray as xr
 import os
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import sys
 import gmsh
 import subprocess
@@ -36,15 +36,35 @@ from pyposeidon.tools import orient
 
 import multiprocessing
 
-NCORES = max(1, multiprocessing.cpu_count() - 1)
+NCORES = max(1, min(multiprocessing.cpu_count() - 1, 20))
+
+from joblib import Parallel, delayed, parallel_backend
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def read_msh(filename, **kwargs):
+def get_ibounds(df, mm):
+    if df.shape[0] == 0:
+        disable = True
+    else:
+        disable = False
 
+    ibounds = []
+
+    for row in tqdm(df.itertuples(index=True, name="Pandas"), total=df.shape[0], disable=disable):
+        inodes, xyz = mm.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
+        db = pd.DataFrame({"node": inodes - 1})
+        db["type"] = "island"
+        db["id"] = -(getattr(row, "Index") + 1)
+
+        ibounds.append(db)
+
+    return ibounds
+
+
+def read_msh(filename, **kwargs):
     model = gmsh.model
     factory = model.geo
 
@@ -52,7 +72,7 @@ def read_msh(filename, **kwargs):
 
     gmsh.open(filename)
 
-    logger.info("Analyze grid")
+    logger.info("Analyzing mesh")
 
     nodeTags, coord, parametricCoord = gmsh.model.mesh.getNodes()
 
@@ -73,9 +93,9 @@ def read_msh(filename, **kwargs):
     bgs = pd.DataFrame(bgs[:-1], columns=["dim", "tag"])
 
     # open boundaries
-    logger.info("open boundaries")
-
     obs = bgs.loc[bgs.tag < 1000]
+
+    logger.info("No of Open boundaries: {}".format(obs.shape[0]))
 
     for row in obs.itertuples(index=True, name="Pandas"):
         onodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
@@ -87,10 +107,11 @@ def read_msh(filename, **kwargs):
         bounds.append(db)
 
     # land boundaries type
-    logger.info("land boundaries")
 
     lbs = bgs.loc[(bgs.tag > 1000) & (bgs.tag < 2000)]
     lbs.reset_index(inplace=True, drop=True)
+
+    logger.info("No of Land boundaries: {}".format(lbs.shape[0]))
 
     for row in lbs.itertuples(index=True, name="Pandas"):
         lnodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
@@ -102,19 +123,25 @@ def read_msh(filename, **kwargs):
         bounds.append(db)
 
     # islands
-    logger.info("islands")
 
     ibs = bgs.loc[bgs.tag > 2000]
     ibs.reset_index(inplace=True, drop=True)
 
-    for row in ibs.itertuples(index=True, name="Pandas"):
+    logger.info("No. of Islands: {}".format(ibs.shape[0]))
 
-        inodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
-        db = pd.DataFrame({"node": inodes - 1})
-        db["type"] = "island"
-        db["id"] = -(getattr(row, "Index") + 1)
+    # ===============================
+    # parallize
+    # ===============================
+    mm = gmsh.model.mesh
+    num_partitions = NCORES if ibs.shape[0] > NCORES else 1  # number of partitions to split dataframe
+    df_split = np.array_split(ibs, num_partitions)
 
-        bounds.append(db)
+    with parallel_backend("threading", n_jobs=num_partitions):
+        results = Parallel()(delayed(get_ibounds)(_, mm) for _ in df_split)
+
+    bounds.extend([j for i in results for j in i])
+
+    # ===============================
 
     if bounds != []:
         bnodes = pd.concat(bounds).reset_index(drop=True)
@@ -133,22 +160,21 @@ def read_msh(filename, **kwargs):
         use_bindings = kwargs.get("use_bindings", True)
         if not use_bindings:
             bnodes["type"] = "island"  # Fix for binary run and GLOBAL. CHECK
-            bnodes["id"] = -bnodes.id.values
+            bnodes["id"] = [-i if i > 0 else i for i in bnodes.id.values]
 
         bnodes = bnodes.sort_values(["type", "id", "node"]).reset_index(drop=True)  # sort
         bnodes.index.name = "bnodes"
 
         # check orientation
-        if use_bindings:
-            nodes, tria = orient(nodes, tria, x="x", y="y")
-        else:
-            bgmesh = kwargs.get("bgmesh", None)
-            if not bgmesh:
-                tria = tria.reindex(columns=["a", "c", "b"])
+        # if use_bindings:
+        # nodes, tria = orient(nodes, tria, x="x", y="y")
+        #        else:
+        bgmesh = kwargs.get("bgmesh", None)
+        if not bgmesh:
+            tria = tria.reindex(columns=["a", "c", "b"])
 
     # check if global and reproject
-    sproj = kwargs.get("gglobal", False)
-    if sproj:  # convert to lat/lon
+    if gglobal:  # convert to lat/lon
         if nodes.z.any() != 0:
             xd, yd = to_lat_lon(nodes.x, nodes.y, nodes.z)
             nodes["x"] = xd
@@ -158,11 +184,11 @@ def read_msh(filename, **kwargs):
             nodes["x"] = xd
             nodes["y"] = yd
 
-    grid = pd.DataFrame({"lon": nodes.x, "lat": nodes.y})
+    mesh = pd.DataFrame({"lon": nodes.x, "lat": nodes.y})
 
     tri3 = tria.values
 
-    logger.info("Finalize Dataset")
+    logger.info("Finalizing Dataset")
 
     ## make dataset
     els = xr.DataArray(
@@ -172,7 +198,7 @@ def read_msh(filename, **kwargs):
     )
 
     nod = (
-        grid.loc[:, ["lon", "lat"]]
+        mesh.loc[:, ["lon", "lat"]]
         .to_xarray()
         .rename(
             {
@@ -194,7 +220,6 @@ def read_msh(filename, **kwargs):
 
 
 def get(contours, **kwargs):
-
     """
     Create a `gmsh` mesh.
 
@@ -211,7 +236,7 @@ def get(contours, **kwargs):
         setup_only bool: Flag for setup only (no execution). Defaults to `False`.
     """
 
-    logger.info("Creating grid with GMSH\n")
+    logger.info("Creating mesh with GMSH\n")
 
     rpath = kwargs.get("rpath", ".")
 
@@ -233,9 +258,7 @@ def get(contours, **kwargs):
             kwargs.update({"bgmesh": "auto"})
 
     if bgmesh == "auto":
-
         try:
-
             rpath = kwargs.get("rpath", ".")
 
             if not os.path.exists(rpath + "/gmsh/"):  # check if run folder exists
@@ -245,7 +268,6 @@ def get(contours, **kwargs):
 
             gglobal = kwargs.get("gglobal", False)
             if gglobal:
-
                 dem = pdem.Dem(**kwargs)
 
                 nds, lms = make_bgmesh_global(contours, fpos, dem.Dataset, **kwargs)
@@ -256,22 +278,31 @@ def get(contours, **kwargs):
             kwargs.update({"bgmesh": fpos})
 
         except OSError as e:
-
             logger.warning("bgmesh failed... continuing without background mesh size")
             dh = None
             kwargs.update({"bgmesh": None})
 
+    gglobal = kwargs.get("gglobal", False)
+
     if use_bindings:
-        logger.info("using python bindings")
-        make_gmsh(contours, **kwargs)
+        logger.info("Using python bindings")
+        if gglobal:
+            gr = make_gmsh_3d(contours, **kwargs)
+        else:
+            make_gmsh(contours, **kwargs)
+            gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
+
     else:
         to_geo(contours, **kwargs)
         if not setup_only:
-            logger.info("using GMSH binary")
-            gmsh_execute(**kwargs)
-
-    if not setup_only:
-        gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
+            logger.info("Using GMSH binary")
+            status = gmsh_execute(**kwargs)
+            if status:
+                gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
+            else:
+                gr = None
+        else:
+            gr = None
 
     try:
         bg = dh
@@ -282,8 +313,7 @@ def get(contours, **kwargs):
 
 
 def gset(df, **kwargs):
-
-    logger.info("interpolate coastal points")
+    logger.info("Interpolating coastal points")
 
     lc = kwargs.get("lc", 0.5)
 
@@ -314,7 +344,7 @@ def gset(df, **kwargs):
 
     # Line0
 
-    logger.info("set outermost boundary")
+    logger.info("Setting outermost boundary")
 
     df0 = df.loc["line0"]
 
@@ -352,7 +382,6 @@ def gset(df, **kwargs):
     r0 = ddf.loc["line0"]
 
     if not shapely.geometry.LinearRing(r0[["lon", "lat"]].values).is_ccw:
-
         rf0 = ddf.loc["line0"].iloc[::-1].reset_index(drop=True)
         ddf.loc["line0"] = rf0.values
 
@@ -362,7 +391,6 @@ def gset(df, **kwargs):
 
 
 def to_geo(df, **kwargs):
-
     gglobal = kwargs.get("gglobal", False)
 
     lc = kwargs.get("lc", 0.5)
@@ -384,18 +412,15 @@ def to_geo(df, **kwargs):
     ptag0 = 1
     ltag = 0
     loops = []
-    pl = 100
 
     # ... and save it to disk
     rpath = kwargs.get("rpath", ".")
 
-    logger.info("save geo file")
+    logger.info("Saving geo file")
     filename = rpath + "/gmsh/mymesh.geo"
 
     with open(filename, "w") as f:
-
         if gglobal:
-
             f.write("Point(1) = {{0,0,0,{}}};\n".format(lc))
             f.write("Point(2) = {{1,0,0,{}}};\n".format(lc))
             f.write("PolarSphere (1) = {1,2};\n")
@@ -403,7 +428,6 @@ def to_geo(df, **kwargs):
             ptag0 = 3
             ltag = 1
             loops = []
-            pl = 0
 
         # outer contour
         points = []
@@ -420,11 +444,10 @@ def to_geo(df, **kwargs):
             )
             points.append(ptag)
 
-        try:
+        if points:
             points = points + [points[0]]
 
             if not bspline:
-
                 t2 = [[points[l], points[l + 1]] for l in range(0, len(points) - 1)]
                 lines = []
                 for [a, b] in t2:
@@ -434,7 +457,6 @@ def to_geo(df, **kwargs):
                 ltag += 1
 
             else:
-
                 ltag += 1
                 f.write("BSpline ({}) = {}".format(ltag, "{"))
                 f.write(",".join(map(str, points)))
@@ -448,20 +470,25 @@ def to_geo(df, **kwargs):
 
             loops.append(ltag)
 
-            pl += 1
-            #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
-            f.write("Physical Line  ({}) = {}".format(pl, "{"))
-            f.write(",".join(map(str, lines)))
-            f.write("{};\n".format("}"))
+        if not bspline:
+            ## Group open boundaries lines
+            for key, values in open_lines.items():
+                f.write("Physical Line  ({}) = {}".format(key, "{"))
+                f.write(",".join(map(str, values + 1)))
+                f.write("{};\n".format("}"))
 
-        #
-        except:
+            ## Group land boundaries lines
+            for key, values in land_lines.items():
+                f.write("Physical Line  ({}) = {}".format(key, "{"))
+                f.write(",".join(map(str, values + 1)))
+                f.write("{};\n".format("}"))
 
-            pass
+        # The rest (islands)
+        pl = 2000
 
-        # The rest
-        for k, d in df.loc[df.tag == "island"].iterrows():
+        dfi = df.loc[df.tag == "island"]
 
+        for k, d in dfi.iterrows():
             points = []
 
             rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
@@ -489,7 +516,6 @@ def to_geo(df, **kwargs):
             points = points + [points[0]]
 
             if not bspline:
-
                 t2 = [[points[l], points[l + 1]] for l in range(0, len(points) - 1)]
                 lines = []
                 for [a, b] in t2:
@@ -499,7 +525,6 @@ def to_geo(df, **kwargs):
                 ltag += 1
 
             else:
-
                 ltag += 1
                 f.write("BSpline ({}) = {}".format(ltag, "{"))
                 f.write(",".join(map(str, points)))
@@ -513,11 +538,12 @@ def to_geo(df, **kwargs):
 
             loops.append(ltag)
 
-            pl += 1
-            #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
-            f.write("Physical Line  ({}) = {}".format(pl, "{"))
-            f.write(",".join(map(str, lines)))
-            f.write("{};\n".format("}"))
+            if not bspline:
+                pl += 1
+                #            f.write("Physical Line ({}) = {{{}}};\n".format(pl, ltag))
+                f.write("Physical Line  ({}) = {}".format(pl, "{"))
+                f.write(",".join(map(str, lines)))
+                f.write("{};\n".format("}"))
 
         f.write("Plane Surface (2) = {")
         f.write(",".join(map(str, loops)))
@@ -526,8 +552,13 @@ def to_geo(df, **kwargs):
         f.write("Physical Surface(1) = {2};\n")
         f.write("Field[1] = Distance;\n")
 
+        if not gglobal:
+            curve_list = [x for x in np.arange(1, ltag + 1) if x not in loops]
+        else:
+            curve_list = [x for x in np.arange(2, ltag + 1) if x not in loops]
+
         if not bspline:
-            f.write("Field[1].CurvesList = {{{}}};\n".format(",".join(map(str, np.arange(1, ltag + 1)))))
+            f.write("Field[1].CurvesList = {{{}}};\n".format(",".join(map(str, curve_list))))
         else:
             f.write("Field[1].NodesList =\n{")
             f.write(",".join(map(str, np.arange(ptag0, ptag + 1))))
@@ -548,7 +579,6 @@ def to_geo(df, **kwargs):
         bgmesh = kwargs.get("bgmesh", None)
 
         if bgmesh:
-
             # get full path
             bgmesh_path = os.path.abspath(bgmesh)
 
@@ -565,7 +595,6 @@ def to_geo(df, **kwargs):
             f.write("Background Field = 4;\n")
 
         else:
-
             f.write("Background Field = 2;\n")
 
         MeshSizeMin = kwargs.get("MeshSizeMin", SizeMin)
@@ -579,7 +608,6 @@ def to_geo(df, **kwargs):
 
 
 def gmsh_execute(**kwargs):
-
     rpath = kwargs.get("rpath", ".")
     setup_only = kwargs.get("setup_only", False)
     calc_dir = rpath + "/gmsh/"
@@ -597,34 +625,51 @@ def gmsh_execute(**kwargs):
         bin_path = "gmsh"
 
     if not setup_only:
-
         # ---------------------------------
-        logger.info("executing gmsh\n")
+        logger.info("Executing gmsh\n")
         # ---------------------------------
 
-        myoutput = open(calc_dir + "myoutput.txt", "w+")
+        gglobal = kwargs.get("gglobal", False)
+        if gglobal:
+            dim = -3
+        else:
+            dim = -2
 
-        # execute jigsaw
-        ex = subprocess.Popen(
-            ["{} -nt {} {} -2".format(bin_path, NCORES, "mymesh.geo")],
+        # execute gmsh
+        with subprocess.Popen(
+            #            ["{} -bin -tol {} {} {}".format(bin_path, 1e-20, dim, "mymesh.geo")],
+            ["{} -tol {} {} {}".format(bin_path, 1e-20, dim, "mymesh.geo")],
             cwd=calc_dir,
             shell=True,
-            stderr=myoutput,
-            stdout=myoutput,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
             universal_newlines=True,
-        )  # , bufsize=1)
+            # bufsize=1,
+        ) as ex:
+            output = ex.stdout.read()
+            error = ex.stderr.read()
 
-        output, errors = ex.communicate()
+            lines = [l for l in error.splitlines() if l and l[:4] not in ["Info", "Warn"]]
 
-        # ---------------------------------
-        logger.info("Gmsh FINISHED\n")
-        # ---------------------------------
+        if lines:
+            logger.error("Gmsh FAILED\n")
+            logger.debug(lines)
+            status = False
+        else:
+            logger.info("Gmsh FINISHED\n")
+            status = True
 
-    return
+        with open(calc_dir + "myoutput.txt", "w") as f:
+            f.write(output)
+            f.write(error)
+
+    else:
+        status = True
+
+    return status
 
 
 def outer_boundary(df, **kwargs):
-
     lc = kwargs.get("lc", 0.5)
 
     df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
@@ -643,7 +688,7 @@ def outer_boundary(df, **kwargs):
 
     # Do linemerge of outer contours
     lss = df_.geometry.values
-    merged = shapely.ops.linemerge(lss)
+    merged = shapely.ops.linemerge(list(lss))
     o2 = pd.DataFrame({"lon": merged.xy[0], "lat": merged.xy[1]})  # convert to DataFrame
     o2 = o2.drop_duplicates()
 
@@ -653,13 +698,12 @@ def outer_boundary(df, **kwargs):
 
     # check orientation
     if not shapely.geometry.LinearRing(rb0[["lon", "lat"]].values).is_ccw:
-
         rb0_ = rb0.iloc[::-1].reset_index(drop=True)
         rb0 = rb0_
 
     rb0["lc"] = lc
 
-    logger.info("Compute edges")
+    logger.info("Computing edges")
     edges = [list(a) for a in zip(np.arange(rb0.shape[0]), np.arange(rb0.shape[0]) + 1, rb0.lindex.values)]  # outer
     edges[-1][1] = 0
 
@@ -691,7 +735,6 @@ def outer_boundary(df, **kwargs):
 
 
 def make_bgmesh(df, fpos, **kwargs):
-
     lon_min = df.bounds.minx.min()
     lon_max = df.bounds.maxx.max()
     lat_min = df.bounds.miny.min()
@@ -706,14 +749,14 @@ def make_bgmesh(df, fpos, **kwargs):
     dem = kwargs.get("dem_source", None)
 
     if not isinstance(dem, xr.Dataset):
-        logger.info("Read DEM")
+        logger.info("Reading DEM")
         dem = pdem.Dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
         dem = dem.Dataset
 
     res_min = kwargs.get("resolution_min", 0.01)
     res_max = kwargs.get("resolution_max", 0.5)
 
-    logger.info("Evaluate bgmesh")
+    logger.info("Evaluating bgmesh")
 
     # scale bathymetry
     try:
@@ -744,7 +787,7 @@ def make_bgmesh(df, fpos, **kwargs):
         coords={"longitude": ("longitude", x), "latitude": ("latitude", y)},
     )
 
-    logger.info("Save bgmesh to {}".format(fpos))
+    logger.info("Saving bgmesh to {}".format(fpos))
 
     to_sq(df, fpos)  # save bgmesh
 
@@ -754,8 +797,7 @@ def make_bgmesh(df, fpos, **kwargs):
 
 
 def make_gmsh(df, **kwargs):
-
-    logger.info("create grid")
+    logger.info("Creating mesh")
 
     model = gmsh.model
     factory = model.geo
@@ -778,7 +820,6 @@ def make_gmsh(df, **kwargs):
     df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
 
     if not df_.empty:
-
         rb0, land_lines, open_lines = outer_boundary(df, **kwargs)
         # join
         ols = [j for i in list(open_lines.values()) for j in i]
@@ -789,7 +830,7 @@ def make_gmsh(df, **kwargs):
         open_lines = {}
         land_lines = {}
 
-    logger.info("Define geometry")
+    logger.info("Defining geometry")
 
     loops = []
     islands = []
@@ -799,7 +840,6 @@ def make_gmsh(df, **kwargs):
     tag = 0
 
     if not df_.empty:
-
         for row in rb0.itertuples(index=True, name="Pandas"):
             factory.addPoint(
                 getattr(row, "lon"),
@@ -829,7 +869,6 @@ def make_gmsh(df, **kwargs):
         ltag += 1
 
     for k, d in df.loc[df.tag == "island"].iterrows():
-
         rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
         rb["z"] = 0
         rb["lc"] = lc
@@ -874,7 +913,7 @@ def make_gmsh(df, **kwargs):
         ltag += 1
 
     factory.addPlaneSurface(loops)
-    logger.info("synchronize")
+    logger.info("Synchronizing")
     factory.synchronize()
 
     ## Group open boundaries lines
@@ -916,7 +955,6 @@ def make_gmsh(df, **kwargs):
     bgmesh = kwargs.get("bgmesh", None)
 
     if bgmesh:
-
         gmsh.merge(bgmesh)
 
         model.mesh.field.setNumber(2, "StopAtDistMax", 1)
@@ -930,7 +968,6 @@ def make_gmsh(df, **kwargs):
         model.mesh.field.setAsBackgroundMesh(4)
 
     else:
-
         model.mesh.field.setAsBackgroundMesh(2)
 
     gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
@@ -945,7 +982,7 @@ def make_gmsh(df, **kwargs):
     if MeshSizeMax is not None:
         gmsh.option.setNumber("Mesh.MeshSizeMax", MeshSizeMax)
 
-    logger.info("execute gmsh")
+    logger.info("Executing gmsh")
 
     gmsh.option.set_number("General.Verbosity", 0)
 
@@ -954,12 +991,247 @@ def make_gmsh(df, **kwargs):
     # ... and save it to disk
     rpath = kwargs.get("rpath", ".")
 
-    logger.info("save mesh")
+    logger.info("Saving mesh")
     #    gmsh.option.setNumber("Mesh.SaveAll", 1)
     gmsh.write(rpath + "/gmsh/mymesh.msh")
 
-    #    gmsh.write('mymesh.vtk')
+    gmsh.write(rpath + "/gmsh/mymesh.vtk")
 
     gmsh.finalize()
 
     return
+
+
+def make_gmsh_3d(df, **kwargs):
+    logger.info("Creating global mesh")
+
+    model = gmsh.model
+    factory = model.geo
+
+    gmsh.initialize()
+    model.add("schism")
+
+    #    gmsh.option.setNumber("General.Terminal", 1)
+    gmsh.option.setNumber("Geometry.Tolerance", 1e-20)
+
+    interpolate = kwargs.get("interpolate", False)
+    if interpolate:
+        df = gset(df, **kwargs)
+    else:
+        df = df
+
+    logger.info("Defining geometry")
+
+    loops = []
+    all_lines = []
+
+    curve_tag = 1
+    tag = 1
+
+    factory.addGeometry("PolarSphere", [0, 0, 0, 1], tag=tag)
+
+    tag += 1
+    curve_tag += 1
+
+    for k, d in df.iterrows():
+        rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
+        rb["z"] = 1
+        rb = rb.drop_duplicates(["lon", "lat"])
+
+        if not shapely.geometry.LinearRing(rb[["lon", "lat"]].values).is_ccw:  # check for clockwise orientation
+            rb_ = rb.iloc[::-1].reset_index(drop=True)
+            rb = rb_
+
+        rb.index = rb.index + tag
+        rb["bounds"] = [[i, i + 1] for i in rb.index]
+        rb["bounds"] = rb.bounds.values.tolist()[:-1] + [[rb.index[-1], rb.index[0]]]  # fix last one
+
+        for row in rb.itertuples(index=True, name="Pandas"):
+            factory.addPointOnGeometry(
+                getattr(row, "z"),
+                getattr(row, "lon"),
+                getattr(row, "lat"),
+                tag=getattr(row, "Index"),
+            )
+
+        for row in rb.itertuples(index=True, name="Pandas"):
+            factory.addLine(
+                getattr(row, "bounds")[0],
+                getattr(row, "bounds")[1],
+                getattr(row, "Index"),
+            )
+
+        lines = rb.index.values
+        all_lines.append(lines)
+
+        tag = rb.index.values[-1] + 1
+
+        factory.addCurveLoop(lines, tag=curve_tag)
+        #    print(tag)
+        loops.append(curve_tag)
+
+        tag += 1
+        curve_tag += 1
+
+    factory.addPlaneSurface(loops)
+    logger.info("Synchronizing")
+    factory.synchronize()
+
+    ## Group boundaries lines
+    ntag = 1
+    for k in tqdm(range(len(all_lines))):
+        gmsh.model.addPhysicalGroup(1, all_lines[k], 2000 + ntag)
+        ntag += 1
+
+    ps = gmsh.model.addPhysicalGroup(2, [1])
+    gmsh.model.setPhysicalName(2, ps, "MyMesh")
+
+    model.mesh.field.add("Distance", 1)
+    model.mesh.field.setNumbers(1, "CurvesList", [d[1] for d in gmsh.model.getEntities(1)])
+
+    SizeMin = kwargs.get("SizeMin", 0.01)
+    SizeMax = kwargs.get("SizeMax", 0.1)
+    DistMin = kwargs.get("DistMin", 0.01)
+    DistMax = kwargs.get("DistMax", 0.2)
+
+    model.mesh.field.add("Threshold", 2)
+    model.mesh.field.setNumber(2, "InField", 1)
+    model.mesh.field.setNumber(2, "SizeMin", SizeMin)
+    model.mesh.field.setNumber(2, "SizeMax", SizeMax)
+    model.mesh.field.setNumber(2, "DistMin", DistMin)
+    model.mesh.field.setNumber(2, "DistMax", DistMax)
+
+    # Set bgmesh
+    bgmesh = kwargs.get("bgmesh", None)
+
+    if bgmesh:
+        gmsh.merge(bgmesh)
+
+        model.mesh.field.setNumber(2, "StopAtDistMax", 1)
+
+        model.mesh.field.add("PostView", 3)
+        model.mesh.field.setNumber(3, "ViewIndex", 0)
+
+        model.mesh.field.add("Min", 4)
+        model.mesh.field.setNumbers(4, "FieldsList", [2, 3])
+
+        model.mesh.field.setAsBackgroundMesh(4)
+
+    else:
+        model.mesh.field.setAsBackgroundMesh(2)
+
+    gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
+    gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
+    gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 0)
+
+    MeshSizeMin = kwargs.get("MeshSizeMin", None)
+    MeshSizeMax = kwargs.get("MeshSizeMax", None)
+
+    if MeshSizeMin is not None:
+        gmsh.option.setNumber("Mesh.MeshSizeMin", MeshSizeMin)
+    if MeshSizeMax is not None:
+        gmsh.option.setNumber("Mesh.MeshSizeMax", MeshSizeMax)
+
+    logger.info("Executing gmsh")
+
+    gmsh.option.set_number("General.Verbosity", 0)
+
+    gmsh.model.mesh.generate(3)
+
+    logger.info("Analyzing mesh")
+
+    nodeTags, coord, parametricCoord = gmsh.model.mesh.getNodes()
+
+    nodes = pd.DataFrame(coord.reshape(-1, 3), columns=["x", "y", "z"])
+
+    elementTags2, nodeTags2 = gmsh.model.mesh.getElementsByType(2)
+
+    elems = nodeTags2.reshape(-1, 3)
+
+    tria = pd.DataFrame(elems - 1, columns=["a", "b", "c"])
+
+    # boundaries
+
+    bgs = gmsh.model.getPhysicalGroups()
+
+    bgs = pd.DataFrame(bgs[:-1], columns=["dim", "tag"])
+
+    mm = gmsh.model.mesh
+    num_partitions = NCORES if bgs.shape[0] > NCORES else 1  # number of partitions to split dataframe
+    df_split = np.array_split(bgs, num_partitions)
+
+    with parallel_backend("threading", n_jobs=num_partitions):
+        results = Parallel()(delayed(get_ibounds)(_, mm) for _ in df_split)
+
+    bounds = [j for i in results for j in i]
+
+    if bounds != []:
+        bnodes = pd.concat(bounds).reset_index(drop=True)
+
+        bnodes.index.name = "bnodes"
+
+        bnodes = bnodes.drop_duplicates("node")
+
+        bnodes["id"] = bnodes.id.astype(int)
+
+    else:
+        bnodes = pd.DataFrame({})
+
+    bnodes = bnodes.sort_values(["id", "node"]).reset_index(drop=True)  # sort
+    bnodes.index.name = "bnodes"
+
+    # check orientation
+    #    nodes, tria = orient(nodes, tria, x="x", y="y")
+
+    # convert to lat/lon
+    if nodes.z.any() != 0:
+        xd, yd = to_lat_lon(nodes.x, nodes.y, nodes.z)
+        nodes["x"] = xd
+        nodes["y"] = yd
+    else:
+        xd, yd = to_lat_lon(nodes.x, nodes.y)
+        nodes["x"] = xd
+        nodes["y"] = yd
+
+    mesh = pd.DataFrame({"lon": nodes.x, "lat": nodes.y})
+
+    tri3 = tria.values
+
+    logger.info("Finalizing Dataset")
+
+    ## make dataset
+    els = xr.DataArray(
+        tri3,
+        dims=["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+        name="SCHISM_hgrid_face_nodes",
+    )
+
+    nod = (
+        mesh.loc[:, ["lon", "lat"]]
+        .to_xarray()
+        .rename(
+            {
+                "index": "nSCHISM_hgrid_node",
+                "lon": "SCHISM_hgrid_node_x",
+                "lat": "SCHISM_hgrid_node_y",
+            }
+        )
+    )
+    nod = nod.drop_vars("nSCHISM_hgrid_node")
+
+    dep = xr.Dataset({"depth": (["nSCHISM_hgrid_node"], np.zeros(nod.nSCHISM_hgrid_node.shape[0]))})
+
+    gr = xr.merge([nod, els, dep, bnodes.to_xarray()])
+
+    # ... and save it to disk
+    rpath = kwargs.get("rpath", ".")
+
+    logger.info("Saving mesh")
+    #    gmsh.option.setNumber("Mesh.SaveAll", 1)
+    gmsh.write(rpath + "/gmsh/mymesh.msh")
+
+    gmsh.write(rpath + "/gmsh/mymesh.vtk")
+
+    gmsh.finalize()
+
+    return gr

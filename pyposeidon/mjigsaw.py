@@ -15,7 +15,7 @@ import xarray as xr
 import os
 import shapely
 import subprocess
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import sys
 
 import pyposeidon.dem as pdem
@@ -33,20 +33,17 @@ logger = logging.getLogger(__name__)
 
 
 def to_geo(df, path=".", tag="jigsaw"):
-
     fgeo = path + tag + "-geo.msh"
     # write header
     with open(fgeo, "w") as f:
         f.write("#{}; created by pyposeidon\n".format(tag + "-geo.msh"))
         f.write("MSHID=2;EUCLIDEAN-MESH\n")
         f.write("NDIMS=2\n")
-        f.write("POINT={}\n".format(df.nps.sum()))
 
     # outer contour
     df_ = df.loc[df.tag != "island"].reset_index(drop=True)  # all external contours
 
     if not df_.empty:
-
         # store xy in a DataFrame
         dic = {}
         for k, d in df_.iterrows():
@@ -61,7 +58,7 @@ def to_geo(df, path=".", tag="jigsaw"):
 
         # Do linemerge of outer contours
         lss = df_.geometry.values
-        merged = shapely.ops.linemerge(lss)
+        merged = shapely.ops.linemerge(list(lss))
         o2 = pd.DataFrame({"x": merged.xy[0], "y": merged.xy[1]})  # convert to DataFrame
         o2 = o2.drop_duplicates()
 
@@ -73,8 +70,9 @@ def to_geo(df, path=".", tag="jigsaw"):
             outer["z"] = 0
             outer = outer.drop_duplicates(["x", "y"])
             # nodes
-            outer.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
-            # compute edges
+            points = outer
+        #            outer.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
+        # compute edges
 
         edges = [
             list(a)
@@ -103,8 +101,8 @@ def to_geo(df, path=".", tag="jigsaw"):
         edges = edges.values.tolist()
 
     else:
-
         edges = []
+        points = pd.DataFrame({})
 
     # the rest to file
     with open(fgeo, "a") as f:
@@ -114,7 +112,8 @@ def to_geo(df, path=".", tag="jigsaw"):
             out = out.drop_duplicates(["x", "y"])
 
             # nodes
-            out.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
+            points = pd.concat([points, out], ignore_index=True)
+            #            out.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
             # compute edges
             i0 = len(edges)
             ie = out.shape[0] + len(edges)
@@ -128,6 +127,11 @@ def to_geo(df, path=".", tag="jigsaw"):
 
     edges = pd.DataFrame(edges)  # convert to pandas
 
+    # write nodes
+    with open(fgeo, "a") as f:
+        f.write("POINT={}\n".format(points.shape[0]))
+        points.to_csv(f, index=False, header=0, columns=["x", "y", "z"], sep=";")
+
     # write header
     with open(fgeo, "a") as f:
         f.write("EDGE2={}\n".format(edges.shape[0]))
@@ -137,7 +141,6 @@ def to_geo(df, path=".", tag="jigsaw"):
 
 
 def parse_msh(fmsh):
-
     grid = pd.read_csv(fmsh, header=0, names=["data"], index_col=None, low_memory=False)
     npoints = int(grid.loc[2].str.split("=")[0][1])
 
@@ -164,7 +167,6 @@ def parse_msh(fmsh):
 
 
 def make_bgmesh(contours, **kwargs):
-
     gglobal = kwargs.get("gglobal", False)
 
     if gglobal:
@@ -200,14 +202,12 @@ def make_bgmesh(contours, **kwargs):
     fpos = rpath + "/jigsaw/" + tag + "-hfun.msh"
 
     if gglobal:
-
         logger.info("Evaluate global bgmesh")
         nds, lms = make_bgmesh_global(contours, fpos, dem, **kwargs)
         logger.info("Saving global background scale file")
         dh = to_global_hfun(nds, lms, fpos, **kwargs)
 
     else:
-
         logger.info("Evaluate bgmesh")
         dh = get_hfun(
             dem, resolution_min=res_min, resolution_max=res_max, dhdx=dhdx, **kwargs_
@@ -220,7 +220,6 @@ def make_bgmesh(contours, **kwargs):
 
 
 def read_msh(filename, **kwargs):
-
     logger.info("..reading mesh\n")
 
     [nodes, edges, tria] = parse_msh(filename)
@@ -314,11 +313,9 @@ def read_msh(filename, **kwargs):
         wbs.append(bf)
 
     if wbs:
-
         openb = pd.concat(wbs)
 
         if openb.index.levels[0].shape[0] == 1:  # sort the nodes if open box
-
             pts = openb[["x", "y"]].values
 
             origin = [openb.mean()["x"], openb.mean()["y"]]
@@ -339,7 +336,6 @@ def read_msh(filename, **kwargs):
             openb = openb.iloc[idx]
 
     else:
-
         openb = pd.DataFrame([])
 
     # convert if global
@@ -407,7 +403,6 @@ def read_msh(filename, **kwargs):
 
 
 def get(contours, **kwargs):
-
     """
     Create a `jigsaw` mesh.
 
@@ -449,11 +444,9 @@ def get(contours, **kwargs):
             kwargs.update({"bgmesh": "auto"})
 
     if bgmesh is not None:
-
         logger.info("Set background scale")
 
         if bgmesh.endswith(".nc"):
-
             try:
                 dh = xr.open_dataset(bgmesh)
 
@@ -466,11 +459,9 @@ def get(contours, **kwargs):
                 bgmesh = None
 
         elif bgmesh == "auto":
-
             dh = make_bgmesh(contours, **kwargs)
 
         elif bgmesh.endswith(".msh"):
-
             pass
 
     try:
@@ -510,44 +501,43 @@ def get(contours, **kwargs):
     setup_only = kwargs.get("setup_only", False)
 
     if not setup_only:
-
         # ---------------------------------
         logger.info("executing jigsaw\n")
         # ---------------------------------
 
         # execute jigsaw
-        ex = subprocess.Popen(
+        with subprocess.Popen(
             args=["jigsaw {}".format(tag + ".jig")],
             cwd=calc_dir,
             shell=True,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-        )  # , bufsize=1)
+            #            bufsize=1,
+        ) as ex:
+            output = ex.stdout.read()
+            error = ex.stderr.read()
 
-        with open(calc_dir + "err.log", "w") as f:
-            for line in iter(ex.stderr.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-        #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stderr.close()
+        if error:
+            logger.error("Jigsaw FAILED\n")
+            with open(calc_dir + "err.log", "w") as f:
+                for line in error.splitlines():
+                    f.write(line.decode(sys.stdout.encoding))
+                    logger.debug(line.decode(sys.stdout.encoding))
 
-        with open(calc_dir + "run.log", "w") as f:
-            for line in iter(ex.stdout.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-        #        logger.info(line.decode(sys.stdout.encoding))
-        ex.stdout.close()
+            gr = None
 
-        # ---------------------------------
-        logger.info("Jigsaw FINISHED\n")
-        # ---------------------------------
+            return gr, bg
 
-        gr = read_msh(calc_dir + tag + ".msh", **kwargs)
+        else:
+            logger.info("Jigsaw FINISHED\n")
 
-        logger.info("..done creating mesh\n")
+            gr = read_msh(calc_dir + tag + ".msh", **kwargs)
 
-        return gr, bg
+            return gr, bg
+
+            logger.info("..done creating mesh\n")
 
     else:
-
         gr = None
 
         return gr, bg

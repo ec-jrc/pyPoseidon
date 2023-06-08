@@ -19,7 +19,6 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import pandas as pd
-import pygeos
 import spatialpandas
 import geopandas as gp
 from hvplot import xarray
@@ -41,14 +40,19 @@ class hplot(object):
         self._obj = xarray_obj
 
     def contourf(self, var="depth", it=None, tiles=False, **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
+        t_var = kwargs.get("t", "time")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
         try:
-            t = kwargs.get("t", self._obj.time.values)
+            t = self._obj[t_var][:].values
         except:
             pass
-        tes = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :4])
+
+        tes = self._obj[tes_var].values[:, :4]
 
         # sort out quads
         try:
@@ -95,7 +99,6 @@ class hplot(object):
             )
 
     def meteo(self, **kwargs):
-
         m = self._obj.set_coords(["lon", "lat"])
         m["lon"] = m["lon"].isel(time=1, drop=True)
         m["lat"] = m["lat"].isel(time=1, drop=True)
@@ -115,14 +118,36 @@ class hplot(object):
         )
 
     def quiver(self, **kwargs):
-
         return
 
     def mesh(self, tiles=False, **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
-        tes = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values)
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
+        tes = self._obj[tes_var].values[:, :4]
+
+        # check tesselation
+
+        try:
+            tes = tes.fillna(-1.0)  # adapt to schism >=5.10
+            tes = tes.values
+        except:
+            pass  # given as numpy array
+
+        try:
+            if np.isnan(tes[:, 3]).all():
+                tes = tes[:, :3]
+        except:
+            pass
+
+        try:
+            if (tes[:, 3] == -1).all():
+                tes = tes[:, :3]
+        except:
+            pass
 
         width = kwargs.get("width", 800)
         height = kwargs.get("height", 600)
@@ -135,7 +160,6 @@ class hplot(object):
         points = gv.operation.project_points(gv.Points(nodes), projection=ccrs.PlateCarree())
 
         if tes.shape[1] == 3:
-
             elems = pd.DataFrame(tes, columns=["a", "b", "c"])
 
             if elems.min().min() > 0:
@@ -149,7 +173,6 @@ class hplot(object):
                 return datashade(trimesh, precompute=True, cmap=["green"]).opts(width=width, height=height)
 
         else:  # there are quads
-
             elems = pd.DataFrame(tes, columns=["a", "b", "c", "d"])
 
             if elems.min().min() > 0:
@@ -172,7 +195,7 @@ class hplot(object):
 
             quads["coordinates"] = coords
 
-            qpolys = pygeos.polygons(quads.coordinates.to_list())
+            qpolys = shapely.polygons(quads.coordinates.to_list())
 
             df = gp.GeoDataFrame(geometry=qpolys)
 
@@ -194,22 +217,24 @@ class hplot(object):
                 return wireframe.opts(cmap=["green"]) * qdf.opts(cmap=["green"])
 
     def qframes(self, **kwargs):
-
         return
 
     def frames(self, var="depth", tiles=False, **kwargs):
+        x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+        y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+        tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
+        t_var = kwargs.get("t", "time")
 
-        x = kwargs.get("x", self._obj.SCHISM_hgrid_node_x[:].values)
-        y = kwargs.get("y", self._obj.SCHISM_hgrid_node_y[:].values)
-        try:
-            t = kwargs.get("t", self._obj.time.values)
-        except:
-            pass
-        tes = kwargs.get("tri3", self._obj.SCHISM_hgrid_face_nodes.values[:, :4])
+        x = self._obj[x_var][:].values
+        y = self._obj[y_var][:].values
+        t = self._obj[t_var][:].values
+        tes = self._obj[tes_var].values[:, :4]
+
+        # check tesselation
 
         # sort out quads
         try:
-            mask = np.isnan(tes)[:, 3]
+            mask = tes[:, 3] == -1
             tr3 = tes[mask][:, :3]
             tr3_ = quads_to_tris(tes[~mask])
             if tr3_:
@@ -217,13 +242,12 @@ class hplot(object):
             else:
                 tri3 = tr3.astype(int)
         except:
-            tri3 = tes.astype(int)
+            tri3 = tes[:, :3].astype(int)
 
         if tri3.min() > 0:
             tri3 = tri3 - 1
 
-        times = kwargs.get("times", self._obj.time.values)
-
+        var = kwargs.get("var", "depth")
         z = kwargs.get("z", self._obj[var].values[0, :].flatten())
 
         zmin = self._obj[var].values.min()
@@ -246,7 +270,7 @@ class hplot(object):
             points.data[var] = self._obj[var].sel(time=time).values
             return gv.TriMesh((elems, points))  # , crs=ccrs.GOOGLE_MERCATOR)
 
-        meshes = hv.DynamicMap(time_mesh, kdims=["Time"]).redim.values(Time=times)
+        meshes = hv.DynamicMap(time_mesh, kdims=["Time"]).redim.values(Time=t)
 
         imesh = rasterize(meshes, aggregator="mean").opts(
             cmap="viridis",

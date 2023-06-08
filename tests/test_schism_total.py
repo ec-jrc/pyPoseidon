@@ -47,6 +47,7 @@ def test_schism(tmpdir, window):
             "ihfskip": 36,
             "nhot_write": 108,
         },
+        "scribes": 2,
     }
 
     rpath = str(tmpdir) + "/"

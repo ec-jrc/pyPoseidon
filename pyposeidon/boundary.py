@@ -14,32 +14,11 @@ import numpy as np
 import geopandas as gp
 import logging
 import shapely
-from tqdm import tqdm
+from tqdm.auto import tqdm
+from pyposeidon.utils.coastfix import simplify
 import sys
 
 logger = logging.getLogger(__name__)
-
-
-def simplify(geo):
-
-    logger.info("simplify coastalines dataset")
-    geo = geo.loc[:, ["geometry"]].explode(index_parts=True).droplevel(0).reset_index(drop=True)
-
-    # Just in case merge
-    if (geo.geom_type == "LineString").all():
-        geo_ = gp.GeoDataFrame(geometry=[shapely.ops.linemerge(geo.geometry.values)])
-        geo = geo_.explode(index_parts=True).droplevel(0).reset_index(drop=True)
-
-    if (geo.geom_type == "Polygon").all():
-        try:
-            geo_ = list(geo.buffer(0).unary_union)
-        except TypeError:
-            geo_ = [geo.buffer(0).unary_union]
-
-        geo = gp.GeoDataFrame(geometry=geo_)
-        geo = gp.GeoDataFrame(geometry=geo.buffer(0))
-
-    return geo
 
 
 class Boundary:
@@ -77,11 +56,20 @@ class Boundary:
         elif isinstance(coastlines, str):
             logger.info("reading {}".format(coastlines))
             coasts = gp.GeoDataFrame.from_file(coastlines)
-            self.coasts = simplify(coasts)
+            # check coastlines
+            if coasts.buffer(0).is_valid.all() and (coasts.buffer(0).boundary.geom_type == "LineString").all():
+                self.coasts = gp.GeoDataFrame(geometry=coasts.buffer(0))
+            else:
+                self.coasts = simplify(coasts)
         elif isinstance(coastlines, gp.GeoDataFrame):
             logger.warning("coastlines is not a file, trying with geopandas Dataset")
             try:
-                self.coasts = simplify(coastlines)
+                coasts = coastlines
+                # check coastlines
+                if coasts.buffer(0).is_valid.all() and (coasts.buffer(0).boundary.geom_type == "LineString").all():
+                    self.coasts = gp.GeoDataFrame(geometry=coasts.buffer(0))
+                else:
+                    self.coasts = simplify(coasts)
             except:
                 logger.error("coastlines argument not valid ")
                 sys.exit(1)
@@ -93,23 +81,19 @@ class Boundary:
                 sys.exit(1)
 
         if isinstance(geometry, dict):
-
             if self.coasts is None:
                 logger.warning("coastlines might be required")
 
             self.geometry = geometry
 
         elif isinstance(geometry, str):
-
             if geometry == "global":
-
                 if self.coasts is None:
                     logger.warning("coastlines might be required")
 
                 self.geometry = "global"
 
             else:
-
                 try:
                     self.geometry = gp.read_file(geometry)
                 except:
@@ -121,7 +105,6 @@ class Boundary:
                         sys.exit(1)
 
         else:
-
             try:
                 self.geometry = gp.read_file(geometry)
             except:
@@ -168,7 +151,6 @@ class Boundary:
         self.contours = df.reset_index(drop=True)
 
     def show(self):
-
         return self.contours.plot(
             column="tag",
             legend=True,
@@ -183,7 +165,6 @@ class Boundary:
 
 
 def buffer_(coasts, cbuffer):
-
     # check
     if coasts.empty:
         return coasts
@@ -194,29 +175,34 @@ def buffer_(coasts, cbuffer):
 
     # buffer
     w_ = gp.GeoDataFrame(geometry=de.buffer(cbuffer))  # in arcs
+    w_ = w_.buffer(-1.1 * cbuffer).buffer(cbuffer)
 
     # drop empty objects
     empty = w_.is_empty
     w_ = w_.loc[~empty]
     w_ = w_.reset_index(drop=True)
 
+    # deal with multi objects
+    ww_ = w_.explode(index_parts=False).reset_index(drop=True)
+    ww_ = gp.GeoDataFrame(geometry=ww_)
+
     # evaluate multiple boundaries
     mls = []
-    for pos, pol in w_.itertuples():
+    for pos, pol in ww_.itertuples():
         bb = pol.boundary
         try:
-            len(bb)
+            len(bb.geoms)
             mls.append(pos)
         except:
             pass
 
     # keep only exterior
-    for idx, val in w_.loc[mls].iterrows():
+    for idx, val in ww_.loc[mls].iterrows():
         b = shapely.geometry.Polygon(val.geometry.exterior)
-        w_.loc[idx] = b
+        ww_.loc[idx] = b
 
     # join
-    wu = w_.unary_union
+    wu = ww_.unary_union
     wu = gp.GeoDataFrame(geometry=[wu]).explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     rings = wu.boundary.is_ring  # get multiple boundaries instance
@@ -227,11 +213,20 @@ def buffer_(coasts, cbuffer):
         b = shapely.geometry.Polygon(val.geometry.exterior)
         wu.loc[idx] = b
 
+    # test for intersecting polygons
+    wu["area"] = wu["geometry"][:].area
+    wu = wu.sort_values(by="area", ascending=0)  # sort
+    wu = wu.reset_index(drop=True)
+
+    wc = wu.overlay(wu, how="intersection")
+    wint = wc.where(wc.area_1 != wc.area_2).dropna()
+    dinx = wu.loc[wu.area == wint.area_1.min()].index
+    wu = wu.drop(dinx).reset_index(drop=True)
+
     return wu
 
 
 def tag(geometry, coasts, cbuffer, blevels):
-
     try:
         lon_min = geometry["lon_min"]
         lon_max = geometry["lon_max"]
@@ -264,7 +259,6 @@ def tag(geometry, coasts, cbuffer, blevels):
         flag = 0
 
     try:
-
         # adjust and mask based on lat/lon window
         if flag == 1:
             block1 = coasts.cx[lon_min:180, lat_min:lat_max].copy()
@@ -276,7 +270,6 @@ def tag(geometry, coasts, cbuffer, blevels):
             block = pd.concat([block1, block2])
 
         elif flag == -1:
-
             block1 = coasts.cx[lon_min + 360 : 180, lat_min:lat_max].copy()
             block2 = coasts.cx[-180:lon_max, lat_min:lat_max].copy()
 
@@ -290,7 +283,6 @@ def tag(geometry, coasts, cbuffer, blevels):
 
         # Fix polygons around international line
         if flag != 0:
-
             wc = block[(block.bounds.maxx == flag * 180) | (block.bounds.minx == flag * 180)]
 
             cs = []  # adjust values around zero (in projection - international line in Platee Carree)
@@ -336,7 +328,9 @@ def tag(geometry, coasts, cbuffer, blevels):
     # polygonize if need be for getting the symetric difference
     if (block.geom_type == "LineString").all():
         gg = shapely.ops.polygonize_full(block.geometry.values)
-        block = gp.GeoDataFrame(geometry=list(gg[0])).explode(index_parts=True).droplevel(0).reset_index(drop=True)
+        block = (
+            gp.GeoDataFrame(geometry=list(gg[0].geoms)).explode(index_parts=True).droplevel(0).reset_index(drop=True)
+        )
 
     # bypass blocks in case of isodem
     if blevels:
@@ -347,10 +341,8 @@ def tag(geometry, coasts, cbuffer, blevels):
     else:
         g = grp
 
-    try:  # make geoDataFrame
-        t = gp.GeoDataFrame({"geometry": g})
-    except:
-        t = gp.GeoDataFrame({"geometry": [g]})
+    # make geoDataFrame
+    t = gp.GeoDataFrame({"geometry": [g]}).explode(index_parts=True).droplevel(0)
     t["length"] = t["geometry"][:].length  # get length
     t = t.sort_values(by="length", ascending=0)  # sort
     t = t.reset_index(drop=True)
@@ -454,7 +446,6 @@ def tag(geometry, coasts, cbuffer, blevels):
 
 
 def global_tag(geo, cbuffer, blevels, R=1):
-
     # Manage coastlines
     logger.info("preparing coastlines")
 
@@ -486,7 +477,7 @@ def global_tag(geo, cbuffer, blevels, R=1):
         },
         index=indx,
     )  # put together a LineString
-    geo.loc[indx] = shapely.geometry.LineString(anta.values)  # put it back to geo
+    geo.loc[indx, "geometry"] = shapely.geometry.LineString(anta.values)  # put it back to geo
 
     # International Meridian
     m1 = geo[geo.bounds.minx == geo.bounds.minx.min()].index
@@ -503,7 +494,7 @@ def global_tag(geo, cbuffer, blevels, R=1):
             gy = np.array([y for (x, y) in gk.coords[:]])
             jj = np.argwhere(gy > -86)
             gx_, gy_ = to_stereo(gx[jj], gy[jj], R=1)  # project valid values only
-            geo.loc[idx, "geometry"] = shapely.geometry.LineString(list(zip(gx_, gy_)))
+            geo.loc[idx, "geometry"] = shapely.geometry.LineString(list(zip(gx_.flatten(), gy_.flatten())))
         else:
             geo.loc[idx, "geometry"] = shapely.ops.transform(
                 lambda x, y, z=None: to_stereo(x, y, R=R),
@@ -515,10 +506,10 @@ def global_tag(geo, cbuffer, blevels, R=1):
     # join the split polygons
     ww = w.loc[mm]  # split entities
     qq = shapely.ops.polygonize_full(ww.geometry.values)  # polygonize in case of LineStrings
-    if len(qq[0]) > 0:
-        ww = gp.GeoDataFrame(geometry=list(qq[0]))  # convert to gp
-    elif len(qq[2]) > 0:
-        ww = gp.GeoDataFrame(geometry=list(qq[2]))  # convert to gp
+    if len(qq[0].geoms) > 0:
+        ww = gp.GeoDataFrame(geometry=list(qq[0].geoms))  # convert to gp
+    elif len(qq[2].geoms) > 0:
+        ww = gp.GeoDataFrame(geometry=list(qq[2].geoms))  # convert to gp
 
     cs = []  # adjust values around zero (in projection - international line in Platee Carree)
     for idx, line in ww.itertuples():
@@ -534,7 +525,7 @@ def global_tag(geo, cbuffer, blevels, R=1):
     ww = gp.GeoDataFrame(geometry=cs)
 
     gw = gp.GeoDataFrame(
-        geometry=list(ww.buffer(0).unary_union)
+        geometry=list(ww.buffer(0).unary_union.geoms)
     )  # merge the polygons that are split (around -180/180)
 
     gw = gp.GeoDataFrame(geometry=gw.boundary.values)

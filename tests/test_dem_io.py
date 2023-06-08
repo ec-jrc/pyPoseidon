@@ -33,7 +33,6 @@ window1 = {
 @DEM_SOURCES
 @pytest.mark.parametrize("kwargs", [window1])
 def test_schism(tmpdir, dem_source, kwargs):
-
     mesh = pmesh.set(type="tri2d", mesh_file=(DATA_DIR / "hgrid.gr3").as_posix())
 
     # update kwargs
@@ -64,7 +63,6 @@ def test_schism(tmpdir, dem_source, kwargs):
 @DEM_SOURCES
 @pytest.mark.parametrize("kwargs", [window1])
 def test_d3d(tmpdir, dem_source, kwargs):
-
     ## lat,lon grid
     resolution = 0.1
     lon = np.arange(kwargs["lon_min"], kwargs["lon_max"], resolution)

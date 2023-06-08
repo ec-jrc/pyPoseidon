@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 def tag_(**kwargs):
-
     world = kwargs.get("coastlines", None)
 
     if world is None:
@@ -62,7 +61,6 @@ def tag_(**kwargs):
         block = block1.append(block2)
 
     elif flag == -1:
-
         block1 = world.cx[lon_min + 360 : 180, lat_min:lat_max].copy()
         block2 = world.cx[-180:lon_max, lat_min:lat_max].copy()
 
@@ -222,7 +220,6 @@ def tag_(**kwargs):
     ds = kwargs.get("ds", 0.001)
 
     if even:
-
         ibs = df_land.index.levels[0].shape[0]
 
         if ibs < 0:
@@ -273,7 +270,6 @@ def tag_(**kwargs):
 
     ### interpolate if needed
     if even:
-
         ibs = ndf.index.levels[0].shape[0]
 
         ## resample boundaries

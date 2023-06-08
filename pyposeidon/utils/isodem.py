@@ -1,5 +1,4 @@
 def get_dem_contours(blevels, dem):
-
     if len(blevels) == 1:
         dvalues = [blevels[0] - 1, blevels[0]]
     elif len(blevels) == 2:

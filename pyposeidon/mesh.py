@@ -39,15 +39,12 @@ class r2d:
     """Regular 2d grid for d3d"""
 
     def __init__(self, **kwargs):
-
         mesh_file = kwargs.get("mesh_file", None)
 
         if mesh_file:
-
             self.Dataset = self.read_file(mesh_file)
 
         else:
-
             geometry = kwargs.get("geometry", None)
 
             try:
@@ -93,7 +90,6 @@ class r2d:
 
     @staticmethod
     def read_file(filename, **kwargs):
-
         logger.info("read grid file {}".format(filename))
 
         header = pd.read_csv(filename, nrows=3, header=None, comment="*")
@@ -135,7 +131,6 @@ class r2d:
         return g
 
     def to_file(self, filename, **kwargs):
-
         logger.info("writing grid to file {}".format(filename))
 
         with open(filename, "w") as f:
@@ -177,7 +172,6 @@ class tri2d:
     """
 
     def __init__(self, **kwargs):
-
         mesh_file = kwargs.get("mesh_file", None)
         mesh_generator = kwargs.get("mesh_generator", None)
         geo = kwargs.get("geometry", None)
@@ -188,19 +182,17 @@ class tri2d:
             kwargs.update({"gglobal": True})
 
         if mesh_file:
-
             if mesh_file.endswith(".gr3"):
-                self.Dataset = self.read_file(mesh_file)
+                self.Dataset = self.read_file(mesh_file, **kwargs)
             elif mesh_file.endswith(".msh"):
                 if mesh_generator == "jigsaw":
-                    self.Dataset = mjigsaw.read_msh(mesh_file)
+                    self.Dataset = mjigsaw.read_msh(mesh_file, **kwargs)
                 elif mesh_generator == "gmsh":
-                    self.Dataset = mgmsh.read_msh(mesh_file)
+                    self.Dataset = mgmsh.read_msh(mesh_file, **kwargs)
                 else:
                     raise ValueError("Please define 'mesh_genarator' argument")
 
         elif mesh_generator == "gmsh":
-
             if boundary is None:
                 self.boundary = Boundary(**kwargs)
             else:
@@ -213,7 +205,6 @@ class tri2d:
             self.bgmesh = bg
 
         elif mesh_generator == "jigsaw":
-
             if boundary is None:
                 self.boundary = Boundary(**kwargs)
             else:
@@ -226,12 +217,10 @@ class tri2d:
             self.bgmesh = bg
 
         else:
-
             self.Dataset = None
 
     @staticmethod
     def read_file(hgrid, **kwargs):
-
         logger.info("read mesh file {}".format(hgrid))
 
         # read file
@@ -368,7 +357,6 @@ class tri2d:
         return g
 
     def to_file(self, filename, **kwargs):
-
         logger.info("writing mesh to file {}".format(filename))
 
         nn = self.Dataset.SCHISM_hgrid_node_x.size
@@ -426,7 +414,6 @@ class tri2d:
 
         if number_of_open_boundaries > 0:
             with open(filename, "a") as f:
-
                 f.write("{} = Number of open boundaries\n".format(number_of_open_boundaries))
                 f.write("{} = Total number of open boundary nodes\n".format(number_of_open_boundaries_nodes))
 
@@ -436,9 +423,7 @@ class tri2d:
                     dat.to_csv(f, index=None, header=False)
 
         else:
-
             with open(filename, "a") as f:
-
                 f.write("{} = Number of open boundaries\n".format(0))
                 f.write("{} = Total number of open boundary nodes\n".format(0))
 
@@ -473,7 +458,6 @@ class tri2d:
 
         if number_of_land_boundaries > 0:
             with open(filename, "a") as f:
-
                 for i in range(1001, 1000 + number_of_land_boundaries + 1):
                     dat_ = bs.loc[bs.id == i]
                     dat = dat_.node + 1  # fortran
@@ -483,9 +467,7 @@ class tri2d:
                     ik += 1
 
         if number_of_island_boundaries < 0:
-
             with open(filename, "a") as f:
-
                 for i in range(-1, number_of_island_boundaries - 1, -1):
                     dat_ = bs.loc[bs.id == i]
                     dat = dat_.node + 1  # fortran
@@ -495,7 +477,6 @@ class tri2d:
                     ik += 1
 
     def validate(self, **kwargs):
-
         # ---------------------------------------------------------------------
         logger.info("start mesh validation\n")
         # ---------------------------------------------------------------------
@@ -559,11 +540,10 @@ class tri2d:
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
+        scribes = kwargs.get("scribes", -1)
+
         tools.create_schism_mpirun_script(
-            target_dir=path,
-            cmd=bin_path,
-            script_name="launchSchism.sh",
-            ncores=1,
+            target_dir=path, cmd=bin_path, script_name="launchSchism.sh", ncores=1, scribes=scribes
         )
 
         # note that cwd is the folder where the executable is
@@ -578,7 +558,6 @@ class tri2d:
         out, err = ex.communicate()[:]
 
         if "successfully" in str(out):
-
             # ---------------------------------------------------------------------
             logger.info("mesh is validated for SCHISM\n")
             # ---------------------------------------------------------------------
@@ -591,11 +570,11 @@ class tri2d:
             return False
 
     def verify(self, **kwargs):
-
         shp = kwargs.get("coastlines", None)
+        thorough = kwargs.get("thorough", False)
 
         if shp is not None:
-            r = verify(self, shp)
+            r = verify(self, shp, thorough)
             return r
         else:
             logger.warning("No coastlines provided")

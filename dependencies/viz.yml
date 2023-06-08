@@ -10,7 +10,7 @@ dependencies:
   - "holoviews"
   - "hvplot"
   - "ipympl"
-  - "itkwidgets"
+  # - "itkwidgets"
   - "matplotlib>=3.3"
   - "mayavi"
   - "spatialpandas"

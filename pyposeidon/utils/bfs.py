@@ -14,7 +14,6 @@ from collections import deque
 
 class Solution(object):
     def append_if(self, queue, x, y, island_counter):
-
         b = [[0, 1], [1, 0]], [[0, 1], [-1, 0]], [[0, -1], [1, 0]], [[0, -1], [-1, 0]]
 
         """Append to the queue only if in bounds of the grid and the cell value is 1."""
@@ -23,7 +22,12 @@ class Solution(object):
                 #                queue.append((x, y))
                 for [i, j], [k, l] in b:
                     try:
-                        if self.grid[x + i][y + j] in ["1", island_counter,] and self.grid[x + k][y + l] in [
+                        if self.grid[x + i][y + j] in [
+                            "1",
+                            island_counter,
+                        ] and self.grid[
+                            x + k
+                        ][y + l] in [
                             "1",
                             island_counter,
                         ]:

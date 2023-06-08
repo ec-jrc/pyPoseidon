@@ -1,0 +1,28 @@
+---
+
+channels:
+  - "conda-forge"
+  - "gbrey"
+
+dependencies:
+  - "cartopy"
+  - "cfgrib"
+  - "colorlog"
+  - "dask"
+  - "f90nml"
+  - "geopandas"
+  - "netCDF4"
+  - "numpy"
+  - "pandas"
+  - "psutil"
+  - "pydap>=3.3.0"
+  - "pyresample"
+  - "python-gmsh"
+  - "rasterio"
+  - "requests"
+  - "rioxarray"
+  - "scipy"
+  - "searvey"
+  - "shapely>=2"
+  - "tqdm"
+  - "xarray"

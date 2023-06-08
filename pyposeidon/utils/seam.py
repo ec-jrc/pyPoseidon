@@ -3,6 +3,7 @@ import geopandas as gp
 import numpy as np
 import shapely
 import glob
+from tqdm.auto import tqdm
 import pyresample
 import xarray as xr
 from shapely.ops import triangulate
@@ -12,27 +13,37 @@ logger = logging.getLogger(__name__)
 
 
 def get_seam(x, y, z, tri3, **kwargs):
-
     if z == None:
         z = 1.0
 
+    # store lon/lat/elems
     gr = pd.DataFrame({"lon": x, "lat": y, "z": z})
-    tf = gr[(gr.lon < -90) | (gr.lon > 90.0) | (gr.lat > 80)]
-
     elems = pd.DataFrame(tri3, columns=["a", "b", "c"])
-    bes = elems[(elems.a.isin(tf.index.values)) & (elems.b.isin(tf.index.values)) & (elems.c.isin(tf.index.values))]
 
-    qq = bes.copy()
-    qq["ap"] = qq.apply(lambda x: tf.loc[x.a, ["lon", "lat"]].values, axis=1)
-    qq["bp"] = qq.apply(lambda x: tf.loc[x.b, ["lon", "lat"]].values, axis=1)
-    qq["cp"] = qq.apply(lambda x: tf.loc[x.c, ["lon", "lat"]].values, axis=1)
-    qq["geometry"] = qq.apply(lambda x: shapely.geometry.Polygon([x.ap, x.bp, x.cp]), axis=1)
+    # discover crossover elements
+    a, b, c = tri3.T
+    lon = x
+    lon_a = lon[a]
+    lon_b = lon[b]
+    lon_c = lon[c]
 
-    ge = gp.GeoDataFrame(qq.geometry)
-    gemask = ge.geometry.bounds.diff(axis=1, periods=2).maxx > 300  # Avoid seam for the 2D graph
+    max_lon = kwargs.get("max_lon", 340)
+    idl = np.where(
+        ((lon_a * lon_b < 0) & (np.abs(lon_a - lon_b) >= max_lon))
+        | ((lon_a * lon_c < 0) & (np.abs(lon_a - lon_c) >= max_lon))
+        | ((lon_b * lon_c < 0) & (np.abs(lon_b - lon_c) >= max_lon))
+    )[0]
 
-    mels = qq[gemask]
+    mels = elems.iloc[idl].copy().reset_index(drop=True)
 
+    # polygonize
+    mels["ap"] = mels.apply(lambda x: gr.loc[x.a, ["lon", "lat"]].values, axis=1)
+    mels["bp"] = mels.apply(lambda x: gr.loc[x.b, ["lon", "lat"]].values, axis=1)
+    mels["cp"] = mels.apply(lambda x: gr.loc[x.c, ["lon", "lat"]].values, axis=1)
+
+    mels["geometry"] = mels.apply(lambda x: shapely.geometry.Polygon([x.ap, x.bp, x.cp]), axis=1)
+
+    # Split crossing elements
     adv = 0
     p1 = []
     p2 = []
@@ -59,7 +70,7 @@ def get_seam(x, y, z, tri3, **kwargs):
         cp = npol.intersection(l)  # find the intersection with the element
 
         try:
-            cpp = [(x.coords[0][0], x.coords[0][1]) for x in cp]  # get cross nodes
+            cpp = [(x.coords[0][0], x.coords[0][1]) for x in cp.geoms]  # get cross nodes
         except:
             cpp = []
 
@@ -80,15 +91,15 @@ def get_seam(x, y, z, tri3, **kwargs):
         nels = pd.DataFrame(tes, columns=["a", "b", "c"])
 
         if cpp:
-            de = de.append(de.loc[:1], ignore_index=True)  # replicate the meridian cross points
+            de = pd.concat([de, de.loc[:1]], ignore_index=True)  # replicate the meridian cross points
             de.lon[-2:] *= -1
 
-        if de[de.lon > 180.0].size > 0:
-            ids = de[de.lon > 180.0].index.values  # problematic nodes
-            de.loc[de.lon > 180.0, "lon"] -= 360.0
-        elif de[de.lon < -180.0].size > 0:
-            ids = de[de.lon < -180.0].index.values  # problematic nodes
-            de.loc[de.lon < -180.0, "lon"] += 360.0
+            if de[de.lon > 180.0].size > 0:
+                ids = de[de.lon > 180.0].index.values  # problematic nodes
+                de.loc[de.lon > 180.0, "lon"] -= 360.0
+            elif de[de.lon < -180.0].size > 0:
+                ids = de[de.lon < -180.0].index.values  # problematic nodes
+                de.loc[de.lon < -180.0, "lon"] += 360.0
 
         p1.append(de)
 
@@ -118,13 +129,14 @@ def get_seam(x, y, z, tri3, **kwargs):
 
     si = gr.index[-1]
     ## drop the problematic elements
-    ges = elems.drop(qq[gemask].index)
+    ges = elems.drop(idl)
     ## append new nodes
-    mes = gr.append(ng)
+    mes = pd.concat([gr, ng])
+
     ## Make new elements index global
     nges = nge + si + 1
     # append new elements
-    ges = ges.append(nges)
+    ges = pd.concat([ges, nges])
     ges.reset_index(inplace=True, drop=True)
     mes.reset_index(inplace=True, drop=True)
 
@@ -134,10 +146,13 @@ def get_seam(x, y, z, tri3, **kwargs):
 
 
 def to_2d(dataset=None, var=None, mesh=None, **kwargs):
+    x_var = kwargs.get("x", "SCHISM_hgrid_node_x")
+    y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
+    tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
 
-    x = dataset.SCHISM_hgrid_node_x[:].values
-    y = dataset.SCHISM_hgrid_node_y[:].values
-    tri3 = dataset.SCHISM_hgrid_face_nodes.values[:, :3].astype(int)
+    x = dataset[x_var][:].values
+    y = dataset[y_var][:].values
+    tri3 = dataset[tes_var].values[:, :3].astype(int)
 
     if mesh is not None:
         [xn, yn, tri3n] = mesh
@@ -187,34 +202,40 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
         )
 
     elif "time" in dataset[var].coords:
+        it_start = kwargs.get("it_start", 0)
+        it_end = kwargs.get("it_end", dataset.time.shape[0])
 
-        xelev = []
-        for i in range(dataset.time.shape[0]):
+        #        xelev = []
+
+        for i in tqdm(range(it_start, it_end)):
             z = dataset[var].values[i, :]
             zm = z[xmask]
             z_ = pyresample.kd_tree.resample_nearest(orig, zm, targ, radius_of_influence=200000, fill_value=0)
             e = np.concatenate((z, z_))
-            xelev.append(e)
+            #            xelev.append(e)
 
-        # create xarray
-        xe = xr.Dataset(
-            {
-                var: (["time", "nSCHISM_hgrid_node"], xelev),
-                "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
-                "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
-                "SCHISM_hgrid_face_nodes": (
-                    ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
-                    tri3n,
-                ),
-            },
-            coords={"time": ("time", dataset.time.values)},
-        )
+            # create xarray
+            xi = xr.Dataset(
+                {
+                    var: (["time", "nSCHISM_hgrid_node"], e),
+                    "SCHISM_hgrid_node_x": (["nSCHISM_hgrid_node"], xn),
+                    "SCHISM_hgrid_node_y": (["nSCHISM_hgrid_node"], yn),
+                    "SCHISM_hgrid_face_nodes": (
+                        ["nSCHISM_hgrid_face", "nMaxSCHISM_hgrid_face_nodes"],
+                        tri3n,
+                    ),
+                },
+                coords={"time": ("time", dataset.time.values[i])},
+            )
+
+            xi.to_netcdf("./tmp/x{:03d}.nc")
+
+        xe = xr.open_mfdataset("./tmp/*.nc")
 
     return xe
 
 
 def reposition(px):
-
     px[px < 0] = px[px < 0] + 360.0
 
     return px

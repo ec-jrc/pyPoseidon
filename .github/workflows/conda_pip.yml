@@ -1,114 +1,182 @@
 ---
 name: "Conda + pip"
 
+
+# Use login shell everywhere
+# https://github.com/mamba-org/setup-micromamba/tree/fcc371cea11af9012e5e916ab2dab44b42acdaaa#about-login-shells
+
 on:
-  - "push"
-  - "pull_request"
+  push:
+    branches:
+      - "main"
+      - "master"
+      - "dev"
+    paths:
+      - "**.py"
+      - ".github/workflows/*.yml"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - "locks/*"
+  pull_request:
+    paths:
+      - "**.py"
+      - ".github/workflows/*.yml"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - "locks/*"
 
 jobs:
-  run_tests:
-    name: "Conda + pip tests"
-    strategy:
-      fail-fast: true
-      matrix:
-        os:
-          - "ubuntu"
-          #- "macos"
-        mpi-backend:
-          #- "mpich"
-          - "openmpi"
-        python-version:
-          - "38"
-          #- "39"
-    runs-on: "${{ matrix.os }}-latest"
-    defaults:
-      run:
-        shell: "bash -l {0}"
-    env:
-      CONDA_LOCK_FILE: "locks/conda-${{ matrix.os }}-64-p${{ matrix.python-version }}-${{ matrix.mpi-backend }}-binary.lock"
+
+  run-linters:
+    name: "Run linters"
+    runs-on: "ubuntu-latest"
 
     steps:
+      - name: "Check out Git repository"
+        uses: "actions/checkout@v3"
 
-      - name: "Debug env"
-        run: "env | sort"
+      - name: "Set up Python"
+        uses: "actions/setup-python@v3"
+        with:
+          python-version: "3.10"
 
-      - name: "Checkout repo"
-        uses: "actions/checkout@v2"
+      - name: "Install Python dependencies"
+        run: "pip install 'black<24'"
 
-      - name: "Cache tests/data/"
-        uses: "actions/cache@v2"
+      - name: "Run linters"
+        run: "black --check ./"
+
+  run-tests:
+    needs: "run-linters"
+    name: "Test Python ${{ matrix.python }} on ${{ matrix.os }} using ${{ matrix.mpi }}"
+    runs-on: "${{ matrix.os }}"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # os: [ "ubuntu-latest", "macos-latest" ]
+        # mpi: [ "mpich", "openmpi" ]
+        os: [ "ubuntu-latest"]
+        mpi: [ "openmpi" ]
+        python: [ "3.9", "3.10", "3.11" ]
+
+    env:
+      SCHISM_ENV: "SCHISM_ENV"
+      DELFT3D_ENV: "DELFT3D_ENV"
+      PYPOSEIDON_ENV: "PYPOSEIDON_ENV"
+      #
+      SCHISM_LOCK: locks/conda-${{ matrix.os }}-schism_${{ matrix.mpi }}.lock
+      DELFT3D_LOCK: locks/conda-${{ matrix.os }}-delft3d_${{ matrix.mpi }}.lock
+      PYPOSEIDON_LOCK: locks/conda-${{ matrix.os }}-binary-p${{ matrix.python }}.lock
+      REQUIREMENTS_CI: locks/requirements-ci.txt
+      REQUIREMENTS_VIZ: locks/requirements-viz.txt
+
+    defaults:
+      run:
+        shell: "bash -elo pipefail {0}"
+
+    steps:
+      - run: "env | sort"
+      - uses: "actions/checkout@v3"
+      - name: "Install micromamba"
+        run: |
+          mkdir -p ~/.local/bin/
+          curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -C ~/.local/bin/ --strip-components=1 bin/micromamba
+          echo export MAMBA_EXE=$(which micromamba) | tee -a ~/.bashrc
+          echo export MAMBA_ROOT_PREFIX=~/micromamba | tee -a ~/.bashrc
+      - run: which micromamba
+
+      - name: "Create ~/.condarc"
+        run: |
+          rm -rf ~/.condarc
+          cat << EOF > ~/.condarc
+          ---
+          auto_activate_base: false
+          auto_stack: false
+          channel_priority: strict
+          channels:
+            - gbrey
+            - conda-forge
+          EOF
+      - run: cat ~/.condarc
+
+      - name: "Cache ${{ env.SCHISM_ENV }}"
+        uses: actions/cache@v3
+        id: cache-SCHISM_ENV
+        with:
+          path: ~/micromamba/envs/${{ env.SCHISM_ENV }}
+          key: ${{ matrix.os }}-${{ matrix.mpi }}-${{ env.SCHISM_ENV }}-${{ hashFiles( env.SCHISM_LOCK )}}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.mpi }}-${{ env.SCHISM_ENV }}-
+
+      - name: "Cache ${{ env.DELFT3D_ENV }}"
+        uses: actions/cache@v3
+        id: cache-DELFT3D_ENV
+        with:
+          path: ~/micromamba/envs/${{ env.DELFT3D_ENV }}
+          key: ${{ matrix.os }}-${{ matrix.mpi }}-${{ env.DELFT3D_ENV }}-${{ hashFiles( env.DELFT3D_LOCK )}}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.mpi }}-${{ env.DELFT3D_ENV }}-
+
+      - name: "Cache ${{ env.PYPOSEIDON_ENV }}"
+        uses: actions/cache@v3
+        id: cache-PYPOSEIDON_ENV
+        with:
+          path: ~/micromamba/envs/${{ env.PYPOSEIDON_ENV }}
+          key: ${{ matrix.os }}-${{ matrix.python }}-${{ env.PYPOSEIDON_ENV }}-${{ hashFiles( env.PYPOSEIDON_LOCK )}}-${{ hashFiles( env.REQUIREMENTS_CI )}}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.python }}-${{ env.PYPOSEIDON_ENV }}-${{ hashFiles( env.PYPOSEIDON_LOCK )}}
+            ${{ matrix.os }}-${{ matrix.python }}-${{ env.PYPOSEIDON_ENV }}-
+
+      - name: Cache tests/data/
+        uses: actions/cache@v3
         env:
           # Increase this value to reset cache if files in tests/data have been added/removed
           CACHE_NUMBER: 0
         with:
-          path: "/home/runner/work/pyPoseidon/pyPoseidon/tests/data"
-          key: "tests_data-${{ env.CACHE_NUMBER }}"
+          path: /home/runner/work/pyPoseidon/pyPoseidon/tests/data
+          key: tests_data-${{ env.CACHE_NUMBER }}
 
-      - name: "Cache conda pkgs"
-        uses: "actions/cache@v2"
-        env:
-          # Increase this value to reset cache if etc/example-environment.yml has not changed
-          CACHE_NUMBER: 0
-        with:
-          path: "~/conda_pkgs_dir"
-          key: "conda_pkgs-${{ env.CACHE_NUMBER }}-${{ hashFiles( env.CONDA_LOCK_FILE ) }}"
+      - name: "Create ${{ env.SCHISM_ENV }}"
+        if: steps.cache-SCHISM_ENV.outputs.cache-hit != 'true'
+        run: micromamba create --yes --name ${SCHISM_ENV} -f ${SCHISM_LOCK}
 
-      - name: "Setup conda"
-        uses: "conda-incubator/setup-miniconda@v2"
-        with:
-          activate-environment: "pyposeidon_env"
-          auto-update-conda: true
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
-          channel-priority: "strict"
-          environment-file: "${{ env.CONDA_LOCK_FILE }}"
+      - name: "Create ${{ env.DELFT3D_ENV }}"
+        if: steps.cache-DELFT3D_ENV.outputs.cache-hit != 'true'
+        run: micromamba create --yes --name ${DELFT3D_ENV} -f ${DELFT3D_LOCK}
 
-      - name: "Debug conda"
-        run: conda env export
+      - name: "Create ${{ env.PYPOSEIDON_ENV }}"
+        if: steps.cache-PYPOSEIDON_ENV.outputs.cache-hit != 'true'
+        run: micromamba create --yes --name ${PYPOSEIDON_ENV} -f ${PYPOSEIDON_LOCK}
 
-      - name: "Get pip cache dir"
-        id: "pip-cache"
+      - name: "Install python dependencies"
         run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+          eval "$(micromamba shell hook)"
+          micromamba activate --stack "${PYPOSEIDON_ENV}"
+          python -mpip install -U pip
+          python -mpip install -r "${REQUIREMENTS_CI}"
+          python -mpip install ./
 
-      - name: "Debug pip"
+      - name: "Run tests: Basic"
         run: |
-          which python
-          which pip
-          pip --version
-          pip cache info
+          eval "$(micromamba shell hook)"
+          micromamba activate "${SCHISM_ENV}"
+          micromamba activate --stack "${DELFT3D_ENV}"
+          micromamba activate --stack "${PYPOSEIDON_ENV}"
+          make test
 
-      - name: "Cache pip"
-        uses: "actions/cache@v2"
-        env:
-          # Increase this value to reset cache if files in tests/data have been added/removed
-          CACHE_NUMBER: 0
-        with:
-          path: "${{ steps.pip-cache.outputs.dir }}"
-          key: "${{ runner.os }}-pip-${{ env.CACHE_NUMBER }}-${{ hashFiles('locks/requirements-full.txt') }}"
+      # - name: "Run tests: Viz"
+      #   if: matrix.python != '3.11'
+      #   run: |
+      #     eval "$(micromamba shell hook)"
+      #     micromamba activate "${PYPOSEIDON_ENV}"
+      #     python -mpip install -r "${REQUIREMENTS_VIZ}"
+      #     make test_viz
 
-      - name: "Install dependencies"
+      - name: "Run tests: Delft"
         run: |
-          # gmsh is pulling occt, which is pulling an old version of vtk which is distutils-based
-          # and cannot be uninstalled by pip. Therefore we have to remove it manually and reinstall
-          # it using the version we have in the requirements file.
-          # If we don't reinstall, then there may be problems when we try to create the wheel file for
-          # mayavi later in the main `pip install -r ...` step
-          rm -rf $(dirname $(python -c 'import vtk; print(vtk.__path__[0])'))/vtk*
-          pip install $(grep vtk locks/requirements-full.txt)
-          pip install -r locks/requirements-full.txt
-
-      - name: "Debug installed python packages"
-        run: pip freeze
-
-      - name: "Test installation"
-        run: |
-          python -m cfgrib selfcheck
-          python -m pytest --version
-
-      - name: "Test lock generation"
-        run: |
-          make generate_envs
-          [[ -z $(git status --porcelain) ]]  # https://stackoverflow.com/a/62768943/592289
-
-      - name: "Run tests "
-        run: "python -mpytest tests --verbose --showlocals --runschism --rundelft"
+          eval "$(micromamba shell hook)"
+          # micromamba activate "${SCHISM_ENV}"
+          micromamba activate --stack "${DELFT3D_ENV}"
+          micromamba activate --stack "${PYPOSEIDON_ENV}"
+          make test_delft

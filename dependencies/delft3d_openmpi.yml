@@ -1,0 +1,8 @@
+---
+
+channels:
+  - "gbrey"
+  - "conda-forge"
+
+dependencies:
+  - "delft3d4=65936*=mpi_openmpi*"

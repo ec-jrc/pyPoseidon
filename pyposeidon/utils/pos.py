@@ -6,7 +6,6 @@ from pyposeidon.utils.stereo import stereo_to_3d
 
 
 def to_sq(df, fpos):
-
     with open(fpos, "w") as f:
         f.write("//*********************************************************************\n")
         f.write("// *\n")
@@ -45,7 +44,6 @@ def to_sq(df, fpos):
 
 
 def to_st(df, fpos):
-
     with open(fpos, "w") as f:
         f.write("//*********************************************************************\n")
         f.write("// *\n")
@@ -80,34 +78,19 @@ def to_st(df, fpos):
 
 
 def to_global_pos(nodes, elems, fpos, **kwargs):
-
-    use_bindings = kwargs.get("use_bindings", True)
     R = kwargs.get("R", 1.0)
 
-    if use_bindings:
-        # Keep stereographic
+    # use 3D
+    x, y, z = stereo_to_3d(nodes.u.values, nodes.v.values)
 
-        elems["d"] = 0
+    nodes["x"] = x
+    nodes["y"] = y
+    nodes["z"] = z
 
-        sv = 4 * R ** 2 / (nodes.u ** 2 + nodes.v ** 2 + 4 * R ** 2)
-        nodes["d2"] = nodes.d2 / sv
-
-        dout = tria_to_df(elems, nodes, x="u", y="v")
-        # save bgmesh
-        to_st(dout, fpos)
-
-    else:
-        # use 3D
-        x, y, z = stereo_to_3d(nodes.u.values, nodes.v.values)
-
-        nodes["x"] = x
-        nodes["y"] = y
-        nodes["z"] = z
-
-        # create output dataframe
-        dout = tria_to_df_3d(elems, nodes)
-        # save bgmesh
-        to_st(dout, fpos)
+    # create output dataframe
+    dout = tria_to_df_3d(elems, nodes)
+    # save bgmesh
+    to_st(dout, fpos)
 
     ## make dataset
     els = xr.DataArray(

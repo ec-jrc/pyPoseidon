@@ -22,6 +22,7 @@ from shutil import copy2
 import glob
 import pandas as pd
 import pathlib
+import json
 
 # from pyposeidon.utils import data
 import subprocess
@@ -42,14 +43,12 @@ def set(solver_name: str, **kwargs):
 
 class D3DCast:
     def __init__(self, **kwargs):
-
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     def run(self, **kwargs):
-
         if isinstance(self.model, str):
-            self.model = pyposeidon.read_model(self.model)
+            self.model = pyposeidon.model.read(self.model)
 
         for attr, value in self.model.__dict__.items():
             if not hasattr(self, attr):
@@ -70,7 +69,7 @@ class D3DCast:
         files_sym = [self.tag + ".grd", self.tag + ".dep"]
 
         self.origin = self.model.rpath
-        self.date0 = self.model.date
+        self.rdate = self.model.rdate
 
         if not os.path.exists(self.origin):
             sys.stdout.write("Initial folder not present {}\n".format(self.origin))
@@ -92,9 +91,9 @@ class D3DCast:
 
         # load model
         with open(rpath + self.tag + "_model.json", "rb") as f:
-            info = pd.read_json(f, lines=True).T
-            info[info.isnull().values] = None
-            info = info.to_dict()[0]
+            data = json.load(f)
+            data = pd.json_normalize(data, max_level=0)
+            info = data.to_dict(orient="records")[0]
 
         try:
             args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
@@ -104,8 +103,8 @@ class D3DCast:
             pass
 
         # update the properties
-        info["date"] = self.date
-        info["start_date"] = self.date
+        info["rdate"] = self.rdate
+        info["start_date"] = self.start_date
         info["time_frame"] = self.time_frame
         info["meteo_source"] = self.meteo
         info["rpath"] = rpath
@@ -151,9 +150,9 @@ class D3DCast:
 
         # copy restart file
 
-        inresfile = "tri-rst." + m.tag + "." + datetime.datetime.strftime(self.date, "%Y%m%d.%H%M%M")
+        inresfile = "tri-rst." + m.tag + "." + datetime.datetime.strftime(self.rdate, "%Y%m%d.%H%M%M")
 
-        outresfile = "restart." + datetime.datetime.strftime(self.date, "%Y%m%d.%H%M%M")
+        outresfile = "restart." + datetime.datetime.strftime(self.rdate, "%Y%m%d.%H%M%M")
 
         #  copy2(ppath+inresfile,rpath+'tri-rst.'+outresfile)
         try:
@@ -183,7 +182,6 @@ class D3DCast:
         check = [os.path.exists(rpath + f) for f in ["u.amu", "v.amv", "p.amp"]]
 
         if (np.any(check) == False) or ("meteo" in flag):
-
             m.force()
             m.to_force(m.meteo.Dataset, vars=["msl", "u10", "v10"], rpath=rpath)  # write u,v,p files
 
@@ -208,27 +206,27 @@ class D3DCast:
         # cleanup
         os.remove(rpath + "tri-rst." + outresfile)
 
-        logger.info("done for date :" + datetime.datetime.strftime(self.date, "%Y%m%d.%H"))
+        logger.info("done for date :" + datetime.datetime.strftime(self.rdate, "%Y%m%d.%H"))
 
         os.chdir(pwd)
 
 
 class SchismCast:
     def __init__(self, **kwargs):
-
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     def run(self, **kwargs):
-
         if isinstance(self.model, str):
-            self.model = pyposeidon.read_model(self.model)
+            self.model = pyposeidon.model.read(self.model)
 
         for attr, value in self.model.__dict__.items():
             if not hasattr(self, attr):
                 setattr(self, attr, value)
 
         execute = get_value(self, kwargs, "execute", True)
+
+        copy = get_value(self, kwargs, "copy", False)
 
         pwd = os.getcwd()
 
@@ -261,7 +259,11 @@ class SchismCast:
         ]
 
         self.origin = self.model.rpath
-        self.date0 = self.model.date
+        self.rdate = self.model.rdate
+
+        # control
+        if not isinstance(self.rdate, pd.Timestamp):
+            self.rdate = pd.to_datetime(self.rdate)
 
         if not os.path.exists(self.origin):
             sys.stdout.write("Initial folder not present {}\n".format(self.origin))
@@ -279,9 +281,9 @@ class SchismCast:
 
         # load model
         with open(rpath + self.tag + "_model.json", "rb") as f:
-            info = pd.read_json(f, lines=True).T
-            info[info.isnull().values] = None
-            info = info.to_dict()[0]
+            data = json.load(f)
+            data = pd.json_normalize(data, max_level=0)
+            info = data.to_dict(orient="records")[0]
 
         try:
             args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
@@ -290,11 +292,16 @@ class SchismCast:
         except:
             pass
 
+        # add optional additional kwargs
+        for attr in kwargs.keys():
+            if attr not in info.keys():
+                info[attr] = kwargs[attr]
+
         info["config_file"] = ppath + "param.nml"
 
         # update the properties
 
-        info["date"] = self.date0
+        info["rdate"] = self.rdate
         info["start_date"] = self.sdate
         info["time_frame"] = self.time_frame
         info["end_date"] = self.sdate + pd.to_timedelta(self.time_frame)
@@ -349,38 +356,58 @@ class SchismCast:
                     copy2(ppath + filename, rpath + filename)
         logger.debug(".. done")
 
-        # symlink the big files
-        logger.debug("symlink model files")
-        for filename in files_sym:
-            ipath = glob.glob(self.origin + filename)
-            if ipath:
-                try:
-                    os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
-                except OSError as e:
-                    if e.errno == errno.EEXIST:
-                        logger.warning("Restart link present\n")
-                        logger.warning("overwriting\n")
-                        os.remove(rpath + filename)
-                        os.symlink(
-                            pathlib.Path(ipath[0]).resolve(strict=True),
-                            rpath + filename,
-                        )
+        if copy:
+            # copy the big files
+            logger.debug("copy model files")
+            for filename in files_sym:
+                ipath = glob.glob(self.origin + filename)
+                if ipath:
+                    try:
+                        copy2(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
+                    except OSError as e:
+                        if e.errno == errno.EEXIST:
+                            logger.warning("Restart file present\n")
+                            logger.warning("overwriting\n")
+                            os.remove(rpath + filename)
+                            copy2(
+                                pathlib.Path(ipath[0]).resolve(strict=True),
+                                rpath + filename,
+                            )
+
+        else:
+            # symlink the big files
+            logger.debug("symlink model files")
+            for filename in files_sym:
+                ipath = glob.glob(self.origin + filename)
+                if ipath:
+                    try:
+                        os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
+                    except OSError as e:
+                        if e.errno == errno.EEXIST:
+                            logger.warning("Restart link present\n")
+                            logger.warning("overwriting\n")
+                            os.remove(rpath + filename)
+                            os.symlink(
+                                pathlib.Path(ipath[0]).resolve(strict=True),
+                                rpath + filename,
+                            )
+
         logger.debug(".. done")
 
         # create restart file
         logger.debug("create restart file")
 
         # check for combine hotstart
-        hotout = int((self.sdate - self.date0).total_seconds() / info["params"]["core"]["dt"])
+        hotout = int((self.sdate - self.rdate).total_seconds() / info["params"]["core"]["dt"])
         logger.debug("hotout_it = {}".format(hotout))
 
         resfile = glob.glob(ppath + "/outputs/hotstart_it={}.nc".format(hotout))
         if not resfile:
             # load model model from ppath
             with open(ppath + self.tag + "_model.json", "rb") as f:
-                ph = pd.read_json(f, lines=True).T
-                ph[ph.isnull().values] = None
-                ph = ph.to_dict()[0]
+                data = json.load(f)
+                data = pd.json_normalize(data, max_level=0)
+                ph = data.to_dict(orient="records")[0]
             p = pm.set(**ph)
             p.hotstart(it=hotout)
 
@@ -390,19 +417,35 @@ class SchismCast:
 
         logger.info("set restart\n")
 
-        try:
-            os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                logger.warning("Restart link present\n")
-                logger.warning("overwriting\n")
-                os.remove(rpath + outresfile)
-                os.symlink(
-                    pathlib.Path(ppath + inresfile).resolve(strict=True),
-                    rpath + outresfile,
-                )
-            else:
-                raise e
+        if copy:
+            try:
+                os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    logger.warning("Restart file present\n")
+                    logger.warning("overwriting\n")
+                    os.remove(rpath + outresfile)
+                    copy2(
+                        pathlib.Path(ppath + inresfile).resolve(strict=True),
+                        rpath + outresfile,
+                    )
+                else:
+                    raise e
+
+        else:
+            try:
+                os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    logger.warning("Restart link present\n")
+                    logger.warning("overwriting\n")
+                    os.remove(rpath + outresfile)
+                    os.symlink(
+                        pathlib.Path(ppath + inresfile).resolve(strict=True),
+                        rpath + outresfile,
+                    )
+                else:
+                    raise e
 
         # get new meteo
 
@@ -413,7 +456,6 @@ class SchismCast:
         check = [os.path.exists(rpath + "sflux/" + f) for f in ["sflux_air_1.0001.nc"]]
 
         if (np.any(check) == False) or ("meteo" in flag):
-
             m.force(**info)
             if hasattr(self, "meteo_split_by"):
                 times, datasets = zip(*m.meteo.Dataset.groupby("time.{}".format(self.meteo_split_by)))
@@ -424,21 +466,21 @@ class SchismCast:
                         vars=["msl", "u10", "v10"],
                         rpath=rpath,
                         filename=mpath,
-                        date=self.date0,
+                        date=self.rdate,
                     )
             else:
                 m.to_force(
                     m.meteo.Dataset,
                     vars=["msl", "u10", "v10"],
                     rpath=rpath,
-                    date=self.date0,
+                    date=self.rdate,
                 )
 
         else:
             logger.warning("meteo files present\n")
 
         # modify param file
-        rnday_new = (self.sdate - self.date0).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
+        rnday_new = (self.sdate - self.rdate).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
             self.time_frame
         ).total_seconds() / (3600 * 24.0)
         hotout_write = int(rnday_new * 24 * 3600 / info["params"]["core"]["dt"])
@@ -446,10 +488,10 @@ class SchismCast:
             {
                 "ihot": 2,
                 "rnday": rnday_new,
-                "start_hour": self.date0.hour,
-                "start_day": self.date0.day,
-                "start_month": self.date0.month,
-                "start_year": self.date0.year,
+                "start_hour": self.rdate.hour,
+                "start_day": self.rdate.day,
+                "start_month": self.rdate.month,
+                "start_year": self.rdate.year,
             }
         )
 

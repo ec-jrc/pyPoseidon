@@ -4,10 +4,9 @@ channels:
 dependencies:
   - eccodes
   - ffmpeg
-  - gdal=3.2.1
+  - gdal
   - geos
   - gmsh>=4.9.3
   - jigsaw>=0.9.12
   - pip
-  - proj<8
-  - python=3.8
+  - proj

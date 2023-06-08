@@ -2,7 +2,6 @@ import numpy as np
 
 
 def MakeQuadFaces(Nr, Nc):
-
     out = np.empty((Nr - 1, Nc - 1, 4), dtype=int)
 
     r = np.arange(Nr * Nc).reshape(Nr, Nc)
@@ -17,7 +16,6 @@ def MakeQuadFaces(Nr, Nc):
 
 
 def MakeQuadFaces_periodic(Nr, Nc):
-
     out = np.empty((Nr - 1, Nc, 4), dtype=int)
 
     r = np.arange(Nr * Nc).reshape(Nr, Nc)
@@ -38,7 +36,6 @@ def MakeQuadFaces_periodic(Nr, Nc):
 
 # https://stackoverflow.com/questions/44934631/making-grid-triangular-mesh-quickly-with-numpy
 def MakeTriangleFaces(Nr, Nc):
-
     out = np.empty((Nr - 1, Nc - 1, 2, 3), dtype=int)
 
     r = np.arange(Nr * Nc).reshape(Nr, Nc)
@@ -55,7 +52,6 @@ def MakeTriangleFaces(Nr, Nc):
 
 
 def MakeTriangleFaces_periodic(Nr, Nc):
-
     out = np.empty((Nr - 1, Nc, 2, 3), dtype=int)
 
     r = np.arange(Nr * Nc).reshape(Nr, Nc)

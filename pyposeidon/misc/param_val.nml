@@ -1,7 +1,7 @@
 &core
     ipre = 1
     ibc = 1
-    ibtp = 1
+    ibtp = 0
     rnday = 0.5
     dt = 300
     msc2 = 24

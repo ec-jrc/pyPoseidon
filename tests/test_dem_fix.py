@@ -38,8 +38,8 @@ def coasts():
 def test_dem_adjust(coasts, dem_source, window):
     # Just elevation
     df = pdem.Dem(**window, dem_source=dem_source)  # get dem
-    df.adjust(coasts)
-    assert np.isnan(df.Dataset.adjusted.values).sum() == 0
+    check = df.adjust(coasts)
+    assert check
 
 
 # Schism mesh
@@ -58,8 +58,8 @@ def test_schism_mesh(tmpdir, coasts, dem_source, window):
     yg = mesh.Dataset.SCHISM_hgrid_node_y.values
     dem = pdem.Dem(**window, dem_source=dem_source, adjust_dem=False)  # get dem
     dem.Dataset = pdem.dem_on_mesh(dem.Dataset, grid_x=xg, grid_y=yg)  # get dem on mesh
-    dem.adjust(coasts)
-    assert np.isnan(dem.Dataset.fval.values).sum() == 0
+    check = dem.adjust(coasts)
+    assert check
 
 
 # D3D mesh
@@ -72,5 +72,5 @@ def test_d3d_mesh(tmpdir, coasts, dem_source, window):
     xp, yp = gr.lons.values, gr.lats.values
     dem = pdem.Dem(**window, dem_source=dem_source, adjust_dem=False)  # get dem
     dem.Dataset = pdem.dem_on_mesh(dem.Dataset, grid_x=xp, grid_y=yp)  # get dem on mesh
-    dem.adjust(coasts)
-    assert np.isnan(dem.Dataset.fval.values).sum() == 0
+    check = dem.adjust(coasts)
+    assert check

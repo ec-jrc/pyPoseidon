@@ -5,11 +5,10 @@ channels:
   - "gbrey"
 
 dependencies:
-  - "black=21.12b0"
+  - "black<24.0"
   - "bump2version"
-  - "conda-lock"
-  - "conda-tree"
   - "ipykernel"
   - "pytest"
   - "pytest-cov"
   - "pytest-xdist"
+  - "ruamel.yaml"

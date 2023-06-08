@@ -32,7 +32,6 @@ DEM_SOURCES = pytest.mark.parametrize(
 @INPUTS
 @WINDOWS
 def test_window(tmpdir, window, input):
-
     df = pb.Boundary(geometry=window, coastlines=input, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
@@ -40,7 +39,6 @@ def test_window(tmpdir, window, input):
 
 @INPUTS
 def test_global(tmpdir, input):
-
     df = pb.Boundary(geometry="global", coastlines=input, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
@@ -49,7 +47,6 @@ def test_global(tmpdir, input):
 @INPUTS
 @WINDOWS
 def test_buffer(tmpdir, window, input):
-
     df = pb.Boundary(geometry=window, coastlines=input, cbuffer=0.01, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)
@@ -74,7 +71,6 @@ def test_buffer(tmpdir, window, input):
 
 @CUSTOM
 def test_custom(tmpdir, boundary):
-
     df = pb.Boundary(geometry=boundary, rpath=str(tmpdir) + "/")
 
     assert isinstance(df.contours, gp.GeoDataFrame)

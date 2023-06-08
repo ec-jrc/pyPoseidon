@@ -1,5 +1,5 @@
 """
-Grid adjustment functions
+Mesh adjustment functions
 
 """
 # Copyright 2018 European Union
@@ -11,14 +11,11 @@ Grid adjustment functions
 import numpy as np
 import geopandas as gp
 import shapely
-import pygeos
 import pyresample
 import pandas as pd
 import xarray as xr
 import sys
 import os
-import logging
-
 
 # logging setup
 import logging
@@ -27,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 
 def fix(dem, coastline, **kwargs):
-
     # ---------------------------------------------------------------------
     logger.info("adjust dem\n")
     # ---------------------------------------------------------------------
@@ -67,7 +63,6 @@ def fix(dem, coastline, **kwargs):
         block = pd.concat([block1, block2])
 
     elif flag == -1:
-
         block1 = shp.cx[minlon + 360 : 180, minlat:maxlat].copy()
         block2 = shp.cx[-180:maxlon, minlat:maxlat].copy()
 
@@ -93,12 +88,12 @@ def fix(dem, coastline, **kwargs):
 
     grp = grp.buffer(0.5)  # buffer it to get also the boundary points
 
-    g = block.unary_union.symmetric_difference(grp)  # get the diff
-
     try:
-        t = gp.GeoDataFrame({"geometry": g})
+        g = block.unary_union.symmetric_difference(grp)  # get the diff
     except:
-        t = gp.GeoDataFrame({"geometry": [g]})
+        g = grp  # no land
+
+    t = gp.GeoDataFrame({"geometry": [g]}).explode(index_parts=True).droplevel(0)
 
     t["length"] = t["geometry"][:].length  # optional
 
@@ -108,27 +103,26 @@ def fix(dem, coastline, **kwargs):
     t["in"] = gp.GeoDataFrame(geometry=[grp.buffer(0.001)] * t.shape[0]).contains(t)  # find the largest of boundaries
 
     try:
-        idx = np.where(t["in"] == True)[0][0]  # first(largest) boundary within lat/lon
-        b = t.iloc[idx].geometry  # get the largest
+        idx = np.where(t["in"] == True)
+        b = t.iloc[idx].geometry
     except:
         b = shapely.geometry.GeometryCollection()
+
+    b = b.unary_union
 
     # define wet/dry
     water = b
     land = grp - b
 
     if (not land) | (not water):
-
         # ---------------------------------------------------------------------
         logger.debug("only water/land present...\n")
         # ---------------------------------------------------------------------
 
         if "ival" in dem.data_vars:
-
             dem = dem.assign(fval=dem.ival)
 
         else:
-
             dem = dem.assign(adjusted=dem.elevation)
 
         return dem
@@ -145,21 +139,23 @@ def fix(dem, coastline, **kwargs):
         df = dem.elevation.to_dataframe().reset_index()
 
     # ---------------------------------------------------------------------
-    logger.debug("invoke pygeos\n")
+    logger.debug("invoke shapely\n")
     # ---------------------------------------------------------------------
 
-    spoints_ = pygeos.points(list(df.loc[:, ["longitude", "latitude"]].values))  # create pygeos objects for the points
+    spoints_ = shapely.points(
+        list(df.loc[:, ["longitude", "latitude"]].values)
+    )  # create shapely objects for the points
 
-    # Add land boundaries to a pygeos object
+    # Add land boundaries to a shapely object
     try:
         lbs = []
         for l in range(len(land.boundary.geoms)):
-            z = pygeos.linearrings(land.boundary.geoms[l].coords[:])
+            z = shapely.linearrings(land.boundary.geoms[l].coords[:])
             lbs.append(z)
     except:
-        lbs = pygeos.linearrings(land.boundary.coords[:])
+        lbs = shapely.linearrings(land.boundary.coords[:])
 
-    bp = pygeos.polygons(lbs)
+    bp = shapely.polygons(lbs)
 
     # ---------------------------------------------------------------------
     logger.debug("find wet and dry masks\n")
@@ -167,7 +163,7 @@ def fix(dem, coastline, **kwargs):
 
     # find the points on land
 
-    tree = pygeos.STRtree(spoints_)
+    tree = shapely.STRtree(spoints_)
 
     try:
         wl = []
@@ -192,37 +188,13 @@ def fix(dem, coastline, **kwargs):
     pw_mask = df.loc[wmask, "elevation"] > 0
 
     if pw_mask.sum() > 0:
-
         pw = df.loc[wmask][pw_mask]  # problematic points: bathymetry > 0 in wet area
 
         # Resample to fix that ...
         xw = pw.longitude.values
         yw = pw.latitude.values
 
-        # Define points with positive bathymetry
-        x, y = np.meshgrid(dem.longitude, dem.latitude)  #!!!!!!!!
-
-        if flag == 1:
-            xw = xw - 180.0
-            x = x - 180.0
-        elif flag == -1:
-            xw = xw + 180.0
-            x = x + 180.0
-
-        # wet.fill_value = 0.
-        mx = np.ma.masked_array(x, dem.elevation.values > 0)
-        my = np.ma.masked_array(y, dem.elevation.values > 0)
-
-        # fill the nan, if present, with values in order to compute values there if needed.
-        dem.elevation.data[np.isnan(dem.elevation.values)] = 9999.0
-
-        # mask positive bathymetry
-        wet_dem = np.ma.masked_array(dem.elevation, dem.elevation.values > 0)
-
-        orig = pyresample.geometry.SwathDefinition(lons=mx, lats=my)  # original bathymetry points
-        targ = pyresample.geometry.SwathDefinition(lons=xw, lats=yw)  # wet points
-
-        bw = pyresample.kd_tree.resample_nearest(orig, wet_dem, targ, radius_of_influence=100000, fill_value=np.nan)
+        bw = resample(dem, xw, yw, var="elevation", wet=True, flag=flag)
 
         df.loc[pw.index, "elevation"] = bw  # replace in original dataset
 
@@ -235,36 +207,13 @@ def fix(dem, coastline, **kwargs):
     pl_mask = df.loc[lmask, "elevation"] < 0
 
     if pl_mask.sum() > 0:
-
         pl = df.loc[lmask][pl_mask]  # problematic points: bathymetry <0 in dry area
 
         ## Resample to fix that
         xl = pl.longitude.values
         yl = pl.latitude.values
 
-        x, y = np.meshgrid(dem.longitude, dem.latitude)
-
-        if flag == 1:
-            xl = xl - 180.0
-            x = x - 180.0
-        elif flag == -1:
-            xl = xl + 180.0
-            x = x + 180.0
-
-        # wet.fill_value = 0.
-        dx = np.ma.masked_array(x, dem.elevation.values < 0)
-        dy = np.ma.masked_array(y, dem.elevation.values < 0)
-
-        # fill the nan, if present, with values in order to compute values there if needed.
-        dem.elevation.data[np.isnan(dem.elevation.values)] = 9999.0
-
-        # mask positive bathymetry
-        dry_dem = np.ma.masked_array(dem.elevation, dem.elevation.values < 0)
-
-        orig = pyresample.geometry.SwathDefinition(lons=dx, lats=dy)  # original bathymetry points
-        targ = pyresample.geometry.SwathDefinition(lons=xl, lats=yl)  # wet points
-
-        bd = pyresample.kd_tree.resample_nearest(orig, dry_dem, targ, radius_of_influence=100000, fill_value=np.nan)
+        bd = resample(dem, xl, yl, var="elevation", wet=False, flag=flag)
 
         df.loc[pl.index, "elevation"] = bd  # replace in original dataset
 
@@ -275,7 +224,6 @@ def fix(dem, coastline, **kwargs):
     # reassemble dataset
 
     if "ival" in dem.data_vars:
-
         if len(dem.ival.shape) == 1:
             new_dem = df.elevation.to_xarray()
             new_dem = xr.merge([new_dem])
@@ -291,7 +239,6 @@ def fix(dem, coastline, **kwargs):
             )
 
     else:
-
         df_new = df.set_index(["latitude", "longitude"])
         new_dem = df_new.to_xarray()
         new_dem = new_dem.rename({"elevation": "adjusted"})
@@ -299,4 +246,199 @@ def fix(dem, coastline, **kwargs):
 
     cdem = xr.merge([dem, new_dem])
 
-    return cdem
+    nanp = check1(cdem, water)
+
+    logger.info("Nan value for {} points".format(len(nanp)))
+
+    on_coast = check2(cdem, shp)
+
+    logger.info("{} points on the boundary, setting to zero".format(len(on_coast)))
+
+    if "fval" in cdem.data_vars:
+        tt = len(cdem.fval.shape)
+
+        if tt == 1:
+            cdem.fval[on_coast] = 0.0
+
+        elif tt == 2:
+            bmask = np.zeros(cdem.fval.shape, dtype=bool)  # create mask
+            for idx, [i, j] in enumerate(on_coast):
+                bmask[i, j] = True
+            cdem.fval.values[bmask] = 0.0  # set value
+
+    elif "adjusted" in cdem.data_vars:
+        bmask = np.zeros(cdem.adjusted.shape, dtype=bool)  # create mask
+        for idx, [i, j] in enumerate(on_coast):
+            bmask[i, j] = True
+        cdem.adjusted.values[bmask] = 0.0  # set value
+
+    if len(nanp) == 0:
+        valid = True
+    else:
+        valid = False
+
+    return cdem, valid
+
+
+def check1(dataset, water):
+    # check it
+
+    if "fval" in dataset.data_vars:
+        tt = len(dataset.fval.shape)
+
+        if tt == 1:
+            ids = np.argwhere(dataset.fval.values.flatten() > 0).flatten()
+
+            xp = dataset.ilons.values.flatten()[ids]
+            yp = dataset.ilats.values.flatten()[ids]
+
+        elif tt == 2:
+            xy = np.argwhere(dataset.fval.values > 0)
+
+            xx = [x for [x, y] in xy]
+            yy = [y for [x, y] in xy]
+
+            smask = dataset.fval.values > 0
+
+            xp = dataset.ilons.values[smask]
+            yp = dataset.ilats.values[smask]
+
+    elif "adjusted" in dataset.data_vars:
+        xy = np.argwhere(dataset.adjusted.values > 0)
+
+        coords = [0, 0]
+
+        coords[0] = [x for [x, y] in xy]
+        coords[1] = [y for [x, y] in xy]
+
+        dims = list(dataset.adjusted.dims)
+
+        match1 = dims.index("longitude")
+        match2 = dims.index("latitude")
+
+        xp = dataset.longitude[coords[match1]].values
+        yp = dataset.latitude[coords[match2]].values
+
+    wet = gp.GeoDataFrame(geometry=[water])
+
+    nanpoints = [shapely.Point([x, y]) for (x, y) in zip(xp, yp)]
+
+    tree = shapely.STRtree(nanpoints)
+
+    wn = tree.query(water, predicate="contains").tolist()
+
+    return wn
+
+
+def check2(dataset, coastline):
+    # check it
+
+    tt = None
+
+    if "fval" in dataset.data_vars:
+        tt = len(dataset.fval.shape)
+
+        if tt == 1:
+            ids = np.argwhere(dataset.fval.values.flatten() > 0).flatten()
+
+            xp = dataset.ilons.values.flatten()[ids]
+            yp = dataset.ilats.values.flatten()[ids]
+
+        elif tt == 2:
+            xy = np.argwhere(dataset.fval.values > 0)
+
+            xx = [x for [x, y] in xy]
+            yy = [y for [x, y] in xy]
+
+            smask = dataset.fval.values > 0
+
+            xp = dataset.ilons.values[smask]
+            yp = dataset.ilats.values[smask]
+
+    elif "adjusted" in dataset.data_vars:
+        tt = 0
+
+        xy = np.argwhere(dataset.adjusted.values > 0)
+
+        coords = [0, 0]
+
+        coords[0] = [x for [x, y] in xy]
+        coords[1] = [y for [x, y] in xy]
+
+        dims = list(dataset.adjusted.dims)
+
+        match1 = dims.index("longitude")
+        match2 = dims.index("latitude")
+
+        xp = dataset.longitude[coords[match1]].values
+        yp = dataset.latitude[coords[match2]].values
+
+    cpoints = [shapely.Point([x, y]) for (x, y) in zip(xp, yp)]
+
+    xps = gp.GeoDataFrame(geometry=cpoints)
+
+    tree = shapely.STRtree(xps.buffer(0.0001).geometry.values)
+
+    if not coastline.boundary.is_empty.all():
+        coasts = gp.GeoDataFrame(geometry=coastline.boundary)
+    else:
+        coasts = coastline
+
+    cc = coasts.unary_union
+
+    wn = tree.query(cc, predicate="intersects").tolist()
+
+    wn.sort()
+
+    if tt == 0:
+        bps = xy[wn].tolist()
+
+    elif tt == 1:
+        bps = ids[wn]
+
+    elif tt == 2:
+        bps = [[xx[i], yy[i]] for i in wn]
+
+    elif tt == None:
+        bps = None
+
+    return bps
+
+
+def resample(dem, xw, yw, var=None, wet=True, flag=None):
+    # Define points with positive bathymetry
+    x, y = np.meshgrid(dem.longitude, dem.latitude)
+
+    if flag == 1:
+        gx = xw - 180.0
+        xx = x - 180.0
+    elif flag == -1:
+        gx = xw + 180.0
+        xx = x + 180.0
+    else:
+        gx = xw
+        xx = x
+
+    # fill the nan, if present, with values in order to compute values there if needed.
+    dem[var].data[np.isnan(dem[var].values)] = 9999.0
+
+    if wet:
+        mx = np.ma.masked_array(xx, dem[var].values > 0)
+        my = np.ma.masked_array(y, dem[var].values > 0)
+
+        # mask positive bathymetry
+        mdem = np.ma.masked_array(dem[var], dem[var].values > 0)
+
+    else:
+        mx = np.ma.masked_array(xx, dem[var].values < 0)
+        my = np.ma.masked_array(y, dem[var].values < 0)
+
+        # mask positive bathymetry
+        mdem = np.ma.masked_array(dem[var], dem[var].values < 0)
+
+    orig = pyresample.geometry.SwathDefinition(lons=mx, lats=my)  # original bathymetry points
+    targ = pyresample.geometry.SwathDefinition(lons=gx, lats=yw)  # wet points
+
+    bw = pyresample.kd_tree.resample_nearest(orig, mdem, targ, radius_of_influence=100000, fill_value=np.nan)
+
+    return bw

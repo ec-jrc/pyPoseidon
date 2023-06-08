@@ -23,7 +23,6 @@ class Bound:
 
 class Box(Bound):
     def __init__(self, **kwargs):
-
         lons = kwargs.get("lons", None)
         lats = kwargs.get("lats", None)
         ba = kwargs.get("dem", None)
@@ -66,7 +65,6 @@ class Box(Bound):
             q = []
 
             for ch in chunks:
-
                 k1 = [ch[0] if x == -99 else x for x in idic[bound]]
                 k2 = [ch[-1] if x == -99 else x for x in idic[bound]]
 

@@ -30,6 +30,7 @@ case1 = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
+    "scribes": 2,
 }
 
 case2 = {
@@ -52,6 +53,7 @@ case2 = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
+    "scribes": 2,
 }
 
 
@@ -75,6 +77,7 @@ case3 = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
+    "scribes": 2,
 }
 
 

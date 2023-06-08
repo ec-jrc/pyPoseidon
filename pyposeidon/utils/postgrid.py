@@ -6,14 +6,12 @@ import os
 import numpy as np
 import pandas as pd
 import geopandas as gp
-import pygeos
 import xarray as xr
 from tqdm import tqdm
 import shapely
 
 
 def nreduce(dnodes, delems, grid, elems, tag="tag"):
-
     ### Drop nodes
 
     grid = grid.drop(dnodes)  # drop nodes
@@ -42,7 +40,6 @@ def nreduce(dnodes, delems, grid, elems, tag="tag"):
 
 
 def drop(nodes, elems, bnodes, dq):
-
     nodes = nodes.drop(dq)  # drop nodes
     nodes = nodes.rename_axis("tag").reset_index()  # reset index
 
@@ -74,7 +71,6 @@ def drop(nodes, elems, bnodes, dq):
 
 
 def check(g, shp, bad):
-
     # ## Read Grid
     #    g = pg.grid(type='tri2d',grid_file='/eos/jeodpp/data/projects/FLOODS-COAST/floods-coast/OPER/grids/eur_fixed.gr3')
 
@@ -175,12 +171,12 @@ def check(g, shp, bad):
         nodes, elems, bnodes = drop(nodes, elems, bnodes, dq)
 
     # ### Find the invalid nodes (that cross the coasts)
-    cos = pygeos.from_shapely(c.geometry)
-    cos_ = pygeos.set_operations.union_all(cos)
+    cos = c.geometry
+    cos_ = shapely.set_operations.union_all(cos)
 
-    gps = pygeos.points(list(nodes.values))
+    gps = shapely.points(list(nodes.values))
 
-    gtree = pygeos.STRtree(gps)
+    gtree = shapely.STRtree(gps)
 
     invs = gtree.query(cos_, predicate="contains").tolist()
 
@@ -200,26 +196,20 @@ def check(g, shp, bad):
     coords = [[l[i : i + n] for i in range(0, len(l), n)] for l in al]
     elems["coordinates"] = coords
 
-    jig = pygeos.polygons(coords)
+    jig = shapely.polygons(coords)
 
-    jtree = pygeos.STRtree(jig)
+    jtree = shapely.STRtree(jig)
 
-    jig_ = pygeos.set_operations.union_all(jig)
+    jig_ = shapely.set_operations.union_all(jig)
 
-    cross = pygeos.set_operations.intersection(jig_, cos_)
+    cross = shapely.set_operations.intersection(jig_, cos_)
 
     # #### convert to dataframe
 
-    fd = pd.DataFrame({"overlap": pygeos.to_wkt(cross)}, index=[0])
-
-    fd["overlap"] = fd["overlap"].apply(shapely.wkt.loads)
-
-    gover = gp.GeoDataFrame(fd, geometry="overlap")
+    fd = gp.GeoDataFrame({"geometry": cross}, index=[0])
 
     # #### Reject small injuctions
-    ipols = gover.explode(index_parts=True).loc[0]
-
-    ipols.columns = ["geometry"]
+    ipols = fd.explode(index_parts=True).loc[0]
 
     mask = ipols.area.values == 0.0
 
@@ -230,7 +220,7 @@ def check(g, shp, bad):
 
     # ## Get overlapping elements for each contour
 
-    jcos = pygeos.from_shapely(ipols.geometry)
+    jcos = ipols.geometry
 
     maxb = bnodes.id.min()
 
@@ -239,8 +229,8 @@ def check(g, shp, bad):
         for l in tqdm(range(len(jcos))):
             con = jcos[l]
             m += 1
-            jig = pygeos.polygons(elems.coordinates.to_list())
-            jtree = pygeos.STRtree(jig)
+            jig = shapely.polygons(elems.coordinates.to_list())
+            jtree = shapely.STRtree(jig)
             ci = jtree.query(con, predicate="intersects").tolist()
             if not ci:
                 continue
@@ -248,8 +238,8 @@ def check(g, shp, bad):
             dnodes = np.unique(elems.loc[ci, ["a", "b", "c"]].values.flatten())
             #    print (ci, dnodes, delems)
 
-            inp = pygeos.points(list(nodes.loc[dnodes].values))
-            itree = pygeos.STRtree(inp)
+            inp = shapely.points(list(nodes.loc[dnodes].values))
+            itree = shapely.STRtree(inp)
             ipoints = itree.query(cos_, predicate="contains").tolist()
             ipoints = nodes.loc[dnodes].index[ipoints].values
 
@@ -328,9 +318,9 @@ def check(g, shp, bad):
         nodes, elems, bnodes = drop(nodes, elems, bnodes, dq)
 
     # Get the largest continous area
-    jels = pygeos.polygons(elems.coordinates.values.tolist())
-    wat = pygeos.set_operations.coverage_union_all(jels)
-    w = pd.DataFrame({"overlap": pygeos.to_wkt(wat)}, index=[0])
+    jels = shapely.polygons(elems.coordinates.values.tolist())
+    wat = shapely.set_operations.coverage_union_all(jels)
+    w = pd.DataFrame({"overlap": shapely.to_wkt(wat)}, index=[0])
     w["overlap"] = w["overlap"].apply(shapely.wkt.loads)
     gw = gp.GeoDataFrame(w, geometry="overlap")
 
@@ -342,18 +332,18 @@ def check(g, shp, bad):
     gw = gw.reset_index(drop=True)
 
     # indentify the elements of the large polygon
-    cgw = pygeos.from_shapely(gw.loc[1:].geometry)
-    cgw_ = pygeos.set_operations.union_all(cgw)
-    jtree_ = pygeos.STRtree(jels)
+    cgw = shapely.from_shapely(gw.loc[1:].geometry)
+    cgw_ = shapely.set_operations.union_all(cgw)
+    jtree_ = shapely.STRtree(jels)
     invs = jtree_.query(cgw_, predicate="intersects").tolist()
 
     if len(invs) > 0:
         # Sort the elements (some shouldn't be there)
 
         qnodes = np.unique([elems.loc[x, ["a", "b", "c"]].values.astype(int) for x in invs])
-        nnodes = pygeos.points(list(nodes.loc[qnodes].values))
-        ntree = pygeos.STRtree(nnodes)
-        nels_ = pygeos.from_shapely(gw.loc[0].geometry.buffer(0.00001))
+        nnodes = shapely.points(list(nodes.loc[qnodes].values))
+        ntree = shapely.STRtree(nnodes)
+        nels_ = gw.loc[0].geometry.buffer(0.00001)
         nevs = ntree.query(nels_, predicate="intersects").tolist()
         pns = qnodes[nevs]
         dpoints = [x for x in qnodes if x not in pns]

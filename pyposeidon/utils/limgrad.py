@@ -4,7 +4,6 @@ import numpy as np
 
 
 def limgrad2(edge, elen, ffun, dfdx, imax):
-
     rfun = ffun.T.flatten()
 
     rfun = np.array([[hf] for hf in list(rfun)])
@@ -46,7 +45,6 @@ def limgrad2(edge, elen, ffun, dfdx, imax):
     # ----------------------------- exhaustive 'til all satisfied
 
     for i in range(1, imax):
-
         # ------------------------- find "active" nodes this pass
         aidx = np.argwhere(aset == i - 1)
         aidx = aidx.flatten()
@@ -61,12 +59,11 @@ def limgrad2(edge, elen, ffun, dfdx, imax):
 
         aidx = aidx[idxx]
 
-        #%------------------------- visit adj. edges and set DFDX
+        # %------------------------- visit adj. edges and set DFDX
         for ipos in range(len(aidx)):
             npos = aidx[ipos]
 
             for jpos in range(nptr[npos, 0], nptr[npos, 1] + 1):
-
                 epos = ivec[jpos]
 
                 nod1 = edge[epos, 0]
@@ -76,14 +73,12 @@ def limgrad2(edge, elen, ffun, dfdx, imax):
 
                 # ----------------- calc. limits about min.-value
                 if rfun[nod1] > rfun[nod2]:
-
                     fun1 = rfun[nod2] + elen[epos] * dfdx
 
                     if rfun[nod1] > fun1 + ftol:
                         rfun[nod1] = fun1
                         aset[nod1] = i
                 else:
-
                     fun2 = rfun[nod1] + elen[epos] * dfdx
 
                     if rfun[nod2] > fun2 + ftol:
