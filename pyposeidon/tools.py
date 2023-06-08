@@ -8,6 +8,7 @@ import logging
 import os
 import shlex
 import pathlib
+import re
 import subprocess
 from collections.abc import Iterable
 import time
@@ -15,11 +16,14 @@ import shutil
 
 import psutil
 import xarray as xr
-import pandas as pd
 import numpy as np
 import rioxarray
 
 logger = logging.getLogger(__name__)
+
+
+SCHISM_VERSION_PATTERN = re.compile(r"schism v(\d+\.\d+\.\d+)\w*")
+
 
 LAUNCH_SCHISM_TEMPLATE = """
 #!/usr/bin/env bash
@@ -68,6 +72,28 @@ export PATH=$exedir:$PATH
     # Run
 mpiexec {mpirun_flags} -np {ncores} {cmd} $argfile
 """.strip()
+
+
+# TODO Handle master/develop version
+def parse_schism_version(version_output: str) -> str:
+    try:
+        version_line = version_output.strip().splitlines()[0]
+        version = SCHISM_VERSION_PATTERN.match(version_line).group(1)
+        return version
+    except Exception as exc:
+        raise ValueError(f"Failed to parse version from:\n {version_output}") from exc
+
+
+def get_schism_version() -> str:
+    cmd = "schism -v"
+    proc = subprocess.run(
+        shlex.split(cmd),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    version = parse_schism_version(proc.stdout)
+    return version
 
 
 def get_solver(solver_name: str):

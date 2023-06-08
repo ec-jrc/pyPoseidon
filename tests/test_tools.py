@@ -11,6 +11,25 @@ from pyposeidon import tools
 from . import DATA_DIR
 
 
+@pytest.mark.parametrize(
+    "version_output,expected_version",
+    [
+        ("schism v5.9.0mod", "5.9.0"),
+        ("schism v5.9.0", "5.9.0"),
+        ("schism v5.10.1", "5.10.1"),
+    ],
+)
+def test_parse_schism_version(version_output, expected_version):
+    assert tools.parse_schism_version(version_output) == expected_version
+
+
+@pytest.mark.skipif(not shutil.which("schism"), reason="requires schism binary")
+def test_get_schism_version():
+    version = tools.get_schism_version()
+    assert isinstance(version, str)
+    assert len(version) > 0
+
+
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
 @pytest.mark.parametrize("use_threads", [True, False])
 @pytest.mark.parametrize("scribes", [-1, 1])
