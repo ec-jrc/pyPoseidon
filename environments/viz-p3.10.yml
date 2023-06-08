@@ -22,7 +22,7 @@ dependencies:
   - mayavi
   - netCDF4
   - numpy
-  - pandas
+  - pandas<2
   - pip
   - proj
   - psutil

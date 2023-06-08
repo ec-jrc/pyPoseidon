@@ -16,7 +16,7 @@ dependencies:
   - jigsaw>=0.9.12
   - netCDF4
   - numpy
-  - pandas
+  - pandas<2
   - pip
   - proj
   - psutil
