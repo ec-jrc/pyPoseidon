@@ -8,6 +8,9 @@ init:
 test:
 	pytest -vl --durations=10 -m 'not (schism or delft or viz or slow)' -n auto
 
+test_fail:
+	pytest -vl --lf --runschism --rundelft --runviz
+
 test_viz:
 	pytest -vl --durations=10 --runviz -m viz
 
