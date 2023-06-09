@@ -11,6 +11,7 @@ dependencies:
   - "dask"
   - "f90nml"
   - "geopandas"
+  - "jinja2"
   - "netCDF4"
   - "numpy"
   - "pandas<2"

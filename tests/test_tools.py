@@ -44,9 +44,16 @@ def test_create_schism_mpirun_script(tmp_path, use_threads, scribes):
     assert os.access(script_path, os.X_OK), "script is not executable"
     assert not (tmp_path / "outputs").exists(), "outputs subdirectory has not been created"
     content = pathlib.Path(script_path).read_text()
-    scr = "" if scribes == -1 else scribes
-    assert content.endswith(cmd + " {}".format(scr).rstrip()), "the cmd is not being used"
-    assert f"-N {psutil.cpu_count(logical=use_threads)}" in content
+    cmd_line = ""
+    for line in content.splitlines():
+        if line.startswith("cmd="):
+            cmd_line = line
+            break
+    assert cmd_line
+    assert cmd in cmd_line
+    assert f"-N {psutil.cpu_count(logical=use_threads)}" in cmd_line
+    if scribes > 0:
+        assert cmd_line.endswith(f'{scribes}"')
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
@@ -63,9 +70,14 @@ def test_create_schism_mpirun_script_ncores(tmp_path, ncores, scribes):
     assert os.access(script_path, os.X_OK), "script is not executable"
     assert not (tmp_path / "outputs").exists(), "outputs subdirectory has not been created"
     content = pathlib.Path(script_path).read_text()
-    scr = "" if scribes == -1 else scribes
-    assert content.endswith(cmd + " {}".format(scr).rstrip()), "the cmd is not being used"
-    assert f"-N {ncores}" in content
+    cmd_line = ""
+    for line in content.splitlines():
+        if line.startswith("cmd="):
+            cmd_line = line
+            break
+    assert cmd_line
+    assert cmd in cmd_line
+    assert f"-N {ncores}" in cmd_line
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")

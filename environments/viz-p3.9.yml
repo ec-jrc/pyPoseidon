@@ -18,6 +18,7 @@ dependencies:
   - hvplot
   - ipympl
   - jigsaw>=0.9.12
+  - jinja2
   - matplotlib>=3.3
   - mayavi
   - netCDF4
