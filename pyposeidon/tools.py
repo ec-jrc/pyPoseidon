@@ -16,6 +16,7 @@ import shutil
 
 import psutil
 import xarray as xr
+import jinja2
 import numpy as np
 import rioxarray
 
@@ -36,7 +37,10 @@ set -euo pipefail
 
 mkdir -p outputs
 
-exec mpirun {mpirun_flags} -N {ncores} {cmd} {scribes}
+cmd="exec $(which mpirun) {{ mpirun_flags }} -N {{ ncores }} $(which {{ cmd }}) {{ scribes }}"
+echo "${cmd}"
+
+eval "${cmd}"
 """.strip()
 
 
@@ -70,7 +74,7 @@ export LD_LIBRARY_PATH=$exedir:$libdir:$LD_LIBRARY_PATH
 export PATH=$exedir:$PATH
 
     # Run
-mpiexec {mpirun_flags} -np {ncores} {cmd} $argfile
+"$(which mpiexec)" {{ mpirun_flags }} -np {{ ncores }} {{ cmd }} $argfile
 """.strip()
 
 
@@ -176,14 +180,16 @@ def create_mpirun_script(
         scribes = ""
     else:
         scribes = str(scribes)
-    content = template.format(
+    env = jinja2.Environment()
+    template = env.from_string(template)
+    content = template.render(
         mpirun_flags=mpirun_flags,
         ncores=ncores,
         cmd=cmd,
         scribes=scribes,
-    ).rstrip()
+    )
     # Write to disk and make executable
-    script_path = target_dir + "/" + script_name
+    script_path = os.path.join(target_dir, script_name)
     with open(script_path, "w") as fd:
         fd.write(content)
     make_executable(script_path)

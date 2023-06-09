@@ -5054,4 +5054,4 @@ viz = ["geoviews", "holoviews", "hvplot", "ipykernel", "itkwidgets", "matplotlib
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9, <4"
-content-hash = "86ecb600b645f8bde4e60d232bc9cbdb2a352b1fc5c32d7dbe2714825c7973de"
+content-hash = "506cf6ca1ad6a70b1c1b4f0e982786b0b754c2143ba87021c5f1a4050194d7f0"
