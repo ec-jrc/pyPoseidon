@@ -155,7 +155,7 @@ def create_mpirun_script(
     script_name: str,
     target_dir: str,
     cmd: str,
-    use_threads: bool = True,
+    use_threads: bool = False,
     ncores: int = 0,
     scribes: int = -1,
 ) -> str:
@@ -199,7 +199,7 @@ def create_mpirun_script(
 def create_schism_mpirun_script(
     target_dir: str,
     cmd: str,
-    use_threads: bool = True,
+    use_threads: bool = False,
     script_name: str = "launchSchism.sh",
     template: str = LAUNCH_SCHISM_TEMPLATE,
     ncores: int = 0,
@@ -220,7 +220,7 @@ def create_schism_mpirun_script(
 def create_d3d_mpirun_script(
     target_dir: str,
     cmd: str = "d_hydro",
-    use_threads: bool = True,
+    use_threads: bool = False,
     script_name: str = "run_flow2d3d.sh",
     template: str = LAUNCH_D3D_TEMPLATE,
     ncores: int = 0,
