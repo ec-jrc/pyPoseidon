@@ -204,7 +204,7 @@ class Schism:
             logger.info("using default parameter file ...\n")
             # ---------------------------------------------------------------------
 
-            config_file = DATA_PATH + "param.nml"
+            config_file = os.path.join(DATA_PATH, "param.nml")
 
         params = f90nml.read(config_file)
 
@@ -244,7 +244,7 @@ class Schism:
             # ---------------------------------------------------------------------
 
             path = get_value(self, kwargs, "rpath", "./schism/")
-            self.params.write(path + "param.nml", force=True)
+            self.params.write(os.path.join(path, "param.nml"), force=True)
 
     # ============================================================================================
     # METEO
@@ -368,15 +368,15 @@ class Schism:
             "standard_name": "surface temperature",
         }
 
-        # check if folder sflux exists
-        if not os.path.exists(path + "sflux"):
-            os.makedirs(path + "sflux")
+        # Create sflux directory if necessary
+        sflux_path = os.path.join(path, "sflux")
+        os.makedirs(sflux_path, exist_ok=True)
 
+        # Save meteo netcdf to disk
         m_index = kwargs.get("m_index", 1)
-
-        filename = kwargs.get("filename", "sflux/sflux_air_{}.0001.nc".format(m_index))
-
-        sout.to_netcdf(path + filename)
+        filename = kwargs.get("filename", f"sflux_air_{m_index}.0001.nc")
+        netcdf_path = os.path.join(sflux_path, filename)
+        sout.to_netcdf(netcdf_path)
 
     # ============================================================================================
     # DEM
@@ -494,16 +494,16 @@ class Schism:
             os.makedirs(path)
 
         # save sflux_inputs.txt
-        if not os.path.exists(path + "sflux"):
-            os.makedirs(path + "sflux")
+        sflux_path = os.path.join(path, "sflux")
+        os.makedirs(sflux_path, exist_ok=True)
 
-        with open(path + "sflux/sflux_inputs.txt", "w") as f:
+        with open(os.path.join(sflux_path, "sflux_inputs.txt"), "w") as f:
             f.write("&sflux_inputs\n")
             f.write("/ \n\n")
 
         # save params.in
 
-        self.params.write(path + "param.nml", force=True)
+        self.params.write(os.path.join(path, "param.nml"), force=True)
 
         # Mesh related files
         if self.mesh.Dataset is not None:
@@ -517,7 +517,7 @@ class Schism:
                 number_of_open_boundaries = 0
             number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
 
-            with open(path + "bctides.in", "w") as f:
+            with open(os.path.join(path, "bctides.in"), "w") as f:
                 f.write("Header\n")
                 f.write("{} {}\n".format(0, 40.0))  #  ntip tip_dp
                 f.write("{}\n".format(0))  # nbfr
@@ -530,7 +530,7 @@ class Schism:
                     f.write("{}\n".format(0))  # ethconst !constant elevation value for this segment
 
             # save vgrid.in
-            with open(path + "vgrid.in", "w") as f:
+            with open(os.path.join(path, "vgrid.in"), "w") as f:
                 f.write("{}\n".format(2))  # ivcor (1: LSC2; 2: SZ)
                 f.write(
                     "{} {} {}\n".format(2, 1, 1.0e6)
@@ -559,19 +559,19 @@ class Schism:
 
                 self.mesh.Dataset.depth.loc[: bat.size] = bat
 
-                self.mesh.to_file(filename=path + "hgrid.gr3")
-                copyfile(path + "hgrid.gr3", path + "hgrid.ll")
+                self.mesh.to_file(filename=os.path.join(path, "hgrid.gr3"))
+                copyfile(os.path.join(path, "hgrid.gr3"), os.path.join(path, "hgrid.ll"))
 
                 logger.info("updating bathymetry ..\n")
 
             except AttributeError as e:
                 logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
 
-                copyfile(self.mesh_file, path + "hgrid.gr3")  # copy original grid file
-                copyfile(path + "hgrid.gr3", path + "hgrid.ll")
+                copyfile(self.mesh_file, os.path.join(path, "hgrid.gr3"))  # copy original grid file
+                copyfile(os.path.join(path, "hgrid.gr3"), os.path.join(path, "hgrid.ll"))
 
             # manning file
-            manfile = path + "manning.gr3"
+            manfile = os.path.join(path, "manning.gr3")
 
             if hasattr(self, "manning_file"):
                 copyfile(self.manning_file, manfile)  # copy original manning file
@@ -606,7 +606,7 @@ class Schism:
 
             # windrot_geo2proj
 
-            windfile = path + "windrot_geo2proj.gr3"
+            windfile = os.path.join(path, "windrot_geo2proj.gr3")
 
             if hasattr(self, "windrot_file"):
                 copyfile(self.windrot_file, windfile)  # copy original grid file
@@ -698,13 +698,13 @@ class Schism:
             stdout=subprocess.PIPE,
         )  # , bufsize=1)
 
-        with open(calc_dir + "err.log", "w") as f:
+        with open(os.path.join(calc_dir, "err.log"), "w") as f:
             for line in iter(ex.stderr.readline, b""):
                 f.write(line.decode(sys.stdout.encoding))
                 logger.info(line.decode(sys.stdout.encoding))
         ex.stderr.close()
 
-        with open(calc_dir + "run.log", "w") as f:
+        with open(os.path.join(calc_dir, "run.log"), "w") as f:
             for line in iter(ex.stdout.readline, b""):
                 f.write(line.decode(sys.stdout.encoding))
                 logger.info(line.decode(sys.stdout.encoding))
@@ -756,7 +756,8 @@ class Schism:
             if isinstance(value, gp.GeoDataFrame):
                 dic[attr] = value.to_json()
 
-        json.dump(dic, open(path + self.tag + "_model.json", "w"), indent=4, default=myconverter)
+        filename = os.path.join(path, f"{self.tag}_model.json")
+        json.dump(dic, open(filename, "w"), indent=4, default=myconverter)
 
     def execute(self, **kwargs):
         flag = get_value(self, kwargs, "update", ["all"])
@@ -794,18 +795,18 @@ class Schism:
 
     def read_folder(self, rfolder, **kwargs):
         self.rpath = rfolder
-        s = glob.glob(rfolder + "/param.nml")
-        mfiles1 = glob.glob(rfolder + "/sflux/*_1*.nc")
+        s = glob.glob(os.path.join(rfolder, "/param.nml"))
+        mfiles1 = glob.glob(os.path.join(rfolder, "/sflux/*_1*.nc"))
         mfiles1.sort()
         # check for 2nd meteo
-        mfiles2 = glob.glob(rfolder + "/sflux/*_2*.nc")
+        mfiles2 = glob.glob(os.path.join(rfolder, "/sflux/*_2*.nc"))
         mfiles2.sort()
 
         mfiles = {"1": mfiles1, "2": mfiles2}
 
         mfiles = {k: v for k, v in mfiles.items() if v}  # remove empty keys, e.g. no mfiles2
 
-        hfile = rfolder + "/hgrid.gr3"  # Grid
+        hfile = os.path.join(rfolder, "/hgrid.gr3")  # Grid
         self.params = f90nml.read(s[0])
 
         mykeys = ["start_year", "start_month", "start_day"]
@@ -877,7 +878,7 @@ class Schism:
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         # Read the global node index distribution to the cores
-        gfiles = glob.glob(path + "outputs/local_to_global_*")
+        gfiles = glob.glob(os.path.join(path, "outputs/local_to_global_*"))
         gfiles.sort()
 
         # create a dict from filenames to identify parts in the dataframes below
@@ -1157,7 +1158,7 @@ class Schism:
         if not "melems" in self.misc:
             self.global2local(**kwargs)
 
-        hfiles = glob.glob(path + "outputs/hotstart_*_{}.nc".format(it))
+        hfiles = glob.glob(os.path.join(path, f"outputs/hotstart_*_{it}.nc"))
         hfiles.sort()
 
         # store them in a list
@@ -1195,7 +1196,7 @@ class Schism:
         hfile = "hotstart_it={}.nc".format(xdat.iths.values[0])
         logger.info("saving hotstart file\n")
 
-        xdat.to_netcdf(path + "outputs/{}".format(hfile))
+        xdat.to_netcdf(os.path.join(path, f"outputs/{hfile}"))
 
     ## Any variable
     def combine(self, out, g2l, name):
@@ -1298,7 +1299,7 @@ class Schism:
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         vgrid = pd.read_csv(
-            path + "vgrid.in",
+            os.path.join(path, "vgrid.in"),
             header=None,
             index_col=False,
             engine="python",
@@ -1344,7 +1345,7 @@ class Schism:
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         logger.info("Get combined 2D NetCDF files \n")
-        hfiles = glob.glob(path + "outputs/out2d_*.nc")
+        hfiles = glob.glob(os.path.join(path, "outputs/out2d_*.nc"))
         hfiles.sort()
 
         if hfiles:
@@ -1368,7 +1369,7 @@ class Schism:
 
             logger.info("Get combined 3D NetCDF files \n")
 
-            xfiles = glob.glob(path + "outputs/[!out2d_, !hotstart_,]*.nc")
+            xfiles = glob.glob(os.path.join(path, "outputs/[!out2d_, !hotstart_,]*.nc"))
             xfiles = [x for x in xfiles if not x.endswith("schout_1.nc")]
 
             if len(xfiles) > 0:
@@ -1377,10 +1378,10 @@ class Schism:
                 x3d = xr.open_mfdataset(xfiles, data_vars="minimal")
                 # set time to Datetime
                 x3d = x3d.assign_coords({"time": ("time", times, x3d.time.attrs)})
-                x3d.to_netcdf(path + "outputs/schout_2.nc")
+                x3d.to_netcdf(os.path.join(path, "outputs/schout_2.nc"))
 
             # save 2D variables to file
-            x2d.to_netcdf(path + "outputs/schout_1.nc")
+            x2d.to_netcdf(os.path.join(path, "outputs/schout_1.nc"))
 
         else:
             if len(self.misc) == 0:
@@ -1553,7 +1554,7 @@ class Schism:
             logger.info("done with generic variables \n")
 
             # Read Netcdf output files
-            hfiles = glob.glob(path + "outputs/schout_*_*.nc")
+            hfiles = glob.glob(os.path.join(path, "outputs/schout_*_*.nc"))
 
             irange_ = [int(x.split("_")[-1].split(".")[0]) for x in hfiles]
             irange_ = np.unique(irange_)
@@ -1565,7 +1566,7 @@ class Schism:
             logger.info("Write combined NetCDF files \n")
             #        total_xdat = []
             for val in tqdm(irange):
-                hfiles = glob.glob(path + "outputs/schout_*_{}.nc".format(val))
+                hfiles = glob.glob(os.path.join(path, f"outputs/schout_*_{val}.nc"))
                 hfiles.sort()
 
                 times = xr.open_dataset(hfiles[0]).time
@@ -1749,7 +1750,7 @@ class Schism:
                     "VisIT_plugin": "https://schism.water.ca.gov/library/-/document_library/view/3476283",
                 }
 
-                xc.to_netcdf(path + "outputs/schout_{}.nc".format(val))
+                xc.to_netcdf(os.path.join(path, f"outputs/schout_{val}.nc"))
 
         logger.info("done with output netCDF files \n")
 
@@ -1772,7 +1773,7 @@ class Schism:
         ### save in compatible to searvey format
         tg["country"] = tg.country.values.astype("str")  # fix an issue with searvey see #43 therein
         logger.info("save station DataFrame \n")
-        tg.to_file(path + "stations.json")
+        tg.to_file(os.path.join(path, "stations.json"))
         self.obs = tg
 
         ##### normalize to be used inside pyposeidon
@@ -1876,14 +1877,14 @@ class Schism:
         # modify config paramater
         self.params["SCHOUT"]["iout_sta"] = 1
         self.params["SCHOUT"]["nspool_sta"] = nspool_sta
-        self.params.write(path + "param.nml", force=True)
+        self.params.write(os.path.join(path, "param.nml"), force=True)
 
         self.stations = stations
 
         logger.info("write out stations.in file \n")
 
         # output to file
-        with open(path + "station.in", "w") as f:
+        with open(os.path.join(path, "station.in"), "w") as f:
             station_flag.to_csv(f, header=None, index=False, sep=" ")
             f.write("{}\n".format(stations.shape[0]))
             stations.loc[:, ["SCHISM_hgrid_node_x", "SCHISM_hgrid_node_y", "z"]].to_csv(f, header=None, sep=" ")
@@ -1892,12 +1893,12 @@ class Schism:
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         # locate the station files
-        sfiles = glob.glob(path + "outputs/staout_*")
+        sfiles = glob.glob(os.path.join(path, "outputs/staout_*"))
         sfiles.sort()
 
         try:
             # get the station flags
-            flags = pd.read_csv(path + "station.in", header=None, nrows=1, delim_whitespace=True).T
+            flags = pd.read_csv(os.path.join(path, "station.in"), header=None, nrows=1, delim_whitespace=True).T
             flags.columns = ["flag"]
             flags["variable"] = [
                 "elev",

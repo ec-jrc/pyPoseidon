@@ -40,6 +40,6 @@ def test_meteo(tmpdir, name):
 
     b = b.assign_coords({"time": tlist})
 
-    al = xr.open_dataset(rpath + "all.nc")
+    al = xr.open_dataset(rpath + "sflux/all.nc")
 
     assert b.equals(al)
