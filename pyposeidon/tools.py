@@ -35,12 +35,12 @@ LAUNCH_SCHISM_TEMPLATE = """
 
 set -euo pipefail
 
+root_dir="$(dirname "$(realpath "$0")")"
+
+cd "${root_dir}"
 mkdir -p outputs
 
-cmd="exec $(which mpirun) {{ mpirun_flags }} -N {{ ncores }} $(which {{ cmd }}) {{ scribes }}"
-echo "${cmd}"
-
-eval "${cmd}"
+exec $(which mpirun) {{ mpirun_flags }} -N {{ ncores }} $(which {{ cmd }}) {{ scribes }}
 """.strip()
 
 

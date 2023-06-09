@@ -46,14 +46,16 @@ def test_create_schism_mpirun_script(tmp_path, use_threads, scribes):
     content = pathlib.Path(script_path).read_text()
     cmd_line = ""
     for line in content.splitlines():
-        if line.startswith("cmd="):
-            cmd_line = line
+        if line.startswith("exec"):
+            cmd_line = line.strip()
             break
     assert cmd_line
     assert cmd in cmd_line
     assert f"-N {psutil.cpu_count(logical=use_threads)}" in cmd_line
     if scribes > 0:
-        assert cmd_line.endswith(f'{scribes}"')
+        assert cmd_line.endswith(f"{scribes}")
+    else:
+        assert cmd_line.endswith(f"{cmd})")
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
@@ -72,12 +74,16 @@ def test_create_schism_mpirun_script_ncores(tmp_path, ncores, scribes):
     content = pathlib.Path(script_path).read_text()
     cmd_line = ""
     for line in content.splitlines():
-        if line.startswith("cmd="):
-            cmd_line = line
+        if line.startswith("exec"):
+            cmd_line = line.strip()
             break
     assert cmd_line
     assert cmd in cmd_line
     assert f"-N {ncores}" in cmd_line
+    if scribes > 0:
+        assert cmd_line.endswith(f"{scribes}")
+    else:
+        assert cmd_line.endswith(f"{cmd})")
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
