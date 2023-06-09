@@ -85,7 +85,7 @@ class Meteo:
         split_by = get_value(self, kwargs, "meteo_split_by", None)
         if split_by:
             times, datasets = zip(*self.Dataset.groupby("time.{}".format(split_by)))
-            mpaths = ["sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
+            mpaths = ["sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
             for das, mpath in list(zip(datasets, mpaths)):
                 solver.to_force(das, vars=var_list, filename=mpath, **kwargs)
         else:
