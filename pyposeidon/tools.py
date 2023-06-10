@@ -123,9 +123,9 @@ def make_executable(path):
     os.chmod(path, mode)
 
 
-def run(cmd: str, quiet: bool = False, check: bool = True) -> subprocess.CompletedProcess:
+def run(cmd: str, quiet: bool = False, check: bool = True, **kwargs) -> subprocess.CompletedProcess:
     t1 = time.perf_counter()
-    proc = subprocess.run(shlex.split(cmd), check=False, capture_output=True, text=True)
+    proc = subprocess.run(shlex.split(cmd), check=False, capture_output=True, text=True, **kwargs)
     if not quiet:
         logger.info("Executed <%s> in %s seconds", cmd, time.perf_counter() - t1)
     if check and proc.returncode:
