@@ -131,7 +131,7 @@ class D3DCast:
         # symlink the big files
         logger.debug("symlink model files")
         for filename in files_sym:
-            ipath = glob.glob(self.origin + filename)
+            ipath = glob.glob(os.path.join(self.origin, filename))
             if ipath:
                 try:
                     os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
@@ -263,27 +263,27 @@ class SchismCast:
 
         self.origin = self.model.rpath
         self.rdate = self.model.rdate
+        ppath = self.ppath
 
         # control
         if not isinstance(self.rdate, pd.Timestamp):
             self.rdate = pd.to_datetime(self.rdate)
 
         if not os.path.exists(self.origin):
-            sys.stdout.write("Initial folder not present {}\n".format(self.origin))
+            sys.stdout.write(f"Initial folder not present {self.origin}\n")
             sys.exit(1)
 
-        ppath = self.ppath
         # create the new folder/run path
         rpath = self.cpath
 
         if not os.path.exists(rpath):
             os.makedirs(rpath)
 
-        tag = kwargs.get("tag", "schism")
-        copy2(ppath + self.tag + "_model.json", rpath)  # copy the info file
+        model_definition_filename = f"{self.tag}_model.json"
+        copy2(os.path.join(ppath, model_definition_filename), rpath)  # copy the info file
 
         # load model
-        with open(rpath + self.tag + "_model.json", "rb") as f:
+        with open(os.path.join(rpath, model_definition_filename), "rb") as f:
             data = json.load(f)
             data = pd.json_normalize(data, max_level=0)
             info = data.to_dict(orient="records")[0]
@@ -300,7 +300,7 @@ class SchismCast:
             if attr not in info.keys():
                 info[attr] = kwargs[attr]
 
-        info["config_file"] = ppath + "param.nml"
+        info["config_file"] = os.path.join(ppath, "param.nml")
 
         # update the properties
 
@@ -314,7 +314,7 @@ class SchismCast:
         m = pm.set(**info)
 
         # Mesh
-        gfile = glob.glob(ppath + "hgrid.gr3")
+        gfile = glob.glob(os.path.join(ppath, "hgrid.gr3"))
         if gfile:
             info["mesh_file"] = gfile[0]
             self.mesh_file = gfile[0]
@@ -334,65 +334,65 @@ class SchismCast:
         logger.debug("copy necessary files")
 
         for filename in self.files:
-            ipath = glob.glob(ppath + filename)
+            ipath = glob.glob(os.path.join(ppath, filename))
             if ipath:
                 try:
-                    copy2(ppath + filename, rpath + filename)
+                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
                 except:
                     dir_name, file_name = os.path.split(filename)
-                    if not os.path.exists(rpath + dir_name):
-                        os.makedirs(rpath + dir_name)
-                    copy2(ppath + filename, rpath + filename)
+                    if not os.path.exists(os.path.join(rpath, dir_name)):
+                        os.makedirs(os.path.join(rpath, dir_name), exist_ok=True)
+                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
         logger.debug(".. done")
 
         # copy the station files
         logger.debug("copy station files")
         for filename in self.station_files:
-            ipath = glob.glob(ppath + filename)
+            ipath = glob.glob(os.path.join(ppath, filename))
             if ipath:
                 try:
-                    copy2(ppath + filename, rpath + filename)
+                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
                 except:
                     dir_name, file_name = os.path.split(filename)
-                    if not os.path.exists(rpath + dir_name):
-                        os.makedirs(rpath + dir_name)
-                    copy2(ppath + filename, rpath + filename)
+                    if not os.path.exists(os.path.join(rpath, dir_name)):
+                        os.makedirs(os.path.join(rpath, dir_name), exist_ok=True)
+                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
         logger.debug(".. done")
 
         if copy:
             # copy the big files
             logger.debug("copy model files")
             for filename in self.files_sym:
-                ipath = glob.glob(self.origin + filename)
+                ipath = glob.glob(os.path.join(self.origin, filename))
                 if ipath:
                     try:
-                        copy2(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
+                        copy2(pathlib.Path(ipath[0]).resolve(strict=True), os.path.join(rpath, filename))
                     except OSError as e:
                         if e.errno == errno.EEXIST:
                             logger.warning("Restart file present\n")
                             logger.warning("overwriting\n")
-                            os.remove(rpath + filename)
+                            os.remove(os.path.join(rpath, filename))
                             copy2(
                                 pathlib.Path(ipath[0]).resolve(strict=True),
-                                rpath + filename,
+                                os.path.join(rpath, filename),
                             )
 
         else:
             # symlink the big files
             logger.debug("symlink model files")
             for filename in self.files_sym:
-                ipath = glob.glob(self.origin + filename)
+                ipath = glob.glob(os.path.join(self.origin, filename))
                 if ipath:
                     try:
-                        os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), rpath + filename)
+                        os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), os.path.join(rpath, filename))
                     except OSError as e:
                         if e.errno == errno.EEXIST:
                             logger.warning("Restart link present\n")
                             logger.warning("overwriting\n")
-                            os.remove(rpath + filename)
+                            os.remove(os.path.join(rpath, filename))
                             os.symlink(
                                 pathlib.Path(ipath[0]).resolve(strict=True),
-                                rpath + filename,
+                                os.path.join(rpath, filename),
                             )
 
         logger.debug(".. done")
@@ -404,10 +404,10 @@ class SchismCast:
         hotout = int((self.sdate - self.rdate).total_seconds() / info["params"]["core"]["dt"])
         logger.debug("hotout_it = {}".format(hotout))
 
-        resfile = glob.glob(ppath + "/outputs/hotstart_it={}.nc".format(hotout))
+        resfile = glob.glob(os.path.join(ppath, "/outputs/hotstart_it={}.nc".format(hotout)))
         if not resfile:
             # load model model from ppath
-            with open(ppath + self.tag + "_model.json", "rb") as f:
+            with open(os.path.join(ppath, self.tag + "_model.json"), "rb") as f:
                 data = json.load(f)
                 data = pd.json_normalize(data, max_level=0)
                 ph = data.to_dict(orient="records")[0]
@@ -415,37 +415,26 @@ class SchismCast:
             p.hotstart(it=hotout)
 
         # link restart file
-        inresfile = "/outputs/hotstart_it={}.nc".format(hotout)
-        outresfile = "/hotstart.nc"
+        inresfile = os.path.join(ppath, f"outputs/hotstart_it={hotout}.nc")
+        outresfile = os.path.join(rpath, "hotstart.nc")
 
         logger.info("set restart\n")
 
         if copy:
-            try:
-                os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
-            except OSError as e:
-                if e.errno == errno.EEXIST:
-                    logger.warning("Restart file present\n")
-                    logger.warning("overwriting\n")
-                    os.remove(rpath + outresfile)
-                    copy2(
-                        pathlib.Path(ppath + inresfile).resolve(strict=True),
-                        rpath + outresfile,
-                    )
-                else:
-                    raise e
-
+            copy2(inresfile, outresfile)
         else:
             try:
-                os.symlink(pathlib.Path(ppath + inresfile).resolve(strict=True), rpath + outresfile)
+                os.symlink(
+                    pathlib.Path(os.path.join(ppath, inresfile)).resolve(strict=True), os.path.join(rpath, outresfile)
+                )
             except OSError as e:
                 if e.errno == errno.EEXIST:
                     logger.warning("Restart link present\n")
                     logger.warning("overwriting\n")
-                    os.remove(rpath + outresfile)
+                    os.remove(os.path.join(rpath, outresfile))
                     os.symlink(
-                        pathlib.Path(ppath + inresfile).resolve(strict=True),
-                        rpath + outresfile,
+                        pathlib.Path(os.path.join(ppath, inresfile)).resolve(strict=True),
+                        os.path.join(rpath, outresfile),
                     )
                 else:
                     raise e
@@ -456,13 +445,13 @@ class SchismCast:
 
         flag = get_value(self, kwargs, "update", [])
 
-        check = [os.path.exists(rpath + "sflux/" + f) for f in ["sflux_air_1.0001.nc"]]
+        check = [os.path.exists(os.path.join(rpath, "sflux", f)) for f in ["sflux_air_1.0001.nc"]]
 
         if (np.any(check) == False) or ("meteo" in flag):
             m.force(**info)
             if hasattr(self, "meteo_split_by"):
                 times, datasets = zip(*m.meteo.Dataset.groupby("time.{}".format(self.meteo_split_by)))
-                mpaths = ["sflux/sflux_air_1.{:04d}.nc".format(t + 1) for t in np.arange(len(times))]
+                mpaths = ["sflux_air_1.{:04d}.nc".format(t + 1) for t in np.arange(len(times))]
                 for das, mpath in list(zip(datasets, mpaths)):
                     m.to_force(
                         das,
@@ -500,13 +489,13 @@ class SchismCast:
 
         m.config(output=True, **info)  # save param.nml
 
-        m.config_file = rpath + "param.nml"
+        m.config_file = os.path.join(rpath, "param.nml")
 
         m.save()
 
         if execute:
             m.run()
 
-        logger.info("done for date :" + self.sdate.strftime("%Y%m%d.%H"))
+        logger.info("done for date : %s", self.sdate.strftime("%Y%m%d.%H"))
 
         os.chdir(pwd)
