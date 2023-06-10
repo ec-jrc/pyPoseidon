@@ -14,11 +14,13 @@ from collections.abc import Iterable
 import time
 import shutil
 
-import psutil
-import xarray as xr
+import cartopy.feature
+import geopandas as gpd
 import jinja2
 import numpy as np
+import psutil
 import rioxarray
+import xarray as xr
 
 logger = logging.getLogger(__name__)
 
@@ -288,3 +290,38 @@ def orient(nodes, tria, x="lon", y="lat"):
     tria = tria.drop("val", axis=1)
 
     return nodes, tria
+
+
+_RESOLUTIONS_TO_SCALES = {
+    "HIGH": "10m",
+    "High": "10m",
+    "high": "10m",
+    "H": "10m",
+    "h": "10m",
+    "MEDIUM": "50m",
+    "Medium": "50m",
+    "medium": "50m",
+    "M": "50m",
+    "m": "50m",
+    "LOW": "110m",
+    "Low": "110m",
+    "low": "110m",
+    "L": "110m",
+    "l": "110m",
+}
+
+
+def get_coastlines(resolution: str, category="physical", name="land") -> gpd.GeoDataFrame:
+    """
+    Return a GeoDataFrame with the land mass at the specified ``resolution``.
+
+    Wrapper of ``cartopy``'s ``NaturalEarthFeature``.
+    """
+    scale = _RESOLUTIONS_TO_SCALES[resolution]
+    land = cartopy.feature.NaturalEarthFeature(
+        category=category,
+        name=name,
+        scale=scale,
+    )
+    gdf = gpd.GeoDataFrame(geometry=list(land.geometries()))
+    return gdf
