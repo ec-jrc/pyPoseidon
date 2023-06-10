@@ -78,7 +78,8 @@ check = {
 }
 
 
-def schism(tmpdir):
+@pytest.mark.schism
+def test_schirsm_reforecast_workflow(tmpdir):
     # initialize a model
     rpath = str(tmpdir) + "/schism/"
     case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
@@ -166,12 +167,4 @@ def schism(tmpdir):
     #            flag = True
     #    print(mdif)
 
-    if (rb == ["zcor"]) or rb == []:
-        return True
-    else:
-        return False
-
-
-@pytest.mark.schism
-def test_answer(tmpdir):
-    assert schism(tmpdir) == True
+    assert (rb == ["zcor"]) or rb == []
