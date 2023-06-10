@@ -1,11 +1,12 @@
+from copy import deepcopy
+import datetime
+import filecmp
+import os
+
 import pytest
 import pyposeidon
 from pyposeidon.utils import cast, data
-import json
 import pandas as pd
-import datetime
-import os
-import numpy as np
 
 from . import DATA_DIR
 
@@ -79,7 +80,66 @@ check = {
 }
 
 
-def schism(tmpdir):
+@pytest.mark.schism
+@pytest.mark.parametrize(
+    "copy",
+    [pytest.param(True, id="copy files"), pytest.param(False, id="symlink files")],
+)
+def test_schism_cast(tmpdir, copy):
+    base_rpath = os.path.join(tmpdir, "schism")
+    original_rpath = os.path.join(base_rpath, "20181001.00")
+    next_rpath = os.path.join(base_rpath, "20181001.12")
+
+    # initialize a model
+    original_model_info = deepcopy(test_case)
+    original_model_info.update(
+        {
+            "rpath": original_rpath,
+            "update": ["meteo"],
+        },
+    )
+    original_model = pyposeidon.model.set(**original_model_info)
+    original_model.create()  # constructs all required parts e.g. mesh, dem, meteo, etc.
+    original_model.output()  # save to files
+    original_model.save()  # saves the json model reference file
+    original_model.set_obs()  # setup station points
+    original_model.execute()
+
+    casted = cast.set(
+        solver_name="schism",
+        model=original_model,
+        ppath=original_model.rpath,
+        cpath=next_rpath,
+        meteo=(DATA_DIR / "uvp_2018100112.grib").as_posix(),
+        sdate=pd.to_datetime("2018-10-01 12:00:00"),
+        copy=copy,
+    )
+    casted.run(execute=False)
+
+    copied_files = cast.SchismCast.files + cast.SchismCast.station_files
+    if copy:
+        copied_files.extend(cast.SchismCast.files_sym)
+
+    for filename in copied_files:
+        original_file = os.path.join(original_model.rpath, filename)
+        if os.path.exists(original_file):
+            copied_file = os.path.join(next_rpath, filename)
+            assert os.path.exists(copied_file)
+            assert not os.path.islink(copied_file)
+            assert filecmp.cmp(original_file, copied_file, shallow=False)
+
+    if not copy:
+        for filename in cast.SchismCast.files_sym:
+            original_file = os.path.join(original_model.rpath, filename)
+            if os.path.exists(original_file):
+                symlinked_file = os.path.join(next_rpath, filename)
+                assert os.path.exists(symlinked_file)
+                assert os.path.islink(symlinked_file)
+                assert os.path.realpath(symlinked_file) == original_file
+
+
+@pytest.mark.schism
+def test_schism_cast_workflow(tmpdir):
     # initialize a model
     rpath = str(tmpdir) + "/schism/"
     test_case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
@@ -147,12 +207,4 @@ def schism(tmpdir):
     #            flag = True
     #    print(mdif)
 
-    if (rb == ["zcor"]) or rb == []:
-        return True
-    else:
-        return False
-
-
-@pytest.mark.schism
-def test_answer(tmpdir):
-    assert schism(tmpdir) == True
+    assert (rb == ["zcor"]) or (rb == [])
