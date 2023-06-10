@@ -212,6 +212,37 @@ class D3DCast:
 
 
 class SchismCast:
+    files = [
+        "bctides.in",
+        "launchSchism.sh",
+        "sflux/sflux_inputs.txt",
+        "outputs/flux.out",
+    ]
+
+    files_sym = [
+        "hgrid.gr3",
+        "hgrid.ll",
+        "manning.gr3",
+        "vgrid.in",
+        "drag.gr3",
+        "rough.gr3",
+        "station.in",
+        "stations.json",
+        "windrot_geo2proj.gr3",
+    ]
+
+    station_files = [
+        "outputs/staout_1",
+        "outputs/staout_2",
+        "outputs/staout_3",
+        "outputs/staout_4",
+        "outputs/staout_5",
+        "outputs/staout_6",
+        "outputs/staout_7",
+        "outputs/staout_8",
+        "outputs/staout_9",
+    ]
+
     def __init__(self, **kwargs):
         for attr, value in kwargs.items():
             setattr(self, attr, value)
@@ -229,34 +260,6 @@ class SchismCast:
         copy = get_value(self, kwargs, "copy", False)
 
         pwd = os.getcwd()
-
-        files = [
-            "bctides.in",
-            "launchSchism.sh",
-            "/sflux/sflux_inputs.txt",
-            "/outputs/flux.out",
-        ]
-        files_sym = [
-            "hgrid.gr3",
-            "hgrid.ll",
-            "manning.gr3",
-            "vgrid.in",
-            "drag.gr3",
-            "rough.gr3",
-            "station.in",
-            "windrot_geo2proj.gr3",
-        ]
-        station_files = [
-            "/outputs/staout_1",
-            "/outputs/staout_2",
-            "/outputs/staout_3",
-            "/outputs/staout_4",
-            "/outputs/staout_5",
-            "/outputs/staout_6",
-            "/outputs/staout_7",
-            "/outputs/staout_8",
-            "/outputs/staout_9",
-        ]
 
         self.origin = self.model.rpath
         self.rdate = self.model.rdate
@@ -330,7 +333,7 @@ class SchismCast:
         # copy/link necessary files
         logger.debug("copy necessary files")
 
-        for filename in files:
+        for filename in self.files:
             ipath = glob.glob(ppath + filename)
             if ipath:
                 try:
@@ -344,7 +347,7 @@ class SchismCast:
 
         # copy the station files
         logger.debug("copy station files")
-        for filename in station_files:
+        for filename in self.station_files:
             ipath = glob.glob(ppath + filename)
             if ipath:
                 try:
@@ -359,7 +362,7 @@ class SchismCast:
         if copy:
             # copy the big files
             logger.debug("copy model files")
-            for filename in files_sym:
+            for filename in self.files_sym:
                 ipath = glob.glob(self.origin + filename)
                 if ipath:
                     try:
@@ -377,7 +380,7 @@ class SchismCast:
         else:
             # symlink the big files
             logger.debug("symlink model files")
-            for filename in files_sym:
+            for filename in self.files_sym:
                 ipath = glob.glob(self.origin + filename)
                 if ipath:
                     try:
