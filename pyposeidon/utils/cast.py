@@ -213,13 +213,13 @@ class D3DCast:
 
 class SchismCast:
     files = [
-        "bctides.in",
         "launchSchism.sh",
         "sflux/sflux_inputs.txt",
         "outputs/flux.out",
     ]
 
     files_sym = [
+        "bctides.in",
         "hgrid.gr3",
         "hgrid.ll",
         "manning.gr3",
