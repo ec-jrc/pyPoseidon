@@ -41,6 +41,28 @@ def set(solver_name: str, **kwargs):
     return instance
 
 
+def copy_files(rpath: str, ppath: str, filenames: list[str]) -> None:
+    for filename in filenames:
+        src = os.path.join(ppath, filename)
+        dst = os.path.join(rpath, filename)
+        if os.path.exists(src):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            copy2(src, dst)
+            logger.debug("copied src -> dst: %s -> %s", src, dst)
+
+
+def symlink_files(rpath: str, ppath: str, filenames: list[str]) -> None:
+    for filename in filenames:
+        src = os.path.join(ppath, filename)
+        dst = os.path.join(rpath, filename)
+        if os.path.exists(src):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.exists(dst):
+                os.remove(dst)
+            os.symlink(src, dst)
+            logger.debug("symlinked src -> dst: %s -> %s", src, dst)
+
+
 class D3DCast:
     def __init__(self, **kwargs):
         for attr, value in kwargs.items():
@@ -218,7 +240,7 @@ class SchismCast:
         "outputs/flux.out",
     ]
 
-    files_sym = [
+    model_files = [
         "bctides.in",
         "hgrid.gr3",
         "hgrid.ll",
@@ -331,69 +353,13 @@ class SchismCast:
             info.update({"lat_max": m.mesh.Dataset.SCHISM_hgrid_node_y.values.max()})
 
         # copy/link necessary files
-        logger.debug("copy necessary files")
-
-        for filename in self.files:
-            ipath = glob.glob(os.path.join(ppath, filename))
-            if ipath:
-                try:
-                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
-                except:
-                    dir_name, file_name = os.path.split(filename)
-                    if not os.path.exists(os.path.join(rpath, dir_name)):
-                        os.makedirs(os.path.join(rpath, dir_name), exist_ok=True)
-                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
-        logger.debug(".. done")
-
-        # copy the station files
-        logger.debug("copy station files")
-        for filename in self.station_files:
-            ipath = glob.glob(os.path.join(ppath, filename))
-            if ipath:
-                try:
-                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
-                except:
-                    dir_name, file_name = os.path.split(filename)
-                    if not os.path.exists(os.path.join(rpath, dir_name)):
-                        os.makedirs(os.path.join(rpath, dir_name), exist_ok=True)
-                    copy2(os.path.join(ppath, filename), os.path.join(rpath, filename))
-        logger.debug(".. done")
-
+        logger.debug("Copy necessary + station files")
+        copy_files(rpath=rpath, ppath=ppath, filenames=self.files + self.station_files)
+        logger.debug("Copy model files")
         if copy:
-            # copy the big files
-            logger.debug("copy model files")
-            for filename in self.files_sym:
-                ipath = glob.glob(os.path.join(self.origin, filename))
-                if ipath:
-                    try:
-                        copy2(pathlib.Path(ipath[0]).resolve(strict=True), os.path.join(rpath, filename))
-                    except OSError as e:
-                        if e.errno == errno.EEXIST:
-                            logger.warning("Restart file present\n")
-                            logger.warning("overwriting\n")
-                            os.remove(os.path.join(rpath, filename))
-                            copy2(
-                                pathlib.Path(ipath[0]).resolve(strict=True),
-                                os.path.join(rpath, filename),
-                            )
-
+            copy_files(rpath=rpath, ppath=ppath, filenames=self.model_files)
         else:
-            # symlink the big files
-            logger.debug("symlink model files")
-            for filename in self.files_sym:
-                ipath = glob.glob(os.path.join(self.origin, filename))
-                if ipath:
-                    try:
-                        os.symlink(pathlib.Path(ipath[0]).resolve(strict=True), os.path.join(rpath, filename))
-                    except OSError as e:
-                        if e.errno == errno.EEXIST:
-                            logger.warning("Restart link present\n")
-                            logger.warning("overwriting\n")
-                            os.remove(os.path.join(rpath, filename))
-                            os.symlink(
-                                pathlib.Path(ipath[0]).resolve(strict=True),
-                                os.path.join(rpath, filename),
-                            )
+            symlink_files(rpath=rpath, ppath=ppath, filenames=self.model_files)
 
         logger.debug(".. done")
 
