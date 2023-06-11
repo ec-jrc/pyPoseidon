@@ -118,7 +118,7 @@ def test_schism_cast(tmpdir, copy):
 
     copied_files = cast.SchismCast.files + cast.SchismCast.station_files
     if copy:
-        copied_files.extend(cast.SchismCast.files_sym)
+        copied_files.extend(cast.SchismCast.model_files)
 
     for filename in copied_files:
         original_file = os.path.join(original_model.rpath, filename)
@@ -129,7 +129,7 @@ def test_schism_cast(tmpdir, copy):
             assert filecmp.cmp(original_file, copied_file, shallow=False)
 
     if not copy:
-        for filename in cast.SchismCast.files_sym:
+        for filename in cast.SchismCast.model_files:
             original_file = os.path.join(original_model.rpath, filename)
             if os.path.exists(original_file):
                 symlinked_file = os.path.join(next_rpath, filename)
