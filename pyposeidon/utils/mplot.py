@@ -15,7 +15,6 @@ from mayavi.sources.builtin_surface import BuiltinSurface
 import xarray as xr
 import numpy as np
 import pandas as pd
-import subprocess
 from pyposeidon.utils.stereo import to_3d
 from itkwidgets import view
 import os
