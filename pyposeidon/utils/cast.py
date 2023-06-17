@@ -24,8 +24,6 @@ import pandas as pd
 import pathlib
 import json
 
-# from pyposeidon.utils import data
-import subprocess
 import logging
 
 logger = logging.getLogger(__name__)

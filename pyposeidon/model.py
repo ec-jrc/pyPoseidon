@@ -15,7 +15,6 @@ import datetime
 import numpy as np
 import xml.dom.minidom as md
 from shutil import copy2
-import subprocess
 import sys
 import json
 from collections import OrderedDict

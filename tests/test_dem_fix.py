@@ -43,7 +43,6 @@ def test_dem_adjust(coasts, dem_source, window):
 
 
 # Schism mesh
-@pytest.mark.schism
 @DEM_SOURCES
 @WINDOWS
 def test_schism_mesh(tmpdir, coasts, dem_source, window):
@@ -63,7 +62,6 @@ def test_schism_mesh(tmpdir, coasts, dem_source, window):
 
 
 # D3D mesh
-@pytest.mark.delft
 @DEM_SOURCES
 @WINDOWS
 def test_d3d_mesh(tmpdir, coasts, dem_source, window):
