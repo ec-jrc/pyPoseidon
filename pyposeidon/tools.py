@@ -37,6 +37,12 @@ LAUNCH_SCHISM_TEMPLATE = """
 
 set -euo pipefail
 
+if [[ ! -x "$(command -v realpath)" ]]; then
+    realpath() {
+        python -c "import os; print(os.path.realpath('$1'))"
+    }
+fi
+
 root_dir="$(dirname "$(realpath "$0")")"
 
 cd "${root_dir}"
