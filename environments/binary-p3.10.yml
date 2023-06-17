@@ -2,6 +2,7 @@ channels:
   - conda-forge
   - gbrey
 dependencies:
+  - compilers
   - eccodes
   - ffmpeg
   - gdal
