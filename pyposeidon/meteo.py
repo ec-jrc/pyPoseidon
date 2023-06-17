@@ -83,13 +83,15 @@ class Meteo:
         m_index = get_value(self, kwargs, "m_index", 1)
 
         split_by = get_value(self, kwargs, "meteo_split_by", None)
-        if split_by:
-            times, datasets = zip(*self.Dataset.groupby("time.{}".format(split_by)))
-            mpaths = ["sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
-            for das, mpath in list(zip(datasets, mpaths)):
-                solver.to_force(das, vars=var_list, filename=mpath, **kwargs)
-        else:
-            solver.to_force(self.Dataset, vars=var_list, **kwargs)
+
+        with dask.config.set(**{"array.slicing.split_large_chunks": False}):
+            if split_by:
+                times, datasets = zip(*self.Dataset.groupby("time.{}".format(split_by)))
+                mpaths = ["sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
+                for das, mpath in list(zip(datasets, mpaths)):
+                    solver.to_force(das, vars=var_list, filename=mpath, **kwargs)
+            else:
+                solver.to_force(self.Dataset, vars=var_list, **kwargs)
 
 
 def passthrough(meteo_source, **kwargs):
