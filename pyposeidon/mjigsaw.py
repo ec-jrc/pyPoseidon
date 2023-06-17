@@ -506,36 +506,37 @@ def get(contours, **kwargs):
         # ---------------------------------
 
         # execute jigsaw
-        with subprocess.Popen(
-            args=["jigsaw {}".format(tag + ".jig")],
+        ex = subprocess.run(
+            ["jigsaw {}".format(tag + ".jig")],
+            check=False,
+            capture_output=True,
+            text=True,
             cwd=calc_dir,
             shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            #            bufsize=1,
-        ) as ex:
-            output = ex.stdout.read()
-            error = ex.stderr.read()
+            universal_newlines=True,
+            # bufsize=1,
+        )
 
-        if error:
-            logger.error("Jigsaw FAILED\n")
-            with open(calc_dir + "err.log", "w") as f:
-                for line in error.splitlines():
-                    f.write(line.decode(sys.stdout.encoding))
-                    logger.debug(line.decode(sys.stdout.encoding))
+        if ex.returncode == 0:
+            # ---------------------------------------------------------------------
+            logger.info("jigsaw executed successfully\n")
+            # ---------------------------------------------------------------------
 
-            gr = None
+            gr = read_msh(calc_dir + tag + ".msh", **kwargs)
+
+            logger.info("..done creating mesh\n")
 
             return gr, bg
 
         else:
-            logger.info("Jigsaw FINISHED\n")
+            # ---------------------------------------------------------------------
+            logger.error("jigsaw failed to execute\n")
+            # ---------------------------------------------------------------------
+            ex.check_returncode()
 
-            gr = read_msh(calc_dir + tag + ".msh", **kwargs)
+            gr = None
 
             return gr, bg
-
-            logger.info("..done creating mesh\n")
 
     else:
         gr = None
