@@ -26,6 +26,7 @@ import geopandas as gp
 import shapely
 import f90nml
 import errno
+import dask
 from searvey import ioc
 from tqdm.auto import tqdm
 
@@ -286,7 +287,7 @@ class Schism:
 
         xx, yy = np.meshgrid(ar.longitude.data, ar.latitude.data)
 
-        zero = np.zeros(ar[p].data.shape)
+        zero = dask.array.zeros(ar[p].data.shape)
 
         date = kwargs.get("date", ar.time[0].data)
 
@@ -664,7 +665,7 @@ class Schism:
 
         if bin_path is None:
             # ------------------------------------------------------------------------------
-            logger.warning("Schism executable path (epath) not given -> using default \n")
+            logger.warning("schism executable path (epath) not given -> using default \n")
             # ------------------------------------------------------------------------------
             bin_path = "schism"
 
@@ -690,29 +691,38 @@ class Schism:
             return
 
         # note that cwd is the folder where the executable is
-        ex = subprocess.Popen(
-            args=["./launchSchism.sh"],
+        ex = subprocess.run(
+            ["./launchSchism.sh"],
+            check=False,
+            capture_output=True,
+            text=True,
             cwd=calc_dir,
             shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )  # , bufsize=1)
+        )
 
-        with open(os.path.join(calc_dir, "err.log"), "w") as f:
-            for line in iter(ex.stderr.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-                logger.info(line.decode(sys.stdout.encoding))
-        ex.stderr.close()
+        with open(os.path.join(calc_dir, "err.log"), "w") as fd:
+            fd.write(ex.stderr)
+        with open(os.path.join(calc_dir, "run.log"), "w") as fd:
+            fd.write(ex.stdout)
 
-        with open(os.path.join(calc_dir, "run.log"), "w") as f:
-            for line in iter(ex.stdout.readline, b""):
-                f.write(line.decode(sys.stdout.encoding))
-                logger.info(line.decode(sys.stdout.encoding))
-        ex.stdout.close()
+        # store output in class
+        self.stderr = ex.stderr
+        self.stdout = ex.stdout
 
-        # ---------------------------------------------------------------------
-        logger.info("FINISHED\n")
-        # ---------------------------------------------------------------------
+        if ex.returncode == 0:
+            if ("ABORT" in ex.stderr) or ("ABORT" in ex.stdout):
+                # ---------------------------------------------------------------------
+                logger.error("schism failed to execute correctly. See logs\n")
+                # ---------------------------------------------------------------------
+            else:
+                # ---------------------------------------------------------------------
+                logger.info("finished\n")
+                # ---------------------------------------------------------------------
+        else:
+            # ---------------------------------------------------------------------
+            logger.error("schism failed to execute. See logs\n")
+            # ---------------------------------------------------------------------
+            ex.check_returncode()
 
     def save(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")
@@ -781,7 +791,7 @@ class Schism:
 
             if bin_path is None:
                 # ------------------------------------------------------------------------------
-                logger.warning("Schism executable path (epath) not given -> using default \n")
+                logger.warning("schism executable path (epath) not given -> using default \n")
                 # ------------------------------------------------------------------------------
                 bin_path = "schism"
 
@@ -828,10 +838,10 @@ class Schism:
             try:
                 self.mesh = pmesh.set(type="tri2d", mesh_file=hfile)
             except:
-                logger.warning("Loading mesh failed")
+                logger.warning("loading mesh failed")
                 pass
         else:
-            logger.warning("No mesh loaded")
+            logger.warning("no mesh loaded")
 
         load_meteo = get_value(self, kwargs, "load_meteo", False)
 
@@ -860,7 +870,7 @@ class Schism:
                             g = g.assign_coords({"time": times})
                             ma.append(g)
                         except:
-                            logger.warning("Loading meteo failed")
+                            logger.warning("loading meteo failed")
                             break
                     if ma:
                         msource = xr.merge(ma)
@@ -872,7 +882,7 @@ class Schism:
                 self.meteo = pmeteo.Meteo(meteo_source=pm)
 
         else:
-            logger.warning("No meteo loaded")
+            logger.warning("no meteo loaded")
 
     def global2local(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")
@@ -1294,7 +1304,7 @@ class Schism:
                 yield item
 
     def read_vgrid(self, **kwargs):
-        logger.info("Read vgrid.in\n")
+        logger.info("read vgrid.in\n")
 
         path = get_value(self, kwargs, "rpath", "./schism/")
 
@@ -1344,7 +1354,7 @@ class Schism:
     def results(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")
 
-        logger.info("Get combined 2D NetCDF files \n")
+        logger.info("get combined 2D netcdf files \n")
         hfiles = glob.glob(os.path.join(path, "outputs/out2d_*.nc"))
         hfiles.sort()
 
@@ -1367,7 +1377,7 @@ class Schism:
 
             x2d = x2d.assign_coords({"time": ("time", times, x2d.time.attrs)})
 
-            logger.info("Get combined 3D NetCDF files \n")
+            logger.info("get combined 3D netcdf files \n")
 
             xfiles = glob.glob(os.path.join(path, "outputs/[!out2d_, !hotstart_,]*.nc"))
             xfiles = [x for x in xfiles if not x.endswith("schout_1.nc")]
@@ -1563,7 +1573,7 @@ class Schism:
 
             self.read_vgrid()  # read grid attributes
 
-            logger.info("Write combined NetCDF files \n")
+            logger.info("write combined netcdf files \n")
             #        total_xdat = []
             for val in tqdm(irange):
                 hfiles = glob.glob(os.path.join(path, f"outputs/schout_*_{val}.nc"))
@@ -1915,7 +1925,7 @@ class Schism:
             vals = flags[flags.values == 1]  # get the active ones
         except OSError as e:
             if e.errno == errno.EEXIST:
-                logger.error("No station.in file present")
+                logger.error("no station.in file present")
             return
 
         dstamp = kwargs.get("dstamp", self.rdate)

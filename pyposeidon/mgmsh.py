@@ -257,6 +257,8 @@ def get(contours, **kwargs):
             bgmesh = "auto"
             kwargs.update({"bgmesh": "auto"})
 
+    gglobal = kwargs.get("gglobal", False)
+
     if bgmesh == "auto":
         try:
             rpath = kwargs.get("rpath", ".")
@@ -266,7 +268,6 @@ def get(contours, **kwargs):
 
             fpos = rpath + "/gmsh/bgmesh.pos"
 
-            gglobal = kwargs.get("gglobal", False)
             if gglobal:
                 dem = pdem.Dem(**kwargs)
 
@@ -281,8 +282,6 @@ def get(contours, **kwargs):
             logger.warning("bgmesh failed... continuing without background mesh size")
             dh = None
             kwargs.update({"bgmesh": None})
-
-    gglobal = kwargs.get("gglobal", False)
 
     if use_bindings:
         logger.info("Using python bindings")
@@ -635,33 +634,52 @@ def gmsh_execute(**kwargs):
         else:
             dim = -2
 
+        gmsh_args = kwargs.get("gmsh_args", {})
+
+        gmsh_args.update({"tol": 1e-20})
+
+        gargs = ""
+        for k, v in list(gmsh_args.items()):
+            if k[0] != "-":
+                k = "-" + k
+            gargs = gargs + " ".join([k, str(v)]) + " "
+
         # execute gmsh
-        with subprocess.Popen(
-            #            ["{} -bin -tol {} {} {}".format(bin_path, 1e-20, dim, "mymesh.geo")],
-            ["{} -tol {} {} {}".format(bin_path, 1e-20, dim, "mymesh.geo")],
+        ex = subprocess.run(
+            ["{} {} {} {}".format(bin_path, gargs, dim, "mymesh.geo")],
+            check=False,
+            capture_output=True,
+            text=True,
             cwd=calc_dir,
             shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
             universal_newlines=True,
             # bufsize=1,
-        ) as ex:
-            output = ex.stdout.read()
-            error = ex.stderr.read()
+        )
 
-            lines = [l for l in error.splitlines() if l and l[:4] not in ["Info", "Warn"]]
+        with open(os.path.join(calc_dir, "myerr.log"), "w") as fd:
+            fd.write(ex.stderr)
+        with open(os.path.join(calc_dir, "myrun.log"), "w") as fd:
+            fd.write(ex.stdout)
+
+        lines = [l for l in ex.stderr.splitlines() if l and l[:4] not in ["Info", "Warn"]]
+
+        if ex.returncode == 0:
+            # ---------------------------------------------------------------------
+            logger.info("gmsh executed successfuly\n")
+            # ---------------------------------------------------------------------
+        else:
+            # ---------------------------------------------------------------------
+            logger.error("gmsh failed to execute\n")
+            # ---------------------------------------------------------------------
+            ex.check_returncode()
 
         if lines:
-            logger.error("Gmsh FAILED\n")
-            logger.debug(lines)
+            logger.error("gmsh FAILED\n")
+            logger.debug(lines[0])
             status = False
         else:
-            logger.info("Gmsh FINISHED\n")
+            logger.info("gmsh FINISHED\n")
             status = True
-
-        with open(calc_dir + "myoutput.txt", "w") as f:
-            f.write(output)
-            f.write(error)
 
     else:
         status = True
