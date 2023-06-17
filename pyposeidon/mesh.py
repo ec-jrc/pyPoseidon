@@ -325,7 +325,7 @@ class tri2d:
 
             li = pd.DataFrame({"node": nodes})
             tt = ["land" if etype == 0 else "island"]
-            idi = [ili if etype == 1 else 1000 + int(label[-1])]
+            idi = [ili if etype == 1 else 1000 + int(label.split()[-1])]
             li["type"] = tt[0]
             li["id"] = idi[0]
             ldic.update({label: li})
@@ -557,6 +557,15 @@ class tri2d:
 
         out, err = ex.communicate()[:]
 
+        if ex.returncode == 0:
+            # ---------------------------------------------------------------------
+            logger.info("SCHISM executed successfully\n")
+            # ---------------------------------------------------------------------
+        else:
+            # ---------------------------------------------------------------------
+            logger.error("SCHISM failed to execute. See err.log\n")
+            # ---------------------------------------------------------------------
+
         if "successfully" in str(out):
             # ---------------------------------------------------------------------
             logger.info("mesh is validated for SCHISM\n")
@@ -565,7 +574,7 @@ class tri2d:
         else:
             logger.debug(str(out))
             # ---------------------------------------------------------------------
-            logger.info("mesh fails.. exiting \n")
+            logger.error("mesh fails.. exiting \n")
             # ---------------------------------------------------------------------
             return False
 
