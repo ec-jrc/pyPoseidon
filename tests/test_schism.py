@@ -1,3 +1,6 @@
+import copy
+import glob
+
 import pytest
 import pyposeidon
 import os
@@ -105,3 +108,13 @@ def schism(tmpdir, dic):
 @pytest.mark.parametrize("case", [case1, case2, case3])
 def test_answer(tmpdir, case):
     assert schism(tmpdir, case) == True
+
+
+@pytest.mark.current
+def test_schism_meteo_split_by(tmpdir):
+    model_description = copy.deepcopy(case1)
+    model_description.update({"rpath": tmpdir, "meteo_split_by": "hour", "update": ["meteo"]})
+    model = pyposeidon.model.set(**model_description)
+    model.create()
+    model.output()
+    assert len(glob.glob(f"{tmpdir}/sflux/*.nc")) > 1, os.listdir(f"{tmpdir}/sflux")

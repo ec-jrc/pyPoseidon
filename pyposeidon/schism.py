@@ -645,7 +645,7 @@ class Schism:
             try:
                 if split_by:
                     times, datasets = zip(*self.meteo.Dataset.groupby("time.{}".format(split_by)))
-                    mpaths = ["sflux/sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
+                    mpaths = ["sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
                     for das, mpath in list(zip(datasets, mpaths)):
                         self.to_force(
                             das, vars=["msl", "u10", "v10"], rpath=path, filename=mpath, date=self.rdate, **kwargs

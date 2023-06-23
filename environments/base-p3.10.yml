@@ -5,6 +5,7 @@ dependencies:
   - cartopy
   - cfgrib
   - colorlog
+  - compilers
   - dask
   - eccodes
   - f90nml
