@@ -368,8 +368,13 @@ class SchismCast:
         hotout = int((self.sdate - self.rdate).total_seconds() / info["params"]["core"]["dt"])
         logger.debug("hotout_it = {}".format(hotout))
 
-        resfile = glob.glob(os.path.join(ppath, "/outputs/hotstart_it={}.nc".format(hotout)))
-        if not resfile:
+        # link restart file
+        inresfile = os.path.join(ppath, f"outputs/hotstart_it={hotout}.nc")
+        outresfile = os.path.join(rpath, "hotstart.nc")
+
+        logger.debug("hotstart_file: %s", inresfile)
+        if not os.path.exists(inresfile):
+            logger.info("Generating hotstart file.\n")
             # load model model from ppath
             with open(os.path.join(ppath, self.tag + "_model.json"), "rb") as f:
                 data = json.load(f)
@@ -377,16 +382,14 @@ class SchismCast:
                 ph = data.to_dict(orient="records")[0]
             p = pm.set(**ph)
             p.hotstart(it=hotout)
-
-        # link restart file
-        inresfile = os.path.join(ppath, f"outputs/hotstart_it={hotout}.nc")
-        outresfile = os.path.join(rpath, "hotstart.nc")
-
-        logger.info("set restart\n")
+        else:
+            logger.info("Hotstart file already existing. Skipping creation.\n")
 
         if copy:
+            logger.info("Copying: %s -> %s", inresfile, outresfile)
             copy2(inresfile, outresfile)
         else:
+            logger.info("Symlinking`: %s -> %s", inresfile, outresfile)
             try:
                 os.symlink(
                     pathlib.Path(os.path.join(ppath, inresfile)).resolve(strict=True), os.path.join(rpath, outresfile)
@@ -402,7 +405,6 @@ class SchismCast:
                     )
                 else:
                     raise e
-
         # get new meteo
 
         logger.info("process meteo\n")

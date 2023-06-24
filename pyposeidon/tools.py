@@ -4,6 +4,7 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 
+import itertools
 import logging
 import os
 import shlex
@@ -21,6 +22,12 @@ import numpy as np
 import psutil
 import rioxarray
 import xarray as xr
+
+from typing import Iterator
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
+
 
 logger = logging.getLogger(__name__)
 
@@ -331,3 +338,43 @@ def get_coastlines(resolution: str, category="physical", name="land") -> gpd.Geo
     )
     gdf = gpd.GeoDataFrame(geometry=list(land.geometries()))
     return gdf
+
+
+# https://docs.python.org/3/library/itertools.html#itertools-recipes
+# https://github.com/more-itertools/more-itertools/blob/2ff5943d76afa4591b5b4ae8cb4524578d365f67/more_itertools/recipes.pyi#L42-L48
+
+_T = TypeVar("_T")
+_U = TypeVar("_U")
+
+
+def grouper(
+    iterable: Iterable[_T],
+    n: int,
+    *,
+    incomplete: str = "fill",
+    fillvalue: Union[_U, None] = None,
+) -> Iterator[tuple[Union[_T, _U], ...]]:
+    """Collect data into non-overlapping fixed-length chunks or blocks"""
+    # grouper('ABCDEFG', 3, fillvalue='x') --> ABC DEF Gxx
+    # grouper('ABCDEFG', 3, incomplete='strict') --> ABC DEF ValueError
+    # grouper('ABCDEFG', 3, incomplete='ignore') --> ABC DEF
+    args = [iter(iterable)] * n
+    if incomplete == "fill":
+        return itertools.zip_longest(*args, fillvalue=fillvalue)
+    if incomplete == "strict":
+        return zip(*args, strict=True)  # type: ignore[call-overload]
+    if incomplete == "ignore":
+        return zip(*args)
+    else:
+        raise ValueError("Expected fill, strict, or ignore")
+
+
+def merge_netcdfs(paths: list[os.PathLike[str]], max_size: int = 5) -> xr.Dataset:
+    # in order to keep memory consumption low, let's group the datasets
+    # and merge them in batches
+    datasets = [xr.open_dataset(path) for path in paths]
+    while len(datasets) > max_size:
+        datasets = [xr.merge(g for g in group if g) for group in grouper(datasets, max_size)]
+    # Do the final merging
+    ds = xr.merge(datasets)
+    return ds
