@@ -15,6 +15,7 @@ import xarray as xr
 import os
 import shapely
 import subprocess
+import shlex
 from tqdm.auto import tqdm
 import sys
 
@@ -505,19 +506,19 @@ def get(contours, **kwargs):
         logger.info("executing jigsaw\n")
         # ---------------------------------
 
+        cmd = "jigsaw {}".format(tag + ".jig")
+
         # execute jigsaw
-        ex = subprocess.run(
-            ["jigsaw {}".format(tag + ".jig")],
+        proc = subprocess.run(
+            shlex.split(cmd),
             check=False,
             capture_output=True,
             text=True,
             cwd=calc_dir,
-            shell=True,
-            universal_newlines=True,
             # bufsize=1,
         )
 
-        if ex.returncode == 0:
+        if proc.returncode == 0:
             # ---------------------------------------------------------------------
             logger.info("jigsaw executed successfully\n")
             # ---------------------------------------------------------------------
@@ -532,7 +533,7 @@ def get(contours, **kwargs):
             # ---------------------------------------------------------------------
             logger.error("jigsaw failed to execute\n")
             # ---------------------------------------------------------------------
-            ex.check_returncode()
+            proc.check_returncode()
 
             gr = None
 

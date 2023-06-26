@@ -14,6 +14,7 @@ import numpy as np
 import xml.dom.minidom as md
 from shutil import copy2
 import subprocess
+import shlex
 import sys
 import json
 from collections import OrderedDict
@@ -690,27 +691,28 @@ class Schism:
             logger.warning("mpirun is not installed, ending.. \n")
             return
 
+        cmd = "./launchSchism.sh"
+
         # note that cwd is the folder where the executable is
-        ex = subprocess.run(
-            ["./launchSchism.sh"],
+        proc = subprocess.run(
+            shlex.split(cmd),
             check=False,
             capture_output=True,
             text=True,
             cwd=calc_dir,
-            shell=True,
         )
 
         with open(os.path.join(calc_dir, "err.log"), "w") as fd:
-            fd.write(ex.stderr)
+            fd.write(proc.stderr)
         with open(os.path.join(calc_dir, "run.log"), "w") as fd:
-            fd.write(ex.stdout)
+            fd.write(proc.stdout)
 
         # store output in class
-        self.stderr = ex.stderr
-        self.stdout = ex.stdout
+        self.stderr = proc.stderr
+        self.stdout = proc.stdout
 
-        if ex.returncode == 0:
-            if ("ABORT" in ex.stderr) or ("ABORT" in ex.stdout):
+        if proc.returncode == 0:
+            if ("ABORT" in proc.stderr) or ("ABORT" in proc.stdout):
                 # ---------------------------------------------------------------------
                 logger.error("schism failed to execute correctly. See logs\n")
                 # ---------------------------------------------------------------------
@@ -722,7 +724,7 @@ class Schism:
             # ---------------------------------------------------------------------
             logger.error("schism failed to execute. See logs\n")
             # ---------------------------------------------------------------------
-            ex.check_returncode()
+            proc.check_returncode()
 
     def save(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")

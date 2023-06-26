@@ -18,6 +18,7 @@ import sys
 import gmsh
 import subprocess
 import shapely
+import shlex
 
 from pyposeidon.utils.spline import use_spline
 from pyposeidon.utils.global_bgmesh import make_bgmesh_global
@@ -295,11 +296,8 @@ def get(contours, **kwargs):
         to_geo(contours, **kwargs)
         if not setup_only:
             logger.info("Using GMSH binary")
-            status = gmsh_execute(**kwargs)
-            if status:
-                gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
-            else:
-                gr = None
+            gmsh_execute(**kwargs)
+            gr = read_msh(rpath + "/gmsh/mymesh.msh", **kwargs)
         else:
             gr = None
 
@@ -636,8 +634,6 @@ def gmsh_execute(**kwargs):
 
         gmsh_args = kwargs.get("gmsh_args", {})
 
-        gmsh_args.update({"tol": 1e-20})
-
         gargs = ""
         for k, v in list(gmsh_args.items()):
             if k[0] != "-":
@@ -645,46 +641,34 @@ def gmsh_execute(**kwargs):
             gargs = gargs + " ".join([k, str(v)]) + " "
 
         # execute gmsh
-        ex = subprocess.run(
-            ["{} {} {} {}".format(bin_path, gargs, dim, "mymesh.geo")],
+        cmd = "{} {} {} {}".format(bin_path, gargs, dim, "mymesh.geo")
+
+        proc = subprocess.run(
+            shlex.split(cmd),
             check=False,
             capture_output=True,
             text=True,
             cwd=calc_dir,
-            shell=True,
-            universal_newlines=True,
             # bufsize=1,
         )
 
         with open(os.path.join(calc_dir, "myerr.log"), "w") as fd:
-            fd.write(ex.stderr)
+            fd.write(proc.stderr)
         with open(os.path.join(calc_dir, "myrun.log"), "w") as fd:
-            fd.write(ex.stdout)
+            fd.write(proc.stdout)
 
-        lines = [l for l in ex.stderr.splitlines() if l and l[:4] not in ["Info", "Warn"]]
-
-        if ex.returncode == 0:
-            # ---------------------------------------------------------------------
-            logger.info("gmsh executed successfuly\n")
-            # ---------------------------------------------------------------------
-        else:
+        if proc.returncode or "Error" in proc.stderr:
             # ---------------------------------------------------------------------
             logger.error("gmsh failed to execute\n")
             # ---------------------------------------------------------------------
-            ex.check_returncode()
-
-        if lines:
-            logger.error("gmsh FAILED\n")
-            logger.debug(lines[0])
-            status = False
+            proc.check_returncode()
+            raise subprocess.CalledProcessError(
+                cmd=cmd, output=proc.stdout, stderr=proc.stderr, returncode=proc.returncode
+            )
         else:
-            logger.info("gmsh FINISHED\n")
-            status = True
+            logger.info("gmsh finished successfully\n")
 
-    else:
-        status = True
-
-    return status
+    return
 
 
 def outer_boundary(df, **kwargs):
