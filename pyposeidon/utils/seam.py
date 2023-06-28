@@ -2,7 +2,8 @@ import pandas as pd
 import geopandas as gp
 import numpy as np
 import shapely
-import glob
+from glob import glob
+import os
 from tqdm.auto import tqdm
 import pyresample
 import xarray as xr
@@ -205,14 +206,12 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
         it_start = kwargs.get("it_start", 0)
         it_end = kwargs.get("it_end", dataset.time.shape[0])
 
-        #        xelev = []
-
         for i in tqdm(range(it_start, it_end)):
             z = dataset[var].values[i, :]
             zm = z[xmask]
             z_ = pyresample.kd_tree.resample_nearest(orig, zm, targ, radius_of_influence=200000, fill_value=0)
             e = np.concatenate((z, z_))
-            #            xelev.append(e)
+            e = e[np.newaxis, :]  # make 2d
 
             # create xarray
             xi = xr.Dataset(
@@ -225,12 +224,17 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
                         tri3n,
                     ),
                 },
-                coords={"time": ("time", dataset.time.values[i])},
+                coords={"time": ("time", [dataset.time.values[i]])},
             )
 
-            xi.to_netcdf("./tmp/x{:03d}.nc")
+            xi.to_netcdf("/tmp/x_{:03d}.nc".format(i))
 
-        xe = xr.open_mfdataset("./tmp/*.nc")
+        xe = xr.open_mfdataset("/tmp/x_*.nc", data_vars="minimal")
+
+        # cleanup
+        xfiles = glob("/tmp/x_*.nc")
+        for f in xfiles:
+            os.remove(f)
 
     return xe
 

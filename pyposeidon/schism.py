@@ -1772,6 +1772,7 @@ class Schism:
         tg_database = get_value(self, kwargs, "obs", None)
 
         if tg_database == None:
+            logger.info("get stations using searvey\n")
             geometry = get_value(self, kwargs, "geometry", None)
             if geometry == "global":
                 tg = ioc.get_ioc_stations()
@@ -1779,14 +1780,16 @@ class Schism:
                 geo_box = shapely.geometry.box(self.lon_min, self.lat_min, self.lon_max, self.lat_max)
                 tg = ioc.get_ioc_stations(region=geo_box)
         else:
+            logger.info("get stations from {}\n".format(tg_database))
             tg = pd.read_csv(tg_database)
 
         tg = tg.reset_index(drop=True)
         ### save in compatible to searvey format
         tg["country"] = tg.country.values.astype("str")  # fix an issue with searvey see #43 therein
         logger.info("save station DataFrame \n")
-        tg.to_file(os.path.join(path, "stations.json"))
-        self.obs = tg
+        sfilename = os.path.join(path, "stations.json")
+        tg.to_file(sfilename)
+        self.obs = sfilename
 
         ##### normalize to be used inside pyposeidon
         tgn = normalize_column_names(tg.copy())
