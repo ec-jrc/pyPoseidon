@@ -92,6 +92,9 @@ github.token
 venv/
 .venv/
 
+test/
+.test/
+
 tests/data/*
 
 # mkdocs
