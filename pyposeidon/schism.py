@@ -19,7 +19,6 @@ import sys
 import json
 from collections import OrderedDict
 import pandas as pd
-import geopandas as gp
 import glob
 from shutil import copyfile
 import xarray as xr
@@ -1771,7 +1770,10 @@ class Schism:
         nspool_sta = get_value(self, kwargs, "nspool_sta", 1)
         tg_database = get_value(self, kwargs, "obs", None)
 
-        if tg_database == None:
+        if tg_database:
+            logger.info("get stations from {}\n".format(tg_database))
+            tg = gp.read_file(tg_database)
+        else:
             logger.info("get stations using searvey\n")
             geometry = get_value(self, kwargs, "geometry", None)
             if geometry == "global":
@@ -1779,17 +1781,13 @@ class Schism:
             else:
                 geo_box = shapely.geometry.box(self.lon_min, self.lat_min, self.lon_max, self.lat_max)
                 tg = ioc.get_ioc_stations(region=geo_box)
-        else:
-            logger.info("get stations from {}\n".format(tg_database))
-            tg = pd.read_csv(tg_database)
-
-        tg = tg.reset_index(drop=True)
-        ### save in compatible to searvey format
-        tg["country"] = tg.country.values.astype("str")  # fix an issue with searvey see #43 therein
-        logger.info("save station DataFrame \n")
-        sfilename = os.path.join(path, "stations.json")
-        tg.to_file(sfilename)
-        self.obs = sfilename
+            tg = tg.reset_index(drop=True)
+            ### save in compatible to searvey format
+            tg["country"] = tg.country.values.astype("str")  # fix an issue with searvey see #43 therein
+            logger.info("save station DataFrame \n")
+            tg_database = os.path.join(path, "stations.json")
+            tg.to_file(tg_database)
+        self.obs = tg_database
 
         ##### normalize to be used inside pyposeidon
         tgn = normalize_column_names(tg.copy())
