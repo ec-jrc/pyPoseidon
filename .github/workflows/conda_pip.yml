@@ -173,6 +173,14 @@ jobs:
       #     python -mpip install -r "${REQUIREMENTS_VIZ}"
       #     make test_viz
 
+      - name: "Run tests: Schism"
+        run: |
+          eval "$(micromamba shell hook)"
+          micromamba activate "${SCHISM_ENV}"
+          # micromamba activate --stack "${DELFT3D_ENV}"
+          micromamba activate --stack "${PYPOSEIDON_ENV}"
+          make test_schism
+
       - name: "Run tests: Delft"
         run: |
           eval "$(micromamba shell hook)"
