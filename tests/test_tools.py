@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import shutil
@@ -119,3 +120,17 @@ def test_create_d3d_mpirun_script_ncores(tmp_path, ncores):
 def test_open_dataset(source) -> None:
     ds = tools.open_dataset(source)
     assert isinstance(ds, xr.Dataset)
+
+
+def test_setup_logging():
+    logger = logging.getLogger("pyposeidon")
+    # By default two handlers should be configured on pyposeidon
+    assert len(logger.handlers) == 2
+    # By default two log level should be DEBUG
+    assert logger.level == logging.DEBUG
+    # if we disable file handler, there should be just 1 handler
+    tools.setup_logging(log_file=None)
+    assert len(logger.handlers) == 1
+    # we should be able to change the min_level
+    tools.setup_logging(min_level=logging.INFO)
+    assert logger.level == logging.INFO

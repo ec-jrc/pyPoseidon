@@ -14,8 +14,10 @@ import subprocess
 from collections.abc import Iterable
 import time
 import shutil
+import sys
 
 import cartopy.feature
+import colorlog
 import geopandas as gpd
 import jinja2
 import numpy as np
@@ -24,9 +26,21 @@ import rioxarray
 import xarray as xr
 
 from typing import Iterator
+from typing import Optional
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
+
+
+_PLAIN_FORMATTER = {
+    "fmt": "%(asctime)s %(levelname)-8s %(name)s %(funcName)s:%(lineno)s %(message)s",
+}
+_COLORED_FORMATTER = {
+    "fmt": "%(thin)s%(asctime)s%(reset)s %(log_color)s%(levelname)-8s%(reset)s %(thin)s%(name)s %(funcName)s:%(lineno)s%(reset)s %(message_log_color)s%(message)s",
+    "secondary_log_colors": {
+        "message": {"INFO": "bold_green", "WARNING": "bold_yellow", "ERROR": "bold_red", "CRITICAL": "bold_red"}
+    },
+}
 
 
 logger = logging.getLogger(__name__)
@@ -91,6 +105,42 @@ export PATH=$exedir:$PATH
     # Run
 "$(which mpiexec)" {{ mpirun_flags }} -np {{ ncores }} {{ cmd }} $argfile
 """.strip()
+
+
+def setup_logging(
+    min_level: int = logging.DEBUG, color: bool = True, log_file: Optional[os.PathLike[str]] = "pyposeidon.log"
+) -> None:
+    # The purpose is to have a function that will allow us to easily setup some pyposeidon logging
+    # and that will allow us to also dynamically change the log levels
+    # The root logger and the other loggers should not be affected.
+
+    # formatters
+    colored_formatter = colorlog.ColoredFormatter(**_COLORED_FORMATTER)
+    plain_formatter = logging.Formatter(**_PLAIN_FORMATTER)
+
+    # Get handle of the root pyposeidon logger
+    # we need to removing the existing handlers because if we call the function more than once
+    # then we will end up with duplicated handlers (i.e. duplicated logs)
+    logger = logging.getLogger("pyposeidon")
+    logger.setLevel(min_level)
+    logger.propagate = False
+    logger.handlers.clear()
+
+    # Setup the console
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    if color:
+        console_handler.setFormatter(colored_formatter)
+    else:
+        console_handler.setFormatter(plain_formatter)
+    logger.addHandler(console_handler)
+
+    # Setup the file handler
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(plain_formatter)
+        logger.addHandler(file_handler)
 
 
 # TODO Handle master/develop version

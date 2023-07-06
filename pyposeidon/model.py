@@ -35,41 +35,6 @@ import logging.config
 import colorlog
 
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": True,
-    "formatters": {
-        "verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"},
-        "simple": {"format": "%(levelname)s %(message)s"},
-        "color": {
-            "()": "colorlog.ColoredFormatter",
-        },
-    },
-    "handlers": {
-        "file": {
-            "level": "DEBUG",
-            "class": "logging.FileHandler",
-            "formatter": "verbose",
-            "filename": "pyposeidon.log",
-        },
-        "console": {
-            "level": "DEBUG",
-            "class": "colorlog.StreamHandler",
-            "formatter": "color",
-        },
-    },
-    "loggers": {
-        "pyposeidon": {
-            "handlers": ["file", "console"],
-            "propagate": True,
-            "level": "DEBUG",
-        }
-    },
-}
-
-logging.config.dictConfig(LOGGING)
-
-
 def set(solver_name, atm=True, tide=False, **kwargs):
     """
     Construct a hydrodynamic model based on different solvers.

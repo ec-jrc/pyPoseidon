@@ -60,6 +60,7 @@ Shapely = ">=2"
 #Shapely = { url = "https://github.com/shapely/shapely/archive/refs/tags/1.7.1.zip" }
 tqdm = "*"
 xarray = "*"
+zarr = "*"
 # viz
 geoviews = { version = "*", optional = true, extras = ['recommended'] }
 holoviews = { version = "*", optional = true }
