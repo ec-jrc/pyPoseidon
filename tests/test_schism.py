@@ -110,7 +110,6 @@ def test_answer(tmpdir, case):
     assert schism(tmpdir, case) == True
 
 
-@pytest.mark.current
 def test_schism_meteo_split_by(tmpdir):
     model_description = copy.deepcopy(case1)
     model_description.update({"rpath": tmpdir, "meteo_split_by": "hour", "update": ["meteo"]})
