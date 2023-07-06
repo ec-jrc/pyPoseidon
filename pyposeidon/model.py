@@ -69,11 +69,6 @@ LOGGING = {
 
 logging.config.dictConfig(LOGGING)
 
-# strings to be used
-le = ["A", "B"]
-
-nm = ["Z", "A"]
-
 
 def set(solver_name, atm=True, tide=False, **kwargs):
     """
