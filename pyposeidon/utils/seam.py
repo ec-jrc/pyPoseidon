@@ -206,6 +206,9 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
         it_start = kwargs.get("it_start", 0)
         it_end = kwargs.get("it_end", dataset.time.shape[0])
 
+        if not os.path.exists("./seamtmp/"):
+            os.makedirs("./seamtmp/")
+
         for i in tqdm(range(it_start, it_end)):
             z = dataset[var].values[i, :]
             zm = z[xmask]
@@ -227,14 +230,15 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
                 coords={"time": ("time", [dataset.time.values[i]])},
             )
 
-            xi.to_netcdf("/tmp/x_{:03d}.nc".format(i))
+            xi.to_netcdf("./seamtmp/x_{:03d}.nc".format(i))
 
-        xe = xr.open_mfdataset("/tmp/x_*.nc", data_vars="minimal")
+        xe = xr.open_mfdataset("./seamtmp/x_*.nc", data_vars="minimal")
 
         # cleanup
-        xfiles = glob("/tmp/x_*.nc")
+        xfiles = glob("./seamtmp/x_*.nc")
         for f in xfiles:
             os.remove(f)
+        os.removedirs("./seamtmp/")
 
     return xe
 
