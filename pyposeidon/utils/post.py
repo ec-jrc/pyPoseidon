@@ -78,6 +78,20 @@ def compute_obs(stations, start_time, end_time):
     return ods
 
 
+def save_ods(ods, **kwargs):
+    rpath = kwargs.get("rpath", "./thalassa/")
+
+    # obs data
+    logger.info("saving observations data\n")
+    obs_file = os.path.join(rpath, f"searvey")
+    if not os.path.exists(obs_file):
+        ods.to_zarr(store=obs_file, mode="a")
+    else:
+        ods.to_zarr(store=obs_file, mode="a", append_dim="time")
+
+    return
+
+
 def to_thalassa(folder, freq=None, **kwargs):
     # Retrieve data
     tag = kwargs.get("tag", "schism")
@@ -151,25 +165,41 @@ def to_thalassa(folder, freq=None, **kwargs):
         else:
             h.to_zarr(store=leadfile, mode="a", append_dim="ftime")
 
+    locations = stations.ioc_code.values
+
+    # save to files
+    logger.info("Construct station simulation data output\n")
+    # Construct Thalassa file
+
+    stp = stations.to_xarray().rename({"index": "node"})  # stations
+    stp = stp.assign_coords({"node": locations})
+
+    st_ = st.assign_coords(node=locations)
+    st_ = st_.rename({"elev": "elev_sim", "time": "stime"})
+
+    vdata = xr.merge([stp, st_])
+
+    vdata = vdata.drop_vars("geometry")
+
+    logger.info("Save station simulation data output\n")
+
+    output_path = os.path.join(rpath, filename)
+
+    vdata.to_netcdf(output_path)
+    logger.info(f"..done with {filename} file\n")
+
     # get observations
     ods = compute_obs(stations, b.start_date, b.end_date)
+
+    save_ods(ods, **kwargs)
 
     # compute stats
     st = st.assign({"ioc_code": ("node", stations["ioc_code"])})
     sts = compute_stats(st, ods)
 
-    # save to files
-    to_stations(st, sts, stations, rpath, filename)  # sim data
+    save_stats(sts, stations, **kwargs)
 
-    # obs data
-    logger.info("saving observations data\n")
-    obs_file = os.path.join(rpath, f"searvey")
-    if not os.path.exists(obs_file):
-        ods.to_zarr(store=obs_file, mode="a")
-    else:
-        ods.to_zarr(store=obs_file, mode="a", append_dim="time")
-
-    logger.info("post processing complete\n")
+    logger.info(f"post processing complete for folder {folder}\n")
 
 
 def compute_stats(st, ods):
@@ -189,9 +219,10 @@ def compute_stats(st, ods):
     return sts
 
 
-def to_stations(st, sts, stations, rpath, filename):
-    logger.info("Construct station data output\n")
-    # Construct Thalassa file
+def save_stats(sts, stations, **kwargs):
+    rpath = kwargs.get("rpath", "./thalassa/")
+
+    logger.info("Save stats\n")
 
     locations = stations.ioc_code.values
 
@@ -199,20 +230,16 @@ def to_stations(st, sts, stations, rpath, filename):
     stats.index.name = "node"
     stats_ = stats.to_xarray().assign_coords({"node": locations})  # stats
 
-    stp = stations.to_xarray().rename({"id": "node"})  # stations
+    stp = stations.to_xarray().rename({"index": "node"})  # stations
     stp = stp.assign_coords({"node": locations})
 
-    st_ = st.where(st.ioc_code.isin(stats_.node), drop=True)  # sims
-    st_ = st_.assign_coords(node=locations)
-    st_ = st_.rename({"elev": "elev_sim", "time": "stime"})
+    sdata = xr.merge([stp, stats_])
 
-    vdata = xr.merge([stp, stats_, st_])
+    sdata = sdata.drop_vars("geometry")
 
-    vdata = vdata.drop_vars("geometry")
+    rpath = kwargs.get("rpath", "./thalassa/")
 
-    logger.info("Save station sim data output\n")
+    output_path = os.path.join(rpath, "stats.nc")
 
-    output_path = os.path.join(rpath, filename)
-
-    vdata.to_netcdf(output_path)
-    logger.info(f"..done with {filename} file\n")
+    sdata.to_netcdf(output_path)
+    logger.info(f"..done with stats file\n")
