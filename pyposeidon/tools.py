@@ -31,6 +31,8 @@ from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
+from pyposeidon.utils.get_value import get_value
+
 
 _PLAIN_FORMATTER = {
     "fmt": "%(asctime)s %(levelname)-8s %(name)s %(funcName)s:%(lineno)s %(message)s",
@@ -464,3 +466,13 @@ def merge_netcdfs(paths: list[os.PathLike[str]], max_size: int = 5) -> xr.Datase
     # Do the final merging
     ds = xr.merge(datasets)
     return ds
+
+
+def resolve_schism_path(instance, kwargs) -> str:
+    bin_path = os.environ.get("SCHISM", get_value(instance, kwargs, "epath", None))
+    if bin_path is None:
+        # ------------------------------------------------------------------------------
+        logger.warning("Schism executable path (epath) not given -> using default \n")
+        # ------------------------------------------------------------------------------
+        bin_path = "schism"
+    return bin_path
