@@ -175,10 +175,7 @@ class Schism:
         self.atm = kwargs.get("atm", True)
         self.monitor = kwargs.get("monitor", False)
 
-        try:
-            self.epath = os.environ["SCHISM"]
-        except:
-            self.epath = kwargs.get("epath", None)
+        self.epath = tools.resolve_schism_path(instance=self, kwargs=kwargs)
 
         self.solver_name = SCHISM_NAME
 
@@ -657,22 +654,10 @@ class Schism:
                 pass
 
         calc_dir = get_value(self, kwargs, "rpath", "./schism/")
-
-        try:
-            bin_path = os.environ["SCHISM"]
-        except:
-            bin_path = get_value(self, kwargs, "epath", None)
-
-        if bin_path is None:
-            # ------------------------------------------------------------------------------
-            logger.warning("schism executable path (epath) not given -> using default \n")
-            # ------------------------------------------------------------------------------
-            bin_path = "schism"
-
         scribes = get_value(self, kwargs, "scribes", 0)
 
         tools.create_schism_mpirun_script(
-            target_dir=calc_dir, cmd=bin_path, script_name="launchSchism.sh", scribes=scribes
+            target_dir=calc_dir, cmd=self.epath, script_name="launchSchism.sh", scribes=scribes
         )
 
         # ---------------------------------------------------------------------
@@ -752,20 +737,9 @@ class Schism:
 
             calc_dir = get_value(self, kwargs, "rpath", "./schism/")
 
-            try:
-                bin_path = os.environ["SCHISM"]
-            except:
-                bin_path = get_value(self, kwargs, "epath", None)
-
-            if bin_path is None:
-                # ------------------------------------------------------------------------------
-                logger.warning("schism executable path (epath) not given -> using default \n")
-                # ------------------------------------------------------------------------------
-                bin_path = "schism"
-
             tools.create_mpirun_script(
                 target_dir=calc_dir,
-                cmd=bin_path,
+                cmd=self.epath,
                 script_name="launchSchism.sh",
             )
 

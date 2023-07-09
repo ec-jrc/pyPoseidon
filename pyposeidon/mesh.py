@@ -529,16 +529,7 @@ class tri2d:
         # save hgrid.gr3
         self.to_file(filename=path + "hgrid.gr3")
 
-        try:
-            bin_path = os.environ["SCHISM"]
-        except:
-            bin_path = kwargs.get("epath", None)
-
-        if bin_path is None:
-            # ------------------------------------------------------------------------------
-            logger.warning("Schism executable path (epath) not given -> using default \n")
-            # ------------------------------------------------------------------------------
-            bin_path = "schism"
+        bin_path = tools.resolve_schism_path(instance=self, kwargs=kwargs)
 
         scribes = kwargs.get("scribes", -1)
 
