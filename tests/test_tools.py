@@ -33,58 +33,36 @@ def test_get_schism_version():
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
 @pytest.mark.parametrize("use_threads", [True, False])
+@pytest.mark.parametrize("ncores", [0, 1, 2, 4, 44])
 @pytest.mark.parametrize("scribes", [-1, 1])
-def test_create_schism_mpirun_script(tmp_path, use_threads, scribes):
+def test_create_schism_mpirun_script(tmp_path, use_threads, ncores, scribes):
     target_dir = tmp_path.as_posix()
     cmd = "/bin/schism"
     script_name = "launchSchism.sh"
     script_path = tools.create_schism_mpirun_script(
-        target_dir=target_dir, script_name=script_name, cmd=cmd, use_threads=use_threads, scribes=scribes
+        target_dir=target_dir,
+        script_name=script_name,
+        cmd=cmd,
+        use_threads=use_threads,
+        ncores=ncores,
+        scribes=scribes,
     )
     assert script_path == (tmp_path / script_name).as_posix(), "script was not created"
     assert os.access(script_path, os.X_OK), "script is not executable"
     assert not (tmp_path / "outputs").exists(), "outputs subdirectory has not been created"
     content = pathlib.Path(script_path).read_text()
-    cmd_line = ""
     for line in content.splitlines():
-        if line.startswith("exec"):
-            cmd_line = line.strip()
+        if line.endswith("2>&1"):
+            cmd_line = line
             break
     assert cmd_line
     assert cmd in cmd_line
-    assert f"-N {psutil.cpu_count(logical=use_threads)}" in cmd_line
-    if scribes > 0:
-        assert cmd_line.endswith(f"{scribes}")
+    if ncores:
+        assert f"-N {ncores}" in cmd_line
     else:
-        assert cmd_line.endswith(f"{cmd})")
-
-
-@pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
-@pytest.mark.parametrize("ncores", [2, 4, 44])
-@pytest.mark.parametrize("scribes", [-1, 1])
-def test_create_schism_mpirun_script_ncores(tmp_path, ncores, scribes):
-    target_dir = tmp_path.as_posix()
-    cmd = "/bin/schism"
-    script_name = "launchSchism.sh"
-    script_path = tools.create_schism_mpirun_script(
-        target_dir=target_dir, script_name=script_name, cmd=cmd, ncores=ncores, scribes=scribes
-    )
-    assert script_path == (tmp_path / script_name).as_posix(), "script was not created"
-    assert os.access(script_path, os.X_OK), "script is not executable"
-    assert not (tmp_path / "outputs").exists(), "outputs subdirectory has not been created"
-    content = pathlib.Path(script_path).read_text()
-    cmd_line = ""
-    for line in content.splitlines():
-        if line.startswith("exec"):
-            cmd_line = line.strip()
-            break
-    assert cmd_line
-    assert cmd in cmd_line
-    assert f"-N {ncores}" in cmd_line
+        assert f"-N {psutil.cpu_count(logical=use_threads)}" in cmd_line
     if scribes > 0:
-        assert cmd_line.endswith(f"{scribes}")
-    else:
-        assert cmd_line.endswith(f"{cmd})")
+        assert f"{cmd}) {scribes}" in cmd_line
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")

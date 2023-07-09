@@ -39,19 +39,6 @@ geometry = {
 }
 
 
-def schism(tmpdir, model):
-    # initialize a model
-    rpath = str(tmpdir) + "/"
-    model.update({"rpath": rpath})  # use tmpdir for running the model
-
-    b = pm.set(**model)
-    b.execute()
-    if ("ABORT" in b.stderr) or ("ABORT" in b.stdout):
-        return True
-    else:
-        return False
-
-
 def jigsaw(tmpdir):
     rpath = str(tmpdir) + "/"
     mesh = pmesh.set(
@@ -75,15 +62,14 @@ def gmsh(tmpdir):
     )
 
 
-@pytest.mark.schism
-def test_schism1(tmpdir):
-    assert schism(tmpdir, case1)
-
-
-def test_schism2(tmpdir):
+@pytest.mark.parametrize("case", [case1, case2])
+def test_schism_execution(tmpdir, case):
+    # initialize a model
+    rpath = str(tmpdir) + "/"
+    case.update({"rpath": rpath})  # use tmpdir for running the model
+    model = pm.set(**case)
     with pytest.raises(subprocess.CalledProcessError) as exc:
-        schism(tmpdir, case2)
-    assert "CalledProcessError" in str(exc)
+        model.execute()
 
 
 def test_jigsaw(tmpdir):

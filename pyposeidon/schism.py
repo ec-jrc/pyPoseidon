@@ -690,40 +690,7 @@ class Schism:
             logger.warning("mpirun is not installed, ending.. \n")
             return
 
-        cmd = "./launchSchism.sh"
-
-        # note that cwd is the folder where the executable is
-        proc = subprocess.run(
-            shlex.split(cmd),
-            check=False,
-            capture_output=True,
-            text=True,
-            cwd=calc_dir,
-        )
-
-        with open(os.path.join(calc_dir, "err.log"), "w") as fd:
-            fd.write(proc.stderr)
-        with open(os.path.join(calc_dir, "run.log"), "w") as fd:
-            fd.write(proc.stdout)
-
-        # store output in class
-        self.stderr = proc.stderr
-        self.stdout = proc.stdout
-
-        if proc.returncode == 0:
-            if ("ABORT" in proc.stderr) or ("ABORT" in proc.stdout):
-                # ---------------------------------------------------------------------
-                logger.error("schism failed to execute correctly. See logs\n")
-                # ---------------------------------------------------------------------
-            else:
-                # ---------------------------------------------------------------------
-                logger.info("finished\n")
-                # ---------------------------------------------------------------------
-        else:
-            # ---------------------------------------------------------------------
-            logger.error("schism failed to execute. See logs\n")
-            # ---------------------------------------------------------------------
-            proc.check_returncode()
+        proc = tools.execute_schism_mpirun_script(cwd=calc_dir)
 
     def save(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")

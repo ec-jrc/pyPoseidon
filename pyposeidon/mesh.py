@@ -546,33 +546,15 @@ class tri2d:
             target_dir=path, cmd=bin_path, script_name="launchSchism.sh", ncores=1, scribes=scribes
         )
 
-        # note that cwd is the folder where the executable is
-        ex = subprocess.Popen(
-            args=["./launchSchism.sh"],
-            cwd=path,
-            shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )  # , bufsize=1)
+        proc = tools.execute_schism_mpirun_script(cwd=path)
 
-        out, err = ex.communicate()[:]
-
-        if ex.returncode == 0:
-            # ---------------------------------------------------------------------
-            logger.info("SCHISM executed successfully\n")
-            # ---------------------------------------------------------------------
-        else:
-            # ---------------------------------------------------------------------
-            logger.error("SCHISM failed to execute. See err.log\n")
-            # ---------------------------------------------------------------------
-
-        if "successfully" in str(out):
+        if "successfully" in proc.stdout:
             # ---------------------------------------------------------------------
             logger.info("mesh is validated for SCHISM\n")
             # ---------------------------------------------------------------------
             return True
         else:
-            logger.debug(str(out))
+            logger.debug(proc.stdout)
             # ---------------------------------------------------------------------
             logger.error("mesh fails.. exiting \n")
             # ---------------------------------------------------------------------
