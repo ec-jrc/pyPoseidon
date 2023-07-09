@@ -69,7 +69,18 @@ root_dir="$(dirname "$(realpath "$0")")"
 cd "${root_dir}"
 mkdir -p outputs
 
-exec $(which mpirun) {{ mpirun_flags }} -N {{ ncores }} $(which {{ cmd }}) {{ scribes }}
+# Schism sometimes throws an error mentioning ABORT or MPI_ABORT while it returns a status code of 0.
+# In order to circumvent this we need to cacture the output and explicitly check the contents for ABORT.
+schism_output=$(
+    $(which mpirun) {{ mpirun_flags }} -N {{ ncores }} $(which {{ cmd }}) {{ scribes }} 2>&1
+)
+
+echo "${schism_output}"
+
+if [[ "${schism_output}" == *"ABORT"* ]]; then
+  echo 'schism seems to have failed. Please check `err.log` and `run.log`. Exiting.'
+  exit 111;
+fi
 """.strip()
 
 
@@ -299,6 +310,31 @@ def create_d3d_mpirun_script(
         template=template,
     )
     return script_path
+
+
+def execute_schism_mpirun_script(cwd: str) -> None:
+    """
+    Execute launchSchism.sh and save stdout/stderr to disk
+    """
+    cmd = "./launchSchism.sh"
+    proc = subprocess.run(
+        shlex.split(cmd),
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+    )
+
+    with open(os.path.join(cwd, "err.log"), "w") as fd:
+        fd.write(proc.stderr)
+    with open(os.path.join(cwd, "run.log"), "w") as fd:
+        fd.write(proc.stdout)
+
+    if proc.returncode != 0:
+        logger.error("schism failed to execute. Check the logs\n")
+        proc.check_returncode()
+
+    return proc
 
 
 def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
