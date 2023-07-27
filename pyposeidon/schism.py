@@ -284,7 +284,7 @@ class Schism:
 
         xx, yy = np.meshgrid(ar.longitude.data, ar.latitude.data)
 
-        zero = dask.array.zeros(ar[p].data.shape)
+        zero = dask.array.zeros_like(ar[p])
 
         date = kwargs.get("date", ar.time[0].data)
 
