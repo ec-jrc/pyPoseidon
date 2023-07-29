@@ -416,7 +416,7 @@ class SchismCast:
         if (np.any(check) == False) or ("meteo" in flag):
             m.force(**info)
             if hasattr(self, "meteo_split_by"):
-                times, datasets = zip(*m.meteo.Dataset.groupby("time.{}".format(self.meteo_split_by)))
+                times, datasets = zip(*m.meteo.Dataset.resample(time=f"{self.meteo_split_by}"))
                 mpaths = ["sflux_air_1.{:04d}.nc".format(t + 1) for t in np.arange(len(times))]
                 for das, mpath in list(zip(datasets, mpaths)):
                     m.to_force(
