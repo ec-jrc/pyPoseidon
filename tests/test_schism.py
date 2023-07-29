@@ -112,8 +112,15 @@ def test_answer(tmpdir, case):
 
 def test_schism_meteo_split_by(tmpdir):
     model_description = copy.deepcopy(case1)
-    model_description.update({"rpath": tmpdir, "meteo_split_by": "hour", "update": ["meteo"]})
+    model_description.update(
+        {
+            "rpath": tmpdir,
+            "meteo_split_by": "1D",
+            "time_frame": "144H",
+            "update": ["meteo"],
+        }
+    )
     model = pyposeidon.model.set(**model_description)
     model.create()
     model.output()
-    assert len(glob.glob(f"{tmpdir}/sflux/*.nc")) > 1, os.listdir(f"{tmpdir}/sflux")
+    assert len(glob.glob(f"{tmpdir}/sflux/*.nc")) == 7, glob.glob(f"{tmpdir}/sflux/*.nc")
