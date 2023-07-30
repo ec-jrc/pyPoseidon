@@ -641,7 +641,7 @@ class Schism:
         if hasattr(self, "atm"):
             try:
                 if split_by:
-                    times, datasets = zip(*self.meteo.Dataset.groupby("time.{}".format(split_by)))
+                    times, datasets = zip(*self.meteo.Dataset.resample(time=f"{split_by}"))
                     mpaths = ["sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
                     for das, mpath in list(zip(datasets, mpaths)):
                         self.to_force(

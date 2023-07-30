@@ -86,7 +86,7 @@ class Meteo:
 
         with dask.config.set(**{"array.slicing.split_large_chunks": False}):
             if split_by:
-                times, datasets = zip(*self.Dataset.groupby("time.{}".format(split_by)))
+                times, datasets = zip(*self.Dataset.resample(time=f"{split_by}"))
                 mpaths = ["sflux_air_{}.{:04d}.nc".format(m_index, t + 1) for t in np.arange(len(times))]
                 for das, mpath in list(zip(datasets, mpaths)):
                     solver.to_force(das, vars=var_list, filename=mpath, **kwargs)
