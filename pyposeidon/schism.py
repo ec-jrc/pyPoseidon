@@ -566,7 +566,11 @@ class Schism:
                 logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
 
                 copyfile(self.mesh_file, os.path.join(path, "hgrid.gr3"))  # copy original grid file
-                copyfile(os.path.join(path, "hgrid.gr3"), os.path.join(path, "hgrid.ll"))
+                src = os.path.join(path, "hgrid.gr3")
+                dst = os.path.join(path, "hgrid.ll")
+                if os.path.lexists(dst):
+                    os.remove(dst)
+                os.symlink(src, dst)
 
             # manning file
             manfile = os.path.join(path, "manning.gr3")
@@ -677,6 +681,11 @@ class Schism:
 
         proc = tools.execute_schism_mpirun_script(cwd=calc_dir)
 
+        if proc.returncode == 0:
+            # ---------------------------------------------------------------------
+            logger.info("model finished successfully\n")
+            # ---------------------------------------------------------------------
+
     def save(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")
 
@@ -705,7 +714,12 @@ class Schism:
                 dic.update({"meteo": [x.attrs for x in meteo.Dataset]})
 
         coastlines = self.__dict__.get("coastlines", None)
-        dic.update({"coastlines": coastlines})
+        coastlines_database = os.path.join(path, "coastlines.json")
+        if coastlines is None:
+            dic.update({"coastlines": coastlines})
+        else:
+            coastlines.to_file(coastlines_database)
+            dic.update({"coastlines": coastlines_database})
 
         dic["version"] = pyposeidon.__version__
 
@@ -1732,6 +1746,9 @@ class Schism:
 
         ##### normalize to be used inside pyposeidon
         tgn = normalize_column_names(tg.copy())
+
+        ##### make sure lat/lon are floats
+        tgn = tgn.astype({"latitude": float, "longitude": float})
 
         coastal_monitoring = get_value(self, kwargs, "coastal_monitoring", False)
         flags = get_value(self, kwargs, "station_flags", [1] + [0] * 8)

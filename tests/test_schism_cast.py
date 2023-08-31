@@ -135,7 +135,8 @@ def test_schism_cast(tmpdir, copy):
                 symlinked_file = os.path.join(next_rpath, filename)
                 assert os.path.exists(symlinked_file)
                 assert os.path.islink(symlinked_file)
-                assert os.path.realpath(symlinked_file) == original_file
+                if not os.path.islink(original_file):
+                    assert os.path.realpath(symlinked_file) == original_file
 
 
 @pytest.mark.schism
