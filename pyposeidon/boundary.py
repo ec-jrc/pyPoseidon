@@ -302,12 +302,16 @@ def tag(geometry, coasts, cbuffer, blevels):
 
             ww = gp.GeoDataFrame(geometry=cs)
 
-            try:
-                gw = gp.GeoDataFrame(
-                    geometry=list(ww.buffer(0).unary_union)
-                )  # merge the polygons that are split (around -180/180)
-            except:
+            if ww.empty:
                 gw = gp.GeoDataFrame(geometry=list(ww.values))
+
+            else:
+                try:
+                    gw = gp.GeoDataFrame(
+                        geometry=list(ww.buffer(0).unary_union)
+                    )  # merge the polygons that are split (around -180/180)
+                except:
+                    gw = gp.GeoDataFrame(geometry=list(ww.values))
 
             if wc.geom_type.all() != "Polygon":
                 gw = gp.GeoDataFrame(geometry=gw.boundary.values)
