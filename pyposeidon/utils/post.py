@@ -39,14 +39,14 @@ def compute_obs(stations, start_time, end_time):
     logger.info("Retrieve observation data for station points\n")
     odata = get_obs_data(stations=stations, start_time=start_time, end_time=end_time)
 
-    dfs = [x for x in stations.ioc_code if x not in odata.ioc_code]
-    idx = stations[stations["ioc_code"].isin(dfs)].index
+    dfs = [x for x in stations.location if x not in odata.location]
+    idx = stations[stations["location"].isin(dfs)].index
 
     logger.info("Normalize observation data for station points\n")
 
     od = []
-    for inode in tqdm(odata.ioc_code.values):
-        oi = odata.sel(ioc_code=inode)
+    for inode in tqdm(odata.location.values):
+        oi = odata.sel(location=inode)
 
         for var in oi.data_vars:
             if oi[var].isnull().all().values == True:
@@ -54,7 +54,7 @@ def compute_obs(stations, start_time, end_time):
 
         var = [k for k, v in oi.data_vars.items() if v.dims == ("time",)][0]
 
-        obs = oi[var].to_dataframe().drop(["ioc_code"], axis=1)  # Get observational data
+        obs = oi[var].to_dataframe().drop(["location"], axis=1)  # Get observational data
 
         # de-tide obs
         #        if not obs[var].dropna().empty | (obs[var].dropna() == obs[var].dropna()[0]).all():
@@ -63,11 +63,11 @@ def compute_obs(stations, start_time, end_time):
 
         od.append(oi[var].rename("elev_obs"))
 
-    ods = xr.concat(od, dim="ioc_code").rename({"ioc_code": "node"})  # obs
+    ods = xr.concat(od, dim="location").rename({"location": "node"})  # obs
 
     ## add bogus observations in order to keep array shape
 
-    ntime = odata.isel(ioc_code=0).time.data
+    ntime = odata.isel(location=0).time.data
     temp = np.array([np.NaN] * ntime.shape[0])[np.newaxis, :]
     xdfs = []
     for idfs in dfs:
@@ -158,14 +158,14 @@ def to_thalassa(folder, freq=None, **kwargs):
         to_date = b.start_date + pd.to_timedelta("{}H".format((l + 1) * 12))
         h = st.sel(time=slice(from_date, to_date), drop=True)
         h = h.rename({"elev": "elev_fct", "time": "ftime"})
-        h = h.assign_coords({"node": stations.ioc_code.to_list()})
+        h = h.assign_coords({"node": stations.location.to_list()})
         leadfile = os.path.join(lpath, f"lead{l}")
         if not os.path.exists(leadfile):
             h.to_zarr(store=leadfile, mode="a")
         else:
             h.to_zarr(store=leadfile, mode="a", append_dim="ftime")
 
-    locations = stations.ioc_code.values
+    locations = stations.location.values
 
     # save to files
     logger.info("Construct station simulation data output\n")
@@ -188,13 +188,20 @@ def to_thalassa(folder, freq=None, **kwargs):
     vdata.to_netcdf(output_path)
     logger.info(f"..done with {filename} file\n")
 
-    # get observations
-    ods = compute_obs(stations, b.start_date, b.end_date)
+    # get observations last timestamp
+    obs_file = os.path.join(rpath, f"searvey")
+    if not os.path.exists(obs_file):
+        start_date = b.start_date
+    else:
+        obs_ = xr.open_dataset(obs_file, engine="zarr")
+        start_date = obs_.time.data[-1]
+
+    ods = compute_obs(stations, start_date, b.end_date)
 
     save_ods(ods, **kwargs)
 
     # compute stats
-    st = st.assign({"ioc_code": ("node", stations["ioc_code"])})
+    st = st.assign({"location": ("node", stations["location"])})
     sts = compute_stats(st, ods)
 
     save_stats(sts, stations, **kwargs)
@@ -206,8 +213,8 @@ def compute_stats(st, ods):
     logger.info("Compute general statistics for station points\n")
 
     sts = []
-    for inode in tqdm(st.ioc_code.values):
-        isim = st.where(st.ioc_code == inode).dropna(dim="node")
+    for inode in tqdm(st.location.values):
+        isim = st.where(st.location == inode).dropna(dim="node")
         sim = isim.elev.to_dataframe().droplevel(1)
 
         obs = ods.sel(node=inode).to_dataframe().drop("node", axis=1)
@@ -224,7 +231,7 @@ def save_stats(sts, stations, **kwargs):
 
     logger.info("Save stats\n")
 
-    locations = stations.ioc_code.values
+    locations = stations.location.values
 
     stats = pd.DataFrame(sts)
     stats.index.name = "node"

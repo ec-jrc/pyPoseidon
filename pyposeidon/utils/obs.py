@@ -27,4 +27,7 @@ def get_obs_data(stations: str | gp.GeoDataFrame, start_time=None, end_time=None
         period=period,
     )
 
+    # generalize with location
+    data = data.set_coords("location").swap_dims({"ioc_code": "location"}).reset_coords("ioc_code")
+
     return data
