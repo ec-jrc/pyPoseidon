@@ -55,7 +55,7 @@ def symlink_files(rpath: str, ppath: str, filenames: list[str]) -> None:
         dst = os.path.join(rpath, filename)
         if os.path.exists(src):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            if os.path.lexists(dst):
+            if os.path.exists(dst):
                 os.remove(dst)
             os.symlink(src, dst)
             logger.debug("symlinked src -> dst: %s -> %s", src, dst)
@@ -285,8 +285,9 @@ class SchismCast:
         self.rdate = self.model.rdate
         ppath = self.ppath
 
-        ppath = pathlib.Path(ppath).resolve()
-        ppath = str(ppath)
+        # ppath = pathlib.Path(ppath).resolve()
+        # ppath = str(ppath)
+        ppath = os.path.realpath(ppath)
 
         # control
         if not isinstance(self.rdate, pd.Timestamp):
@@ -299,8 +300,9 @@ class SchismCast:
         # create the new folder/run path
         rpath = self.cpath
 
-        rpath = pathlib.Path(rpath).resolve()
-        rpath = str(rpath)
+        #    rpath = pathlib.Path(rpath).resolve()
+        #     rpath = str(rpath)
+        rpath = os.path.realpath(rpath)
 
         if not os.path.exists(rpath):
             os.makedirs(rpath)
