@@ -714,12 +714,13 @@ class Schism:
                 dic.update({"meteo": [x.attrs for x in meteo.Dataset]})
 
         coastlines = self.__dict__.get("coastlines", None)
-        coastlines_database = os.path.join(path, "coastlines.json")
-        if coastlines is None:
-            dic.update({"coastlines": coastlines})
-        else:
+        if coastlines is not None:
+            # Save the path to the serialized coastlines - #130
+            coastlines_database = os.path.join(path, "coastlines.json")
             coastlines.to_file(coastlines_database)
             dic.update({"coastlines": coastlines_database})
+        else:
+            dic.update({"coastlines": None})
 
         dic["version"] = pyposeidon.__version__
 
@@ -1850,7 +1851,7 @@ class Schism:
         self.params["SCHOUT"]["nspool_sta"] = nspool_sta
         self.params.write(os.path.join(path, "param.nml"), force=True)
 
-        self.stations = stations
+        self.stations_mesh_id = stations
 
         logger.info("write out stations.in file \n")
 
