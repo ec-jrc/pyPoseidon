@@ -9,33 +9,35 @@ logger = logging.getLogger(__name__)
 
 
 def get_stats(sim_, obs_):
-    # match time frames
-    try:
+    if obs_.dropna().empty:
+        logger.warning("Observation data not available for this station")
+        stats = pd.Series(
+            index={
+                "Mean Absolute Error",
+                "RMSE",
+                "Scatter Index",
+                "percentage RMSE",
+                "BIAS or mean error",
+                "Standard deviation of residuals",
+                "Correlation Coefficient",
+                "R^2",
+                "Nash-Sutcliffe Coefficient",
+                "lamda index",
+            },
+            dtype="float64",
+        )
+        return stats
+
+    else:
+        # match time frames
         start = max(obs_.index[0], sim_.index[0])
         end = min(obs_.index[-1], sim_.index[-1])
-        obs_ = obs_.loc[start:end]
-        sim_ = sim_.loc[start:end]
+
+        dates = pd.date_range(start, end, freq="s")
+        obs_ = obs_[obs_.index.isin(dates)]
+        sim_ = sim_[sim_.index.isin(dates)]
         obs_ = obs_.reindex(sim_.index, method="nearest")  # sample on simulation times
         return vtable(obs_.values, sim_.values)
-    except:
-        if obs_.dropna().empty:
-            logger.warning("Observation data not available for this station")
-            stats = pd.Series(
-                index={
-                    "Mean Absolute Error",
-                    "RMSE",
-                    "Scatter Index",
-                    "percentage RMSE",
-                    "BIAS or mean error",
-                    "Standard deviation of residuals",
-                    "Correlation Coefficient",
-                    "R^2",
-                    "Nash-Sutcliffe Coefficient",
-                    "lamda index",
-                },
-                dtype="float64",
-            )
-            return stats
 
 
 def vtable(obsrv, model):
