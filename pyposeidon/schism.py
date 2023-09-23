@@ -1312,10 +1312,16 @@ class Schism:
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         logger.info("get combined 2D netcdf files \n")
+        # check for new IO output
         hfiles = glob.glob(os.path.join(path, "outputs/out2d_*.nc"))
         hfiles.sort()
+        # check for old IO output
+        ofiles = glob.glob(os.path.join(path, "outputs/schout_*_*.nc"))
 
-        if hfiles:
+        if not (ofiles or hfiles):
+            logger.warning("no output netcdf files, moving on")
+
+        elif hfiles:
             x2d = xr.open_mfdataset(hfiles, data_vars="minimal")
 
             # set timestamp
@@ -1350,7 +1356,7 @@ class Schism:
             # save 2D variables to file
             x2d.to_netcdf(os.path.join(path, "outputs/schout_1.nc"))
 
-        else:
+        elif ofiles:
             if len(self.misc) == 0:
                 logger.info("retrieving index references ... \n")
                 self.global2local(**kwargs)
@@ -1719,6 +1725,9 @@ class Schism:
 
                 xc.to_netcdf(os.path.join(path, f"outputs/schout_{val}.nc"))
 
+        else:
+            raise Exception("This should never happen")
+
         logger.info("done with output netCDF files \n")
 
     def set_obs(self, **kwargs):
@@ -1871,24 +1880,24 @@ class Schism:
         try:
             # get the station flags
             flags = pd.read_csv(os.path.join(path, "station.in"), header=None, nrows=1, delim_whitespace=True).T
-            flags.columns = ["flag"]
-            flags["variable"] = [
-                "elev",
-                "air_pressure",
-                "windx",
-                "windy",
-                "T",
-                "S",
-                "u",
-                "v",
-                "w",
-            ]
-
-            vals = flags[flags.values == 1]  # get the active ones
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                logger.error("no station.in file present")
+        except FileNotFoundError:
+            logger.error("no station.in file present")
             return
+
+        flags.columns = ["flag"]
+        flags["variable"] = [
+            "elev",
+            "air_pressure",
+            "windx",
+            "windy",
+            "T",
+            "S",
+            "u",
+            "v",
+            "w",
+        ]
+
+        vals = flags[flags.values == 1]  # get the active ones
 
         dstamp = kwargs.get("dstamp", self.rdate)
 
