@@ -9,6 +9,36 @@ import geopandas as gp
 import numpy as np
 import xarray as xr
 from datetime import datetime
+import itertools
+from typing import Iterable
+from typing import Iterator
+
+
+def grouper(
+    iterable: Iterable[_T],
+    n: int,
+    *,
+    incomplete: str = "fill",
+    fillvalue: Union[_U, None] = None,
+) -> Iterator[Tuple[Union[_T, _U], ...]]:
+    """Collect data into non-overlapping fixed-length chunks or blocks"""
+    # grouper('ABCDEFG', 3, fillvalue='x') --> ABC DEF Gxx
+    # grouper('ABCDEFG', 3, incomplete='strict') --> ABC DEF ValueError
+    # grouper('ABCDEFG', 3, incomplete='ignore') --> ABC DEF
+    args = [iter(iterable)] * n
+    if incomplete == "fill":
+        return itertools.zip_longest(*args, fillvalue=fillvalue)
+    if incomplete == "strict":
+        return zip(*args, strict=True)  # type: ignore[call-overload]
+    if incomplete == "ignore":
+        return zip(*args)
+    else:
+        raise ValueError("Expected fill, strict, or ignore")
+
+
+def merge_datasets(datasets: List[xr.Dataset], size: int = 5) -> List[xr.Dataset]:
+    datasets = [xr.merge(g for g in group if g) for group in grouper(datasets, size)]
+    return datasets
 
 
 def get_bogus(temp, idfs, ntime):
@@ -52,7 +82,12 @@ def get_obs_data(stations: str | gp.GeoDataFrame, start_time=None, end_time=None
     xdfs = []
     for idfs in sn.ioc_code:
         xdfs.append(get_bogus(temp, idfs, ntime))
-    # merge
+
+    # in order to keep memory consumption low, let's group the datasets
+    # and merge them in batches
+    while len(xdfs) > 5:
+        xdfs = merge_datasets(xdfs)
+    # Do the final merging
     sns = xr.merge(xdfs)
 
     # set correct dims for metadata

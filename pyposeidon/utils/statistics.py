@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 def get_stats(sim_, obs_):
     if obs_.dropna().empty:
-        logger.warning("Observation data not available for this station")
         stats = pd.Series(
             index={
                 "Mean Absolute Error",
