@@ -202,6 +202,8 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
             },
         )
 
+        xe.attrs.update(dataset.attrs)
+
     elif "time" in dataset[var].coords:
         it_start = kwargs.get("it_start", 0)
         it_end = kwargs.get("it_end", dataset.time.shape[0])
@@ -233,6 +235,7 @@ def to_2d(dataset=None, var=None, mesh=None, **kwargs):
             xi.to_netcdf("./seamtmp/x_{:03d}.nc".format(i))
 
         xe = xr.open_mfdataset("./seamtmp/x_*.nc", data_vars="minimal")
+        xe.attrs.update(dataset.attrs)
 
         # cleanup
         xfiles = glob("./seamtmp/x_*.nc")
