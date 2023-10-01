@@ -372,7 +372,18 @@ class pplot(object):
                 pass
 
         var = kwargs.get("var", "depth")
-        z = kwargs.get("z", self._obj[var].data[it, :].flatten())
+
+        if len(self._obj[var].shape) == 1:
+            zv = self._obj[var].data.flatten()
+        elif len(self._obj[var].shape) == 2:
+            if t_var in self._obj[var].coords:
+                zv = self._obj[var][it, :].data.flatten()
+            else:
+                raise Exception(f"{t_var} not in {var} dims")
+        else:
+            raise Exception(f"{var} dimension is larger than 2, please subset")
+
+        z = kwargs.get("z", zv)
 
         nv = kwargs.get("nv", 10)
 
