@@ -180,11 +180,7 @@ def to_thalassa(folder, **kwargs):
         logger.info("converting to 2D\n")
         # Convert to 2D
         [xn, yn, tri3n] = np.load(to2d, allow_pickle=True)
-        sv = []
-        for var in rvars:
-            isv = to_2d(out, var=var, mesh=[xn, yn, tri3n])  # elevation
-            sv.append(isv)
-        out = xr.merge(sv)
+        out = to_2d(out, data_vars=rvars, mesh=[xn, yn, tri3n])  # elevation
 
     else:
         rvars_ = rvars + [x_var, y_var, tes_var]
