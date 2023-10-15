@@ -87,7 +87,7 @@ class Dem:
                 self.adjust(coastline, **kwargs)
 
     def adjust(self, coastline, **kwargs):
-        self.Dataset, check = fix(self.Dataset, coastline, **kwargs)
+        self.Dataset, check, flag = fix(self.Dataset, coastline, **kwargs)
 
         if not check:
             logger.warning("Adjusting dem failed, keeping original values\n")

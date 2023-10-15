@@ -219,14 +219,14 @@ class pplot(object):
         tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
         t_var = kwargs.get("t", "time")
 
-        x = self._obj[x_var][:].values
-        y = self._obj[y_var][:].values
+        x = self._obj[x_var][:]
+        y = self._obj[y_var][:]
         try:
-            t = self._obj[t_var][:].values
+            t = self._obj[t_var].data
         except:
             pass
 
-        tes = self._obj[tes_var].values[:, :4]
+        tes = self._obj[tes_var]
 
         # check tesselation
 
@@ -332,14 +332,14 @@ class pplot(object):
         tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
         t_var = kwargs.get("t", "time")
 
-        x = self._obj[x_var][:].values
-        y = self._obj[y_var][:].values
+        x = self._obj[x_var]
+        y = self._obj[y_var]
         try:
-            t = self._obj[t_var][:].values
+            t = self._obj[t_var].data
         except:
             pass
 
-        tes = self._obj[tes_var].values[:, :4]
+        tes = self._obj[tes_var]
 
         # check tesselation
 
@@ -372,7 +372,18 @@ class pplot(object):
                 pass
 
         var = kwargs.get("var", "depth")
-        z = kwargs.get("z", self._obj[var].values[it, :].flatten())
+
+        if len(self._obj[var].shape) == 1:
+            zv = self._obj[var].data.flatten()
+        elif len(self._obj[var].shape) == 2:
+            if t_var in self._obj[var].coords:
+                zv = self._obj[var][it, :].data.flatten()
+            else:
+                raise Exception(f"{t_var} not in {var} dims")
+        else:
+            raise Exception(f"{var} dimension is larger than 2, please subset")
+
+        z = kwargs.get("z", zv)
 
         nv = kwargs.get("nv", 10)
 
@@ -406,7 +417,7 @@ class pplot(object):
 
         vrange = np.linspace(vmin, vmax, nv, endpoint=True)
 
-        xy = kwargs.get("xy", (0.05, -0.1))
+        xy = kwargs.get("xy", (-0.1, -0.3))
 
         for val in [
             "x",
@@ -450,10 +461,10 @@ class pplot(object):
         y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
         t_var = kwargs.get("t", "time")
 
-        x = self._obj[x_var][:].values
-        y = self._obj[y_var][:].values
+        x = self._obj[x_var][:]
+        y = self._obj[y_var][:]
         try:
-            t = self._obj[t_var][:].values
+            t = self._obj[t_var].data
         except:
             pass
 
@@ -516,9 +527,9 @@ class pplot(object):
         y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
         tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
 
-        x = self._obj[x_var][:].values
-        y = self._obj[y_var][:].values
-        tes = self._obj[tes_var].values[:, :4]
+        x = self._obj[x_var][:]
+        y = self._obj[y_var][:]
+        tes = self._obj[tes_var]
 
         # check tesselation
 
@@ -591,9 +602,9 @@ class pplot(object):
         y_var = kwargs.get("y", "SCHISM_hgrid_node_y")
         t_var = kwargs.get("t", "time")
 
-        x = self._obj[x_var][:].values
-        y = self._obj[y_var][:].values
-        t = self._obj[t_var][:].values
+        x = self._obj[x_var]
+        y = self._obj[y_var]
+        t = self._obj[t_var]
 
         cr = kwargs.get("coastlines", None)
         c_attrs = kwargs.get("coastlines_attrs", {})
@@ -659,10 +670,10 @@ class pplot(object):
         tes_var = kwargs.get("e", "SCHISM_hgrid_face_nodes")
         t_var = kwargs.get("t", "time")
 
-        x = self._obj[x_var][:].values
-        y = self._obj[y_var][:].values
-        t = self._obj[t_var][:].values
-        tes = self._obj[tes_var].values[:, :4]
+        x = self._obj[x_var]
+        y = self._obj[y_var]
+        t = self._obj[t_var].data
+        tes = self._obj[tes_var]
 
         # check tesselation
 
@@ -688,7 +699,7 @@ class pplot(object):
             tri3 = tri3 - 1  # fortran/python conversion
 
         var = kwargs.get("var", "depth")
-        z = kwargs.get("z", self._obj[var].values)
+        z = kwargs.get("z", self._obj[var])
 
         # set figure size
         xr = x.max() - x.min()

@@ -285,6 +285,10 @@ class SchismCast:
         self.rdate = self.model.rdate
         ppath = self.ppath
 
+        # ppath = pathlib.Path(ppath).resolve()
+        # ppath = str(ppath)
+        ppath = os.path.realpath(ppath)
+
         # control
         if not isinstance(self.rdate, pd.Timestamp):
             self.rdate = pd.to_datetime(self.rdate)
@@ -295,6 +299,10 @@ class SchismCast:
 
         # create the new folder/run path
         rpath = self.cpath
+
+        #    rpath = pathlib.Path(rpath).resolve()
+        #     rpath = str(rpath)
+        rpath = os.path.realpath(rpath)
 
         if not os.path.exists(rpath):
             os.makedirs(rpath)
@@ -309,11 +317,16 @@ class SchismCast:
             info = data.to_dict(orient="records")[0]
 
         try:
-            args = set(kwargs.keys()).intersection(info.keys())  # modify dic with kwargs
+            args = info.keys() & kwargs.keys()  # modify dic with kwargs
             for attr in list(args):
-                info[attr] = kwargs[attr]
-        except:
-            pass
+                if isinstance(info[attr], dict):
+                    info[attr].update(kwargs[attr])
+                else:
+                    info[attr] = kwargs[attr]
+                setattr(self, attr, info[attr])
+        except Exception as e:
+            logger.exception("problem with kwargs integration\n")
+            raise e
 
         # add optional additional kwargs
         for attr in kwargs.keys():
@@ -333,30 +346,14 @@ class SchismCast:
 
         m = pm.set(**info)
 
-        # Mesh
-        gfile = glob.glob(os.path.join(ppath, "hgrid.gr3"))
-        if gfile:
-            info["mesh_file"] = gfile[0]
-            self.mesh_file = gfile[0]
-            info["mesh_generator"] = None
-            self.mesh_generator = None
-
-        m.mesh = pmesh.set(type="tri2d", **info)
-
-        # get lat/lon from file
-        if hasattr(self, "mesh_file"):
-            info.update({"lon_min": m.mesh.Dataset.SCHISM_hgrid_node_x.values.min()})
-            info.update({"lon_max": m.mesh.Dataset.SCHISM_hgrid_node_x.values.max()})
-            info.update({"lat_min": m.mesh.Dataset.SCHISM_hgrid_node_y.values.min()})
-            info.update({"lat_max": m.mesh.Dataset.SCHISM_hgrid_node_y.values.max()})
-
         # copy/link necessary files
         logger.debug("Copy necessary + station files")
         copy_files(rpath=rpath, ppath=ppath, filenames=self.files + self.station_files)
-        logger.debug("Copy model files")
         if copy:
+            logger.debug("Copy model files")
             copy_files(rpath=rpath, ppath=ppath, filenames=self.model_files)
         else:
+            logger.debug("Symlink model files")
             symlink_files(rpath=rpath, ppath=ppath, filenames=self.model_files)
 
         logger.debug(".. done")
@@ -391,18 +388,13 @@ class SchismCast:
         else:
             logger.info("Symlinking`: %s -> %s", inresfile, outresfile)
             try:
-                os.symlink(
-                    pathlib.Path(os.path.join(ppath, inresfile)).resolve(strict=True), os.path.join(rpath, outresfile)
-                )
+                os.symlink(inresfile, outresfile)
             except OSError as e:
                 if e.errno == errno.EEXIST:
                     logger.warning("Restart link present\n")
                     logger.warning("overwriting\n")
-                    os.remove(os.path.join(rpath, outresfile))
-                    os.symlink(
-                        pathlib.Path(os.path.join(ppath, inresfile)).resolve(strict=True),
-                        os.path.join(rpath, outresfile),
-                    )
+                    os.remove(outresfile)
+                    os.symlink(inresfile, outresfile)
                 else:
                     raise e
         # get new meteo

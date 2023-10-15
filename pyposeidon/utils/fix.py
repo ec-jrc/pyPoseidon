@@ -16,6 +16,7 @@ import pandas as pd
 import xarray as xr
 import sys
 import os
+from pyposeidon.utils.coastfix import simplify
 
 # logging setup
 import logging
@@ -28,11 +29,15 @@ def fix(dem, coastline, **kwargs):
     logger.info("adjust dem\n")
     # ---------------------------------------------------------------------
 
+    ifunction = kwargs.get("resample_function", "nearest")
+
     # define coastline
     try:
         shp = gp.GeoDataFrame.from_file(coastline)
     except:
         shp = gp.GeoDataFrame(coastline)
+
+    shp = simplify(shp)
 
     if "ival" in dem.data_vars:
         xp = dem.ilons.values
@@ -125,7 +130,7 @@ def fix(dem, coastline, **kwargs):
         else:
             dem = dem.assign(adjusted=dem.elevation)
 
-        return dem
+        return dem, True
 
     if "ival" in dem.data_vars:
         df = pd.DataFrame(
@@ -194,7 +199,7 @@ def fix(dem, coastline, **kwargs):
         xw = pw.longitude.values
         yw = pw.latitude.values
 
-        bw = resample(dem, xw, yw, var="elevation", wet=True, flag=flag)
+        bw = resample(dem, xw, yw, var="elevation", wet=True, flag=flag, function=ifunction)
 
         df.loc[pw.index, "elevation"] = bw  # replace in original dataset
 
@@ -213,7 +218,7 @@ def fix(dem, coastline, **kwargs):
         xl = pl.longitude.values
         yl = pl.latitude.values
 
-        bd = resample(dem, xl, yl, var="elevation", wet=False, flag=flag)
+        bd = resample(dem, xl, yl, var="elevation", wet=False, flag=flag, function=ifunction)
 
         df.loc[pl.index, "elevation"] = bd  # replace in original dataset
 
@@ -248,36 +253,49 @@ def fix(dem, coastline, **kwargs):
 
     nanp = check1(cdem, water)
 
-    logger.info("Nan value for {} points".format(len(nanp)))
-
-    on_coast = check2(cdem, shp)
-
-    logger.info("{} points on the boundary, setting to zero".format(len(on_coast)))
-
-    if "fval" in cdem.data_vars:
-        tt = len(cdem.fval.shape)
-
-        if tt == 1:
-            cdem.fval[on_coast] = 0.0
-
-        elif tt == 2:
-            bmask = np.zeros(cdem.fval.shape, dtype=bool)  # create mask
-            for idx, [i, j] in enumerate(on_coast):
-                bmask[i, j] = True
-            cdem.fval.values[bmask] = 0.0  # set value
-
-    elif "adjusted" in cdem.data_vars:
-        bmask = np.zeros(cdem.adjusted.shape, dtype=bool)  # create mask
-        for idx, [i, j] in enumerate(on_coast):
-            bmask[i, j] = True
-        cdem.adjusted.values[bmask] = 0.0  # set value
-
     if len(nanp) == 0:
         valid = True
     else:
         valid = False
 
-    return cdem, valid
+    logger.info("Nan value for {} sea points".format(len(nanp)))
+
+    check = kwargs.get("check", False)
+
+    if check:
+        on_coast = check2(cdem, shp)
+
+        logger.info("{} points on the boundary, setting to zero".format(len(on_coast)))
+
+        if "fval" in cdem.data_vars:
+            tt = len(cdem.fval.shape)
+
+            if tt == 1:
+                cdem.fval[on_coast] = 0.0
+
+            elif tt == 2:
+                bmask = np.zeros(cdem.fval.shape, dtype=bool)  # create mask
+                for idx, [i, j] in enumerate(on_coast):
+                    bmask[i, j] = True
+                cdem.fval.values[bmask] = 0.0  # set value
+
+        elif "adjusted" in cdem.data_vars:
+            bmask = np.zeros(cdem.adjusted.shape, dtype=bool)  # create mask
+            for idx, [i, j] in enumerate(on_coast):
+                bmask[i, j] = True
+            cdem.adjusted.values[bmask] = 0.0  # set value
+
+            logger.info("setting land points with nan values to zero")
+            cdem["adjusted"] = cdem.adjusted.fillna(0.0)  # for land points if any (lakes, etc.)
+
+    else:
+        logger.info("setting land points with nan values to zero")
+        if "ival" in cdem.data_vars:
+            cdem["fval"] = cdem.fval.fillna(0.0)
+        elif "adjusted" in cdem.data_vars:
+            cdem["adjusted"] = cdem.adjusted.fillna(0.0)
+
+    return cdem, valid, flag
 
 
 def check1(dataset, water):
@@ -405,7 +423,7 @@ def check2(dataset, coastline):
     return bps
 
 
-def resample(dem, xw, yw, var=None, wet=True, flag=None):
+def resample(dem, xw, yw, var=None, wet=True, flag=None, function="nearest"):
     # Define points with positive bathymetry
     x, y = np.meshgrid(dem.longitude, dem.latitude)
 
@@ -439,6 +457,80 @@ def resample(dem, xw, yw, var=None, wet=True, flag=None):
     orig = pyresample.geometry.SwathDefinition(lons=mx, lats=my)  # original bathymetry points
     targ = pyresample.geometry.SwathDefinition(lons=gx, lats=yw)  # wet points
 
-    bw = pyresample.kd_tree.resample_nearest(orig, mdem, targ, radius_of_influence=100000, fill_value=np.nan)
+    if function == "nearest":
+        bw = pyresample.kd_tree.resample_nearest(orig, mdem, targ, radius_of_influence=100000, fill_value=np.nan)
+
+    elif function == "gauss":
+        bw = pyresample.kd_tree.resample_gauss(
+            orig, mdem, targ, radius_of_influence=500000, neighbours=10, sigmas=250000, fill_value=np.nan
+        )
 
     return bw
+
+
+def dem_range(data, lon_min, lon_max, lat_min, lat_max):
+    dlon0 = round(data.longitude.data.min())
+    dlon1 = round(data.longitude.data.max())
+
+    # recenter the window
+    if dlon1 - dlon0 == 360.0:
+        lon0 = lon_min + 360.0 if lon_min < data.longitude.min() else lon_min
+        lon1 = lon_max + 360.0 if lon_max < data.longitude.min() else lon_max
+
+        lon0 = lon0 - 360.0 if lon0 > data.longitude.max() else lon0
+        lon1 = lon1 - 360.0 if lon1 > data.longitude.max() else lon1
+
+    else:
+        lon0 = lon_min
+        lon1 = lon_max
+
+    if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()):
+        print("Lon must be within {} and {}".format(data.longitude.min().values, data.longitude.max().values))
+        print("compensating if global dataset available")
+
+    if (lat_min < data.latitude.min()) or (lat_max > data.latitude.max()):
+        print("Lat is within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
+
+    # get idx
+    if lon_max - lon_min == dlon1 - dlon0:
+        i0 = 0 if lon_min == dlon0 else int(data.longitude.shape[0] / 2) + 2  # compensate for below
+        i1 = data.longitude.shape[0] if lon_max == dlon1 else -int(data.longitude.shape[0] / 2) - 2
+    else:
+        i0 = np.abs(data.longitude.data - lon0).argmin()
+        i1 = np.abs(data.longitude.data - lon1).argmin()
+
+    j0 = np.abs(data.latitude.data - lat_min).argmin()
+    j1 = np.abs(data.latitude.data - lat_max).argmin()
+
+    # expand the window a little bit
+    lon_0 = max(0, i0 - 2)
+    lon_1 = min(data.longitude.size, i1 + 2)
+
+    lat_0 = max(0, j0 - 2)
+    lat_1 = min(data.latitude.size, j1 + 2)
+
+    # descenting lats
+    if j0 > j1:
+        j0, j1 = j1, j0
+        lat_0 = max(0, j0 - 1)
+        lat_1 = min(data.latitude.size, j1 + 3)
+
+    if i0 > i1:
+        p1 = data.elevation.isel(longitude=slice(lon_0, data.longitude.size), latitude=slice(lat_0, lat_1))
+
+        p1 = p1.assign_coords({"longitude": p1.longitude.values - 360.0})
+
+        p2 = data.elevation.isel(longitude=slice(0, lon_1), latitude=slice(lat_0, lat_1))
+
+        dem = xr.concat([p1, p2], dim="longitude")
+
+    else:
+        dem = data.elevation.isel(longitude=slice(lon_0, lon_1), latitude=slice(lat_0, lat_1))
+
+    if np.abs(np.mean(dem.longitude) - np.mean([lon_min, lon_max])) > 170.0:
+        c = np.sign(np.mean([lon_min, lon_max]))
+        dem["longitude"] = dem["longitude"] + c * 360.0
+
+    dem_data = xr.merge([dem])
+
+    return dem_data

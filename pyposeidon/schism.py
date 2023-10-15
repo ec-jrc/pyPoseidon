@@ -566,7 +566,11 @@ class Schism:
                 logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
 
                 copyfile(self.mesh_file, os.path.join(path, "hgrid.gr3"))  # copy original grid file
-                copyfile(os.path.join(path, "hgrid.gr3"), os.path.join(path, "hgrid.ll"))
+                src = os.path.join(path, "hgrid.gr3")
+                dst = os.path.join(path, "hgrid.ll")
+                if os.path.lexists(dst):
+                    os.remove(dst)
+                os.symlink(src, dst)
 
             # manning file
             manfile = os.path.join(path, "manning.gr3")
@@ -677,6 +681,11 @@ class Schism:
 
         proc = tools.execute_schism_mpirun_script(cwd=calc_dir)
 
+        if proc.returncode == 0:
+            # ---------------------------------------------------------------------
+            logger.info("model finished successfully\n")
+            # ---------------------------------------------------------------------
+
     def save(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")
 
@@ -705,7 +714,13 @@ class Schism:
                 dic.update({"meteo": [x.attrs for x in meteo.Dataset]})
 
         coastlines = self.__dict__.get("coastlines", None)
-        dic.update({"coastlines": coastlines})
+        if coastlines is not None:
+            # Save the path to the serialized coastlines - #130
+            coastlines_database = os.path.join(path, "coastlines.json")
+            coastlines.to_file(coastlines_database)
+            dic.update({"coastlines": coastlines_database})
+        else:
+            dic.update({"coastlines": None})
 
         dic["version"] = pyposeidon.__version__
 
@@ -1297,10 +1312,16 @@ class Schism:
         path = get_value(self, kwargs, "rpath", "./schism/")
 
         logger.info("get combined 2D netcdf files \n")
+        # check for new IO output
         hfiles = glob.glob(os.path.join(path, "outputs/out2d_*.nc"))
         hfiles.sort()
+        # check for old IO output
+        ofiles = glob.glob(os.path.join(path, "outputs/schout_*_*.nc"))
 
-        if hfiles:
+        if not (ofiles or hfiles):
+            logger.warning("no output netcdf files, moving on")
+
+        elif hfiles:
             x2d = xr.open_mfdataset(hfiles, data_vars="minimal")
 
             # set timestamp
@@ -1335,7 +1356,7 @@ class Schism:
             # save 2D variables to file
             x2d.to_netcdf(os.path.join(path, "outputs/schout_1.nc"))
 
-        else:
+        elif ofiles:
             if len(self.misc) == 0:
                 logger.info("retrieving index references ... \n")
                 self.global2local(**kwargs)
@@ -1704,6 +1725,9 @@ class Schism:
 
                 xc.to_netcdf(os.path.join(path, f"outputs/schout_{val}.nc"))
 
+        else:
+            raise Exception("This should never happen")
+
         logger.info("done with output netCDF files \n")
 
     def set_obs(self, **kwargs):
@@ -1732,6 +1756,9 @@ class Schism:
 
         ##### normalize to be used inside pyposeidon
         tgn = normalize_column_names(tg.copy())
+
+        ##### make sure lat/lon are floats
+        tgn = tgn.astype({"latitude": float, "longitude": float})
 
         coastal_monitoring = get_value(self, kwargs, "coastal_monitoring", False)
         flags = get_value(self, kwargs, "station_flags", [1] + [0] * 8)
@@ -1833,7 +1860,7 @@ class Schism:
         self.params["SCHOUT"]["nspool_sta"] = nspool_sta
         self.params.write(os.path.join(path, "param.nml"), force=True)
 
-        self.stations = stations
+        self.stations_mesh_id = stations
 
         logger.info("write out stations.in file \n")
 
@@ -1853,24 +1880,24 @@ class Schism:
         try:
             # get the station flags
             flags = pd.read_csv(os.path.join(path, "station.in"), header=None, nrows=1, delim_whitespace=True).T
-            flags.columns = ["flag"]
-            flags["variable"] = [
-                "elev",
-                "air_pressure",
-                "windx",
-                "windy",
-                "T",
-                "S",
-                "u",
-                "v",
-                "w",
-            ]
-
-            vals = flags[flags.values == 1]  # get the active ones
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                logger.error("no station.in file present")
+        except FileNotFoundError:
+            logger.error("no station.in file present")
             return
+
+        flags.columns = ["flag"]
+        flags["variable"] = [
+            "elev",
+            "air_pressure",
+            "windx",
+            "windy",
+            "T",
+            "S",
+            "u",
+            "v",
+            "w",
+        ]
+
+        vals = flags[flags.values == 1]  # get the active ones
 
         dstamp = kwargs.get("dstamp", self.rdate)
 

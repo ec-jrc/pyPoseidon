@@ -5,6 +5,7 @@ import geopandas as gp
 import xarray as xr
 import numpy as np
 from tqdm.auto import tqdm
+import glob
 
 import pyposeidon
 from pyposeidon.utils import data
@@ -13,6 +14,30 @@ from pyposeidon.utils.obs import get_obs_data
 from pyposeidon.utils.seam import to_2d
 
 # from pyposeidon.utils.detide import get_ss
+
+valid_sensors = [
+    "rad",
+    "prs",
+    "enc",
+    "pr1",
+    "PR2",
+    "pr2",
+    "ra2",
+    "bwl",
+    "wls",
+    "aqu",
+    "ras",
+    "pwl",
+    "bub",
+    "enb",
+    "atm",
+    "flt",
+    "ecs",
+    "stp",
+    "prte",
+    "prt",
+    "ra3",
+]
 
 import logging
 
@@ -25,76 +50,104 @@ def get_encoding(ename):
     }
 
 
-def get_bogus(temp, idfs, ntime):
-    return xr.DataArray(
-        temp,
-        coords={
-            "node": (["node"], [idfs]),
-            "time": ntime,
-        },
-    )
+def save_leads(stations, st, start_date, dt, leads, rpath="./skill/"):
+    ## save results in lead chunks
 
-
-def compute_obs(stations, start_time, end_time):
-    logger.info("Retrieve observation data for station points\n")
-    odata = get_obs_data(stations=stations, start_time=start_time, end_time=end_time)
-
-    dfs = [x for x in stations.ioc_code if x not in odata.ioc_code]
-    idx = stations[stations["ioc_code"].isin(dfs)].index
-
-    logger.info("Normalize observation data for station points\n")
-
-    od = []
-    for inode in tqdm(odata.ioc_code.values):
-        oi = odata.sel(ioc_code=inode)
-
-        for var in oi.data_vars:
-            if oi[var].isnull().all().values == True:
-                oi = oi.drop(var)
-
-        var = [k for k, v in oi.data_vars.items() if v.dims == ("time",)][0]
-
-        obs = oi[var].to_dataframe().drop(["ioc_code"], axis=1)  # Get observational data
-
-        # de-tide obs
-        #        if not obs[var].dropna().empty | (obs[var].dropna() == obs[var].dropna()[0]).all():
-        #            obs = get_ss(obs, oi.lat.values)
-        #            oi[var].values = obs.elev.values
-
-        od.append(oi[var].rename("elev_obs"))
-
-    ods = xr.concat(od, dim="ioc_code").rename({"ioc_code": "node"})  # obs
-
-    ## add bogus observations in order to keep array shape
-
-    ntime = odata.isel(ioc_code=0).time.data
-    temp = np.array([np.NaN] * ntime.shape[0])[np.newaxis, :]
-    xdfs = []
-    for idfs in dfs:
-        xdfs.append(get_bogus(temp, idfs, ntime))
-
-    ods = xr.concat([ods] + xdfs, dim="node")
-
-    return ods
-
-
-def save_ods(ods, **kwargs):
-    rpath = kwargs.get("rpath", "./thalassa/")
-
-    # obs data
-    logger.info("saving observations data\n")
-    obs_file = os.path.join(rpath, f"searvey")
-    if not os.path.exists(obs_file):
-        ods.to_zarr(store=obs_file, mode="a")
-    else:
-        ods.to_zarr(store=obs_file, mode="a", append_dim="time")
+    for l in range(leads):
+        from_date = start_date + pd.to_timedelta("{}H".format(l * dt)) + pd.to_timedelta("1S")
+        to_date = start_date + pd.to_timedelta("{}H".format((l + 1) * dt))
+        h = st.sel(time=slice(from_date, to_date), drop=True)
+        h = h.rename({"elev": "elev_fct", "time": "ftime"})
+        leadfile = os.path.join(rpath, f"lead{l}")
+        if not os.path.exists(leadfile):
+            h.to_zarr(store=leadfile, mode="a")
+        else:
+            h.to_zarr(store=leadfile, mode="a", append_dim="ftime")
 
     return
 
 
-def to_thalassa(folder, freq=None, **kwargs):
+def gather_obs_data(stations, start_time, end_time, rpath="./thalassa/obs/"):
+    logger.info(f"Retrieve observation data for station points from {start_time} to {end_time}\n")
+    odata = get_obs_data(stations=stations, start_time=start_time, end_time=end_time)
+
+    logger.info("Save observation data for station locations\n")
+
+    for inode in tqdm(odata.id.values):
+        oi = odata.sel(id=inode)
+
+        var = [k for k, v in oi.data_vars.items() if "time" in v.dims]
+
+        df = oi[var].to_dataframe().drop("id", axis=1)
+        df_ = df.dropna(axis=1, how="all")  # drop all nan columns
+
+        file_path = os.path.join(rpath, f"{inode}.parquet")
+
+        if os.path.isfile(file_path):
+            obs = pd.read_parquet(file_path, engine="fastparquet")
+            # make sure there is output
+            if df_.empty:
+                cols = [x for x in var if x in obs.columns]
+                df = df[cols]
+                df.to_parquet(file_path, engine="fastparquet", append=True)
+            else:
+                df = df_
+                out = pd.concat([obs, df]).dropna(how="all")  # merge
+                out.to_parquet(file_path, engine="fastparquet")
+        else:
+            # make sure there is output
+            if df_.empty:
+                df = df[[df.columns[0]]]
+            else:
+                df = df_
+
+            df.to_parquet(file_path, engine="fastparquet")
+
+    return
+
+
+def to_stats(st, rpath="./thalassa/", opath="./thalassa/obs/"):
+    logger.info("compute general statistics for station points\n")
+
+    ids = st.id.values
+
+    sts = []
+    for inode in tqdm(ids):
+        sim = st.sel(id=inode).elev_sim.to_dataframe().drop("id", axis=1)
+
+        filename = os.path.join(opath, f"{inode}.parquet")
+        obs = pd.read_parquet(filename, engine="fastparquet")
+        obs_ = obs.dropna(axis=1, how="all")  # drop all nan columns
+
+        if obs_.empty:
+            obs = obs[[obs.columns[0]]]
+        else:
+            cols = [x for x in obs_.columns if x in valid_sensors]
+            obs = obs_[[cols[0]]]  # just choose one for now
+
+        if obs.dropna().empty:
+            logger.warning(f"Observation data not available for {inode} station")
+
+        stable = get_stats(sim, obs)  # Do general statitics
+
+        sts.append(stable)
+
+    logger.info("save stats\n")
+
+    stats = pd.DataFrame(sts)
+    stats.index.name = "id"
+    stats = stats.to_xarray().assign_coords({"id": ids})  # stats
+
+    output_path = os.path.join(rpath, "stats.nc")
+
+    stats.to_netcdf(output_path)
+    logger.info(f"..done with stats file\n")
+
+
+def to_thalassa(folder, **kwargs):
     # Retrieve data
     tag = kwargs.get("tag", "schism")
+    leads = kwargs.get("leads", None)
     rpath = kwargs.get("rpath", "./thalassa/")
     gglobal = kwargs.get("gglobal", False)
     to2d = kwargs.get("to2d", None)
@@ -113,7 +166,8 @@ def to_thalassa(folder, freq=None, **kwargs):
         os.makedirs(rpath)
 
     # Get simulation data
-    b = pyposeidon.model.read(folder + "/{}_model.json".format(tag))
+    json_file = os.path.join(folder, "{}_model.json".format(tag))
+    b = pyposeidon.model.read(json_file)
     b.get_output_data()
     b.get_station_sim_data()
     st = b.station_sim_data
@@ -126,22 +180,22 @@ def to_thalassa(folder, freq=None, **kwargs):
         logger.info("converting to 2D\n")
         # Convert to 2D
         [xn, yn, tri3n] = np.load(to2d, allow_pickle=True)
-        sv = []
-        for var in rvars:
-            isv = to_2d(out, var=var, mesh=[xn, yn, tri3n])  # elevation
-            sv.append(isv)
-        out = xr.merge(sv)
+        out = to_2d(out, data_vars=rvars, mesh=[xn, yn, tri3n])  # elevation
 
     else:
         rvars_ = rvars + [x_var, y_var, tes_var]
         out = out[rvars_]
+
+    # Add max elevation variable
+    out = out.assign(max_elev=out[ename].max("time"))
+    rvars = rvars + ["max_elev"]
 
     # set enconding
     encoding = {}
     for var in rvars:
         encoding.update(get_encoding(var))
 
-    logger.info("Saving combined netcdf file for folder {}\n".format(folder))
+    logger.info("saving combined netcdf file for folder {}\n".format(folder))
     output_file = os.path.join(
         rpath,
         f"{b.start_date.strftime('%Y%m%d%H')}.nc",
@@ -150,96 +204,71 @@ def to_thalassa(folder, freq=None, **kwargs):
 
     stations = gp.GeoDataFrame.from_file(b.obs)
 
-    ## save results in lead chunks
-    lpath = os.path.join(rpath, "skill")
+    # assign unique id
+    if "id" not in stations.columns:
+        stations["id"] = [f"IOC-{x}" for x in stations.ioc_code]
+    st = st.assign_coords({"id": ("node", stations.id.values)}).swap_dims({"node": "id"}).reset_coords("node")
 
-    for l in range(freq):
-        from_date = b.start_date + pd.to_timedelta("{}H".format(l * 12)) + pd.to_timedelta("1S")
-        to_date = b.start_date + pd.to_timedelta("{}H".format((l + 1) * 12))
-        h = st.sel(time=slice(from_date, to_date), drop=True)
-        h = h.rename({"elev": "elev_fct", "time": "ftime"})
-        h = h.assign_coords({"node": stations.ioc_code.to_list()})
-        leadfile = os.path.join(lpath, f"lead{l}")
-        if not os.path.exists(leadfile):
-            h.to_zarr(store=leadfile, mode="a")
+    logger.info("save time series depending on lead time\n")
+
+    if leads:
+        skill_path = os.path.join(rpath, "skill")
+        total_hours = pd.to_timedelta(b.time_frame) / pd.Timedelta(hours=1)
+        dt = total_hours / leads
+
+        if dt % 1 == 0.0:
+            save_leads(stations, st, b.start_date, dt, leads, rpath=skill_path)
+
         else:
-            h.to_zarr(store=leadfile, mode="a", append_dim="ftime")
+            logger.warning("leads value not correct, aborting\n")
 
-    locations = stations.ioc_code.values
+    # save sim data
 
-    # save to files
-    logger.info("Construct station simulation data output\n")
-    # Construct Thalassa file
+    ids = stations.id.values
 
     stp = stations.to_xarray().rename({"index": "node"})  # stations
-    stp = stp.assign_coords({"node": locations})
+    stp = stp.assign_coords({"id": ("node", ids)}).swap_dims({"node": "id"}).reset_coords("node")
 
-    st_ = st.assign_coords(node=locations)
-    st_ = st_.rename({"elev": "elev_sim", "time": "stime"})
+    st_ = st.rename({"elev": "elev_sim", "time": "stime"})
 
     vdata = xr.merge([stp, st_])
 
     vdata = vdata.drop_vars("geometry")
 
-    logger.info("Save station simulation data output\n")
+    logger.info("save station simulation data output\n")
 
     output_path = os.path.join(rpath, filename)
 
     vdata.to_netcdf(output_path)
     logger.info(f"..done with {filename} file\n")
 
-    # get observations
-    ods = compute_obs(stations, b.start_date, b.end_date)
 
-    save_ods(ods, **kwargs)
-
-    # compute stats
-    st = st.assign({"ioc_code": ("node", stations["ioc_code"])})
-    sts = compute_stats(st, ods)
-
-    save_stats(sts, stations, **kwargs)
-
-    logger.info(f"post processing complete for folder {folder}\n")
-
-
-def compute_stats(st, ods):
-    logger.info("Compute general statistics for station points\n")
-
-    sts = []
-    for inode in tqdm(st.ioc_code.values):
-        isim = st.where(st.ioc_code == inode).dropna(dim="node")
-        sim = isim.elev.to_dataframe().droplevel(1)
-
-        obs = ods.sel(node=inode).to_dataframe().drop("node", axis=1)
-
-        stable = get_stats(sim, obs)  # Do general statitics
-
-        sts.append(stable)
-
-    return sts
-
-
-def save_stats(sts, stations, **kwargs):
+def to_obs(folder, **kwargs):
+    tag = kwargs.get("tag", "schism")
     rpath = kwargs.get("rpath", "./thalassa/")
 
-    logger.info("Save stats\n")
+    json_file = os.path.join(folder, "{}_model.json".format(tag))
+    b = pyposeidon.model.read(json_file)
 
-    locations = stations.ioc_code.values
+    stations = gp.GeoDataFrame.from_file(b.obs)
 
-    stats = pd.DataFrame(sts)
-    stats.index.name = "node"
-    stats_ = stats.to_xarray().assign_coords({"node": locations})  # stats
+    # assign unique id
+    if "id" not in stations.columns:
+        stations["id"] = [f"IOC-{x}" for x in stations.ioc_code]
 
-    stp = stations.to_xarray().rename({"index": "node"})  # stations
-    stp = stp.assign_coords({"node": locations})
+    # get observations last timestamp
+    obs_files_path = os.path.join(rpath, "obs/")
+    if not os.path.exists(obs_files_path):
+        os.makedirs(obs_files_path)
 
-    sdata = xr.merge([stp, stats_])
+    obs_files = glob.glob(obs_files_path + "*.parquet")
 
-    sdata = sdata.drop_vars("geometry")
+    if not obs_files:
+        start_date = b.start_date
+    else:
+        obs_ = pd.read_parquet(obs_files[0], engine="fastparquet")
+        start_date = obs_.index[-1] + pd.Timedelta("60S")
 
-    rpath = kwargs.get("rpath", "./thalassa/")
+    gather_obs_data(stations, start_date, b.end_date, rpath=obs_files_path)
 
-    output_path = os.path.join(rpath, "stats.nc")
-
-    sdata.to_netcdf(output_path)
-    logger.info(f"..done with stats file\n")
+    return

@@ -84,6 +84,32 @@ case3 = {
 }
 
 
+case4 = {
+    "solver_name": "schism",
+    "mesh_file": MESH_FILE,
+    "manning": 0.12,
+    "windrot": 0.00001,
+    "tag": "test",
+    "start_date": "2011-1-1 0:0:0",
+    "time_frame": "12H",
+    "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
+    "dem_source": DEM_FILE,
+    "monitor": True,
+    "update": ["all"],  # update only meteo, keep dem
+    "parameters": {
+        "dt": 400,
+        "rnday": 0.3,
+        "nhot": 0,
+        "ihot": 0,
+        "nspool": 9,
+        "ihfskip": 36,
+        "nhot_write": 108,
+        "nc_out": 0,
+    },
+    "scribes": 2,
+}
+
+
 def schism(tmpdir, dic):
     # initialize a model
     rpath = str(tmpdir) + "/"
@@ -105,7 +131,7 @@ def schism(tmpdir, dic):
 
 
 @pytest.mark.schism
-@pytest.mark.parametrize("case", [case1, case2, case3])
+@pytest.mark.parametrize("case", [case1, case2, case3, case4])
 def test_answer(tmpdir, case):
     assert schism(tmpdir, case) == True
 

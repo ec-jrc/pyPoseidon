@@ -192,11 +192,15 @@ class SchismResults:
 
                 datai.append(xdat)  # append to list
 
-        merge = kwargs.get("merge", True)
-
-        if merge:
-            datai = flat_list(datai)
-            self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
-
+        if not any(datai):
+            logger.warning("no output netcdf files.")
+            self.Dataset = None
         else:
-            self.Dataset = [xr.open_mfdataset(x, combine="by_coords", data_vars="minimal") for x in datai]
+            merge = kwargs.get("merge", True)
+
+            if merge:
+                datai = flat_list(datai)
+                self.Dataset = xr.open_mfdataset(datai, combine="by_coords", data_vars="minimal")
+
+            else:
+                self.Dataset = [xr.open_mfdataset(x, combine="by_coords", data_vars="minimal") for x in datai]
