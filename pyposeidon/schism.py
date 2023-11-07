@@ -1517,11 +1517,11 @@ class Schism:
             date.columns = ["year", "month", "day", "hour", "utc"]  # rename the columns
             # set the start timestamp
             sdate = pd.Timestamp(
-                year=date.year.values[0],
-                month=date.month.values[0],
-                day=date.day.values[0],
-                hour=date.hour.values[0],
-                tz=date.utc.values[0],
+                year=int(date.year.values[0]),
+                month=int(date.month.values[0]),
+                day=int(date.day.values[0]),
+                hour=int(date.hour.values[0]),
+                tz=int(date.utc.values[0]),
             )
 
             logger.info("done with generic variables \n")
