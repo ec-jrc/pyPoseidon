@@ -1901,9 +1901,11 @@ class Schism:
 
         dstamp = kwargs.get("dstamp", self.rdate)
 
+        skiprows = kwargs.get("station_skiprows", 0)
+
         dfs = []
         for idx in vals.index:
-            obs = np.loadtxt(sfiles[idx])
+            obs = np.loadtxt(sfiles[idx], skiprows=skiprows)
             df = pd.DataFrame(obs)
             df = df.set_index(0)
             df.index.name = "time"
