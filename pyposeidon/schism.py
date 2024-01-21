@@ -1819,11 +1819,11 @@ class Schism:
         stations.index += 1
         stations["gindex"] = mesh_index
         try:
-            stations["location"] = self.obs.location.values
-            stations["provider_id"] = self.obs.ioc_code.values
+            stations["location"] = tgn.location.values
+            stations["provider_id"] = tgn.ioc_code.values
             stations["provider"] = "ioc"
-            stations["longitude"] = self.obs.longitude.values
-            stations["latitude"] = self.obs.latitude.values
+            stations["longitude"] = tgn.longitude.values
+            stations["latitude"] = tgn.latitude.values
         except:
             pass
 
