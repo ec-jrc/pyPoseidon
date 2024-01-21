@@ -1903,6 +1903,11 @@ class Schism:
 
         skiprows = kwargs.get("station_skiprows", 0)
 
+        try:
+            dt = self.parameters["dt"]
+        except:
+            dt = self.params["core"]["dt"]
+
         dfs = []
         for idx in vals.index:
             obs = np.loadtxt(sfiles[idx], skiprows=skiprows)
@@ -1910,7 +1915,10 @@ class Schism:
             df = df.set_index(0)
             df.index.name = "time"
             df.columns.name = vals.loc[idx, "variable"]
-            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
+            # deal with schism bug
+            ns = np.arange(1, df.shape[0] + 1)
+            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(ns * dt, unit="S")
+            #            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
             pindex = pd.MultiIndex.from_product([df.T.columns, df.T.index])
 
             r = pd.DataFrame(df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]])
