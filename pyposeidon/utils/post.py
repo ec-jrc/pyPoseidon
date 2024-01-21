@@ -239,7 +239,8 @@ def to_thalassa(folder, **kwargs):
 
     output_path = os.path.join(rpath, filename)
 
-    vdata.to_netcdf(output_path)
+    # output sim data
+    vdata[["node", "ioc_code", "lat", "lon", "location", "elev_sim"]].to_netcdf(output_path)
     logger.info(f"..done with {filename} file\n")
 
 
