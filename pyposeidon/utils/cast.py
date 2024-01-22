@@ -279,6 +279,8 @@ class SchismCast:
 
         copy = get_value(self, kwargs, "copy", False)
 
+        ihot = get_value(self, kwargs, "ihot", 1)
+
         pwd = os.getcwd()
 
         self.origin = self.model.rpath
@@ -336,7 +338,6 @@ class SchismCast:
         info["config_file"] = os.path.join(ppath, "param.nml")
 
         # update the properties
-
         info["rdate"] = self.rdate
         info["start_date"] = self.sdate
         info["time_frame"] = self.time_frame
@@ -362,7 +363,10 @@ class SchismCast:
         logger.debug("create restart file")
 
         # check for combine hotstart
-        hotout = int((self.sdate - self.rdate).total_seconds() / info["params"]["core"]["dt"])
+        if ihot == 2:
+            hotout = int((self.sdate - self.rdate).total_seconds() / info["params"]["core"]["dt"])
+        elif ihot == 1:
+            hotout = self.parameters["nhot_write"]
         logger.debug("hotout_it = {}".format(hotout))
 
         # link restart file
@@ -430,20 +434,32 @@ class SchismCast:
             logger.warning("meteo files present\n")
 
         # modify param file
-        rnday_new = (self.sdate - self.rdate).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
-            self.time_frame
-        ).total_seconds() / (3600 * 24.0)
-        hotout_write = int(rnday_new * 24 * 3600 / info["params"]["core"]["dt"])
-        info["parameters"].update(
-            {
-                "ihot": 2,
-                "rnday": rnday_new,
-                "start_hour": self.rdate.hour,
-                "start_day": self.rdate.day,
-                "start_month": self.rdate.month,
-                "start_year": self.rdate.year,
-            }
-        )
+        if ihot == 2:
+            rnday_new = (self.sdate - self.rdate).total_seconds() / (3600 * 24.0) + pd.to_timedelta(
+                self.time_frame
+            ).total_seconds() / (3600 * 24.0)
+            hotout_write = int(rnday_new * 24 * 3600 / info["params"]["core"]["dt"])
+            info["parameters"].update(
+                {
+                    "ihot": 2,
+                    "rnday": rnday_new,
+                    "start_hour": self.rdate.hour,
+                    "start_day": self.rdate.day,
+                    "start_month": self.rdate.month,
+                    "start_year": self.rdate.year,
+                }
+            )
+        elif ihot == 1:
+            info["parameters"].update(
+                {
+                    "ihot": 1,
+                    "start_hour": self.sdate.hour,
+                    "start_day": self.sdate.day,
+                    "start_month": self.sdate.month,
+                    "start_year": self.sdate.year,
+                }
+            )
+        #  else:
 
         m.config(output=True, **info)  # save param.nml
 

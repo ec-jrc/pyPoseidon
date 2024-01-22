@@ -1819,11 +1819,11 @@ class Schism:
         stations.index += 1
         stations["gindex"] = mesh_index
         try:
-            stations["location"] = self.obs.location.values
-            stations["provider_id"] = self.obs.ioc_code.values
+            stations["location"] = tgn.location.values
+            stations["provider_id"] = tgn.ioc_code.values
             stations["provider"] = "ioc"
-            stations["longitude"] = self.obs.longitude.values
-            stations["latitude"] = self.obs.latitude.values
+            stations["longitude"] = tgn.longitude.values
+            stations["latitude"] = tgn.latitude.values
         except:
             pass
 
@@ -1901,14 +1901,24 @@ class Schism:
 
         dstamp = kwargs.get("dstamp", self.rdate)
 
+        skiprows = kwargs.get("station_skiprows", 0)
+
+        try:
+            dt = self.parameters["dt"]
+        except:
+            dt = self.params["core"]["dt"]
+
         dfs = []
         for idx in vals.index:
-            obs = np.loadtxt(sfiles[idx])
+            obs = np.loadtxt(sfiles[idx], skiprows=skiprows)
             df = pd.DataFrame(obs)
             df = df.set_index(0)
             df.index.name = "time"
             df.columns.name = vals.loc[idx, "variable"]
-            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
+            # deal with schism bug
+            ns = np.arange(1, df.shape[0] + 1)
+            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(ns * dt, unit="S")
+            #            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
             pindex = pd.MultiIndex.from_product([df.T.columns, df.T.index])
 
             r = pd.DataFrame(df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]])
