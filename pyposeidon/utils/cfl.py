@@ -103,9 +103,7 @@ def parse_hgrid(path: os.PathLike[str] | str) -> dict[str, T.Any]:
         no_closed_boundaries = int(fd.readline().split(b"=")[0].strip())
         total_closed_boundary_nodes = int(fd.readline().split(b"=")[0].strip())
         for i in range(no_closed_boundaries):
-            no_nodes_in_boundary, boundary_type = map(
-                int, (fd.readline().split(b"=")[0].strip().split(b" "))
-            )
+            no_nodes_in_boundary, boundary_type = map(int, (fd.readline().split(b"=")[0].strip().split(b" ")))
             boundary_nodes = np.fromiter(
                 fd,
                 count=no_nodes_in_boundary,

@@ -1,4 +1,5 @@
 """ Observational Data retrieval """
+
 from __future__ import annotations
 
 import itertools
@@ -110,6 +111,10 @@ def serialize_stations(
     stations: pd.DataFrame,
     path: os.PathLike[str],
     schism_station_flag: str = "1 0 0 0 0 0 0 0 0",
+    duration: int = None,
+    timestep: int = None,
+    format: str = "schism",
+    offset: int = 0,
 ) -> None:
     """
     Serialize `stations` metadata to the provided `path`.
@@ -143,6 +148,15 @@ def serialize_stations(
         1 0.0000000000 0.0000000000 0 	!	0 1.0000000000 1.0000000000 157249.3812719440 AA a
         2 10.0000000000 5.0000000000 0 	!	1 11.0000000000 4.0000000000 157010.1626406018 BB b
         3 20.0000000000 0.0000000000 0 	!	2 21.0000000000 1.0000000000 157249.3812719441 CC c
+    for the SCHISM format.
+
+    or:
+        1 3  ! number of periods and points. https://gitlab.pam-retd.fr/otm/telemac-mascaret/-/blob/main/documentation/telemac2d/user/latex/chap3.tex#L584
+        0 100 10  ! start time, end time and interval (in seconds)
+        0.0000000000 0.0000000000 1 a  ! 0 1.0000000000 1.0000000000 157249.3812719440 AA a
+        10.0000000000 5.0000000000 2 b ! 1 11.0000000000 4.0000000000 157010.1626406018 BB b
+        20.0000000000 0.0000000000 3 c ! 2 21.0000000000 1.0000000000 157249.3812719441 CC c
+    for the TELEMAC format.
 
     """
     # Sanity check
@@ -152,14 +166,53 @@ def serialize_stations(
         msg = f"stations must have these columns too: {mandatory_cols.difference(df_cols)}"
         raise ValueError(msg)
     #
-    basic_cols = ["mesh_lon", "mesh_lat", "z", "separator", "unique_id", "mesh_index", "lon", "lat", "depth", "distance"]
+    schism_cols = [
+        "mesh_lon",
+        "mesh_lat",
+        "z",
+        "separator",
+        "unique_id",
+        "mesh_index",
+        "lon",
+        "lat",
+        "depth",
+        "distance",
+    ]
+    telemac_cols = [
+        "mesh_lon",
+        "mesh_lat",
+        "ind",
+        "unique_id",
+        "separator",
+        "mesh_index",
+        "lon",
+        "lat",
+        "depth",
+        "distance",
+    ]
     station_in = stations.assign(
         z=0,
         separator="\t!\t",
     )
-    station_in = station_in.set_index(station_in.index +1)
-    station_in = station_in[basic_cols]
-    with open(f"{path}", "w") as fd:
-        fd.write(f"{schism_station_flag.strip()}\t ! https://schism-dev.github.io/schism/master/input-output/optional-inputs.html#stationin-bp-format\n")
-        fd.write(f"{len(station_in)}\t ! number of stations\n")
-        station_in.to_csv(fd, header=None, sep=" ", float_format="%.10f")
+
+    if format == "schism":
+        station_in = station_in.set_index(station_in.index + 1)
+        station_in = station_in[schism_cols]
+        with open(f"{path}", "w") as fd:
+            fd.write(
+                f"{schism_station_flag.strip()}\t ! https://schism-dev.github.io/schism/master/input-output/optional-inputs.html#stationin-bp-format\n"
+            )
+            fd.write(f"{len(station_in)}\t ! number of stations\n")
+            station_in.to_csv(fd, header=None, sep=" ", float_format="%.10f")
+    elif format == "telemac":
+        if (duration is None) or (timestep is None):
+            raise ValueError("duration and timestep must be provided for TELEMAC format.")
+        station_in = station_in[telemac_cols]
+        with open(f"{path}", "w") as fd:
+            fd.write(f"1 {station_in.shape[0]}\n")  # 1st line: number of periods and number of points
+            fd.write(  # 2nd line: period 1: start time, end time and interval (in seconds)
+                f"{0 + offset} {duration + offset} {timestep}\n"
+            )
+            station_in.loc[:, ["lon", "lat", "ind", "unique_id"]].to_csv(
+                fd, header=None, sep=" ", index=False
+            )  # 3rd-10th line: output points; x coordinate, y coordinate, station number, and station name
