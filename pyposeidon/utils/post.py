@@ -6,6 +6,9 @@ import xarray as xr
 import numpy as np
 from tqdm.auto import tqdm
 import glob
+import numcodecs
+import tarfile
+import shutil
 
 import pyposeidon
 from pyposeidon.tools import to_geodataframe
@@ -49,6 +52,88 @@ def get_encoding(ename):
     return {
         ename: {"zlib": True, "complevel": 1},
     }
+
+
+def remove(path):
+    try:
+        if os.path.isfile(path):
+            os.remove(path)  # Remove a file
+        elif os.path.isdir(path):
+            if not os.listdir(path):  # Check if the directory is empty
+                os.rmdir(path)
+            else:
+                shutil.rmtree(path)
+    except OSError as e:
+        print(f"Error: {e.strerror}")
+
+
+def tar_directory(input_directory, output_filename, compress=False):
+    """
+    Tar a Zarr directory.
+
+    Parameters
+    ----------
+    input_directory : str
+        The path to the Zarr directory to archive.
+    output_filename : str
+        The path and filename for the output archive.
+    compress : bool, optional
+        Whether to compress the archive with gzip. Default is True.
+    """
+    mode = "w:gz" if compress else "w"
+    with tarfile.open(output_filename, mode) as tar:
+        tar.add(input_directory, arcname=os.path.basename(input_directory))
+
+
+def export_xarray(ds, filename_out, chunk=None, remove_dir=False):
+    """
+    Export an xarray dataset to netcdf or zarr format.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The xarray dataset to export.
+    filename_out : str
+        The path and filename of the output file.
+    chunk : dict, optional
+        The chunk size to use when saving the dataset to zarr format, by default None.
+        example: chunk = {'nodes': 1000, 'time': 100}
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If the filename does not have a .nc or .zarr extension.
+    """
+    if not filename_out.endswith(".nc") and not filename_out.endswith(".zarr"):
+        raise ValueError("Invalid filename extension. Must be .nc or .zarr")
+    if filename_out.endswith(".nc"):
+        encoding = {}
+        default_encoding = {"zlib": True, "complevel": 1}
+        for varname in list(ds.variables):
+            encoding[varname] = default_encoding
+            if chunk:
+                chunksizes = dict(ds[varname].sizes)
+                for key in chunk:
+                    if key in chunksizes:
+                        chunksizes[key] = chunk[key]
+                encoding[varname]["chunksizes"] = list(chunksizes.values())
+        ds.to_netcdf(filename_out, encoding=encoding)
+    elif filename_out.endswith(".zarr"):
+        compressor = numcodecs.Blosc(cname="zstd", clevel=1)
+        if chunk is not None:
+            ds = ds.chunk(chunk)
+        encoding = {}
+        for varname in list(ds.variables):
+            encoding.update({varname: {"compressor": compressor}})
+        ds.to_zarr(filename_out, encoding=encoding, consolidated=True)
+        tar_directory(filename_out, filename_out + ".tar")
+        if remove_dir:
+            remove(filename_out)
+            logger.info(f"Removed directory {filename_out}")
 
 
 def save_leads(stations, st, start_date, dt, leads, rpath="./skill/"):

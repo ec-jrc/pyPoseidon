@@ -67,9 +67,9 @@ def get_tiles(data, **kwargs):
     return perms
 
 
-def fix_dem(dem, coastline, dbuffer=0.0, **kwargs):
+def fix_dem(dem, coastline, buffer=0.0, **kwargs):
 
-    perms = get_tiles(dem, **kwargs)
+    perms = get_tiles(dem)
 
     i = 0
     check = True
@@ -78,7 +78,6 @@ def fix_dem(dem, coastline, dbuffer=0.0, **kwargs):
         os.makedirs("./fixtmp/")
 
     for (i1, i2), (j1, j2) in tqdm(perms, total=len(perms)):
-
         lon1 = dem.longitude.data[i1:i2][0]
         lon2 = dem.longitude.data[i1:i2][-1]
         lat1 = dem.latitude.data[j1:j2][0]

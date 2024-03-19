@@ -15,11 +15,9 @@ import os
 from pyposeidon.mesh import r2d
 import pyposeidon.model as pm
 from pyposeidon.tools import flat_list
-from pyposeidon.utils.get_value import get_value
-import datetime
+from pyposeidon.utils.cpoint import closest_n_points
 import xarray as xr
 import glob
-import sys
 import logging
 import json
 
@@ -33,10 +31,23 @@ def get_output(solver_name: str, **kwargs):
         solver_class = SchismResults
     elif solver_name == "d3d":
         solver_class = D3DResults
+    elif solver_name == "telemac":
+        solver_class = TelemacResults
     else:
         raise ValueError(f"Unknown solver_name: {solver_name}")
     instance = solver_class(**kwargs)
     return instance
+
+
+def extract_t_elev_2D(
+    ds: xr.Dataset, x: float, y: float, var: str = "elev", xstr: str = "longitude", ystr: str = "latitude"
+):
+    lons, lats = ds[xstr].values, ds[ystr].values
+    indx, _ = closest_n_points(np.array([x, y]).T, 1, np.array([lons, lats]).T)
+    ds_ = ds.isel(node=indx[0])
+    elev_ = ds_[var].values
+    t_ = [pd.Timestamp(ti) for ti in ds_.time.values]
+    return pd.Series(elev_, index=t_), float(ds_[xstr]), float(ds_[ystr])
 
 
 class D3DResults:
@@ -205,3 +216,109 @@ class SchismResults:
 
             else:
                 self.Dataset = [xr.open_mfdataset(x, combine="by_coords", data_vars="minimal") for x in datai]
+
+
+class TelemacResults:
+    def __init__(self, **kwargs):
+        """
+        this class has been copied on the Schism class above
+        although there are a few subtilities that TELEMAC introduced :
+         1. there are 1D AND 2D results, they need to be addressed separately
+         2. selafin are readable directly in xarray, so we can skip the conversion step
+        """
+        rpath = kwargs.get("rpath", "./telemac/")
+        res_type = kwargs.get("result_type", "2D")
+        convert = kwargs.get("convert_results", True)
+        extract_TS = kwargs.get("extract_TS", False)
+        station_id_str = kwargs.get("id_str", "ioc_code")
+
+        if res_type not in ["1D", "2D"]:
+            raise ValueError("results_type needs to be '1D' or '2D'!")
+        if res_type == "1D":
+            out_default = "stations.zarr"
+        else:
+            out_default = "out_2D.zarr"
+
+        folders = kwargs.get("folders", None)
+
+        if folders:
+            self.folders = folders
+        else:
+            self.folders = [rpath]
+
+        datai = []
+
+        tag = kwargs.get("tag", "telemac2d")
+
+        misc = kwargs.get("misc", {})
+
+        for folder in self.folders:
+            logger.info(" Combining output for folder {}\n".format(folder))
+
+            with open(folder + "/" + tag + "_model.json", "r") as f:
+                data = json.load(f)
+                data = pd.json_normalize(data, max_level=0)
+                info = data.to_dict(orient="records")[0]
+
+            p = pm.set(**info)
+            p.misc = misc
+
+            # read from output file
+            if convert:
+                xdat = glob.glob(folder + "/outputs/" + out_default)
+                var, model_xstr, model_ystr = "elev", "longitude", "latitude"
+
+                if len(xdat) > 0:
+                    datai.append(xdat)  # append to list
+
+                else:  # run merge output
+                    p.results(
+                        filename="stations.zarr",
+                        filename2d="out_2D.zarr",
+                        remove_zarr=False,  # remove zarr files after tarballing
+                    )
+
+                    self.misc = p.misc
+                    xdat = glob.glob(folder + "/outputs/" + out_default)
+                    datai.append(xdat)  # append to list
+            else:  # read from selafin file
+                xdat = glob.glob(folder + f"/results_{res_type}.slf")
+                datai.append(xdat)  # append to list
+                var, model_xstr, model_ystr = "S", "x", "y"
+
+        if not any(datai):
+            logger.warning("no output files found")
+            self.Dataset = None
+        else:
+            merge = kwargs.get("merge", True)
+
+            if merge:
+                datai = flat_list(datai)
+                self.Dataset = xr.open_mfdataset(datai, data_vars="minimal")
+            else:
+                self.Dataset = [xr.open_mfdataset(x, data_vars="minimal") for x in datai]
+
+        # export parquet time series
+        if extract_TS:
+            if "stations_mesh_id" in p.__dict__:
+                if isinstance(p.stations_mesh_id, dict):
+                    stations = pd.DataFrame(p.stations_mesh_id)
+                elif isinstance(p.stations_mesh_id, pd.DataFrame):
+                    stations = p.stations_mesh_id
+                else:
+                    raise ValueError("stations_mesh_id format not supported")
+            elif "stations.csv" in os.listdir(rpath):
+                stations = pd.read_csv(os.path.join(rpath, "stations.csv"))
+            elif "obs" in self.__dict__:
+                p.set_obs()
+                stations = p.stations_mesh_id
+            else:
+                raise ValueError("no stations file info found")
+
+            logger.info("extracting parquet files from TELEMAC Selafin output \n")
+            for i_s, id_ in enumerate(stations[station_id_str]):
+                s = stations[stations[station_id_str] == id_]
+                mod, mlon, mlat = extract_t_elev_2D(
+                    self.Dataset, s.longitude.values[0], s.latitude.values[0], var, model_xstr, model_ystr
+                )
+                mod.to_frame().to_parquet(f"{rpath}{id_}.parquet")

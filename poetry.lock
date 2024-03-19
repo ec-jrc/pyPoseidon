@@ -2987,6 +2987,34 @@ griffe = ">=0.49"
 mkdocstrings = ">=0.25"
 
 [[package]]
+name = "mpi4py"
+version = "3.1.5"
+description = "Python bindings for MPI"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+files = [
+    {file = "mpi4py-3.1.5-cp27-cp27m-win32.whl", hash = "sha256:dbc47296a560d2a5aa50d716cb9bf90552349687ee068a493d646e3f6c20a9a4"},
+    {file = "mpi4py-3.1.5-cp27-cp27m-win_amd64.whl", hash = "sha256:b3e06c9ef1d0a2da3d5c7431bbf4af50a01ac9915fb4ab33409a21cd9e67be9c"},
+    {file = "mpi4py-3.1.5-cp310-cp310-win32.whl", hash = "sha256:f39df0d985cb6fb342ee6c6902cadf21b2d828d7df00b182573da0242646b715"},
+    {file = "mpi4py-3.1.5-cp310-cp310-win_amd64.whl", hash = "sha256:aec0e6238ed76c930c07df7dcea19f3be5ca958fb76353e668b19511ed4c86d7"},
+    {file = "mpi4py-3.1.5-cp311-cp311-win32.whl", hash = "sha256:f73686e3ff8f76bacb9ecacba0515f84392ad4c561b76603f9680f0fe64ef0ed"},
+    {file = "mpi4py-3.1.5-cp311-cp311-win_amd64.whl", hash = "sha256:d854dae2e62042a0355fa24ef7bea50b5380414806319240a57e654be1e59d9c"},
+    {file = "mpi4py-3.1.5-cp312-cp312-win32.whl", hash = "sha256:17cc793bf2fe3921f2c3cda59a2a708d2e0c68ce07c8b9d2b6ee1a9adc28fe3d"},
+    {file = "mpi4py-3.1.5-cp312-cp312-win_amd64.whl", hash = "sha256:8b38ad45a843bcbd7d11e23fd901016bb8069f35a9d4500666090465a2f734f2"},
+    {file = "mpi4py-3.1.5-cp35-cp35m-win32.whl", hash = "sha256:61d6c5df1803002cf6c61523417d48f9ecf64b55808e3d9d47815c174d7125dd"},
+    {file = "mpi4py-3.1.5-cp35-cp35m-win_amd64.whl", hash = "sha256:de6291eb7587e09637bc56f0e00d94863a1253f9d06b2ee97937bb9d49b53615"},
+    {file = "mpi4py-3.1.5-cp36-cp36m-win32.whl", hash = "sha256:dd7ebe2d9c52330670e2424ba3a535df999e57bdaf3a93a8967fede1d2d5927d"},
+    {file = "mpi4py-3.1.5-cp36-cp36m-win_amd64.whl", hash = "sha256:0de523428e15b453539da14208489a19f9fc7570cc8f9d1a3365175e441bba8e"},
+    {file = "mpi4py-3.1.5-cp37-cp37m-win32.whl", hash = "sha256:9cc87b70ce7164fbc521c45bbc4f5fb9acce8ea70d3503da0768ef67ba52186a"},
+    {file = "mpi4py-3.1.5-cp37-cp37m-win_amd64.whl", hash = "sha256:8574fe09d34d89531be6e640d18b54f7b7a046514de069f18c181bafeff51108"},
+    {file = "mpi4py-3.1.5-cp38-cp38-win32.whl", hash = "sha256:265f4c0a9cfdd606701fa36e0b373afae5930bedbf03c8360fd62f8c38639bf6"},
+    {file = "mpi4py-3.1.5-cp38-cp38-win_amd64.whl", hash = "sha256:edf2224fa9c4416f891ac87f8e5b8a754ab45bc31dcfc4fbc8e29d6c643084c9"},
+    {file = "mpi4py-3.1.5-cp39-cp39-win32.whl", hash = "sha256:c4e6e776e183dbf3aa0945679303120716bb3f0826faeeb740dc5a055fcff3a8"},
+    {file = "mpi4py-3.1.5-cp39-cp39-win_amd64.whl", hash = "sha256:3a2853b7b41899a17c3f1e6ad27e48a30e98d49d12830b345672fef3a6dcc8d6"},
+    {file = "mpi4py-3.1.5.tar.gz", hash = "sha256:a706e76db9255135c2fb5d1ef54cb4f7b0e4ad9e33cbada7de27626205f2a153"},
+]
+
+[[package]]
 name = "multipledispatch"
 version = "1.0.0"
 description = "Multiple dispatch"
@@ -5825,6 +5853,29 @@ parallel = ["dask[complete]"]
 viz = ["matplotlib", "nc-time-axis", "seaborn"]
 
 [[package]]
+name = "xarray-selafin"
+version = "0.1.4"
+description = "https://github.com/seareport/xarray-selafin"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "xarray-selafin-0.1.4.tar.gz", hash = "sha256:20ec5857ee6a902495e2a3215ede92e3ff9a4ec4f4720a9951ad6169deb3c7a2"},
+    {file = "xarray_selafin-0.1.4-py3-none-any.whl", hash = "sha256:d4c3eda659afe005b7ef2d24768b379e2b8746599ea22a4fb4790e6af4009b15"},
+]
+
+[package.dependencies]
+netcdf4 = "*"
+numpy = "*"
+pytest = "*"
+scipy = "*"
+shapely = "*"
+xarray = "*"
+
+[package.extras]
+dask = ["dask"]
+dev = ["matplotlib"]
+
+[[package]]
 name = "xyzservices"
 version = "2024.6.0"
 description = "Source of XYZ tiles providers"
@@ -5989,4 +6040,4 @@ viz = ["geoviews", "holoviews", "hvplot", "ipykernel", "itkwidgets", "matplotlib
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9, <4"
-content-hash = "38d4082978f66a07caeea2a453769bdf945b44756efeacce68699148488fe17d"
+content-hash = "3b82313d68e68c02a7b42b03ee5678adaec056d90fb8bfc773ecc1858c069f9e"
