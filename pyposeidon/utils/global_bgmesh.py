@@ -135,7 +135,6 @@ def fillv(dem, perms, m, **kwargs):
     gbuffer = kwargs.get("gbuffer", 5)
 
     for (i1, i2), (j1, j2) in tqdm(perms, total=len(perms)):
-
         lon1 = dem.longitude.data[i1:i2][0]
         lon2 = dem.longitude.data[i1:i2][-1]
         lat1 = dem.latitude.data[j1:j2][0]
@@ -155,44 +154,27 @@ def fillv(dem, perms, m, **kwargs):
         bm = m.isel(nSCHISM_hgrid_node=indices_of_nodes_in_bbox)
         ids = np.argwhere(np.isnan(bm.depth.values)).flatten()
 
-        xw, yw = bm.x.data[ids], bm.y.data[ids]
+        grid_x, grid_y = bm.x.data, bm.y.data
 
-        var = kwargs.get("var", "adjusted")
-        logger.info(f"using '{var}' variable data")
+        bd = resample(de, grid_x, grid_y, var="adjusted", wet=True, flag=0, function="gauss")
 
-        if var not in dem.data_vars:
-            var = "elevation"
-            logger.info(f"variable {var} not present switching to 'elevation' data")
-
-        function = kwargs.get("function", "nearest")
-        logger.info(f"using {function} resample function")
-
-        # Define points with positive bathymetry
-        x, y = np.meshgrid(de.longitude, de.latitude)
-
-        # fill the nan, if present, with values in order to compute values there if needed.
-        #        de[var].data[np.isnan(de[var].values)] = 9999.0
-
-        orig = pyresample.geometry.SwathDefinition(lons=x, lats=y)  # original bathymetry points
-        targ = pyresample.geometry.SwathDefinition(lons=xw, lats=yw)  # wet points
-
-        mdem = de[var].values.astype(float)
-
-        if function == "nearest":
-            bw = pyresample.kd_tree.resample_nearest(orig, mdem, targ, radius_of_influence=100000, fill_value=np.nan)
-
-        elif function == "gauss":
-            bw = pyresample.kd_tree.resample_gauss(
-                orig, mdem, targ, radius_of_influence=500000, neighbours=10, sigmas=250000, fill_value=np.nan
-            )
-
-        m["depth"].loc[dict(nSCHISM_hgrid_node=indices_of_nodes_in_bbox[ids])] = bw
+        m["depth"].loc[dict(nSCHISM_hgrid_node=indices_of_nodes_in_bbox)] = -bd
 
 
-def dem_on_mesh(mesh, dem, **kwargs):
+def dem_on_mesh(mesh, dem):
 
-    logger.info("resample dem on mesh")
+    ilats = dem.elevation.chunk("auto").chunks[0]
+    ilons = dem.elevation.chunk("auto").chunks[1]
 
-    perms = get_tiles(dem, **kwargs)
+    if len(ilons) == 1:
+        ilons = (int(ilons[0] / 2), int(ilons[0] / 2))
+
+    idx = [sum(ilons[:i]) for i in range(len(ilons) + 1)]
+    jdx = [sum(ilats[:i]) for i in range(len(ilats) + 1)]
+
+    blon = list(zip(idx[:-1], idx[1:]))
+    blat = list(zip(jdx[:-1], jdx[1:]))
+
+    perms = [(x, y) for x in blon for y in blat]
 
     fillv(dem, perms, mesh, **kwargs)

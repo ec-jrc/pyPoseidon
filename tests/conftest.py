@@ -30,6 +30,7 @@ def move_tests_to_the_end(items):
 
 
 def pytest_addoption(parser):
+    parser.addoption("--runtelemac", action="store_true", default=False, help="run telemac tests")
     parser.addoption("--runschism", action="store_true", default=False, help="run schism tests")
     parser.addoption("--rundelft", action="store_true", default=False, help="run delft tests")
     parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
@@ -37,11 +38,13 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
+    should_run_telemac = config.getoption("--runtelemac")
     should_run_schism = config.getoption("--runschism")
     should_run_delft = config.getoption("--rundelft")
     should_run_slow = config.getoption("--runslow")
     should_run_viz = config.getoption("--runviz")
 
+    skip_telemac = pytest.mark.skip(reason="need --runtelemac option to run")
     skip_schism = pytest.mark.skip(reason="need --runshism option to run")
     skip_delft = pytest.mark.skip(reason="need --rundelft option to run")
     skip_slow = pytest.mark.skip(reason="need --runslow option to run")
@@ -51,6 +54,8 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if any(mark in item.keywords for mark in run_last_marks):
             item.add_marker(RUNLAST_MARK)
+        if "telemac" in item.keywords and not should_run_telemac:
+            item.add_marker(skip_telemac)
         if "schism" in item.keywords and not should_run_schism:
             item.add_marker(skip_schism)
         if "delft" in item.keywords and not should_run_delft:
