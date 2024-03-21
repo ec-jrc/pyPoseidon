@@ -95,7 +95,6 @@ def telemac(tmpdir, dic):
         return False
 
 
-@pytest.mark.xfail
 @pytest.mark.telemac
 @pytest.mark.parametrize("case", [case0, case1, case2, case3])
 def test_answer(tmpdir, case):
