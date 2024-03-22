@@ -1,0 +1,5 @@
+channels:
+  - conda-forge
+  - tomsail
+dependencies:
+  - opentelemac=main*=openmpi*

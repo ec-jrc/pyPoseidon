@@ -1,0 +1,97 @@
+/----------------------------------------------
+/  COMPUTER INFORMATIONS
+/----------------------------------------------
+/
+FORTRAN FILE              = '{{ fortran_file }}'
+GEOMETRY FILE             = '{{ geo_file }}'
+BOUNDARY CONDITIONS FILE  = '{{ cli_file }}'
+3D RESULT FILE            = '{{ out_3D_file }}'
+2D RESULT FILE            = '{{ out_2D_file }}'
+FORMATTED DATA FILE 1     = '{{ formatted_data_file_1 }}'
+DEBUGGER={{ debugger }}
+/
+/----------------------------------------------
+/  GENERAL INFORMATIONS - OUTPUTS
+/----------------------------------------------
+/
+TITLE = '{{ title }}'
+VARIABLES FOR 3D GRAPHIC PRINTOUTS : '{{ variables_3d_graphics }}'
+VARIABLES FOR 2D GRAPHIC PRINTOUTS : '{{ variables_2d_graphics }}'
+GRAPHIC PRINTOUT PERIOD = {{ graphic_printout_period }}
+LISTING PRINTOUT PERIOD = {{ listing_printout_period }}
+TIME STEP = {{ time_step }}
+NUMBER OF TIME STEPS = {{ number_of_time_steps }}
+CHECKING THE MESH = {{ checking_mesh }}
+{% if nonlinearities %}NUMBER OF SUB ITERATIONS FOR NON LINEARITIES : {{no_subiter}} {% endif %}
+/
+/----------------------------------------------------------------------/
+/                       INITIAL CONDITIONS
+/----------------------------------------------------------------------/
+ORIGINAL DATE OF TIME = {{ original_date_of_time }}
+ORIGINAL HOUR OF TIME = {{ original_hour_of_time }}
+/NUMBER OF DROGUES = {{ number_of_drogues }}
+/PRINTOUT PERIOD FOR DROGUES = {{ printout_period_drogues }}
+/DROGUES FILE = '{{ drogues_file }}'
+MASS-BALANCE = {{ mass_balance }}
+/
+/----------------------------------------------
+/  PHYSICAL PARAMETERS
+/----------------------------------------------
+/
+LAW OF BOTTOM FRICTION = {{ law_of_bottom_friction }}
+FRICTION COEFFICIENT FOR THE BOTTOM = {{ friction_coefficient_bottom }}
+/TIDE GENERATING FORCE = {{ tide_generating_force }}
+/FRICTION COEFFICIENT FOR THE BOTTOM = {{ friction_coefficient_bottom_2 }}
+CORIOLIS = {{ coriolis }}
+INITIAL CONDITIONS = '{{ initial_conditions }}'
+/
+/---------------------------------------------------------------------
+/  SPATIAL CONDITIONS - COORDINATE SYSTEM
+/---------------------------------------------------------------------
+SPHERICAL COORDINATES = {{ spherical_coordinates }}
+SPATIAL PROJECTION TYPE = {{ spatial_projection_type }}
+GEOGRAPHIC SYSTEM = {{ geographic_system }}
+RESULT FILE IN LONGITUDE-LATITUDE = {{ result_file_in_longitude_latitude }}
+/------------------------------------------------------
+/  NUMERICAL PARAMETERS
+/----------------------------------------------
+/
+SCHEME FOR ADVECTION OF DEPTH = {{ scheme_for_advection_of_depth }}
+/SCHEME FOR ADVECTION OF VELOCITIES = {{ scheme_for_advection_of_velocities }}
+ACCURACY FOR PROPAGATION = {{ accuracy_for_propagation }}
+ACCURACY FOR DIFFUSION OF VELOCITIES = {{ accuracy_for_diffusion_of_velocities }}
+ACCURACY FOR PPE = {{ accuracy_for_ppe }}
+/
+MAXIMUM NUMBER OF ITERATIONS FOR ADVECTION SCHEMES = {{ max_iterations_advection_schemes }}
+MAXIMUM NUMBER OF ITERATIONS FOR PROPAGATION = {{ max_iterations_propagation }}
+MAXIMUM NUMBER OF ITERATIONS FOR DIFFUSION OF VELOCITIES = {{ max_iterations_diffusion_velocities }}
+MAXIMUM NUMBER OF ITERATIONS FOR PPE = {{ max_iterations_ppe }}
+MAXIMUM NUMBER OF ITERATIONS FOR DIFFUSION OF K-EPSILON  = {{ max_iterations_diffusion_k_epsilon }}
+/
+SOLVER FOR PPE = {{ solver_for_ppe }}
+SOLVER FOR PROPAGATION = {{ solver_for_propagation }}
+OPTION OF SOLVER FOR PROPAGATION = {{ option_solver_for_propagation }}
+IMPLICITATION FOR DEPTH = {{ implicitation_for_depth }}
+IMPLICITATION FOR VELOCITIES = {{ implicitation_for_velocities }}
+COEFFICIENT FOR HORIZONTAL DIFFUSION OF VELOCITIES = {{ coefficient_horizontal_diffusion_velocities }}
+COEFFICIENT FOR VERTICAL DIFFUSION OF VELOCITIES   = {{ coefficient_vertical_diffusion_velocities }}
+FREE SURFACE GRADIENT COMPATIBILITY = {{ free_surface_gradient_compatibility }}
+/
+/----------------------------------------------------------------------
+/     VERTICAL DESCRIPTION (LAYERS, MESH, ETC...)
+/----------------------------------------------------------------------
+/
+MESH TRANSFORMATION = {{ mesh_transformation }}
+NUMBER OF HORIZONTAL LEVELS = {{ number_of_horizontal_levels }}
+NUMBER OF BOTTOM SMOOTHINGS = {{ number_of_bottom_smoothings }}
+/
+/----------------------------------------------
+/  DRY-WET ELEMENTS
+/----------------------------------------------
+/
+/TIDAL FLATS = {{ tidal_flats }}
+/MINIMAL VALUE FOR DEPTH = {{ minimal_value_for_depth }}
+/TREATMENT OF NEGATIVE DEPTHS = {{ treatment_of_negative_depths }}
+/TREATMENT ON TIDAL FLATS FOR VELOCITIES = {{ treatment_on_tidal_flats_for_velocities }}
+/OPTION FOR THE TREATMENT OF TIDAL FLATS = {{ option_for_treatment_of_tidal_flats }}
+/

@@ -8,10 +8,19 @@ set -xeuo pipefail
 ./scripts/merge_environment_yaml.py ./dependencies/python3.10.yml  ./dependencies/binary.yml > ./environments/binary-p3.10.yml
 ./scripts/merge_environment_yaml.py ./dependencies/python3.11.yml  ./dependencies/binary.yml > ./environments/binary-p3.11.yml
 
+# Binary + Telemac
+./scripts/merge_environment_yaml.py ./dependencies/python3.9.yml   ./dependencies/binary.yml ./dependencies/telemac_mpich.yml > ./environments/binary-telemac-mpich-p3.9.yml
+./scripts/merge_environment_yaml.py ./dependencies/python3.10.yml  ./dependencies/binary.yml ./dependencies/telemac_mpich.yml > ./environments/binary-telemac-mpich-p3.10.yml
+./scripts/merge_environment_yaml.py ./dependencies/python3.11.yml  ./dependencies/binary.yml ./dependencies/telemac_mpich.yml > ./environments/binary-telemac-mpich-p3.11.yml
+./scripts/merge_environment_yaml.py ./dependencies/python3.9.yml   ./dependencies/binary.yml ./dependencies/telemac_openmpi.yml > ./environments/binary-telemac-openmpi-p3.9.yml
+./scripts/merge_environment_yaml.py ./dependencies/python3.10.yml  ./dependencies/binary.yml ./dependencies/telemac_openmpi.yml > ./environments/binary-telemac-openmpi-p3.10.yml
+./scripts/merge_environment_yaml.py ./dependencies/python3.11.yml  ./dependencies/binary.yml ./dependencies/telemac_openmpi.yml > ./environments/binary-telemac-openmpi-p3.11.yml
+
 # Base
 ./scripts/merge_environment_yaml.py ./dependencies/python3.9.yml  ./dependencies/binary.yml ./dependencies/main.yml > ./environments/base-p3.9.yml
 ./scripts/merge_environment_yaml.py ./dependencies/python3.10.yml ./dependencies/binary.yml ./dependencies/main.yml > ./environments/base-p3.10.yml
 ./scripts/merge_environment_yaml.py ./dependencies/python3.11.yml ./dependencies/binary.yml ./dependencies/main.yml > ./environments/base-p3.11.yml
+
 
 # Viz
 ./scripts/merge_environment_yaml.py ./dependencies/python3.9.yml  ./dependencies/binary.yml ./dependencies/main.yml ./dependencies/viz.yml > ./environments/viz-p3.9.yml

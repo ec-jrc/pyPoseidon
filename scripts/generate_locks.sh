@@ -30,6 +30,21 @@ conda-lock render -p osx --filename-template locks/conda-macos-latest-binary-p3.
 conda-lock render -p osx --filename-template locks/conda-macos-latest-binary-p3.10.lock   locks/binary-p3.10.yml
 conda-lock render -p osx --filename-template locks/conda-macos-latest-binary-p3.11.lock   locks/binary-p3.11.yml
 
+# Telemac
+# conda-lock lock --mamba --check-input-hash -p linux-64 -f environments/binary-telemac-mpich-p3.9.yml 	    --lockfile locks/binary-telemac-mpich-p3.9.yml
+conda-lock lock --mamba --check-input-hash -p linux-64 -f environments/binary-telemac-mpich-p3.10.yml 	  --lockfile locks/binary-telemac-mpich-p3.10.yml
+conda-lock lock --mamba --check-input-hash -p linux-64 -f environments/binary-telemac-mpich-p3.11.yml 	  --lockfile locks/binary-telemac-mpich-p3.11.yml
+conda-lock lock --mamba --check-input-hash -p linux-64 -f environments/binary-telemac-openmpi-p3.9.yml 	  --lockfile locks/binary-telemac-openmpi-p3.9.yml
+conda-lock lock --mamba --check-input-hash -p linux-64 -f environments/binary-telemac-openmpi-p3.10.yml 	--lockfile locks/binary-telemac-openmpi-p3.10.yml
+conda-lock lock --mamba --check-input-hash -p linux-64 -f environments/binary-telemac-openmpi-p3.11.yml 	--lockfile locks/binary-telemac-openmpi-p3.11.yml
+# conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-binary-telemac-mpich-p3.9.lock   locks/binary-telemac-mpich-p3.9.yml
+conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-binary-telemac-mpich-p3.10.lock  locks/binary-telemac-mpich-p3.10.yml
+conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-binary-telemac-mpich-p3.11.lock  locks/binary-telemac-mpich-p3.11.yml
+conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-binary-telemac-openmpi-p3.9.lock   locks/binary-telemac-openmpi-p3.9.yml
+conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-binary-telemac-openmpi-p3.10.lock  locks/binary-telemac-openmpi-p3.10.yml
+conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-binary-telemac-openmpi-p3.11.lock  locks/binary-telemac-openmpi-p3.11.yml
+
+
 # Pyposeidon-Base
 # Pyposeidon-Viz
 # Pyposeidon-Full
