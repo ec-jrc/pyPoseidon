@@ -361,9 +361,9 @@ class Schism:
         }
 
         sout.stmp.attrs = {
-            "units": "degrees",
-            "long_name": "Surface Temperature",
-            "standard_name": "surface temperature",
+            "units": "K",
+            "long_name": "Surface Air Temperature (2m AGL)",
+            "standard_name": "air_temperature",
         }
 
         # Create sflux directory if necessary
