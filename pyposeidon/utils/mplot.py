@@ -2,6 +2,7 @@
 Visualization module in 3D
 
 """
+
 # Copyright 2018 European Union
 # This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
