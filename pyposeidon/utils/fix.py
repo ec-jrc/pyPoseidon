@@ -2,6 +2,7 @@
 Mesh adjustment functions
 
 """
+
 # Copyright 2018 European Union
 # This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
@@ -16,6 +17,9 @@ import pandas as pd
 import xarray as xr
 import sys
 import os
+import shutil
+from glob import glob
+from tqdm.auto import tqdm
 from pyposeidon.utils.coastfix import simplify
 
 # logging setup
@@ -24,12 +28,82 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_tiles(data, chunks=None):
+
+    # chuck
+    if chunks:
+        ilats = data.elevation.chunk({"longitude": chunks[0], "latitude": chunks[1]}).chunks[0]
+        ilons = data.elevation.chunk({"longitude": chunks[0], "latitude": chunks[1]}).chunks[1]
+    else:
+        ilats = data.elevation.chunk("auto").chunks[0]
+        ilons = data.elevation.chunk("auto").chunks[1]
+
+    if len(ilons) == 1:
+        ilons = (int(ilons[0] / 2), int(ilons[0] / 2))
+
+    idx = [sum(ilons[:i]) for i in range(len(ilons) + 1)]
+    jdx = [sum(ilats[:i]) for i in range(len(ilats) + 1)]
+
+    blon = list(zip(idx[:-1], idx[1:]))
+    blat = list(zip(jdx[:-1], jdx[1:]))
+
+    perms = [(x, y) for x in blon for y in blat]
+
+    return perms
+
+
+def fix_dem(dem, coastline, buffer=0.0, **kwargs):
+
+    perms = get_tiles(dem)
+
+    i = 0
+    check = True
+
+    if not os.path.exists("./fixtmp/"):
+        os.makedirs("./fixtmp/")
+
+    for (i1, i2), (j1, j2) in tqdm(perms, total=len(perms)):
+
+        lon1 = dem.longitude.data[i1:i2][0]
+        lon2 = dem.longitude.data[i1:i2][-1]
+        lat1 = dem.latitude.data[j1:j2][0]
+        lat2 = dem.latitude.data[j1:j2][-1]
+
+        # buffer lat/lon
+        blon1 = lon1 - buffer
+        blon2 = lon2 + buffer
+        blat1 = lat1 - buffer
+        blat2 = lat2 + buffer
+
+        #    de = dem.sel(lon=slice(blon1,blon2)).sel(lat=slice(blat1,blat2))
+        de = dem_range(dem, blon1, blon2, blat1, blat2)
+
+        de_, check_, flag = fix(de, coastline, **kwargs)
+
+        ide = de_.sel(latitude=slice(lat1, lat2)).sel(longitude=slice(lon1, lon2))
+
+        ide.to_netcdf("./fixtmp/ide{:03d}.nc".format(i))
+        i += 1
+
+        check = check and check_
+
+    ifiles = glob("./fixtmp/ide*")
+
+    fdem = xr.open_mfdataset(ifiles)
+
+    ##cleanup
+    shutil.rmtree("./fixtmp")
+
+    return fdem, check
+
+
 def fix(dem, coastline, **kwargs):
     # ---------------------------------------------------------------------
     logger.info("adjust dem\n")
     # ---------------------------------------------------------------------
 
     ifunction = kwargs.get("resample_function", "nearest")
+    reset_flag = kwargs.get("reset_flag", False)
 
     # define coastline
     try:
@@ -37,7 +111,10 @@ def fix(dem, coastline, **kwargs):
     except:
         shp = gp.GeoDataFrame(coastline)
 
-    shp = simplify(shp)
+    sc = kwargs.get("simplify_coastlines", False)
+
+    if sc:
+        shp = simplify(shp)
 
     if "ival" in dem.data_vars:
         xp = dem.ilons.values
@@ -130,7 +207,7 @@ def fix(dem, coastline, **kwargs):
         else:
             dem = dem.assign(adjusted=dem.elevation)
 
-        return dem, True
+        return dem, True, flag
 
     if "ival" in dem.data_vars:
         df = pd.DataFrame(
@@ -154,7 +231,7 @@ def fix(dem, coastline, **kwargs):
     # Add land boundaries to a shapely object
     try:
         lbs = []
-        for l in range(len(land.boundary.geoms)):
+        for l in tqdm(range(len(land.boundary.geoms))):
             z = shapely.linearrings(land.boundary.geoms[l].coords[:])
             lbs.append(z)
     except:
@@ -172,7 +249,7 @@ def fix(dem, coastline, **kwargs):
 
     try:
         wl = []
-        for l in range(len(land.boundary.geoms)):
+        for l in tqdm(range(len(land.boundary.geoms))):
             wl.append(tree.query(bp[l], predicate="contains").tolist())
         ns = [j for i in wl for j in i]
     except:
@@ -199,7 +276,7 @@ def fix(dem, coastline, **kwargs):
         xw = pw.longitude.values
         yw = pw.latitude.values
 
-        bw = resample(dem, xw, yw, var="elevation", wet=True, flag=flag, function=ifunction)
+        bw = resample(dem, xw, yw, var="elevation", wet=True, flag=flag, reset_flag=reset_flag, function=ifunction)
 
         df.loc[pw.index, "elevation"] = bw  # replace in original dataset
 
@@ -218,7 +295,7 @@ def fix(dem, coastline, **kwargs):
         xl = pl.longitude.values
         yl = pl.latitude.values
 
-        bd = resample(dem, xl, yl, var="elevation", wet=False, flag=flag, function=ifunction)
+        bd = resample(dem, xl, yl, var="elevation", wet=False, flag=flag, reset_flag=reset_flag, function=ifunction)
 
         df.loc[pl.index, "elevation"] = bd  # replace in original dataset
 
@@ -285,7 +362,7 @@ def fix(dem, coastline, **kwargs):
                 bmask[i, j] = True
             cdem.adjusted.values[bmask] = 0.0  # set value
 
-            logger.info("setting land points with nan values to zero")
+            logger.info(f"setting {bmask.size} land points with nan values to zero")
             cdem["adjusted"] = cdem.adjusted.fillna(0.0)  # for land points if any (lakes, etc.)
 
     else:
@@ -423,9 +500,14 @@ def check2(dataset, coastline):
     return bps
 
 
-def resample(dem, xw, yw, var=None, wet=True, flag=None, function="nearest"):
+def resample(dem, xw, yw, var=None, wet=True, flag=None, reset_flag=False, function="nearest"):
     # Define points with positive bathymetry
     x, y = np.meshgrid(dem.longitude, dem.latitude)
+
+    print(f"reset_flag={reset_flag}")
+
+    if reset_flag:
+        flag = 0
 
     if flag == 1:
         gx = xw - 180.0
@@ -457,6 +539,8 @@ def resample(dem, xw, yw, var=None, wet=True, flag=None, function="nearest"):
     orig = pyresample.geometry.SwathDefinition(lons=mx, lats=my)  # original bathymetry points
     targ = pyresample.geometry.SwathDefinition(lons=gx, lats=yw)  # wet points
 
+    mdem = mdem.astype(float)
+
     if function == "nearest":
         bw = pyresample.kd_tree.resample_nearest(orig, mdem, targ, radius_of_influence=100000, fill_value=np.nan)
 
@@ -485,11 +569,11 @@ def dem_range(data, lon_min, lon_max, lat_min, lat_max):
         lon1 = lon_max
 
     if (lon_min < data.longitude.min()) or (lon_max > data.longitude.max()):
-        print("Lon must be within {} and {}".format(data.longitude.min().values, data.longitude.max().values))
-        print("compensating if global dataset available")
+        logger.info("Lon must be within {} and {}".format(data.longitude.min().values, data.longitude.max().values))
+        logger.info("compensating if global dataset available")
 
     if (lat_min < data.latitude.min()) or (lat_max > data.latitude.max()):
-        print("Lat is within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
+        logger.info("Lat is within {} and {}".format(data.latitude.min().values, data.latitude.max().values))
 
     # get idx
     if lon_max - lon_min == dlon1 - dlon0:
@@ -516,16 +600,16 @@ def dem_range(data, lon_min, lon_max, lat_min, lat_max):
         lat_1 = min(data.latitude.size, j1 + 3)
 
     if i0 > i1:
-        p1 = data.elevation.isel(longitude=slice(lon_0, data.longitude.size), latitude=slice(lat_0, lat_1))
+        p1 = data.isel(longitude=slice(lon_0, data.longitude.size), latitude=slice(lat_0, lat_1))
 
         p1 = p1.assign_coords({"longitude": p1.longitude.values - 360.0})
 
-        p2 = data.elevation.isel(longitude=slice(0, lon_1), latitude=slice(lat_0, lat_1))
+        p2 = data.isel(longitude=slice(0, lon_1), latitude=slice(lat_0, lat_1))
 
         dem = xr.concat([p1, p2], dim="longitude")
 
     else:
-        dem = data.elevation.isel(longitude=slice(lon_0, lon_1), latitude=slice(lat_0, lat_1))
+        dem = data.isel(longitude=slice(lon_0, lon_1), latitude=slice(lat_0, lat_1))
 
     if np.abs(np.mean(dem.longitude) - np.mean([lon_min, lon_max])) > 170.0:
         c = np.sign(np.mean([lon_min, lon_max]))
