@@ -72,6 +72,7 @@ mayavi = { version = "*", optional = true }
 numba = { version = ">=0.51", optional = true }
 spatialpandas = { version = "*", optional = true }
 vtk = {version = "*", optional = true}
+srsly = "*"
 
 [tool.poetry.extras]
 viz = [
@@ -90,8 +91,6 @@ viz = [
 [tool.poetry.group.dev.dependencies]
 black = "<25.0"
 bump2version = "^1.0"
-"ruamel.yaml" = "<1.0"
-"ruamel.yaml.clib" = "0.2.7"
 
 [tool.poetry.group.test.dependencies]
 pytest-cov = "*"

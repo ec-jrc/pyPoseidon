@@ -58,7 +58,7 @@ jobs:
         # mpi: [ "mpich", "openmpi" ]
         os: [ "ubuntu-latest"]
         mpi: [ "openmpi" ]
-        python: [ "3.9", "3.10", "3.11" ]
+        python: [ "3.9", "3.10", "3.11", "3.12" ]
 
     env:
       SCHISM_ENV: "SCHISM_ENV"
@@ -148,6 +148,12 @@ jobs:
       - name: "Create ${{ env.PYPOSEIDON_ENV }}"
         if: steps.cache-PYPOSEIDON_ENV.outputs.cache-hit != 'true'
         run: micromamba create --yes --name ${PYPOSEIDON_ENV} -f ${PYPOSEIDON_LOCK}
+
+      - name: "Check schism version"
+        run: |
+          eval "$(micromamba shell hook)"
+          micromamba activate "${SCHISM_ENV}"
+          schism -v
 
       - name: "Install python dependencies"
         run: |
