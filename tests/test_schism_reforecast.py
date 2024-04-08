@@ -79,7 +79,7 @@ check = {
 
 
 @pytest.mark.schism
-def test_schirsm_reforecast_workflow(tmpdir):
+def test_schism_reforecast_workflow(tmpdir):
     # initialize a model
     rpath = str(tmpdir) + "/schism/"
     case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
@@ -166,5 +166,5 @@ def test_schirsm_reforecast_workflow(tmpdir):
     #        if mdif < 1.e-14 :
     #            flag = True
     #    print(mdif)
-
-    assert (rb == ["zcor"]) or rb == []
+    expected = ["wetdry_side", "wetdry_elem", "wetdry_node", "zcor", "elev", "hvel"]
+    assert rb == expected

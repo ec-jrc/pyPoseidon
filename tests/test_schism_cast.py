@@ -208,4 +208,5 @@ def test_schism_cast_workflow(tmpdir):
     #            flag = True
     #    print(mdif)
 
-    assert (rb == ["zcor"]) or (rb == [])
+    expected = ["wetdry_side", "wetdry_elem", "wetdry_node", "zcor", "elev", "hvel"]
+    assert rb == expected
