@@ -88,7 +88,7 @@ viz = [
 ]
 
 [tool.poetry.group.dev.dependencies]
-black = "<24.0"
+black = "<25.0"
 bump2version = "^1.0"
 "ruamel.yaml" = "<1.0"
 "ruamel.yaml.clib" = "0.2.7"
