@@ -2,6 +2,7 @@
 Mesh module
 
 """
+
 # Copyright 2018 European Union
 # This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
@@ -191,6 +192,8 @@ class tri2d:
                     self.Dataset = mgmsh.read_msh(mesh_file, **kwargs)
                 else:
                     raise ValueError("Please define 'mesh_genarator' argument")
+            elif mesh_file.endswith(".nc"):
+                self.Dataset = xr.open_dataset(mesh_file)
 
         elif mesh_generator == "gmsh":
             if boundary is None:
@@ -229,7 +232,7 @@ class tri2d:
         df.columns = ["data"]
 
         # extract number of elements, number of nodes
-        ni, nj = df.iloc[0].str.split()[0]
+        ni, nj = df.iloc[0].str.split().iloc[0]
         ni = int(ni)
         nj = int(nj)
 
@@ -533,8 +536,10 @@ class tri2d:
 
         scribes = kwargs.get("scribes", -1)
 
+        ncores = kwargs.get("ncores", 1)
+
         tools.create_schism_mpirun_script(
-            target_dir=path, cmd=bin_path, script_name="launchSchism.sh", ncores=1, scribes=scribes
+            target_dir=path, cmd=bin_path, script_name="launchSchism.sh", ncores=ncores, scribes=scribes
         )
 
         proc = tools.execute_schism_mpirun_script(cwd=path)

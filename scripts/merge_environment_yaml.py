@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 
 import re
-import sys
 from collections import defaultdict
 
 import click
-import ruamel.yaml
+import srsly
 
 
-yaml = ruamel.yaml.YAML()
-yaml.default_flow_style = False
-yaml.indent(mapping=2, sequence=4, offset=2)
-
-
-def natural_sort(l):
+def natural_sort(lst):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
     alphanum_key = lambda key: [convert(c) for c in re.split("([0-9]+)", key)]
-    return sorted(l, key=alphanum_key)
+    return sorted(lst, key=alphanum_key)
 
 
 @click.command()
@@ -29,9 +23,7 @@ def main(environment_files):
     # Merge data
     data = defaultdict(set)
     for file in environment_files:
-        with open(file, "r") as fd:
-            text = fd.read()
-        input_data = yaml.load(text)
+        input_data = srsly.read_yaml(file)
         for key, values in input_data.items():
             data[key].update(values)
 
@@ -39,8 +31,7 @@ def main(environment_files):
     data = dict(data)
     for key in data.keys():
         data[key] = natural_sort(data[key])
-
-    yaml.dump(data, sys.stdout)
+    srsly.write_yaml("-", data)
 
 
 if __name__ == "__main__":

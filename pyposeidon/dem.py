@@ -2,6 +2,7 @@
 Dem module
 
 """
+
 # Copyright 2018 European Union
 # This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
@@ -20,7 +21,7 @@ import numpy as np
 import pyresample
 import xarray as xr
 
-from pyposeidon.utils.fix import fix, resample
+from pyposeidon.utils.fix import fix_dem, fix, resample
 from pyposeidon import tools
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
@@ -87,7 +88,13 @@ class Dem:
                 self.adjust(coastline, **kwargs)
 
     def adjust(self, coastline, **kwargs):
-        self.Dataset, check, flag = fix(self.Dataset, coastline, **kwargs)
+
+        tiles = kwargs.get("tiles", False)
+
+        if tiles:
+            self.Dataset, check = fix_dem(self.Dataset, coastline, **kwargs)
+        else:
+            self.Dataset, check, flag = fix(self.Dataset, coastline, **kwargs)
 
         if not check:
             logger.warning("Adjusting dem failed, keeping original values\n")

@@ -5,16 +5,16 @@
 # available, unless you explicitly update the lock file.
 #
 # Install this environment as "YOURENV" with:
-#     conda-lock install -n YOURENV binary-p3.11.yml
+#     conda-lock install -n YOURENV binary-p3.12.yml
 # To update a single package to the latest version compatible with the version constraints in the source:
-#     conda-lock lock  --lockfile binary-p3.11.yml --update PACKAGE
+#     conda-lock lock  --lockfile binary-p3.12.yml --update PACKAGE
 # To re-solve the entire environment, e.g. after changing a version constraint in the source file:
-#     conda-lock -f ../environments/binary-p3.11.yml -f /home/panos/Prog/poseidon/pyPoseidon/environments/binary-p3.11.yml --lockfile binary-p3.11.yml
+#     conda-lock -f ../environments/binary-p3.12.yml --lockfile binary-p3.12.yml
 version: 1
 metadata:
   content_hash:
-    linux-64: 2ce551995e53e538a9ab0c13a373612b1fbd36cd039c92bb1ee197eca53a3059
-    osx-64: 9b30ab7180fe5d9a85cb03f138edeeb79cbe8b099bda70be0cc68d856cc102a8
+    linux-64: 1adaad59fd871fe1ba9c4ac6e713f376dff0aff91993991f4b5026446a4ff24e
+    osx-64: cd6edc09e776406a346177dcd8475c6a7b0e3338d3ba7ab46ae0c3f9603a5c1c
   channels:
   - url: conda-forge
     used_env_vars: []
@@ -24,8 +24,7 @@ metadata:
   - linux-64
   - osx-64
   sources:
-  - ../environments/binary-p3.11.yml
-  - /home/panos/Prog/poseidon/pyPoseidon/environments/binary-p3.11.yml
+  - ../environments/binary-p3.12.yml
 package:
 - name: _libgcc_mutex
   version: '0.1'
@@ -1675,14 +1674,14 @@ package:
     libgdal: 3.8.5
     libstdcxx-ng: '>=12'
     libxml2: '>=2.12.6,<3.0a0'
-    numpy: '>=1.23.5,<2.0a0'
+    numpy: '>=1.26.4,<2.0a0'
     openssl: '>=3.2.1,<4.0a0'
-    python: '>=3.11,<3.12.0a0'
-    python_abi: 3.11.*
-  url: https://conda.anaconda.org/conda-forge/linux-64/gdal-3.8.5-py311h8be719e_0.conda
+    python: '>=3.12,<3.13.0a0'
+    python_abi: 3.12.*
+  url: https://conda.anaconda.org/conda-forge/linux-64/gdal-3.8.5-py312h257dd4b_0.conda
   hash:
-    md5: d3bc7957b9c0c51dc95de7c41fadd877
-    sha256: 9d5c2309427869bd3857b77a5855dfb3a07ca5f991eeaddb8637c4ff41346289
+    md5: 3af74f7e6e3cc2c601451edb6922d839
+    sha256: 2d308f3836e340bd4daacdd7abd4ffb6f07f7517f8afd2e57bc361b4219a2ce7
   category: main
   optional: false
 - name: gdal
@@ -1694,14 +1693,14 @@ package:
     libcxx: '>=16'
     libgdal: 3.8.5
     libxml2: '>=2.12.6,<3.0a0'
-    numpy: '>=1.23.5,<2.0a0'
+    numpy: '>=1.26.4,<2.0a0'
     openssl: '>=3.2.1,<4.0a0'
-    python: '>=3.11,<3.12.0a0'
-    python_abi: 3.11.*
-  url: https://conda.anaconda.org/conda-forge/osx-64/gdal-3.8.5-py311haaa0e4f_0.conda
+    python: '>=3.12,<3.13.0a0'
+    python_abi: 3.12.*
+  url: https://conda.anaconda.org/conda-forge/osx-64/gdal-3.8.5-py312h1be6df0_0.conda
   hash:
-    md5: f78711b9b05bf16874e9ebaf7aa74ac8
-    sha256: c2eb395d7b70184d7d28a61296822138f6190cf807294dd4ffa2c4296fc41eb0
+    md5: dc8a1be558f8b90aa17aab08c55bd2e8
+    sha256: d99a5ca26460ca9b5fd4ceab8db611af76a8ea20935e856c1d497737acf652bb
   category: main
   optional: false
 - name: geos
@@ -4991,12 +4990,12 @@ package:
     libgcc-ng: '>=12'
     liblapack: '>=3.9.0,<4.0a0'
     libstdcxx-ng: '>=12'
-    python: '>=3.11,<3.12.0a0'
-    python_abi: 3.11.*
-  url: https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.4-py311h64a7726_0.conda
+    python: '>=3.12,<3.13.0a0'
+    python_abi: 3.12.*
+  url: https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.4-py312heda63a1_0.conda
   hash:
-    md5: a502d7aad449a1206efb366d6a12c52d
-    sha256: 3f4365e11b28e244c95ba8579942b0802761ba7bb31c026f50d1a9ea9c728149
+    md5: d8285bea2a350f63fab23bf460221f3f
+    sha256: fe3459c75cf84dcef6ef14efcc4adb0ade66038ddd27cadb894f34f4797687d8
   category: main
   optional: false
 - name: numpy
@@ -5008,12 +5007,12 @@ package:
     libcblas: '>=3.9.0,<4.0a0'
     libcxx: '>=16'
     liblapack: '>=3.9.0,<4.0a0'
-    python: '>=3.11,<3.12.0a0'
-    python_abi: 3.11.*
-  url: https://conda.anaconda.org/conda-forge/osx-64/numpy-1.26.4-py311hc43a94b_0.conda
+    python: '>=3.12,<3.13.0a0'
+    python_abi: 3.12.*
+  url: https://conda.anaconda.org/conda-forge/osx-64/numpy-1.26.4-py312he3a82b2_0.conda
   hash:
-    md5: bb02b8801d17265160e466cf8bbf28da
-    sha256: dc9628197125ee1d02b2e7a859a769d26291d747ed79337309b8a9e67a8b8e00
+    md5: 96c61a21c4276613748dba069554846b
+    sha256: 6152b73fba3e227afa4952df8753128fc9669bbaf142ee8f9972bf9df3bf8856
   category: main
   optional: false
 - name: occt
@@ -5482,7 +5481,7 @@ package:
   category: main
   optional: false
 - name: python
-  version: 3.11.8
+  version: 3.12.2
   manager: conda
   platform: linux-64
   dependencies:
@@ -5502,14 +5501,14 @@ package:
     tk: '>=8.6.13,<8.7.0a0'
     tzdata: ''
     xz: '>=5.2.6,<6.0a0'
-  url: https://conda.anaconda.org/conda-forge/linux-64/python-3.11.8-hab00c5b_0_cpython.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.2-hab00c5b_0_cpython.conda
   hash:
-    md5: 2fdc314ee058eda0114738a9309d3683
-    sha256: f33559d7127b6a892854bc3b2b4be1406c3be9537d658cb13edae57c8c0b5a11
+    md5: ad7b68400f3a6ebe72b00be093c7f301
+    sha256: ddb7a2d8d78046bda5d7631e6814f9468d2eb054e10f86f4648c9d1fdaa30c0f
   category: main
   optional: false
 - name: python
-  version: 3.11.8
+  version: 3.12.2
   manager: conda
   platform: osx-64
   dependencies:
@@ -5524,32 +5523,32 @@ package:
     tk: '>=8.6.13,<8.7.0a0'
     tzdata: ''
     xz: '>=5.2.6,<6.0a0'
-  url: https://conda.anaconda.org/conda-forge/osx-64/python-3.11.8-h9f0c242_0_cpython.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/python-3.12.2-h9f0c242_0_cpython.conda
   hash:
-    md5: 22bda10a0f425564a538aed9a0e8a9df
-    sha256: 645dad20b46041ecd6a85eccbb3291fa1ad7921eea065c0081efff78c3d7e27a
+    md5: 0179b8007ba008cf5bec11f3b3853902
+    sha256: 7647ac06c3798a182a4bcb1ff58864f1ef81eb3acea6971295304c23e43252fb
   category: main
   optional: false
 - name: python_abi
-  version: '3.11'
+  version: '3.12'
   manager: conda
   platform: linux-64
   dependencies: {}
-  url: https://conda.anaconda.org/conda-forge/linux-64/python_abi-3.11-4_cp311.conda
+  url: https://conda.anaconda.org/conda-forge/linux-64/python_abi-3.12-4_cp312.conda
   hash:
-    md5: d786502c97404c94d7d58d258a445a65
-    sha256: 0be3ac1bf852d64f553220c7e6457e9c047dfb7412da9d22fbaa67e60858b3cf
+    md5: dccc2d142812964fcc6abdc97b672dff
+    sha256: 182a329de10a4165f6e8a3804caf751f918f6ea6176dd4e5abcdae1ed3095bf6
   category: main
   optional: false
 - name: python_abi
-  version: '3.11'
+  version: '3.12'
   manager: conda
   platform: osx-64
   dependencies: {}
-  url: https://conda.anaconda.org/conda-forge/osx-64/python_abi-3.11-4_cp311.conda
+  url: https://conda.anaconda.org/conda-forge/osx-64/python_abi-3.12-4_cp312.conda
   hash:
-    md5: fef7a52f0eca6bae9e8e2e255bc86394
-    sha256: f56dfe2a57b3b27bad3f9527f943548e8b2526e949d9d6fc0a383020d9359afe
+    md5: 87201ac4314b911b74197e588cca3639
+    sha256: 82c154d95c1637604671a02a89e72f1382e89a4269265a03506496bd928f6f14
   category: main
   optional: false
 - name: rapidjson

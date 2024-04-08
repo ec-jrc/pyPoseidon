@@ -2,22 +2,21 @@
 Schism model of pyposeidon. It controls the creation, execution & output  of a complete simulation based on SCHISM.
 
 """
+
 # Copyright 2018 European Union
 # This file is part of pyposeidon.
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 
+from __future__ import annotations
+
 import os
+import pathlib
 import datetime
 import numpy as np
-import xml.dom.minidom as md
-from shutil import copy2
-import subprocess
-import shlex
 import sys
 import json
-from collections import OrderedDict
 import pandas as pd
 import glob
 from shutil import copyfile
@@ -25,7 +24,6 @@ import xarray as xr
 import geopandas as gp
 import shapely
 import f90nml
-import errno
 import dask
 from searvey import ioc
 from tqdm.auto import tqdm
@@ -1819,11 +1817,11 @@ class Schism:
         stations.index += 1
         stations["gindex"] = mesh_index
         try:
-            stations["location"] = self.obs.location.values
-            stations["provider_id"] = self.obs.ioc_code.values
+            stations["location"] = tgn.location.values
+            stations["provider_id"] = tgn.ioc_code.values
             stations["provider"] = "ioc"
-            stations["longitude"] = self.obs.longitude.values
-            stations["latitude"] = self.obs.latitude.values
+            stations["longitude"] = tgn.longitude.values
+            stations["latitude"] = tgn.latitude.values
         except:
             pass
 
@@ -1901,14 +1899,24 @@ class Schism:
 
         dstamp = kwargs.get("dstamp", self.rdate)
 
+        skiprows = kwargs.get("station_skiprows", 0)
+
+        try:
+            dt = self.parameters["dt"]
+        except:
+            dt = self.params["core"]["dt"]
+
         dfs = []
         for idx in vals.index:
-            obs = np.loadtxt(sfiles[idx])
+            obs = np.loadtxt(sfiles[idx], skiprows=skiprows)
             df = pd.DataFrame(obs)
             df = df.set_index(0)
             df.index.name = "time"
             df.columns.name = vals.loc[idx, "variable"]
-            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
+            # deal with schism bug
+            ns = np.arange(1, df.shape[0] + 1)
+            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(ns * dt, unit="S")
+            #            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
             pindex = pd.MultiIndex.from_product([df.T.columns, df.T.index])
 
             r = pd.DataFrame(df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]])
@@ -1933,3 +1941,32 @@ class Schism:
     def open_thalassa(self, **kwargs):
         # open a Thalassa instance to visualize the output
         return
+
+
+def parse_mirror_out(path: os.PathLike[str] | str) -> pd.DataFrame:
+    etatot = []
+    etaavg = []
+    for line in pathlib.Path(path).read_text().splitlines():
+        if "start_year" in line:
+            start_year = int(line.strip().split(" ")[-1])
+        elif "start_month" in line:
+            start_month = int(line.strip().split(" ")[-1])
+        elif "start_day" in line:
+            start_day = int(line.strip().split(" ")[-1])
+        elif "start_hour" in line:
+            start_hour = float(line.strip().split(" ")[-1])
+        elif "time stepping begins..." in line:
+            periods = int(line.strip().split(" ")[-1])
+        elif "TIME STEP=            1;" in line:
+            dt = int(float(line.strip().split(" ")[-1]))
+        elif "etatot" in line:
+            parts = line.strip().split(" ")
+            etatot.append(parts[5])
+            etaavg.append(parts[-1])
+        else:
+            continue
+    start_date = pd.Timestamp(year=start_year, month=start_month, day=start_day, hour=start_hour)
+    index = pd.date_range(start_date, periods=periods, freq=f"{dt}s")
+    index = index[: len(etatot)]
+    df = pd.DataFrame({"etatot": etatot, "etaavg": etaavg}, index=index).astype(float)
+    return df
