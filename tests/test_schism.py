@@ -1,10 +1,11 @@
 import copy
 import glob
+import os
 
+import pandas as pd
 import pytest
 import pyposeidon
-import os
-import multiprocessing
+import pyposeidon.schism
 
 from . import DATA_DIR
 
@@ -150,3 +151,16 @@ def test_schism_meteo_split_by(tmpdir):
     model.create()
     model.output()
     assert len(glob.glob(f"{tmpdir}/sflux/*.nc")) == 7, glob.glob(f"{tmpdir}/sflux/*.nc")
+
+
+def test_parse_mirror_out():
+    path = DATA_DIR / "mirror.out"
+    df = pyposeidon.schism.parse_mirror_out(path)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 65
+    assert "etatot" in df
+    assert "etaavg" in df
+    assert max(df.etatot) == pytest.approx(26.501, abs=1e-3)
+    assert max(df.etaavg) == pytest.approx(0.0227, abs=1e-3)
+    assert df.index[0] == pd.Timestamp(2017, 10, 1)
+    assert df.index[-1] == pd.Timestamp(2017, 10, 1, 7, 6, 40)

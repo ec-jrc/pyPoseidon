@@ -9,16 +9,14 @@ Schism model of pyposeidon. It controls the creation, execution & output  of a c
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
 
+from __future__ import annotations
+
 import os
+import pathlib
 import datetime
 import numpy as np
-import xml.dom.minidom as md
-from shutil import copy2
-import subprocess
-import shlex
 import sys
 import json
-from collections import OrderedDict
 import pandas as pd
 import glob
 from shutil import copyfile
@@ -26,7 +24,6 @@ import xarray as xr
 import geopandas as gp
 import shapely
 import f90nml
-import errno
 import dask
 from searvey import ioc
 from tqdm.auto import tqdm
@@ -1944,3 +1941,32 @@ class Schism:
     def open_thalassa(self, **kwargs):
         # open a Thalassa instance to visualize the output
         return
+
+
+def parse_mirror_out(path: os.PathLike[str] | str) -> pd.DataFrame:
+    etatot = []
+    etaavg = []
+    for line in pathlib.Path(path).read_text().splitlines():
+        if "start_year" in line:
+            start_year = int(line.strip().split(" ")[-1])
+        elif "start_month" in line:
+            start_month = int(line.strip().split(" ")[-1])
+        elif "start_day" in line:
+            start_day = int(line.strip().split(" ")[-1])
+        elif "start_hour" in line:
+            start_hour = float(line.strip().split(" ")[-1])
+        elif "time stepping begins..." in line:
+            periods = int(line.strip().split(" ")[-1])
+        elif "TIME STEP=            1;" in line:
+            dt = int(float(line.strip().split(" ")[-1]))
+        elif "etatot" in line:
+            parts = line.strip().split(" ")
+            etatot.append(parts[5])
+            etaavg.append(parts[-1])
+        else:
+            continue
+    start_date = pd.Timestamp(year=start_year, month=start_month, day=start_day, hour=start_hour)
+    index = pd.date_range(start_date, periods=periods, freq=f"{dt}s")
+    index = index[: len(etatot)]
+    df = pd.DataFrame({"etatot": etatot, "etaavg": etaavg}, index=index).astype(float)
+    return df
