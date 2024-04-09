@@ -544,33 +544,35 @@ class Telemac:
             config = json.load(json_file)
             params = config["params"]
 
-        # update key values
-        if "telemac" in self.module:
-            params["datestart"] = self.start_date.strftime("%Y;%m;%d")
-            params["timestart"] = self.start_date.strftime("%H;%M;%S")
-        elif "tomawac" in self.module:
-            params["datestart"] = self.start_date.strftime("%Y%m%d%H%M")
-
-        if hasattr(self, "time_frame"):
-            duration = pd.to_timedelta(self.time_frame).total_seconds()
-        else:
-            self.time_frame = self.end_date - self.start_date
-            duration = self.time_frame.total_seconds()
-
-        params["duration"] = duration
-        # export grid data every hour
         res_min = get_value(self, kwargs, "resolution_min", 0.5)
+        # update key values
+        if self.start_date is not None:
+            if "telemac" in self.module:
+                params["datestart"] = self.start_date.strftime("%Y;%m;%d")
+                params["timestart"] = self.start_date.strftime("%H;%M;%S")
+            elif "tomawac" in self.module:
+                params["datestart"] = self.start_date.strftime("%Y%m%d%H%M")
+            else:
+                logger.info(f"self.start_date not set for {self.module} yet\n")
 
-        if self.tstep:
-            tstep = self.tstep
-        else:
-            tstep = calculate_time_step_hourly_multiple(res_min)
-        params["tstep"] = tstep
+            if hasattr(self, "time_frame"):
+                duration = pd.to_timedelta(self.time_frame).total_seconds()
+            else:
+                self.time_frame = self.end_date - self.start_date
+                duration = self.time_frame.total_seconds()
 
-        params["nb_tsteps"] = int(duration / tstep)
-        params["tstep_graph"] = int(3600 / tstep)
-        params["tstep_list"] = int(3600 / tstep)
-        params["ncsize"] = self.ncsize
+            params["duration"] = duration
+
+            # export grid data every hour
+            if self.tstep:
+                tstep = self.tstep
+            else:
+                tstep = calculate_time_step_hourly_multiple(res_min)
+            params["tstep"] = tstep
+            params["nb_tsteps"] = int(duration / tstep)
+            params["tstep_graph"] = int(3600 / tstep)
+            params["tstep_list"] = int(3600 / tstep)
+            params["ncsize"] = self.ncsize
 
         # tide
         if self.tide:
@@ -1088,101 +1090,6 @@ class Telemac:
         logger.info("saving hotstart file\n")
         xdat.to_netcdf(os.path.join(ppath, f"outputs/{hfile}"))
 
-    ## Any variable
-    def combine(self, out, g2l, name):
-        keys = g2l.index.get_level_values(0).unique()
-        r = []
-        for i in range(len(out)):
-            v = out[i].to_pandas()
-            v.index += 1
-            mask = g2l.loc[keys[i], "local"]
-            vm = v.loc[mask]
-            vm.index = g2l.loc[keys[i], "global_n"].values
-            r.append(vm)
-        r = pd.concat(r).sort_index()
-        r.index -= 1
-        r.index.name = name
-        return r
-
-    def combine_(self, var, out, g2l, name):
-        if len(out[0][var].shape) == 3:
-            dd = []
-            for i in range(out[0][var].shape[2]):
-                o = []
-                for j in range(len(out)):
-                    o.append(out[j][var].loc[{out[j][var].dims[2]: i}])
-                r = self.combine(o, g2l, name)
-                dd.append(xr.DataArray(r.values, dims=out[0][var].dims[:2], name=var))
-
-            tr = xr.concat(dd, dim=out[0][var].dims[2])
-            a, b, c = out[0][var].dims
-            tr = tr.transpose(a, b, c)
-            return tr
-
-        elif len(out[0][var].shape) < 3:
-            o = []
-            for j in range(len(out)):
-                o.append(out[j][var])
-            r = self.combine(o, g2l, name)
-            return xr.DataArray(r.values, dims=list(out[0][var].dims), name=var)
-
-    def xcombine(self, tfs):
-        # Create dataset
-        side = []
-        node = []
-        el = []
-        single = []
-
-        for key in tfs[0].variables:
-            if "nSCHISM_hgrid_face" in tfs[0][key].dims:
-                r = self.combine_(key, tfs, self.misc["melems"], "nSCHISM_hgrid_face")
-                el.append(r)
-            elif "nSCHISM_hgrid_node" in tfs[0][key].dims:
-                r = self.combine_(key, tfs, self.misc["mnodes"], "nSCHISM_hgrid_node")
-                node.append(r)
-            elif "nSCHISM_hgrid_edge" in tfs[0][key].dims:
-                r = self.combine_(key, tfs, self.misc["msides"], "nSCHISM_hgrid_edge")
-                side.append(r)
-            elif len(tfs[0][key].dims) == 1:
-                single.append(tfs[0][key])
-
-        side = xr.merge(side)
-        el = xr.merge(el)
-        node = xr.merge(node)
-        single = xr.merge(single)
-
-        # merge
-        return xr.merge([side, el, node, single])
-
-    def tcombine(self, hfiles, sdate, times):
-        xall = []
-        for k in range(times.shape[0]):
-            tfs = []
-            for i in range(len(hfiles)):
-                tfs.append(xr.open_dataset(hfiles[i]).isel(time=k))
-
-            xall.append(self.xcombine(tfs))
-
-        xdat = xr.concat(xall, dim="time")
-        xdat = xdat.assign_coords(time=times)
-
-        return xdat
-
-    # https://stackoverflow.com/questions/41164630/pythonic-way-of-removing-reversed-duplicates-in-list
-    @staticmethod
-    def remove_reversed_duplicates(iterable):
-        # Create a set for already seen elements
-        seen = set()
-        for item in iterable:
-            # Lists are mutable so we need tuples for the set-operations.
-            tup = tuple(item)
-            if tup not in seen:
-                # If the tuple is not in the set append it in REVERSED order.
-                seen.add(tup[::-1])
-                # If you also want to remove normal duplicates uncomment the next line
-                # seen.add(tup)
-                yield item
-
     def results(self, **kwargs):
         lat_coord_standard_name = "latitude"
         lon_coord_standard_name = "longitude"
@@ -1380,56 +1287,6 @@ class Telemac:
             stations.loc[:, ["x", "y", "unique_id", "seaset_id"]].to_csv(
                 f, header=None, sep=" ", index=False
             )  # 3rd-10th line: output points; x coordinate, y coordinate, station number, and station name
-
-    def get_station_sim_data(self, **kwargs):
-        path = get_value(self, kwargs, "rpath", "./schism/")
-
-        # locate the station files
-        sfiles = glob.glob(os.path.join(path, "outputs/staout_*"))
-        sfiles.sort()
-
-        try:
-            # get the station flags
-            flags = pd.read_csv(os.path.join(path, "station.in"), header=None, nrows=1, delim_whitespace=True).T
-        except FileNotFoundError:
-            logger.error("no station.in file present")
-            return
-
-        flags.columns = ["flag"]
-        flags["variable"] = [
-            "elev",
-            "air_pressure",
-            "windx",
-            "windy",
-            "T",
-            "S",
-            "u",
-            "v",
-            "w",
-        ]
-
-        vals = flags[flags.values == 1]  # get the active ones
-
-        dstamp = kwargs.get("dstamp", self.rdate)
-
-        dfs = []
-        for idx in vals.index:
-            obs = np.loadtxt(sfiles[idx])
-            df = pd.DataFrame(obs)
-            df = df.set_index(0)
-            df.index.name = "time"
-            df.columns.name = vals.loc[idx, "variable"]
-            df.index = pd.to_datetime(dstamp) + pd.to_timedelta(df.index, unit="S")
-            pindex = pd.MultiIndex.from_product([df.T.columns, df.T.index])
-
-            r = pd.DataFrame(df.values.flatten(), index=pindex, columns=[vals.loc[idx, "variable"]])
-            r.index.names = ["time", "node"]
-
-            r.index = r.index.set_levels(r.index.levels[1] - 1, level=1)
-
-            dfs.append(r.to_xarray())
-
-        self.station_sim_data = xr.combine_by_coords(dfs)
 
     def get_output_data(self, **kwargs):
         dic = self.__dict__
