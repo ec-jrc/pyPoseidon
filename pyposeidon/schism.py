@@ -1946,6 +1946,7 @@ class Schism:
 def parse_mirror_out(path: os.PathLike[str] | str) -> pd.DataFrame:
     etatot = []
     etaavg = []
+    time_steps = []
     for line in pathlib.Path(path).read_text().splitlines():
         if "start_year" in line:
             start_year = int(line.strip().split(" ")[-1])
@@ -1957,14 +1958,15 @@ def parse_mirror_out(path: os.PathLike[str] | str) -> pd.DataFrame:
             start_hour = float(line.strip().split(" ")[-1])
         elif "time stepping begins..." in line:
             periods = int(line.strip().split(" ")[-1])
-        elif "TIME STEP=            1;" in line:
-            dt = int(float(line.strip().split(" ")[-1]))
+        elif "TIME STEP=" in line and len(time_steps) < 2:
+            time_steps.append(int(float(line.strip().split(" ")[-1])))
         elif "etatot" in line:
             parts = line.strip().split(" ")
             etatot.append(parts[5])
             etaavg.append(parts[-1])
         else:
             continue
+    dt = time_steps[1] - time_steps[0]
     start_date = pd.Timestamp(year=start_year, month=start_month, day=start_day, hour=start_hour)
     index = pd.date_range(start_date, periods=periods, freq=f"{dt}s")
     index = index[: len(etatot)]
