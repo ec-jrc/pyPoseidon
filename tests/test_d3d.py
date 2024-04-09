@@ -10,7 +10,7 @@ from . import DATA_DIR
 case1 = {
     "geometry": {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
     "start_date": "2018-10-1",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "solver_name": "d3d",
     "resolution": 0.2,  # grid resoltuion
     "map_step": 20,  # step for output of map field in d3d

@@ -21,7 +21,7 @@ case1 = {
     "windrot": 0.00001,
     "tag": "test",
     "start_date": "2017-10-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
@@ -68,7 +68,7 @@ case3 = {
     "windrot": 0.00001,
     "tag": "test",
     "start_date": "2011-1-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
@@ -92,7 +92,7 @@ case4 = {
     "windrot": 0.00001,
     "tag": "test",
     "start_date": "2011-1-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "monitor": True,
@@ -143,7 +143,7 @@ def test_schism_meteo_split_by(tmpdir):
         {
             "rpath": tmpdir,
             "meteo_split_by": "1D",
-            "time_frame": "144H",
+            "time_frame": "144h",
             "update": ["meteo"],
         }
     )
@@ -164,3 +164,25 @@ def test_parse_mirror_out():
     assert max(df.etaavg) == pytest.approx(0.0227, abs=1e-3)
     assert df.index[0] == pd.Timestamp(2017, 10, 1)
     assert df.index[-1] == pd.Timestamp(2017, 10, 1, 7, 6, 40)
+
+
+def test_parse_staout():
+    path = DATA_DIR / "staout_1"
+    df = pyposeidon.schism.parse_staout(path)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 1728
+    assert len(df.columns) == 1
+    assert isinstance(df.index, pd.TimedeltaIndex)
+    assert df.index.name == "time"
+    assert df.index[0] == pd.Timedelta(150, unit="s")
+
+
+def test_parse_staout_with_start_date():
+    path = DATA_DIR / "staout_1"
+    df = pyposeidon.schism.parse_staout(path, start=pd.Timestamp("2017-10-01"))
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 1728
+    assert len(df.columns) == 1
+    assert isinstance(df.index, pd.DatetimeIndex)
+    assert df.index.name == "time"
+    assert df.index[0] == pd.Timestamp("2017-10-01T00:02:30")  # that's 150 seconds after midnight

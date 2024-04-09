@@ -26,7 +26,7 @@ DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 case = {
     "geometry": {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
     "start_date": "2018-10-1",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "solver_name": "d3d",
     "resolution": 0.1,  # grid resoltuion
     "map_step": 60,  # step for output of map field in d3d
@@ -42,7 +42,7 @@ case = {
 check = {
     "geometry": {"lon_min": -30, "lon_max": -10.0, "lat_min": 60.0, "lat_max": 70.0},
     "start_date": "2018-10-1",
-    "time_frame": "36H",
+    "time_frame": "36h",
     "solver_name": "d3d",
     "resolution": 0.1,  # grid resoltuion
     "map_step": 60,  # step for output of map field in d3d
@@ -67,7 +67,7 @@ def d3d(tmpdir):
     # creating a time sequence of the runs
     start_date = pd.to_datetime("2018-10-1 0:0:0")
     end_date = pd.to_datetime("2018-10-2 0:0:0")
-    date_list = pd.date_range(start_date, end_date, freq="12H")
+    date_list = pd.date_range(start_date, end_date, freq="12h")
 
     # creating a sequence of folder to store the runs. In this case we name them after the date attribute.
     # NOTE that the first folder is the fisrt run already perfomed!!
@@ -76,9 +76,9 @@ def d3d(tmpdir):
     # set meteo files
     meteo = []
     for date in date_list:
-        end_date = pd.to_datetime(date) + pd.to_timedelta("12H")
+        end_date = pd.to_datetime(date) + pd.to_timedelta("12h")
         end_date = end_date.strftime(format="%Y-%m-%d %H:%M:%S")
-        dr = pd.date_range(date, end_date, freq="12H")
+        dr = pd.date_range(date, end_date, freq="12h")
         names = ["uvp_" + datetime.datetime.strftime(x, "%Y%m%d%H") + ".grib" for x in dr]
         dur = [(DATA_DIR / name).as_posix() for name in names]
         meteo.append(dur)

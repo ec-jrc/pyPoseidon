@@ -9,10 +9,10 @@ A number of parameters is provided by the user :
 
 - *solver_name*:
 	Select the solver to be used e.g. *schism*.
-- *geometry*: 
+- *geometry*:
 	In the most simple case that is a lat/lon box that defines the area of interest.
 - *coastlines*:
-	A coastlines *GeoDataFrame* or *shapefile* providing boundaries to the mesh. 
+	A coastlines *GeoDataFrame* or *shapefile* providing boundaries to the mesh.
 - *mesh_generator*:
 	Set the backend for creating a mesh e.g. `jigsaw`.
 - *start_date*:
@@ -33,7 +33,7 @@ dic = {
     "coastlines": "/path/to/coastal/shapefile.shp",
     "mesh_generator": "jigsaw",
     "start_date": "2017-10-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": ["/path/to/meteo/file.grib"],
     "dem_source": "./path/to/dem/file.nc",
 }
@@ -80,7 +80,7 @@ b.get_output_data() # integrate output
 ```
 
 and the data are available as
- 
+
 ```py
 b.data.Dataset # output Dataset
 ```
@@ -94,7 +94,7 @@ If a model is created by `pyposeidon` there is a `json` file that describes the 
 a = pyposeidon.model.read('./path/to/schism_model.json')
 a.execute() #execute it again
 ```
- 
+
 When a model is created by other means, it can still be incorporated into `pyposeidon` with
 
 ```py

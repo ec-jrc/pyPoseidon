@@ -16,7 +16,6 @@ import xarray as xr
 import os
 from tqdm.auto import tqdm
 import sys
-import gmsh
 import subprocess
 import shapely
 import shlex
@@ -67,6 +66,8 @@ def get_ibounds(df, mm):
 
 
 def read_msh(filename, **kwargs):
+    import gmsh
+
     model = gmsh.model
     factory = model.geo
 
@@ -800,6 +801,8 @@ def make_bgmesh(df, fpos, **kwargs):
 
 
 def make_gmsh(df, **kwargs):
+    import gmsh
+
     logger.info("Creating mesh")
 
     model = gmsh.model
@@ -1006,6 +1009,8 @@ def make_gmsh(df, **kwargs):
 
 
 def make_gmsh_3d(df, **kwargs):
+    import gmsh
+
     logger.info("Creating global mesh")
 
     model = gmsh.model

@@ -34,7 +34,7 @@ def test_update_selector(tmpdir, flag, dem, meteo, mesh):
         "windrot": 0.00001,
         "tag": "test",
         "start_date": "2017-10-1 0:0:0",
-        "time_frame": "12H",
+        "time_frame": "12h",
         "meteo_source": meteo,  # meteo file
         "dem_source": dem,
         "parameters": {
