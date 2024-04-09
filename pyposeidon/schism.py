@@ -1970,3 +1970,15 @@ def parse_mirror_out(path: os.PathLike[str] | str) -> pd.DataFrame:
     index = index[: len(etatot)]
     df = pd.DataFrame({"etatot": etatot, "etaavg": etaavg}, index=index).astype(float)
     return df
+
+
+def parse_staout(path: os.PathLike[str] | str, start: pd.Timestamp = pd.NaT):
+    array = np.loadtxt(path)
+    df = pd.DataFrame(array)
+    zero_col = df.pop(0)
+    index = pd.to_timedelta(np.arange(zero_col[0], zero_col[0] * len(df) + 1, zero_col[0]), unit="s")
+    if start is not pd.NaT:
+        index = start + index
+    index = index.rename("time")
+    df = df.set_index(index)
+    return df

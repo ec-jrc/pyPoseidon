@@ -164,3 +164,25 @@ def test_parse_mirror_out():
     assert max(df.etaavg) == pytest.approx(0.0227, abs=1e-3)
     assert df.index[0] == pd.Timestamp(2017, 10, 1)
     assert df.index[-1] == pd.Timestamp(2017, 10, 1, 7, 6, 40)
+
+
+def test_parse_staout():
+    path = DATA_DIR / "staout_1"
+    df = pyposeidon.schism.parse_staout(path)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 1728
+    assert len(df.columns) == 1
+    assert isinstance(df.index, pd.TimedeltaIndex)
+    assert df.index.name == "time"
+    assert df.index[0] == pd.Timedelta(150, unit="s")
+
+
+def test_parse_staout_with_start_date():
+    path = DATA_DIR / "staout_1"
+    df = pyposeidon.schism.parse_staout(path, start=pd.Timestamp("2017-10-01"))
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 1728
+    assert len(df.columns) == 1
+    assert isinstance(df.index, pd.DatetimeIndex)
+    assert df.index.name == "time"
+    assert df.index[0] == pd.Timestamp("2017-10-01T00:02:30")  # that's 150 seconds after midnight
