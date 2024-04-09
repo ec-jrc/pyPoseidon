@@ -729,26 +729,26 @@ class Telemac:
                     else:
                         self.dem.adjust(coastline, **kwargs)
                 try:
-                    try:
-                        bat = -self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
-                        if np.isinf(bat).sum() != 0:
-                            raise Exception("Bathymetry contains Infs")
-                        if np.isnan(bat).sum() != 0:
-                            raise Exception("Bathymetry contains NaNs")
-                            logger.warning("Bathymetric values fval contain NaNs, using ival values ..\n")
-
-                    except:
-                        bat = -self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
-
-                    self.mesh.Dataset.depth.loc[: bat.size] = bat
-
-                    logger.info("updating bathymetry ..\n")
-
+                    self.get_depth_from_dem()
                 except AttributeError as e:
                     logger.info("Keeping bathymetry in hgrid.gr3 due to {}\n".format(e))
-
             else:
                 logger.info("dem from mesh file\n")
+
+    def get_depth_from_dem(self):
+        try:
+            logger.info("Dem already adjusted\n")
+            bat = -self.dem.Dataset.fval.values.astype(float)  # minus for hydro run
+            if np.isinf(bat).sum() != 0:
+                raise Exception("Bathymetry contains Infs")
+            if np.isnan(bat).sum() != 0:
+                raise Exception("Bathymetry contains NaNs")
+
+        except:
+            bat = -self.dem.Dataset.ival.values.astype(float)  # minus for hydro run
+
+        self.mesh.Dataset.depth.loc[: bat.size] = bat
+        logger.info("updating bathymetry ..\n")
 
     @staticmethod
     def mesh_to_slf(
@@ -839,8 +839,13 @@ class Telemac:
             self.lat_max = self.mesh.Dataset.SCHISM_hgrid_node_y.values.max()
 
         # get bathymetry
-        if self.mesh.Dataset is not None:
+        if len(self.mesh.Dataset.depth) == len(self.mesh.Dataset.SCHISM_hgrid_node_y):
+            logger.info("found bathy in mesh file\n")
+            self.mesh.Dataset.depth.values *= -1  # minus for hydro run
+        elif self.mesh.Dataset is not None:
             self.bath(**kwargs)
+        else:
+            raise ValueError("No bathymetry found")
 
         # get meteo
         if self.atm:
@@ -854,41 +859,36 @@ class Telemac:
 
     def output(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./telemac/")
-        flag = get_value(self, kwargs, "update", ["all"])
-        split_by = get_value(self, kwargs, "meteo_split_by", None)
+        global_ = get_value(self, kwargs, "global", True)
 
         if not os.path.exists(path):
             os.makedirs(path)
 
         # Mesh related files
         if self.mesh.Dataset is not None:
-            # WRITE GEO FILE
             try:
-                bat = self.dem.Dataset.fval.values.astype(float)  # minus for the hydro run
-                if np.isnan(bat).sum() != 0:
-                    raise Exception("Bathymetry contains NaNs")
-                    logger.warning("Bathymetric values fval contain NaNs, using ival values ..\n")
-
-            except:
-                bat = self.dem.Dataset.ival.values.astype(float)  # minus for the hydro run
-            self.mesh.Dataset.depth.loc[: bat.size] = bat
+                self.get_depth_from_dem()
+            except AttributeError as e:
+                logger.info("Keeping bathymetry from hgrid.gr3 ..\n")
 
             logger.info("saving geometry file.. ")
             geo = os.path.join(path, "geo.slf")
-            self.to_slf(geo, global_=True)
+            self.to_slf(geo, global_=global_)
+            self.mesh.to_file(filename=os.path.join(path, "hgrid.gr3"))
             write_netcdf(self.mesh.Dataset, geo)
 
             # WRITE METEO FILE
             logger.info("saving meteo file.. ")
             meteo = os.path.join(path, "input_wind.slf")
-            if isinstance(self.meteo, pmeteo.Meteo):
-                pass
-            elif isinstance(self.meteo, list):
+            if isinstance(self.meteo, list):
                 self.meteo = pmeteo.Meteo(self.meteo_source)
+            else:
+                pass
 
-            self.atm = write_meteo(
-                meteo, geo, self.meteo.Dataset, gtype=self.gtype, ttype=self.ttype, input360=self.input360
-            )
+            if self.meteo.Dataset:
+                self.atm = write_meteo(
+                    meteo, geo, self.meteo.Dataset, gtype=self.gtype, ttype=self.ttype, input360=self.input360
+                )
 
             # WRITE BOUNDARY FILE
             logger.info("saving boundary file.. ")
