@@ -12,7 +12,7 @@
   "mesh_file": "/home/panos/Prog/poseidon/pyPoseidon/tests/data/hgrid.gr3",
   "manning": 0.12,
   "windrot": 1e-05,
-  "time_frame": "36H",
+  "time_frame": "36h",
   "dem_source": "/home/panos/Prog/poseidon/pyPoseidon/tests/data/dem.nc",
   "meteo_source": [
     "/home/panos/Prog/poseidon/pyPoseidon/tests/data/uvp_2018100100.grib",

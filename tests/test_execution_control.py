@@ -16,7 +16,7 @@ case1 = {
     "solver_name": "schism",
     "mesh_file": MESH_FILE,
     "start_date": "2017-10-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
     "update": ["model"],  # update only model
 }
@@ -26,7 +26,7 @@ case2 = {
     "mesh_file": MESH_FILE,
     "epath": "/wrong_path/",
     "start_date": "2017-10-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
     "update": ["model"],  # update only model
 }

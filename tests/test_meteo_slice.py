@@ -28,7 +28,7 @@ def test_meteo(tmpdir, name):
         g = xr.open_dataset(ifile)
         ts = "-".join(g.time.attrs["base_date"].astype(str)[:3])
         time_r = pd.to_datetime(ts)
-        times = time_r + pd.to_timedelta(g.time.values, unit="D").round("H")
+        times = time_r + pd.to_timedelta(g.time.values, unit="D").round("h")
         g = g.assign_coords({"time": times})
         ma.append(g)
 

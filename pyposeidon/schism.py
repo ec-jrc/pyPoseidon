@@ -266,7 +266,7 @@ class Schism:
         if hasattr(self, "meteo"):
             # add 1 hour for Schism issue with end time
             ap = self.meteo.Dataset.isel(time=-1)
-            ap["time"] = ap.time.values + pd.to_timedelta("1H")
+            ap["time"] = ap.time.values + pd.to_timedelta("1h")
 
             self.meteo.Dataset = xr.concat([self.meteo.Dataset, ap], dim="time")
 
@@ -859,7 +859,7 @@ class Schism:
                 f,
                 header=None,
                 nrows=1,
-                delim_whitespace=True,
+                sep="\s+",
                 names=[
                     "ns_global",
                     "ne_global",
@@ -899,7 +899,7 @@ class Schism:
                     header=None,
                     nrows=nels[i],
                     names=["local", "global_n"],
-                    delim_whitespace=True,
+                    sep="\s+",
                 )
 
         elems = pd.concat(frames, keys=keys)
@@ -921,7 +921,7 @@ class Schism:
                     header=None,
                     nrows=nq[i],
                     names=["local", "global_n"],
-                    delim_whitespace=True,
+                    sep="\s+",
                 )
 
         nodes = pd.concat(nframes, keys=keys)
@@ -943,7 +943,7 @@ class Schism:
                     header=None,
                     nrows=nw[i],
                     names=["local", "global_n"],
-                    delim_whitespace=True,
+                    sep="\s+",
                 )
 
         re = pd.concat(wframes, keys=keys)
@@ -955,7 +955,7 @@ class Schism:
                 skiprows=nels[0] + nq[0] + nw[0] + 6,
                 header=None,
                 nrows=1,
-                delim_whitespace=True,
+                sep="\s+",
                 names=[
                     "start_year",
                     "start_month",
@@ -970,7 +970,7 @@ class Schism:
                 skiprows=nels[0] + nq[0] + nw[0] + 7,
                 header=None,
                 nrows=1,
-                delim_whitespace=True,
+                sep="\s+",
                 names=[
                     "nrec",
                     "dtout",
@@ -996,7 +996,7 @@ class Schism:
                 skiprows=nels[0] + nq[0] + nw[0] + 8,
                 header=None,
                 nrows=2,
-                delim_whitespace=True,
+                sep="\s+",
             )
 
         h2 = h2.T
@@ -1014,7 +1014,7 @@ class Schism:
                     skiprows=nels[i] + nq[i] + nw[i] + 11,
                     header=None,
                     nrows=nq[i],
-                    delim_whitespace=True,
+                    sep="\s+",
                     names=["lon", "lat", "depth", "kbp00"],
                 )
 
@@ -1042,7 +1042,7 @@ class Schism:
                     skiprows=nels[i] + nq[i] + nw[i] + nq[i] + 11,
                     header=None,
                     nrows=nels[i],
-                    delim_whitespace=True,
+                    sep="\s+",
                     names=["type", "a", "b", "c", "d"],
                 )
 
@@ -1877,7 +1877,7 @@ class Schism:
 
         try:
             # get the station flags
-            flags = pd.read_csv(os.path.join(path, "station.in"), header=None, nrows=1, delim_whitespace=True).T
+            flags = pd.read_csv(os.path.join(path, "station.in"), header=None, nrows=1, sep="\s+").T
         except FileNotFoundError:
             logger.error("no station.in file present")
             return

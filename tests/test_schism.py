@@ -21,7 +21,7 @@ case1 = {
     "windrot": 0.00001,
     "tag": "test",
     "start_date": "2017-10-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
@@ -68,7 +68,7 @@ case3 = {
     "windrot": 0.00001,
     "tag": "test",
     "start_date": "2011-1-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
@@ -92,7 +92,7 @@ case4 = {
     "windrot": 0.00001,
     "tag": "test",
     "start_date": "2011-1-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "monitor": True,
@@ -143,7 +143,7 @@ def test_schism_meteo_split_by(tmpdir):
         {
             "rpath": tmpdir,
             "meteo_split_by": "1D",
-            "time_frame": "144H",
+            "time_frame": "144h",
             "update": ["meteo"],
         }
     )

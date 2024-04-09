@@ -34,7 +34,7 @@ case = {
     "windrot": 0.00001,
     "tag": "schism",
     "start_date": "2018-10-1 0:0:0",
-    "time_frame": "12H",
+    "time_frame": "12h",
     "dem_source": DEM_FILE,
     "meteo_source": METEO_FILES_1,
     "meteo_merge": "first",  # combine meteo
@@ -62,7 +62,7 @@ check = {
     "windrot": 0.00001,
     "tag": "schism",
     "start_date": "2018-10-1 0:0:0",
-    "time_frame": "36H",
+    "time_frame": "36h",
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
     "parameters": {
@@ -91,7 +91,7 @@ def test_schism_reforecast_workflow(tmpdir):
     # creating a time sequence of the runs
     start_date = pd.to_datetime("2018-10-1 0:0:0")
     end_date = pd.to_datetime("2018-10-2 0:0:0")
-    date_list = pd.date_range(start_date, end_date, freq="12H")
+    date_list = pd.date_range(start_date, end_date, freq="12h")
 
     # creating a sequence of folder to store the runs. In this case we name them after the date attribute.
     # NOTE that the first folder is the fisrt run already perfomed!!
@@ -100,9 +100,9 @@ def test_schism_reforecast_workflow(tmpdir):
     # creating a sequence of folder from which we read the meteo.
     meteo = []
     for date in date_list:
-        prev_date = pd.to_datetime(date) - pd.to_timedelta("12H")
+        prev_date = pd.to_datetime(date) - pd.to_timedelta("12h")
         prev_date = prev_date.strftime(format="%Y-%m-%d %H:%M:%S")
-        dr = pd.date_range(prev_date, date, freq="12H")
+        dr = pd.date_range(prev_date, date, freq="12h")
         names = ["uvp_" + datetime.datetime.strftime(x, "%Y%m%d%H") + ".grib" for x in dr]
         dur = [(DATA_DIR / name).as_posix() for name in names]
         meteo.append(dur)
