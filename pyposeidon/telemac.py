@@ -514,6 +514,7 @@ class Telemac:
         self.ncsize = get_value(self, kwargs, "ncsize", 1)
         # convert -180/180 to 0-360
         self.input360 = get_value(self, kwargs, "meteo_input360", False)
+        self.meteo = get_value(self, kwargs, "meteo_source", None)
 
         for attr, value in kwargs.items():
             if not hasattr(self, attr):
@@ -887,7 +888,7 @@ class Telemac:
             else:
                 pass
 
-            if self.meteo.Dataset:
+            if self.meteo:
                 self.atm = write_meteo(
                     meteo, geo, self.meteo.Dataset, gtype=self.gtype, ttype=self.ttype, input360=self.input360
                 )
