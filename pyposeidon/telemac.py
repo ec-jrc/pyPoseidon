@@ -1100,12 +1100,85 @@ class Telemac:
         logger.info("saving hotstart file\n")
         xdat.to_netcdf(os.path.join(ppath, f"outputs/{hfile}"))
 
-    def results(self, **kwargs):
+    @staticmethod
+    def set_attrs(ds):
         lat_coord_standard_name = "latitude"
         lon_coord_standard_name = "longitude"
         x_units = "degrees_east"
         y_units = "degrees_north"
 
+        # set Attrs
+        ds.longitude.attrs = {
+            "long_name": "node x-coordinate",
+            "standard_name": lon_coord_standard_name,
+            "units": x_units,
+            "mesh": "TELEMAC_Selafin",
+        }
+
+        ds.latitude.attrs = {
+            "long_name": "node y-coordinate",
+            "standard_name": lat_coord_standard_name,
+            "units": y_units,
+            "mesh": "TELEMAC_Selafin",
+        }
+
+        if "depth" in ds.variables:
+            ds.depth.attrs = {
+                "long_name": "Bathymetry",
+                "units": "meters",
+                "positive": "down",
+                "mesh": "TELEMAC_Selafin",
+                "location": "node",
+            }
+
+        ds.time.attrs = {
+            "long_name": "Time",
+            "base_date": pd.Timestamp(*ds.attrs["date_start"]).strftime("%Y-%m-%d %H:%M:%S"),
+            "standard_name": "time",
+        }
+
+        # Dataset Attrs
+        ds.attrs = {
+            "Conventions": "CF-1.0, UGRID-1.0",
+            "title": "TELEMAC Model output",
+            "source": "TELEMAC model output version vV8P4",
+            "references": "https://gitlab.pam-retd.fr/otm/telemac-mascaret",
+            "history": "created by pyposeidon",
+            "comment": "TELEMAC Model output",
+            "type": "TELEMAC Model output",
+        }
+        return ds
+
+    @staticmethod
+    def slf_to_xarray(file: str, res_type: ResultTypes = "2D"):
+        """
+        Open a Selafin file and convert it to an xarray dataset.
+
+        Args:
+            file (str): Path to the Selafin file.
+            type (str, optional): Type of the Selafin file. Defaults to "2D".
+
+        Returns:
+            xr.Dataset: The xarray dataset.
+        """
+        print(res_type)
+        assert res_type in ("1D", "2D", "3D")
+        ds = xr.open_dataset(file, engine="selafin")
+        dic = {}
+        varsn = normalize_varnames(ds.variables)
+        for var, varn in zip(ds.variables, varsn):
+            dic.update({var: varn})
+        ds = ds.rename(dic)
+        ds["face_nodes"] = xr.Variable(("face", "max_no_vertices"), np.array(ds.attrs["ikle2"]) - 1)
+        if res_type == "1D":
+            # bug in TELEMAC coord: CONVERT BACK FROM MERCATOR (NOT FIXED YET)
+            x2, y2 = xy_to_ll(ds.longitude.values, ds.latitude.values)
+            ds = ds.assign_coords({"longitude": x2, "latitude": y2})
+            # bug #2 1D output does not have the same length as station.in
+            # no fix provided here: the user needs to do the mapping himself
+        return ds
+
+    def results(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./telemac/")
         res_min = get_value(self, kwargs, "res_min", 0.5)
         filename = get_value(self, kwargs, "filename", "stations.zarr")
@@ -1116,54 +1189,9 @@ class Telemac:
         logger.info("get combined 2D netcdf files \n")
         # check for new IO output
         res = os.path.join(path, "results_2D.slf")
-        xc = xr.open_dataset(res, engine="selafin")
-        dic = {}
-        varsn = normalize_varnames(xc.variables)
-        for var, varn in zip(xc.variables, varsn):
-            dic.update({var: varn})
-        xc = xc.rename(dic)
-        xc["face_nodes"] = xr.Variable(("face", "max_no_vertices"), np.array(xc.attrs["ikle2"]) - 1)
+        xc = self.slf_to_xarray(res)
+        xc = self.set_attrs(xc)
 
-        # set Attrs
-        xc.longitude.attrs = {
-            "long_name": "node x-coordinate",
-            "standard_name": lon_coord_standard_name,
-            "units": x_units,
-            "mesh": "TELEMAC_Selafin",
-        }
-
-        xc.latitude.attrs = {
-            "long_name": "node y-coordinate",
-            "standard_name": lat_coord_standard_name,
-            "units": y_units,
-            "mesh": "TELEMAC_Selafin",
-        }
-
-        if "depth" in xc.variables:
-            xc.depth.attrs = {
-                "long_name": "Bathymetry",
-                "units": "meters",
-                "positive": "down",
-                "mesh": "TELEMAC_Selafin",
-                "location": "node",
-            }
-
-        xc.time.attrs = {
-            "long_name": "Time",
-            "base_date": pd.Timestamp(*xc.attrs["date_start"]).strftime("%Y-%m-%d %H:%M:%S"),
-            "standard_name": "time",
-        }
-
-        # Dataset Attrs
-        xc.attrs = {
-            "Conventions": "CF-1.0, UGRID-1.0",
-            "title": "TELEMAC Model output",
-            "source": "TELEMAC model output version vV8P4",
-            "references": "https://gitlab.pam-retd.fr/otm/telemac-mascaret",
-            "history": "created by pyposeidon",
-            "comment": "TELEMAC Model output",
-            "type": "TELEMAC Model output",
-        }
         os.makedirs(os.path.join(path, "outputs"), exist_ok=True)
         out2d = os.path.join(path, "outputs", filename2d)
         remove(out2d)
@@ -1176,41 +1204,14 @@ class Telemac:
             elif isinstance(self.stations_mesh_id, pd.DataFrame):
                 stations = self.stations_mesh_id
             # idx = stations["gindex"] # not need for now
-            res_1D = Selafin(os.path.join(path, "results_1D.slf"))
-            t0 = res_1D.datetime
-            t0pd = pd.Timestamp(t0[0], t0[1], t0[2], t0[3], t0[4], t0[5])
-            times = [t0pd + pd.to_timedelta(t_, unit="s") for t_ in res_1D.tags["times"]]
 
-            varsn = normalize_varnames(res_1D.varnames)
-            data_vars = {}
+            res_1D = os.path.join(path, "results_1D.slf")
+            xc = self.slf_to_xarray(res_1D, res_type="1D")
+            xc = self.set_attrs(xc)
 
-            # waiting for the xarray Serafin fix
-            cube = np.zeros((len(times), len(res_1D.varnames), len(res_1D.meshx)))
-            for it, t_ in enumerate(times):
-                cube[it, :, :] = res_1D.get_values(it)
-
-            for var, vartel in zip(varsn, res_1D.varnames):
-                i_v = res_1D.varnames.index(vartel)
-                data_vars.update({var: (("time", "seaset_id"), cube[:, i_v, :])})
-
-            mapping = []
-            for ii in range(len(res_1D.ikle2.T[0])):
-                id = res_1D.ikle2.T[0][ii]
-                mapping.append(int(stations.iloc[id].seaset_id))
-            # bug in TELEMAC coord: CONVERT BACK FROM MERCATOR
-            x2, y2 = xy_to_ll(res_1D.meshx, res_1D.meshy)
-            # bug #2 res_1D.meshx does not have the same length as stations
-            # hence why we use only res_1D for the the results
-            coords = {
-                "time": times,
-                "seaset_id": mapping,
-                "longitude": ("seaset_id", x2),
-                "latitude": ("seaset_id", y2),
-            }
-            ds = xr.Dataset(data_vars=data_vars, coords=coords)
             out_obs = os.path.join(path, "outputs", filename)
             remove(out_obs)
-            export_xarray(ds, out_obs, chunk=chunk, remove_dir=remove_zarr)
+            export_xarray(xc, out_obs, chunk=chunk, remove_dir=remove_zarr)
 
         logger.info("done with output netCDF files \n")
 
