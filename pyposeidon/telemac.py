@@ -21,6 +21,7 @@ import shapely
 import jinja2
 from searvey import ioc
 import shutil
+import typing as T
 from scipy.spatial import Delaunay
 
 # local modules
@@ -63,6 +64,8 @@ import logging
 
 from . import tools
 
+# Types
+ResultTypes = T.Literal["1D", "2D", "3D"]
 
 logger = logging.getLogger(__name__)
 
@@ -489,7 +492,12 @@ class Telemac:
             logger.warning("model not set properly, No end_date\n")
             # ---------------------------------------------------------------------
 
-        self.tstep = kwargs.get("dt", None)
+        # dt is in parameters
+        params = kwargs.get("parameters", None)
+        if params is not None:
+            self.tstep = params.get("dt", None)
+        else:
+            self.tstep = None
 
         self.module = tel_module
         self.tide = kwargs.get("tide", False)
@@ -863,6 +871,7 @@ class Telemac:
     def output(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./telemac/")
         global_ = get_value(self, kwargs, "global", True)
+        chezy = self.params.get("chezy", None)
 
         if not os.path.exists(path):
             os.makedirs(path)
@@ -876,7 +885,7 @@ class Telemac:
 
             logger.info("saving geometry file.. ")
             geo = os.path.join(path, "geo.slf")
-            self.to_slf(geo, global_=global_)
+            self.to_slf(geo, global_=global_, chezy=chezy)
             self.mesh.to_file(filename=os.path.join(path, "hgrid.gr3"))
             write_netcdf(self.mesh.Dataset, geo)
 

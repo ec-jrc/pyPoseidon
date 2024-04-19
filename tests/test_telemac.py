@@ -29,9 +29,9 @@ case0 = {
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
-    "dt": 50,
     "parameters": {
         "chezy": 30,
+        "dt": 50,
     },
 }
 
@@ -43,9 +43,9 @@ case1 = {
     "dem_source": DEM_FILE,
     "meteo_source": [(DATA_DIR / "erai.grib").as_posix()],  # meteo file
     "update": ["all"],  # update only meteo, keep dem
-    "dt": 100,
     "parameters": {
         "chezy": 100,
+        "dt": 100,
     },
 }
 
@@ -58,7 +58,9 @@ case2 = {
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
-    "dt": 200,
+    "parameters": {
+        "dt": 200,
+    }
 }
 
 
@@ -71,7 +73,9 @@ case3 = {
     "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
     "dem_source": DEM_FILE,
     "update": ["all"],  # update only meteo, keep dem
-    "dt": 1800,
+    "parameters": {
+        "dt": 1800,
+    },
 }
 
 
