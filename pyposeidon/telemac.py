@@ -1173,7 +1173,8 @@ class Telemac:
         if res_type == "1D":
             # bug in TELEMAC coord: CONVERT BACK FROM MERCATOR (NOT FIXED YET)
             x2, y2 = xy_to_ll(ds.longitude.values, ds.latitude.values)
-            ds = ds.assign_coords({"longitude": x2, "latitude": y2})
+            ds["longitude"] = xr.Variable(("node"), x2)
+            ds["latitude"] = xr.Variable(("node"), y2)
             # bug #2 1D output does not have the same length as station.in
             # no fix provided here: the user needs to do the mapping himself
         return ds
