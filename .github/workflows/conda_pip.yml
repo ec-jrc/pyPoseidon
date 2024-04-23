@@ -44,7 +44,7 @@ jobs:
         run: "pip install 'black'"
 
       - name: "Run linters"
-        run: "black --check ./"
+        run: "black --diff ./"
 
   run-tests:
     needs: "run-linters"
