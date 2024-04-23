@@ -2,6 +2,7 @@ channels:
   - conda-forge
   - gbrey
 dependencies:
+  - bottleneck
   - cartopy
   - cfgrib
   - colorlog
@@ -23,6 +24,7 @@ dependencies:
   - matplotlib>=3.3
   - mayavi
   - netCDF4
+  - numcodecs
   - numpy
   - pandas<2
   - pip

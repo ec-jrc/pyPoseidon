@@ -308,6 +308,64 @@ tornado = ">=6.2"
 xyzservices = ">=2021.09.1"
 
 [[package]]
+name = "bottleneck"
+version = "1.3.8"
+description = "Fast NumPy array functions written in C"
+optional = false
+python-versions = "*"
+files = [
+    {file = "Bottleneck-1.3.8-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:865c8ed5b798c0198b0b80553e09cc0d890c4f5feb3d81d31661517ca7819fa3"},
+    {file = "Bottleneck-1.3.8-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d073a31e259d40b25e29dbba80f73abf38afe98fd730c79dad7edd9a0ad6cff5"},
+    {file = "Bottleneck-1.3.8-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b806b277ab47495032822f55f43b8d336e4b7e73f8506ed34d3ea3da6d644abc"},
+    {file = "Bottleneck-1.3.8-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:770b517609916adeb39d3b1a386a29bc316da03dd61e7ee6e8a38325b80cc327"},
+    {file = "Bottleneck-1.3.8-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:2948502b0394ee419945b55b092585222a505c61d41a874c741be49f2cac056f"},
+    {file = "Bottleneck-1.3.8-cp310-cp310-win32.whl", hash = "sha256:271b6333522beb8aee32e640ba49a2064491d2c10317baa58a5996be3dd443e4"},
+    {file = "Bottleneck-1.3.8-cp310-cp310-win_amd64.whl", hash = "sha256:d41000ea7ca196b5fd39d6fccd34bf0704c8831731cedd2da2dcae3c6ac49c42"},
+    {file = "Bottleneck-1.3.8-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:d0a7f454394cd3642498b6e077e70f4a6b9fd46a8eb908c83ac737fdc9f9a98c"},
+    {file = "Bottleneck-1.3.8-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2c4ea8b9024dcb4e83b5c118a3c8faa863ace2ad572849da548a74a8ee4e8f2a"},
+    {file = "Bottleneck-1.3.8-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f40724b6e965ff5b88b333d4a10097b1629e60c0db21bb3d08c24d7b1a904a16"},
+    {file = "Bottleneck-1.3.8-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:4bd7183b8dcca89d0e65abe4507c19667dd31dacfbcc8ed705bad642f26a46e1"},
+    {file = "Bottleneck-1.3.8-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:20aa31a7d9d747c499ace1610a6e1f7aba6e3d4a9923e0312f6b4b6d68a59af3"},
+    {file = "Bottleneck-1.3.8-cp311-cp311-win32.whl", hash = "sha256:350520105d9449e6565b3f0c4ce1f80a0b3e4d63695ebbf29db41f62e13f6461"},
+    {file = "Bottleneck-1.3.8-cp311-cp311-win_amd64.whl", hash = "sha256:167a278902775defde7dfded6e98e3707dfe54971ffd9aec25c43bc74e4e381a"},
+    {file = "Bottleneck-1.3.8-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:c6e93ed45c6c83392f73d0333b310b38772df7eb78c120c1447245691bdedaf4"},
+    {file = "Bottleneck-1.3.8-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d3400f47dda0196b5af50b0b0678e33cc8c42e52e55ae0a63cdfed60725659bc"},
+    {file = "Bottleneck-1.3.8-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fba5fd1805c71b2eeea50bea93d59be449c4af23ebd8da5f75fd74fd0331e314"},
+    {file = "Bottleneck-1.3.8-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:60139c5c3d2a9c1454a04af5ee981a9f56548d27fa36f264069b149a6e9b01ed"},
+    {file = "Bottleneck-1.3.8-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:99fab17fa26c811ccad63e208314726e718ae6605314329eca09641954550523"},
+    {file = "Bottleneck-1.3.8-cp312-cp312-win32.whl", hash = "sha256:d3ae2bb5d4168912e438e377cc1301fa01df949ba59cd86317b3e00404fd4a97"},
+    {file = "Bottleneck-1.3.8-cp312-cp312-win_amd64.whl", hash = "sha256:bcba1d5d5328c50f94852ab521fcb26f35d9e0ccd928d120d56455d1a5bb743f"},
+    {file = "Bottleneck-1.3.8-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:8d01fd5389d3160d54619119987ac24b020fa6810b7b398fff4945892237b3da"},
+    {file = "Bottleneck-1.3.8-cp37-cp37m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:7ca25f0003ef65264942f6306d793e0f270ece8b406c5a293dfc7d878146e9f8"},
+    {file = "Bottleneck-1.3.8-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bf7763cf1516fa388c3587d12182fc1bc1c8089eab1a0a1bf09761f4c41af73c"},
+    {file = "Bottleneck-1.3.8-cp37-cp37m-musllinux_1_1_i686.whl", hash = "sha256:38837c022350e2a656453f0e448416b7108cf67baccf11d04a0b3b70a48074dd"},
+    {file = "Bottleneck-1.3.8-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:84ca5e741fae1c1796744dbdd0d2c1789cb74dd79c12ea8ec5834f83430f8520"},
+    {file = "Bottleneck-1.3.8-cp37-cp37m-win32.whl", hash = "sha256:f4dfc22a3450227e692ef2ff4657639c33eec88ad04ee3ce29d1a23a4942da24"},
+    {file = "Bottleneck-1.3.8-cp37-cp37m-win_amd64.whl", hash = "sha256:90b87eed152bbd760c4eb11473c2cf036abdb26e2f84caeb00787da74fb08c40"},
+    {file = "Bottleneck-1.3.8-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:54a1b5d9d63b2d9f2955f8542eea26c418f97873e0abf86ca52beea0208c9306"},
+    {file = "Bottleneck-1.3.8-cp38-cp38-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:019dd142d1e870388fb0b649213a0d8e569cce784326e183deba8f17826edd9f"},
+    {file = "Bottleneck-1.3.8-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8b5ed34a540eb7df59f45da659af9f792306637de1c69c95f020294f3b9fc4a8"},
+    {file = "Bottleneck-1.3.8-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:b69fcd4d818bcf9d53497d8accd0d5f852a447728baaa33b9b7168f8c4221d06"},
+    {file = "Bottleneck-1.3.8-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:02616a830bd477f5ba51103396092da4b9d83cea2e88f5b8069e3f4f7b796704"},
+    {file = "Bottleneck-1.3.8-cp38-cp38-win32.whl", hash = "sha256:93d359fb83eb3bdd6635ef6e64835c38ffdc211441fc190549f286e6af98b5f6"},
+    {file = "Bottleneck-1.3.8-cp38-cp38-win_amd64.whl", hash = "sha256:51c8bb3dffeb72c14f0382b80de76eabac6726d316babbd48f7e4056267d7910"},
+    {file = "Bottleneck-1.3.8-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:84453548b0f722c3be912ce3c6b685917fea842bf1252eeb63714a2c1fd1ffc9"},
+    {file = "Bottleneck-1.3.8-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:92700867504a213cafa9b8d9be529bd6e18dc83366b2ba00e86e80769b93f678"},
+    {file = "Bottleneck-1.3.8-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fadfd2f3931fdff42f4b9867eb02ed7c662d01e6099ff6b347b6ced791450651"},
+    {file = "Bottleneck-1.3.8-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:cfbc4a3a934b677bfbc37ac8757c4e1264a76262b774259bd3fa8a265dbd668b"},
+    {file = "Bottleneck-1.3.8-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:3c74c18f86a1ffac22280b005df8bb8a58505ac6663c4d6807f39873c17dc347"},
+    {file = "Bottleneck-1.3.8-cp39-cp39-win32.whl", hash = "sha256:211f881159e8adb3a57df2263028ae6dc89ec4328bfd43f3421e507406c28654"},
+    {file = "Bottleneck-1.3.8-cp39-cp39-win_amd64.whl", hash = "sha256:8615eeb75009ba7c0a112a5a6a5154ed3d61fd6b0879631778b3e42e2d9a6d65"},
+    {file = "Bottleneck-1.3.8.tar.gz", hash = "sha256:6780d896969ba7f53c8995ba90c87c548beb3db435dc90c60b9a10ed1ab4d868"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[package.extras]
+doc = ["gitpython", "numpydoc", "sphinx"]
+
+[[package]]
 name = "bump2version"
 version = "1.0.1"
 description = "Version-bump your software with a single command!"
@@ -5679,4 +5737,4 @@ viz = ["geoviews", "holoviews", "hvplot", "ipykernel", "itkwidgets", "matplotlib
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9, <4"
-content-hash = "3b82313d68e68c02a7b42b03ee5678adaec056d90fb8bfc773ecc1858c069f9e"
+content-hash = "ccefdc029726419ea610067524982095bb9082c3e4b47e08e3015930cce28787"

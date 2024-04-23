@@ -2,6 +2,7 @@ channels:
   - conda-forge
   - gbrey
 dependencies:
+  - bottleneck
   - cartopy
   - cfgrib
   - colorlog
@@ -17,6 +18,7 @@ dependencies:
   - jigsaw>=0.9.12
   - jinja2
   - netCDF4
+  - numcodecs
   - numpy
   - pandas<2
   - pip
