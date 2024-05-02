@@ -1984,3 +1984,8 @@ def parse_staout(path: os.PathLike[str] | str, start: pd.Timestamp = pd.NaT):
     index = index.rename("time")
     df = df.set_index(index)
     return df
+
+
+def parse_station_in(path: os.PathLike[str] | str = "station.in") -> pd.DataFrame:
+    df = pd.read_csv(path, skiprows=2, header=None, names=["lon", "lat", "layer"], sep="\s+")
+    return df
