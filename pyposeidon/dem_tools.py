@@ -22,13 +22,25 @@ from glob import glob
 from tqdm.auto import tqdm
 from pyposeidon.utils.coastfix import simplify
 
+from pyposeidon.utils.topology import (
+    MakeTriangleFaces_periodic,
+    MakeQuadFaces,
+    tria_to_df,
+    tria_to_df_3d,
+    quads_to_df,
+)
+from pyposeidon.utils.pos import to_st, to_global_pos, to_sq
+import pyposeidon.dem as pdem
+
 # logging setup
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def get_tiles(data, chunks=None):
+def get_tiles(data, **kwargs):
+
+    chunks = kwargs.get("chunks", None)
 
     # chuck
     if chunks:
@@ -39,7 +51,9 @@ def get_tiles(data, chunks=None):
         ilons = data.elevation.chunk("auto").chunks[1]
 
     if len(ilons) == 1:
-        ilons = (int(ilons[0] / 2), int(ilons[0] / 2))
+        half = int(ilons[0] / 2)
+        rest = ilons[0] - half
+        ilons = (half, rest)
 
     idx = [sum(ilons[:i]) for i in range(len(ilons) + 1)]
     jdx = [sum(ilats[:i]) for i in range(len(ilats) + 1)]
@@ -52,9 +66,9 @@ def get_tiles(data, chunks=None):
     return perms
 
 
-def fix_dem(dem, coastline, buffer=0.0, **kwargs):
+def fix_dem(dem, coastline, dbuffer=0.0, **kwargs):
 
-    perms = get_tiles(dem)
+    perms = get_tiles(dem, **kwargs)
 
     i = 0
     check = True
@@ -70,10 +84,10 @@ def fix_dem(dem, coastline, buffer=0.0, **kwargs):
         lat2 = dem.latitude.data[j1:j2][-1]
 
         # buffer lat/lon
-        blon1 = lon1 - buffer
-        blon2 = lon2 + buffer
-        blat1 = lat1 - buffer
-        blat2 = lat2 + buffer
+        blon1 = lon1 - dbuffer
+        blon2 = lon2 + dbuffer
+        blat1 = lat1 - dbuffer
+        blat2 = lat2 + dbuffer
 
         #    de = dem.sel(lon=slice(blon1,blon2)).sel(lat=slice(blat1,blat2))
         de = dem_range(dem, blon1, blon2, blat1, blat2)
@@ -82,7 +96,11 @@ def fix_dem(dem, coastline, buffer=0.0, **kwargs):
 
         ide = de_.sel(latitude=slice(lat1, lat2)).sel(longitude=slice(lon1, lon2))
 
-        ide.to_netcdf("./fixtmp/ide{:03d}.nc".format(i))
+        # set enconding
+        comp = dict(zlib=True, complevel=1, dtype="float32")
+        encoding = {var: comp for var in ide.data_vars}
+
+        ide.to_netcdf("./fixtmp/ide{:03d}.nc".format(i), encoding=encoding)
         i += 1
 
         check = check and check_
@@ -504,8 +522,6 @@ def resample(dem, xw, yw, var=None, wet=True, flag=None, reset_flag=False, funct
     # Define points with positive bathymetry
     x, y = np.meshgrid(dem.longitude, dem.latitude)
 
-    print(f"reset_flag={reset_flag}")
-
     if reset_flag:
         flag = 0
 
@@ -615,6 +631,252 @@ def dem_range(data, lon_min, lon_max, lat_min, lat_max):
         c = np.sign(np.mean([lon_min, lon_max]))
         dem["longitude"] = dem["longitude"] + c * 360.0
 
+    if lon_0 == 0:
+
+        g1 = data.isel(longitude=slice(-4, data.longitude.size - 1), latitude=slice(lat_0, lat_1))
+        g1 = g1.assign_coords({"longitude": g1.longitude.values - 360.0})
+
+        dem = xr.concat([g1, dem], dim="longitude")
+
+    if lon_1 == data.longitude.size:
+
+        g3 = data.isel(longitude=slice(1, 4), latitude=slice(lat_0, lat_1))
+        g3 = g3.assign_coords({"longitude": g3.longitude.values + 360.0})
+
+        dem = xr.concat([dem, g3], dim="longitude")
+
     dem_data = xr.merge([dem])
 
     return dem_data
+
+
+def get_dem_gradient(
+    dem,
+    slope_parameter=20,
+    filter_quotient=50,
+    min_edge_length=None,
+    max_edge_length=None,
+    min_elevation_cutoff=-50.0,
+):
+    try:
+        dd = dem.adjusted.data
+    except:
+        dd = dem.elevation.data
+
+    dd[dd >= min_elevation_cutoff] = min_elevation_cutoff
+
+    dx, dy = np.gradient(dem.longitude)[0], np.gradient(dem.latitude)[0]
+
+    mean_latitude = np.mean(dem.latitude.data)
+
+    # convert to meters
+    meters_per_degree = (
+        111132.92
+        - 559.82 * np.cos(2 * mean_latitude)
+        + 1.175 * np.cos(4 * mean_latitude)
+        - 0.0023 * np.cos(6 * mean_latitude)
+    )
+    dy *= meters_per_degree
+    dx *= meters_per_degree
+
+    by, bx = _earth_gradient(dd, dy, dx)  # get slope in x and y directions
+
+    bs = np.sqrt(bx**2 + by**2)  # get overall slope
+
+    eps = 1e-10  # small number to approximate derivative
+    dp = np.clip(dd, None, -1)
+    gvalues = (2 * np.pi / slope_parameter) * np.abs(dp) / (bs + eps)
+    gvalues /= meters_per_degree
+
+    if max_edge_length:
+        gvalues[gvalues > max_edge_length] = max_edge_length
+
+    if min_edge_length:
+        gvalues[gvalues < min_edge_length] = min_edge_length
+
+    return gvalues
+
+
+def _earth_gradient(F, dx, dy):
+    """
+    earth_gradient(F,HX,HY), where F is 2-D, uses the spacing
+    specified by HX and HY. HX and HY can either be scalars to specify
+    the spacing between coordinates or vectors to specify the
+    coordinates of the points.  If HX and HY are vectors, their length
+    must match the corresponding dimension of F.
+    """
+    Fy, Fx = np.zeros(F.shape), np.zeros(F.shape)
+
+    # Forward diferences on edges
+    Fx[:, 0] = (F[:, 1] - F[:, 0]) / dx
+    Fx[:, -1] = (F[:, -1] - F[:, -2]) / dx
+    Fy[0, :] = (F[1, :] - F[0, :]) / dy
+    Fy[-1, :] = (F[-1, :] - F[-2, :]) / dy
+
+    # Central Differences on interior
+    Fx[:, 1:-1] = (F[:, 2:] - F[:, :-2]) / (2 * dx)
+    Fy[1:-1, :] = (F[2:, :] - F[:-2, :]) / (2 * dy)
+
+    return Fy, Fx
+
+
+def compute_dem_gradient(
+    dem,
+    slope_parameter=20,
+    filter_quotient=50,
+    min_edge_length=None,
+    max_edge_length=None,
+    min_elevation_cutoff=-50.0,
+    **kwargs,
+):
+
+    i = 0
+
+    if not os.path.exists("./fixtmp/"):
+        os.makedirs("./fixtmp/")
+
+    perms = get_tiles(dem, **kwargs)
+
+    for (i1, i2), (j1, j2) in tqdm(perms, total=len(perms)):
+
+        lon1 = dem.longitude.data[i1:i2][0]
+        lon2 = dem.longitude.data[i1:i2][-1]
+        lat1 = dem.latitude.data[j1:j2][0]
+        lat2 = dem.latitude.data[j1:j2][-1]
+
+        de = dem_range(dem, lon1, lon2, lat1, lat2)
+
+        #    de_, check_, flag = fix(de, coastline)
+
+        gvalues = get_dem_gradient(
+            de,
+            slope_parameter=slope_parameter,
+            filter_quotient=filter_quotient,
+            min_edge_length=min_edge_length,
+            max_edge_length=max_edge_length,
+            min_elevation_cutoff=min_elevation_cutoff,
+        )
+
+        de = de.assign({"gradient": (["latitude", "longitude"], gvalues)})
+
+        ide = de.sel(latitude=slice(lat1, lat2)).sel(longitude=slice(lon1, lon2))
+
+        # set enconding
+        comp = dict(zlib=True, complevel=1, dtype="float32")
+        encoding = {var: comp for var in ide.data_vars}
+
+        ide.to_netcdf("./fixtmp/ide{:03d}.nc".format(i), encoding=encoding)
+        i += 1
+
+    #    check = check and check_
+
+    ifiles = glob("./fixtmp/ide*")
+
+    fdem = xr.open_mfdataset(ifiles)
+
+    ##cleanup
+    shutil.rmtree("./fixtmp")
+
+    return fdem
+
+
+def scale_dem(b, res_min, res_max, **kwargs):
+    #    b.columns = ["z"]
+
+    b.loc[b.z >= -10, "z"] = -1.0e-4  # normalize to only negative values
+
+    b.z = np.sqrt(-b.z) / 0.5  # scale
+
+    # adjust scale
+
+    bg = b.z.values
+
+    a2 = (bg - bg.min()) / (bg.max() - bg.min())
+
+    d2 = res_min + a2 * (res_max - res_min)
+
+    b["d2"] = d2
+
+    nodes = b.reset_index(drop=True)
+
+    nodes["z"] = 0
+
+    #    subspace = kwargs.get('subspace', None)
+
+    #    if subspace is not None:
+    #        mask = ...
+    #        hfun[mask] =
+
+    return nodes
+
+
+def make_bgmesh(df, fpos, dem=None, scale=True, **kwargs):
+    lon_min = df.bounds.minx.min()
+    lon_max = df.bounds.maxx.max()
+    lat_min = df.bounds.miny.min()
+    lat_max = df.bounds.maxy.max()
+
+    kwargs_ = kwargs.copy()
+    kwargs_.pop("lon_min", None)
+    kwargs_.pop("lon_max", None)
+    kwargs_.pop("lat_min", None)
+    kwargs_.pop("lat_max", None)
+
+    if not dem:
+        dem = kwargs.get("dem_source", None)
+
+        if not isinstance(dem, xr.Dataset):
+            logger.info("Reading DEM")
+            dem = pdem.Dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
+            dem = dem.Dataset
+
+    res_min = kwargs.get("resolution_min", 0.01)
+    res_max = kwargs.get("resolution_max", 0.5)
+
+    logger.info("Evaluating bgmesh")
+
+    var = kwargs.get("var", "adjusted")
+    logger.info(f"using '{var}' variable data")
+
+    # scale bathymetry
+    try:
+        b = dem[var].to_dataframe()
+    except:
+        b = dem.elevation.to_dataframe()
+        logger.info(f"variable {var} not present switching to 'elevation' data")
+
+    b = b.reset_index()
+
+    dims = b.columns[:2]
+
+    b.columns = [dims[0], dims[1], "z"]
+
+    if scale:
+        nodes = scale_dem(b, res_min, res_max, **kwargs)
+    else:
+        nodes = b
+        nodes["d2"] = b.z.values
+        nodes["z"] = 0
+
+    x = dem[dims[0]].values
+    y = dem[dims[1]].values
+
+    quad = MakeQuadFaces(x.shape[0], y.shape[0])
+    elems = pd.DataFrame(quad, columns=["a", "b", "c", "d"])
+    df = quads_to_df(elems, nodes)
+
+    dh = xr.Dataset(
+        {
+            "h": (
+                [dims[0], dims[1]],
+                nodes.d2.values.flatten().reshape((x.shape[0], y.shape[0])),
+            )
+        },
+        coords={dims[0]: (dims[0], x), dims[1]: (dims[1], y)},
+    )
+
+    logger.info("Saving bgmesh to {}".format(fpos))
+
+    to_sq(df, fpos)  # save bgmesh
+
+    return dh
