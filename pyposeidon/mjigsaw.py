@@ -144,7 +144,7 @@ def to_geo(df, path=".", tag="jigsaw"):
 
 def parse_msh(fmsh):
     grid = pd.read_csv(fmsh, header=0, names=["data"], index_col=None, low_memory=False)
-    npoints = int(grid.loc[2].str.split("=")[0][1])
+    npoints = int(grid.iloc[2].str.split("=").iloc[0][1])
 
     nodes = pd.DataFrame(
         grid.loc[3 : 3 + npoints - 1, "data"].str.split(";").values.tolist(),
@@ -152,14 +152,14 @@ def parse_msh(fmsh):
     )
 
     ie = grid[grid.data.str.contains("EDGE")].index.values[0]
-    nedges = int(grid.loc[ie].str.split("=")[0][1])
+    nedges = int(grid.iloc[ie].str.split("=").iloc[0][1])
     edges = pd.DataFrame(
         grid.loc[ie + 1 : ie + nedges, "data"].str.split(";").values.tolist(),
         columns=["e1", "e2", "e3"],
     )
 
     i3 = grid[grid.data.str.contains("TRIA")].index.values[0]
-    ntria = int(grid.loc[i3].str.split("=")[0][1])
+    ntria = int(grid.iloc[i3].str.split("=").iloc[0][1])
     tria = pd.DataFrame(
         grid.loc[i3 + 1 : i3 + ntria + 1, "data"].str.split(";").values.tolist(),
         columns=["a", "b", "c", "d"],
@@ -445,12 +445,15 @@ def get(contours, **kwargs):
             bgmesh = "auto"
             kwargs.update({"bgmesh": "auto"})
 
+    dh1 = None
+    dh2 = None
+
     if bgmesh is not None:
         logger.info("Set background scale")
 
         if bgmesh.endswith(".nc"):
             try:
-                dh = xr.open_dataset(bgmesh)
+                dh1 = xr.open_dataset(bgmesh)
 
                 if "longitude" in dh.coords:
                     to_hfun_grid(dh, path + tag + "-hfun.msh")  # write bgmesh file
@@ -461,15 +464,12 @@ def get(contours, **kwargs):
                 bgmesh = None
 
         elif bgmesh == "auto":
-            dh = make_bgmesh(contours, **kwargs)
+            dh1 = make_bgmesh(contours, **kwargs)
 
         elif bgmesh.endswith(".msh"):
             pass
 
-    try:
-        bg = dh
-    except:
-        bg = None
+    bg = [dh1, dh2]
 
     # GEO FILE
     to_geo(contours, path=path, tag=tag)

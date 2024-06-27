@@ -6,7 +6,7 @@ import xarray as xr
 from .limgrad import limgrad2
 from pyposeidon.utils.stereo import to_lat_lon, to_stereo
 from pyposeidon.utils.topology import MakeTriangleFaces, MakeTriangleFaces_periodic
-from pyposeidon.utils.scale import scale_dem
+from pyposeidon.dem_tools import scale_dem
 import pyposeidon
 import math
 

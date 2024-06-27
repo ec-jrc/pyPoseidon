@@ -14,6 +14,7 @@ Tutorial/bgmesh
 Tutorial/gmsh
 Tutorial/jigsaw
 Tutorial/data
+Tutorial/global
 
 # the local jigsaw folder
 pyPoseidon/tests/jigsaw/*

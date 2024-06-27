@@ -21,7 +21,7 @@ import numpy as np
 import pyresample
 import xarray as xr
 
-from pyposeidon.utils.fix import fix_dem, fix, resample
+from pyposeidon.dem_tools import fix_dem, fix, resample
 from pyposeidon import tools
 
 NCORES = max(1, multiprocessing.cpu_count() - 1)
