@@ -280,7 +280,7 @@ class SchismCast:
 
         copy = get_value(self, kwargs, "copy", False)
 
-        ihot = get_value(self, kwargs, "ihot", 1)
+        ihot = get_value(self, kwargs, "ihot", 2)
 
         pwd = os.getcwd()
 

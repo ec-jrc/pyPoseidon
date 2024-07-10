@@ -175,7 +175,7 @@ def fix(dem, coastline, **kwargs):
         block = shp.cx[minlon:maxlon, minlat:maxlat]
 
     try:
-        block = gp.GeoDataFrame(geometry=list(block.unary_union.geoms))
+        block = gp.GeoDataFrame(geometry=list(block.union_all().geoms))
     except:
         pass
 
@@ -189,7 +189,7 @@ def fix(dem, coastline, **kwargs):
     grp = grp.buffer(0.5)  # buffer it to get also the boundary points
 
     try:
-        g = block.unary_union.symmetric_difference(grp)  # get the diff
+        g = block.union_all().symmetric_difference(grp)  # get the diff
     except:
         g = grp  # no land
 
@@ -208,7 +208,7 @@ def fix(dem, coastline, **kwargs):
     except:
         b = shapely.geometry.GeometryCollection()
 
-    b = b.unary_union
+    b = b.union_all()
 
     # define wet/dry
     water = b
@@ -497,7 +497,7 @@ def check2(dataset, coastline):
     else:
         coasts = coastline
 
-    cc = coasts.unary_union
+    cc = coasts.union_all()
 
     wn = tree.query(cc, predicate="intersects").tolist()
 

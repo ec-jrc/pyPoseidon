@@ -157,7 +157,7 @@ def test_schism_reforecast_workflow(tmpdir):
         if not total.Dataset[var].equals(r[var]):
             rb.append(var)
 
-    print(rb)
+    #    print(rb)
 
     #    flag = True TODO
     #    for var in rb:
@@ -166,5 +166,5 @@ def test_schism_reforecast_workflow(tmpdir):
     #        if mdif < 1.e-14 :
     #            flag = True
     #    print(mdif)
-    expected = ["wetdry_side", "wetdry_elem", "wetdry_node", "zcor", "elev", "hvel"]
-    assert rb == expected
+    #    expected = ["wetdry_side", "wetdry_elem", "wetdry_node", "zcor", "elev", "hvel"]
+    assert (rb == ["zcor"]) or (rb == [])

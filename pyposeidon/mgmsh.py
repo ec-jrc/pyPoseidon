@@ -166,8 +166,8 @@ def read_msh(filename, **kwargs):
         # nodes, tria = orient(nodes, tria, x="x", y="y")
         #        else:
         bgmesh = kwargs.get("bgmesh", None)
-        if not bgmesh:
-            tria = tria.reindex(columns=["a", "c", "b"])
+    #        if not bgmesh:
+    #            tria = tria.reindex(columns=["a", "c", "b"])
 
     # check if global and reproject
     if gglobal:  # convert to lat/lon
