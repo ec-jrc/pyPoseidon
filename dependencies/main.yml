@@ -1,5 +1,4 @@
 ---
-
 channels:
   - "conda-forge"
   - "gbrey"
@@ -19,6 +18,7 @@ dependencies:
   - "pandas<2"
   - "psutil"
   - "pydap>=3.3.0"
+  - "pymap3d"
   - "pyresample"
   - "python-gmsh"
   - "rasterio"

@@ -25,6 +25,7 @@ dependencies:
   - proj
   - psutil
   - pydap>=3.3.0
+  - pymap3d
   - pyresample
   - python-gmsh
   - python=3.10

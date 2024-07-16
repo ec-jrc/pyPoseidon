@@ -37,6 +37,7 @@ dependencies:
   - proj
   - psutil
   - pydap>=3.3.0
+  - pymap3d
   - pymdown-extensions
   - pyresample
   - pytest
