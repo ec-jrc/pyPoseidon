@@ -35,6 +35,7 @@ nav:
   - Development: development.md
   - API:
       - Main: api.md
+      - utils: api_utils.md
 
 markdown_extensions:
   - "admonition"
