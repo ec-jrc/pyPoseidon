@@ -105,6 +105,7 @@ pytest-xdist = "*"
 mkdocs-material = "*"
 mkdocstrings = "*"
 mkdocs = "*"
+mkdocstrings-python = "*"
 pymdown-extensions = "*"
 
 [build-system]
