@@ -24,6 +24,7 @@ from . import DATA_DIR
         ("schism v5.9.0mod", "5.9.0"),
         ("schism v5.9.0", "5.9.0"),
         ("schism v5.10.1", "5.10.1"),
+        ("schism develop", "develop"),
     ],
 )
 def test_parse_schism_version(version_output, expected_version):
@@ -43,7 +44,7 @@ def test_get_schism_version():
 @pytest.mark.parametrize("scribes", [-1, 1])
 def test_create_schism_mpirun_script(tmp_path, use_threads, ncores, scribes):
     target_dir = tmp_path.as_posix()
-    cmd = "/bin/schism"
+    cmd = "schism"
     script_name = "launchSchism.sh"
     script_path = tools.create_schism_mpirun_script(
         target_dir=target_dir,
@@ -68,7 +69,7 @@ def test_create_schism_mpirun_script(tmp_path, use_threads, ncores, scribes):
     else:
         assert f"-N {psutil.cpu_count(logical=use_threads)}" in cmd_line
     if scribes > 0:
-        assert f"{cmd}) {scribes}" in cmd_line
+        assert f"/bin/{cmd} {scribes}" in cmd_line
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
