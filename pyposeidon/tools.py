@@ -76,7 +76,7 @@ mkdir -p outputs
 # Schism sometimes throws an error mentioning ABORT or MPI_ABORT while it returns a status code of 0.
 # In order to circumvent this we need to cacture the output and explicitly check the contents for ABORT.
 schism_output=$(
-    $(which mpirun) {{ mpirun_flags }} -N {{ ncores }} $(which {{ cmd }}) {{ scribes }} 2>&1
+    {{ mpirun_path }} {{ mpirun_flags }} -N {{ ncores }} {{ cmd }} {{ scribes }} 2>&1
 )
 
 echo "${schism_output}"
@@ -263,9 +263,10 @@ def create_mpirun_script(
     env = jinja2.Environment()
     template = env.from_string(template)
     content = template.render(
+        mpirun_path=shutil.which("mpirun"),
         mpirun_flags=mpirun_flags,
         ncores=ncores,
-        cmd=cmd,
+        cmd=shutil.which(cmd),
         scribes=scribes,
     )
     # Write to disk and make executable
