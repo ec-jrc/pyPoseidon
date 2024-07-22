@@ -483,6 +483,7 @@ class Schism:
 
     def output(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")
+        path = os.path.realpath(path)
         flag = get_value(self, kwargs, "update", ["all"])
         split_by = get_value(self, kwargs, "meteo_split_by", None)
 
