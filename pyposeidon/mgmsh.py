@@ -591,10 +591,13 @@ def to_geo(df, **kwargs):
         f.write("Physical Surface(1) = {2};\n")
         f.write("Field[1] = Distance;\n")
 
+        curve_list = np.arange(ltag + 1)
         if not gglobal:
-            curve_list = [x for x in np.arange(1, ltag + 1) if x not in loops]
+            idx = [0] + loops
+            curve_list = np.delete(curve_list, idx)
         else:
-            curve_list = [x for x in np.arange(2, ltag + 1) if x not in loops]
+            idx = [0, 1] + loops
+            curve_list = np.delete(curve_list, idx)
 
         if not bspline:
             f.write("Field[1].CurvesList = {{{}}};\n".format(",".join(map(str, curve_list))))

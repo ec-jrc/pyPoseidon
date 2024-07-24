@@ -810,11 +810,11 @@ def scale_dem(b, res_min, res_max, **kwargs):
     return nodes
 
 
-def make_bgmesh(df, fpos, dem=None, scale=True, **kwargs):
-    lon_min = df.bounds.minx.min()
-    lon_max = df.bounds.maxx.max()
-    lat_min = df.bounds.miny.min()
-    lat_max = df.bounds.maxy.max()
+def make_bgmesh(dc, fpos, dem=None, scale=True, **kwargs):
+    lon_min = dc.bounds.minx.min()
+    lon_max = dc.bounds.maxx.max()
+    lat_min = dc.bounds.miny.min()
+    lat_max = dc.bounds.maxy.max()
 
     kwargs_ = kwargs.copy()
     kwargs_.pop("lon_min", None)

@@ -1335,6 +1335,12 @@ class Schism:
             # fix fortran/python index
             x2d["SCHISM_hgrid_face_nodes"][:, :3] = x2d["SCHISM_hgrid_face_nodes"].values[:, :3] - 1
             # set time to Datetime
+            if x2d.time.dtype == "float64":
+                times = pd.to_datetime(x2d.time.values, unit="s", origin=sdate.tz_convert(None))
+            else:
+                times = pd.to_datetime(x2d.time)
+
+            x2d = x2d.assign_coords({"time": ("time", times, x2d.time.attrs)})
 
             logger.info("get combined 3D netcdf files \n")
 

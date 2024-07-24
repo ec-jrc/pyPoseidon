@@ -140,7 +140,11 @@ def test_schism_cast(tmpdir, copy):
 
 
 @pytest.mark.schism
-def test_schism_cast_workflow(tmpdir):
+@pytest.mark.parametrize(
+    "hotstart",
+    [1, 2],
+)
+def test_schism_cast_workflow(tmpdir, hotstart):
     # initialize a model
     rpath = str(tmpdir) + "/schism/"
     test_case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
@@ -177,6 +181,7 @@ def test_schism_cast_workflow(tmpdir):
             cpath=rpaths[l + 1],
             meteo=meteo[l + 1],
             sdate=date_list[l + 1],
+            ihot=hotstart,
         )
 
         h.run(execute=True)  # execute
