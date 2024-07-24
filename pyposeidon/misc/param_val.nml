@@ -10,6 +10,7 @@
     ntracer_age = 4
     sed_class = 5
     eco_class = 27
+    nbins_veg_vert = 2
     nspool = 12
     ihfskip = 48
 /
