@@ -1,16 +1,17 @@
 """ Observational Data retrieval """
 from __future__ import annotations
 
-import os
-from searvey import ioc
-import pandas as pd
-import geopandas as gp
-import numpy as np
-import xarray as xr
-from datetime import datetime
 import itertools
+import os
+from datetime import datetime
 from typing import Iterable
 from typing import Iterator
+
+import geopandas as gp
+import numpy as np
+import pandas as pd
+import xarray as xr
+from searvey import ioc
 
 
 def grouper(
@@ -145,21 +146,19 @@ def serialize_stations(
 
     """
     # Sanity check
-    mandatory_cols = {"mesh_index", "mesh_lon", "mesh_lat", "lon", "lat", "distance"}
+    mandatory_cols = {"mesh_index", "mesh_lon", "mesh_lat", "depth", "lon", "lat", "distance", "depth", "unique_id"}
     df_cols = set(stations.columns)
     if not df_cols.issuperset(mandatory_cols):
         msg = f"stations must have these columns too: {mandatory_cols.difference(df_cols)}"
         raise ValueError(msg)
     #
-    basic_cols = ["mesh_lon", "mesh_lat", "z", "separator", "mesh_index", "lon", "lat", "distance"]
-    extra_cols = df_cols.symmetric_difference(basic_cols).symmetric_difference(["z", "separator"])
-    station_in_cols = basic_cols + list(sorted(extra_cols))
+    basic_cols = ["mesh_lon", "mesh_lat", "z", "separator", "unique_id", "mesh_index", "lon", "lat", "depth", "distance"]
     station_in = stations.assign(
         z=0,
         separator="\t!\t",
     )
     station_in = station_in.set_index(station_in.index +1)
-    station_in = station_in[station_in_cols]
+    station_in = station_in[basic_cols]
     with open(f"{path}", "w") as fd:
         fd.write(f"{schism_station_flag.strip()}\t ! https://schism-dev.github.io/schism/master/input-output/optional-inputs.html#stationin-bp-format\n")
         fd.write(f"{len(station_in)}\t ! number of stations\n")
