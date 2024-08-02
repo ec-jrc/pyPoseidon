@@ -3,7 +3,6 @@
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
-
 from __future__ import annotations
 
 import itertools
@@ -31,7 +30,6 @@ import numpy.typing as npt
 import psutil
 import rioxarray
 import xarray as xr
-
 
 from pyposeidon.utils.get_value import get_value
 
@@ -325,6 +323,8 @@ def execute_schism_mpirun_script(cwd: str) -> None:
     Execute launchSchism.sh and save stdout/stderr to disk
     """
     cmd = "./launchSchism.sh"
+    with open(f"{cwd}/{cmd}", "r") as fd:
+        contents = fd.read()
     proc = subprocess.run(
         shlex.split(cmd),
         check=False,
