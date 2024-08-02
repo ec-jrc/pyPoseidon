@@ -1335,9 +1335,6 @@ class Schism:
             # fix fortran/python index
             x2d["SCHISM_hgrid_face_nodes"][:, :3] = x2d["SCHISM_hgrid_face_nodes"].values[:, :3] - 1
             # set time to Datetime
-            times = pd.to_datetime(x2d.time.values, unit="s", origin=sdate.tz_convert(None))
-
-            x2d = x2d.assign_coords({"time": ("time", times, x2d.time.attrs)})
 
             logger.info("get combined 3D netcdf files \n")
 
@@ -1349,7 +1346,6 @@ class Schism:
                 # read
                 x3d = xr.open_mfdataset(xfiles, data_vars="minimal")
                 # set time to Datetime
-                x3d = x3d.assign_coords({"time": ("time", times, x3d.time.attrs)})
                 x3d.to_netcdf(os.path.join(path, "outputs/schout_2.nc"))
 
             # save 2D variables to file

@@ -30,6 +30,9 @@
   sed_class = 5 !SED3D (USE_SED)
   eco_class = 27 !EcoSim (USE_ECO): must be between [25,60]
 
+! # of vertical bins in vegetation module (used only if iveg/=0)
+  nbins_veg_vert = 2
+
 ! Global output controls
   nspool = 9 !output step spool
   ihfskip = 36 !stack spool; every ihfskip steps will be put into 1_*, 2_*, etc...
@@ -499,10 +502,6 @@
   drampwind = 1. !needed if nrampwind/=0; ramp-up period in days
 !  iwindoff = 0 !needed only if nws/=0; '1': needs windfactor.gr3
   iwind_form = -1 !needed if nws/=0
-  !If impose_net_flux/=0 and nws=2, read in net _surface_ heat flux as var 'dlwrf'
-  !(Downward Long Wave) in sflux_rad (solar radiation is still used separately),
-  !and if PREC_EVAP is on, also read in net P-E as 'prate' (Surface Precipitation Rate) in sflux_prc.
-  impose_net_flux = 0
 
 !-----------------------------------------------------------------------
 ! Heat and salt exchange. isconsv=1 needs ihconsv=1; ihconsv=1 needs nws=2.
@@ -650,7 +649,7 @@
 ! If one of these depths=0 at a node, the code will set all to 0.
 ! If USE_MARSH is on and isav=1, all .gr3 must have constant depths!
 !----------------------------------------------------------------------
-  isav = 0 !on/off flag
+  iveg = 0 !on/off flag
 
 !----------------------------------------------------------------------
 ! Coupling step with ICE module.
@@ -763,8 +762,7 @@
   iof_hydro(22) = 0 !eddy viscosity [m^2/s] {viscosity}
   iof_hydro(23) = 0 !turbulent kinetic energy {TKE}
   iof_hydro(24) = 0 !turbulent mixing length [m] {mixing_length}
-  iof_hydro(25) = 1 !horizontal vel vector [m/s] {hvel}
-
+  iof_hydro(25) = 0 !horizontal vel vector [m/s] {hvel}
   iof_hydro(26) = 0 !horizontal vel vector defined @side [m/s] {hvel_side}
   iof_hydro(27) = 0 !vertical vel. @elem [m/s] {wvel_elem}
   iof_hydro(28) = 0 !T @prism centers [C] {temp_elem}

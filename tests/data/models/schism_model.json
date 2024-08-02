@@ -57,7 +57,8 @@
       "sed_class": 5,
       "eco_class": 27,
       "nspool": 9,
-      "ihfskip": 36
+      "ihfskip": 36,
+      "nbins_veg_vert": 2
     },
     "opt": {
       "ipre2": 0,
@@ -167,7 +168,6 @@
       "nrampwind": 1,
       "drampwind": 1,
       "iwind_form": -1,
-      "impose_net_flux": 0,
       "ihconsv": 0,
       "isconsv": 0,
       "itur": 0,
@@ -207,7 +207,7 @@
       "irouse_test": 0,
       "flag_fib": 1,
       "slr_rate": 120,
-      "isav": 0,
+      "iveg": 0,
       "nstep_ice": 1,
       "level_age": [
         9,
