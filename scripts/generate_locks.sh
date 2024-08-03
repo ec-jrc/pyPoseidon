@@ -5,11 +5,11 @@ set -xeuo pipefail
 
 # Schism
 conda-lock lock --mamba --check-input-hash -p linux-64 -p osx-64 -f dependencies/schism_openmpi.yml 	--lockfile locks/schism_openmpi.yml
-conda-lock lock --mamba --check-input-hash -p linux-64 -f dependencies/schism_mpich.yml 		--lockfile locks/schism_mpich.yml
+conda-lock lock --mamba --check-input-hash -p linux-64 -p osx-64 -f dependencies/schism_mpich.yml 		--lockfile locks/schism_mpich.yml
 conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-schism_openmpi.lock locks/schism_openmpi.yml
 conda-lock render -p linux-64 --filename-template locks/conda-ubuntu-latest-schism_mpich.lock   locks/schism_mpich.yml
 conda-lock render -p osx-64 --filename-template locks/conda-macos-latest-schism_openmpi.lock    locks/schism_openmpi.yml
-#conda-lock render -p osx-64 --filename-template locks/conda-macos-latest-schism_mpich.lock      locks/schism_mpich.yml
+conda-lock render -p osx-64 --filename-template locks/conda-macos-latest-schism_mpich.lock      locks/schism_mpich.yml
 
 # delft3d
 conda-lock lock --mamba --check-input-hash -p linux-64 -p osx-64 -f dependencies/delft3d_openmpi.yml  --lockfile locks/delft3d_openmpi.yml
