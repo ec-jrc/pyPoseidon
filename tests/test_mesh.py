@@ -5,7 +5,7 @@ import os
 
 from . import DATA_DIR
 
-COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
+COAST_FILE = (DATA_DIR / "ocean.parquet").as_posix()
 
 WINDOWS = pytest.mark.parametrize(
     "window",

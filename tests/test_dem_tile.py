@@ -6,7 +6,7 @@ import cartopy.feature as cf
 
 from . import DATA_DIR
 
-COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
+COAST_FILE = (DATA_DIR / "ocean.parquet").as_posix()
 
 DEM_SOURCES = pytest.mark.parametrize(
     "dem_source",
@@ -18,7 +18,7 @@ DEM_SOURCES = pytest.mark.parametrize(
 
 @pytest.fixture(scope="session")
 def coasts():
-    #    coast = gp.read_file(COAST_FILE).drop("FID", axis=1)
+    #    coast = gp.read_file(COAST_FILE)
     cr = "h"
     coast = cf.NaturalEarthFeature(
         category="physical", name="land", scale="{}m".format({"l": 110, "i": 50, "h": 10}[cr])

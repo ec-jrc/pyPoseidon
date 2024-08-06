@@ -79,7 +79,8 @@ def save_as(url: str, path: pathlib.Path) -> None:
 
 
 TEST_DATA = {
-    DATA_DIR / "ocean.zip": "https://www.dropbox.com/sh/cgyk6ychwimjlzr/AADlueXH1I1F01mlgerMUSb6a?dl=1",
+    DATA_DIR
+    / "ocean.parquet": "https://www.dropbox.com/scl/fi/msiru06qdh7cq99lsxicx/ocean.parquet?rlkey=ku7afiues47y91a15hdvtcybu&st=nayi0hc2&dl=1",
     DATA_DIR / "bl.zip": "https://www.dropbox.com/sh/9tfdl67sll1ax8c/AACntQeIavCzRfTZZ9Tp8uFda?dl=1",
     DATA_DIR / "dem.nc": "https://www.dropbox.com/s/l16crheqc9d89gy/dem.nc?dl=1",
     DATA_DIR / "dem.tif": "https://www.dropbox.com/s/dgdlnr2p5q66np7/dem.tif?dl=1",

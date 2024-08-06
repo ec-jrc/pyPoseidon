@@ -243,13 +243,13 @@ def read_msh(filename, **kwargs):
 
     A, idxA = np.unique(nodes["tag"], return_inverse=True)
     B, idxB = np.unique(tria["a"], return_inverse=True)
-    IDX = np.in1d(A, B)
+    IDX = np.isin(A, B)
     tria["a"] = idxA[IDX][idxB]
     B, idxB = np.unique(tria["b"], return_inverse=True)
-    IDX = np.in1d(A, B)
+    IDX = np.isin(A, B)
     tria["b"] = idxA[IDX][idxB]
     B, idxB = np.unique(tria["c"], return_inverse=True)
-    IDX = np.in1d(A, B)
+    IDX = np.isin(A, B)
     tria["c"] = idxA[IDX][idxB]
 
     # Drop invalid edges
@@ -258,10 +258,10 @@ def read_msh(filename, **kwargs):
     ### Re-index edges
     A, idxA = np.unique(nodes["tag"], return_inverse=True)
     B, idxB = np.unique(edges["e1"], return_inverse=True)
-    IDX = np.in1d(A, B)
+    IDX = np.isin(A, B)
     edges["e1"] = idxA[IDX][idxB]
     B, idxB = np.unique(edges["e2"], return_inverse=True)
-    IDX = np.in1d(A, B)
+    IDX = np.isin(A, B)
     edges["e2"] = idxA[IDX][idxB]
     # clean up
     nodes = nodes.drop("tag", axis=1)
@@ -479,20 +479,21 @@ def get(contours, **kwargs):
 
     hfun_scal = kwargs.get("hfun_scal", "ABSOLUTE")
     hfun_min = kwargs.get("hfun_min", 0.0)
-    hfun_max = kwargs.get("hfun_max", 1000.0)
+    hfun_max = kwargs.get("hfun_max", 100.0)
+    mesh_eps1 = kwargs.get("mesh_eps1", 0.3)
 
     with open(fjig, "w") as f:
         f.write("GEOM_FILE ={}\n".format(tag + "-geo.msh"))
         f.write("MESH_FILE ={}\n".format(tag + ".msh"))
         if bgmesh:
             f.write("HFUN_FILE ={}\n".format(tag + "-hfun.msh"))
-        f.write("HFUN_SCAL = {}\n".format(hfun_scal))
-        f.write("HFUN_HMAX = {}\n".format(hfun_max))
-        f.write("HFUN_HMIN = {}\n".format(hfun_min))
+        f.write(f"HFUN_SCAL = {hfun_scal}\n")
+        f.write(f"HFUN_HMAX = {hfun_max}\n")
+        f.write(f"HFUN_HMIN = {hfun_min}\n")
         f.write("MESH_DIMS = 2\n")
         f.write("MESH_TOP1 = TRUE\n")
         #        f.write('MESH_TOP2 = TRUE\n')
-        f.write("MESH_EPS1 = 1.0\n")
+        f.write(f"MESH_EPS1 = {mesh_eps1}\n")
         f.write("MESH_RAD2 = 1\n")
         f.write("GEOM_FEAT = TRUE\n")
         f.write("VERBOSITY = 2")
