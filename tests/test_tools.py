@@ -24,6 +24,7 @@ from . import DATA_DIR
         ("schism v5.9.0mod", "5.9.0"),
         ("schism v5.9.0", "5.9.0"),
         ("schism v5.10.1", "5.10.1"),
+        ("schism develop", "develop"),
     ],
 )
 def test_parse_schism_version(version_output, expected_version):

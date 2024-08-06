@@ -158,14 +158,16 @@ def setup_logging(
         logger.addHandler(file_handler)
 
 
-# TODO Handle master/develop version
 def parse_schism_version(version_output: str) -> str:
-    try:
-        version_line = version_output.strip().splitlines()[0]
-        version = SCHISM_VERSION_PATTERN.match(version_line).group(1)
-        return version
-    except Exception as exc:
-        raise ValueError(f"Failed to parse version from:\n {version_output}") from exc
+    if "schism develop" in version_output:
+        version = "develop"
+    else:
+        try:
+            version_line = version_output.strip().splitlines()[0]
+            version = SCHISM_VERSION_PATTERN.match(version_line).group(1)
+        except Exception as exc:
+            raise ValueError(f"Failed to parse version from:\n {version_output}") from exc
+    return version
 
 
 def get_schism_version() -> str:
@@ -526,7 +528,7 @@ def dequantize(
     missing_value: int,
     dtype: npt.DTypeLike,
 ) -> npt.NDArray[np.float_]:
-    array = bn.replace(array.astype(np.float_), missing_value, np.nan)
+    array = bn.replace(array.astype(np.float64), missing_value, np.nan)
     dequantized = (array * scale_factor) + add_offset
     return dequantized
 

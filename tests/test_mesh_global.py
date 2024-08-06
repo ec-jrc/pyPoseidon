@@ -8,13 +8,13 @@ from . import DATA_DIR
 
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
-COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
+COAST_FILE = (DATA_DIR / "ocean.parquet").as_posix()
 
 
 @pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
 @pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
 @pytest.mark.parametrize("bindings", [True, False])
-@pytest.mark.parametrize("cbuffer", [None, 0.001])
+@pytest.mark.parametrize("cbuffer", [None, 0.01])
 def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings, cbuffer):
     # Skip the test unless --runslow has been passed
     if bgmesh is not None:
@@ -60,11 +60,14 @@ def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings, cbuffer):
 @pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
 @pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
 @pytest.mark.parametrize("bindings", [True, False])
-@pytest.mark.parametrize("cbuffer", [None, 0.001])
+@pytest.mark.parametrize("cbuffer", [None, 0.01])
 def test_validate(pytestconfig, tmpdir, ggor, cbuffer, bgmesh, bindings):
     if bgmesh is not None:
         if not pytestconfig.getoption("--runslow"):
             pytest.skip("slow test")
+
+    #    if ggor == "jigsaw":
+    #        pytest.xfail("Fixing these is a WIP")
 
     mesh = pmesh.set(
         type="tri2d",
