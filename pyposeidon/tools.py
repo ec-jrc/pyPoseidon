@@ -583,3 +583,14 @@ def get_netcdf_encoding(
             )
             update_or_add(encoding, var, params)
     return encoding
+
+
+def to_geodataframe(
+    path: str | os.PathLike[str],
+    **kwargs: T.Any,
+) -> gpd.GeoDataFrame:
+    if str(path).endswith("parquet") or str(path).endswith("pq"):
+        gdf = gpd.read_parquet(path=path, **kwargs)
+    else:
+        gdf = gpd.read_file(filename=path, **kwargs)
+    return gdf

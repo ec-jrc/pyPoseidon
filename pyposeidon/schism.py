@@ -34,6 +34,7 @@ import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.paths import DATA_PATH
+from pyposeidon.tools import to_geodataframe
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils.cpoint import closest_node
@@ -122,7 +123,7 @@ class Schism:
                 logger.warning("geometry is 'global'")
             elif isinstance(self.geometry, str):
                 try:
-                    geo = gp.GeoDataFrame.from_file(self.geometry)
+                    geo = to_geodataframe(self.geometry)
                 except:
                     logger.error("geometry argument not a valid geopandas file")
                     sys.exit(1)
@@ -141,7 +142,7 @@ class Schism:
 
         if coastlines is not None:
             try:
-                coast = gp.GeoDataFrame.from_file(coastlines)
+                coast = to_geodataframe(coastlines)
             except:
                 coast = gp.GeoDataFrame(coastlines)
 

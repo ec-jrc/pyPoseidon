@@ -31,6 +31,7 @@ from pyposeidon.utils.topology import (
 )
 from pyposeidon.utils.pos import to_st, to_global_pos, to_sq
 import pyposeidon.dem as pdem
+from pyposeidon.tools import to_geodataframe
 
 # logging setup
 import logging
@@ -125,7 +126,7 @@ def fix(dem, coastline, **kwargs):
 
     # define coastline
     try:
-        shp = gp.GeoDataFrame.from_file(coastline)
+        shp = to_geodataframe(coastline)
     except:
         shp = gp.GeoDataFrame(coastline)
 

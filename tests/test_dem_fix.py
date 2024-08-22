@@ -1,10 +1,9 @@
+import pytest
+
 import pyposeidon.dem as pdem
 import pyposeidon.mesh as pmesh
-import pytest
-import numpy as np
-import geopandas as gp
-
 from . import DATA_DIR
+from pyposeidon.tools import to_geodataframe
 
 COAST_FILE = (DATA_DIR / "ocean.parquet").as_posix()
 
@@ -29,7 +28,7 @@ WINDOWS = pytest.mark.parametrize(
 
 @pytest.fixture(scope="session")
 def coasts():
-    coast = gp.read_file(COAST_FILE)
+    coast = to_geodataframe(COAST_FILE)
     return coast
 
 

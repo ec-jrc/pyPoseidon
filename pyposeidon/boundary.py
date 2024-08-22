@@ -16,6 +16,7 @@ import geopandas as gp
 import logging
 import shapely
 from tqdm.auto import tqdm
+from pyposeidon.tools import to_geodataframe
 from pyposeidon.utils.coastfix import simplify
 import sys
 
@@ -56,7 +57,7 @@ class Boundary:
 
         elif isinstance(coastlines, str):
             logger.info("reading {}".format(coastlines))
-            coasts = gp.GeoDataFrame.from_file(coastlines)
+            coasts = to_geodataframe(coastlines)
             # check coastlines
             if coasts.buffer(0).is_valid.all() and (coasts.buffer(0).boundary.geom_type == "LineString").all():
                 self.coasts = gp.GeoDataFrame(geometry=coasts.buffer(0))
@@ -96,7 +97,7 @@ class Boundary:
 
             else:
                 try:
-                    self.geometry = gp.read_file(geometry)
+                    self.geometry = to_geodataframe(geometry)
                 except:
                     logger.warning("geometry is not a file, trying with geopandas Dataset")
                     if isinstance(geometry, gp.GeoDataFrame):
@@ -107,7 +108,7 @@ class Boundary:
 
         else:
             try:
-                self.geometry = gp.read_file(geometry)
+                self.geometry = to_geodataframe(geometry)
             except:
                 logger.warning("geometry is not a file, trying with geopandas Dataset")
                 if isinstance(geometry, gp.GeoDataFrame):
