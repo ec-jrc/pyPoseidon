@@ -19,14 +19,14 @@ WINDOWS = pytest.mark.parametrize(
 
 
 @WINDOWS
-@pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
-def test_answer(tmpdir, window, ggor):
+@pytest.mark.parametrize("mesh_generator", ["jigsaw", "gmsh"])
+def test_answer(tmpdir, window, mesh_generator):
     mesh = pmesh.set(
         type="tri2d",
         geometry=window,
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",
-        mesh_generator=ggor,
+        mesh_generator=mesh_generator,
     )
 
     check = np.isnan(mesh.Dataset.depth.values).sum() == 0
