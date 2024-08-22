@@ -8,7 +8,7 @@ from . import DATA_DIR
 
 DEM_FILE = DATA_DIR / "dem.nc"
 
-COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
+COAST_FILE = (DATA_DIR / "ocean.parquet").as_posix()
 
 WINDOWS = pytest.mark.parametrize(
     "window",
@@ -47,7 +47,7 @@ def test_schism(tmpdir, window):
             "ihfskip": 36,
             "nhot_write": 108,
         },
-        "scribes": 2,
+        "scribes": 1,
     }
 
     rpath = str(tmpdir) + "/"

@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 import glob
 
 import pyposeidon
+from pyposeidon.tools import to_geodataframe
 from pyposeidon.utils import data
 from pyposeidon.utils.statistics import get_stats
 from pyposeidon.utils.obs import get_obs_data
@@ -202,7 +203,7 @@ def to_thalassa(folder, **kwargs):
     )
     out.to_netcdf(output_file, encoding=encoding)  # save netcdf
 
-    stations = gp.GeoDataFrame.from_file(b.obs)
+    stations = to_geodataframe(b.obs)
 
     # assign unique id
     if "id" not in stations.columns:
@@ -251,7 +252,7 @@ def to_obs(folder, **kwargs):
     json_file = os.path.join(folder, "{}_model.json".format(tag))
     b = pyposeidon.model.read(json_file)
 
-    stations = gp.GeoDataFrame.from_file(b.obs)
+    stations = to_geodataframe(b.obs)
 
     # assign unique id
     if "id" not in stations.columns:

@@ -16,6 +16,7 @@ import geopandas as gp
 import logging
 import shapely
 from tqdm.auto import tqdm
+from pyposeidon.tools import to_geodataframe
 from pyposeidon.utils.coastfix import simplify
 import sys
 
@@ -56,7 +57,7 @@ class Boundary:
 
         elif isinstance(coastlines, str):
             logger.info("reading {}".format(coastlines))
-            coasts = gp.GeoDataFrame.from_file(coastlines)
+            coasts = to_geodataframe(coastlines)
             # check coastlines
             if coasts.buffer(0).is_valid.all() and (coasts.buffer(0).boundary.geom_type == "LineString").all():
                 self.coasts = gp.GeoDataFrame(geometry=coasts.buffer(0))
@@ -96,7 +97,7 @@ class Boundary:
 
             else:
                 try:
-                    self.geometry = gp.read_file(geometry)
+                    self.geometry = to_geodataframe(geometry)
                 except:
                     logger.warning("geometry is not a file, trying with geopandas Dataset")
                     if isinstance(geometry, gp.GeoDataFrame):
@@ -107,7 +108,7 @@ class Boundary:
 
         else:
             try:
-                self.geometry = gp.read_file(geometry)
+                self.geometry = to_geodataframe(geometry)
             except:
                 logger.warning("geometry is not a file, trying with geopandas Dataset")
                 if isinstance(geometry, gp.GeoDataFrame):
@@ -203,7 +204,7 @@ def buffer_(coasts, cbuffer):
         ww_.loc[idx] = b
 
     # join
-    wu = ww_.unary_union
+    wu = ww_.union_all()
     wu = gp.GeoDataFrame(geometry=[wu]).explode(index_parts=True).droplevel(0).reset_index(drop=True)
 
     rings = wu.boundary.is_ring  # get multiple boundaries instance
@@ -309,7 +310,7 @@ def tag(geometry, coasts, cbuffer, blevels):
             else:
                 try:
                     gw = gp.GeoDataFrame(
-                        geometry=list(ww.buffer(0).unary_union)
+                        geometry=list(ww.buffer(0).union_all())
                     )  # merge the polygons that are split (around -180/180)
                 except:
                     gw = gp.GeoDataFrame(geometry=list(ww.values))
@@ -342,7 +343,7 @@ def tag(geometry, coasts, cbuffer, blevels):
         block = coasts.copy()
 
     if not block.empty:
-        g = block.unary_union.symmetric_difference(grp)  # get the dif from the coasts
+        g = block.union_all().symmetric_difference(grp)  # get the dif from the coasts
     else:
         g = grp
 
@@ -529,9 +530,12 @@ def global_tag(geo, cbuffer, blevels, R=1):
 
     ww = gp.GeoDataFrame(geometry=cs)
 
-    gw = gp.GeoDataFrame(
-        geometry=list(ww.buffer(0).unary_union.geoms)
-    )  # merge the polygons that are split (around -180/180)
+    ww_ = ww.buffer(0).union_all()
+
+    if ww_.geom_type == "Polygon":
+        gw = gp.GeoDataFrame(geometry=[ww_])
+    else:
+        gw = gp.GeoDataFrame(geometry=list(ww_.geoms))  # merge the polygons that are split (around -180/180)
 
     gw = gp.GeoDataFrame(geometry=gw.boundary.values)
 

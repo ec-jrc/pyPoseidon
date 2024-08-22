@@ -22,18 +22,11 @@ import shlex
 
 from pyposeidon.utils.spline import use_spline
 from pyposeidon.utils.global_bgmesh import make_bgmesh_global
-from pyposeidon.utils.stereo import to_stereo, to_3d, to_lat_lon
-from pyposeidon.utils.pos import to_st, to_global_pos, to_sq
-from pyposeidon.utils.scale import scale_dem
-from pyposeidon.utils.topology import (
-    MakeTriangleFaces_periodic,
-    MakeQuadFaces,
-    tria_to_df,
-    tria_to_df_3d,
-    quads_to_df,
-)
+from pyposeidon.utils.stereo import to_lat_lon
+from pyposeidon.utils.pos import to_global_pos
 import pyposeidon.dem as pdem
 from pyposeidon.tools import orient
+from pyposeidon.dem_tools import compute_dem_gradient, make_bgmesh
 
 import multiprocessing
 
@@ -173,8 +166,8 @@ def read_msh(filename, **kwargs):
         # nodes, tria = orient(nodes, tria, x="x", y="y")
         #        else:
         bgmesh = kwargs.get("bgmesh", None)
-        if not bgmesh:
-            tria = tria.reindex(columns=["a", "c", "b"])
+    #        if not bgmesh:
+    #            tria = tria.reindex(columns=["a", "c", "b"])
 
     # check if global and reproject
     if gglobal:  # convert to lat/lon
@@ -262,29 +255,80 @@ def get(contours, **kwargs):
 
     gglobal = kwargs.get("gglobal", False)
 
+    dh1 = None
+    dh2 = None
+
     if bgmesh == "auto":
-        try:
-            rpath = kwargs.get("rpath", ".")
 
-            if not os.path.exists(rpath + "/gmsh/"):  # check if run folder exists
-                os.makedirs(rpath + "/gmsh/")
+        bg_dem = kwargs.get("bg_dem", True)
 
-            fpos = rpath + "/gmsh/bgmesh.pos"
+        if bg_dem:
+            try:
+                rpath = kwargs.get("rpath", ".")
 
-            if gglobal:
+                if not os.path.exists(rpath + "/gmsh/"):  # check if run folder exists
+                    os.makedirs(rpath + "/gmsh/")
+
+                fpos = rpath + "/gmsh/bgmesh1.pos"
+
+                if gglobal:
+                    dem = pdem.Dem(**kwargs)
+
+                    nds, lms = make_bgmesh_global(contours, fpos, dem.Dataset, **kwargs)
+                    dh1 = to_global_pos(nds, lms, fpos, **kwargs)
+
+                else:
+                    dh1 = make_bgmesh(contours, fpos, **kwargs)
+
+                kwargs.update({"bgmesh1": fpos})
+
+            except OSError as e:
+                logger.warning("bgmesh1 failed... continuing without background mesh size")
+                dh1 = None
+                kwargs.update({"bgmesh1": None})
+        else:
+            dh1 = None
+
+        # same for dem gradient
+        bg_dem_grad = kwargs.get("bg_dem_grad", True)
+
+        if bg_dem_grad:
+            try:
+                fpos = rpath + "/gmsh/bgmesh2.pos"
+
+                slope_parameter = kwargs.get("slope_parameter", 20)
+                filter_quotient = kwargs.get("filter_quotient", 50)
+                min_edge_length = kwargs.get("min_edge_length", 0.3)
+                max_edge_length = kwargs.get("max_edge_length", 2)
+                min_elevation_cutoff = kwargs.get("min_elevation_cutoff", -50.0)
+
                 dem = pdem.Dem(**kwargs)
+                gdem = compute_dem_gradient(
+                    dem.Dataset,
+                    slope_parameter=slope_parameter,
+                    filter_quotient=filter_quotient,
+                    min_edge_length=min_edge_length,
+                    max_edge_length=max_edge_length,
+                    min_elevation_cutoff=-50.0,
+                )
 
-                nds, lms = make_bgmesh_global(contours, fpos, dem.Dataset, **kwargs)
-                dh = to_global_pos(nds, lms, fpos, **kwargs)
-            else:
-                dh = make_bgmesh(contours, fpos, **kwargs)
+                kwargs.update({"var": "gradient"})
 
-            kwargs.update({"bgmesh": fpos})
+                if gglobal:
+                    nds, lms = make_bgmesh_global(contours, fpos, gdem, scale=False, **kwargs)
+                    dh2 = to_global_pos(nds, lms, fpos, **kwargs)
+                else:
+                    dh2 = make_bgmesh(contours, fpos, gdem, scale=False, **kwargs)
 
-        except OSError as e:
-            logger.warning("bgmesh failed... continuing without background mesh size")
-            dh = None
-            kwargs.update({"bgmesh": None})
+                kwargs.update({"bgmesh2": fpos})
+
+            except OSError as e:
+                logger.warning("bgmesh2 failed... continuing without background mesh size")
+                dh2 = None
+                kwargs.update({"bgmesh2": None})
+
+        else:
+            dh2 = None
 
     if use_bindings:
         logger.info("Using python bindings")
@@ -303,11 +347,7 @@ def get(contours, **kwargs):
         else:
             gr = None
 
-    try:
-        bg = dh
-    except:
-        bg = None
-
+    bg = [dh1, dh2]
     return gr, bg
 
 
@@ -551,10 +591,13 @@ def to_geo(df, **kwargs):
         f.write("Physical Surface(1) = {2};\n")
         f.write("Field[1] = Distance;\n")
 
+        curve_list = np.arange(ltag + 1)
         if not gglobal:
-            curve_list = [x for x in np.arange(1, ltag + 1) if x not in loops]
+            idx = [0] + loops
+            curve_list = np.delete(curve_list, idx)
         else:
-            curve_list = [x for x in np.arange(2, ltag + 1) if x not in loops]
+            idx = [0, 1] + loops
+            curve_list = np.delete(curve_list, idx)
 
         if not bspline:
             f.write("Field[1].CurvesList = {{{}}};\n".format(",".join(map(str, curve_list))))
@@ -563,10 +606,10 @@ def to_geo(df, **kwargs):
             f.write(",".join(map(str, np.arange(ptag0, ptag + 1))))
             f.write("};\n")
 
-        SizeMin = kwargs.get("SizeMin", 0.01)
-        SizeMax = kwargs.get("SizeMax", 0.1)
-        DistMin = kwargs.get("DistMin", 0.0)
-        DistMax = kwargs.get("DistMax", 0.05)
+        SizeMin = kwargs.get("SizeMin", 0.1)
+        SizeMax = kwargs.get("SizeMax", 0.5)
+        DistMin = kwargs.get("DistMin", 0.01)
+        DistMax = kwargs.get("DistMax", 0.2)
 
         f.write("Field[2] = Threshold;\n")
         f.write("Field[2].IField = 1;\n")
@@ -575,29 +618,47 @@ def to_geo(df, **kwargs):
         f.write("Field[2].SizeMin = {};\n".format(SizeMin))
         f.write("Field[2].SizeMax = {};\n".format(SizeMax))
 
+        f.write("Field[2].StopAtDistMax = 1;\n")
+
         bgmesh = kwargs.get("bgmesh", None)
+        if bgmesh == "auto":
+            bgmesh = None
+        bgmesh1 = kwargs.get("bgmesh1", None)
+        bgmesh2 = kwargs.get("bgmesh2", None)
 
-        if bgmesh:
-            # get full path
-            bgmesh_path = os.path.abspath(bgmesh)
+        if any([bgmesh, bgmesh1, bgmesh2]):
 
-            f.write('Merge "{}";\n'.format(bgmesh_path))
+            ib = 2
+            vi = -1
 
-            f.write("Field[2].StopAtDistMax = 1;\n")
+            for bgm in [bgmesh, bgmesh1, bgmesh2]:
 
-            f.write("Field[3] = PostView;\n")
-            f.write("Field[3].ViewIndex = 0;\n")
+                if bgm:
 
-            f.write("Field[4] = Min;\n")
-            f.write("Field[4].FieldsList = {2, 3};\n")
+                    ib += 1
+                    vi += 1
+                    # get full path
+                    bgmesh_path = os.path.abspath(bgm)
 
-            f.write("Background Field = 4;\n")
+                    f.write('Merge "{}";\n'.format(bgmesh_path))
+
+                    f.write(f"Field[{ib}] = PostView;\n")
+                    f.write(f"Field[{ib}].ViewIndex = {vi};\n")
+
+            flist = np.arange(2, ib + 1)
+            f.write(f"Field[{ib+1}] = Min;\n")
+            f.write(f"Field[{ib+1}].FieldsList = {{{', '.join(map(str,flist))}}};\n")
+
+            f.write(f"Background Field = {ib+1};\n")
 
         else:
             f.write("Background Field = 2;\n")
 
         MeshSizeMin = kwargs.get("MeshSizeMin", SizeMin)
         MeshSizeMax = kwargs.get("MeshSizeMax", SizeMax)
+
+        f.write(f"Mesh.MeshSizeMin= {MeshSizeMin};\n")
+        f.write(f"Mesh.MeshSizeMax= {MeshSizeMax};\n")
 
         f.write("Mesh.MeshSizeFromPoints = 0;\n")
         f.write("Mesh.MeshSizeFromCurvature = 0;\n")
@@ -736,68 +797,6 @@ def outer_boundary(df, **kwargs):
     }
 
     return rb0, land_lines, open_lines
-
-
-def make_bgmesh(df, fpos, **kwargs):
-    lon_min = df.bounds.minx.min()
-    lon_max = df.bounds.maxx.max()
-    lat_min = df.bounds.miny.min()
-    lat_max = df.bounds.maxy.max()
-
-    kwargs_ = kwargs.copy()
-    kwargs_.pop("lon_min", None)
-    kwargs_.pop("lon_max", None)
-    kwargs_.pop("lat_min", None)
-    kwargs_.pop("lat_max", None)
-
-    dem = kwargs.get("dem_source", None)
-
-    if not isinstance(dem, xr.Dataset):
-        logger.info("Reading DEM")
-        dem = pdem.Dem(lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max, **kwargs_)
-        dem = dem.Dataset
-
-    res_min = kwargs.get("resolution_min", 0.01)
-    res_max = kwargs.get("resolution_max", 0.5)
-
-    logger.info("Evaluating bgmesh")
-
-    # scale bathymetry
-    try:
-        b = dem.adjusted.to_dataframe()
-    except:
-        b = dem.elevation.to_dataframe()
-
-    b = b.reset_index()
-
-    b.columns = ["latitude", "longitude", "z"]
-
-    nodes = scale_dem(b, res_min, res_max, **kwargs)
-
-    x = dem.longitude.values
-    y = dem.latitude.values
-
-    quad = MakeQuadFaces(y.shape[0], x.shape[0])
-    elems = pd.DataFrame(quad, columns=["a", "b", "c", "d"])
-    df = quads_to_df(elems, nodes)
-
-    dh = xr.Dataset(
-        {
-            "h": (
-                ["longitude", "latitude"],
-                nodes.d2.values.flatten().reshape((x.shape[0], y.shape[0])),
-            )
-        },
-        coords={"longitude": ("longitude", x), "latitude": ("latitude", y)},
-    )
-
-    logger.info("Saving bgmesh to {}".format(fpos))
-
-    to_sq(df, fpos)  # save bgmesh
-
-    kwargs.update({"bgmesh": fpos})
-
-    return dh
 
 
 def make_gmsh(df, **kwargs):
@@ -956,22 +955,37 @@ def make_gmsh(df, **kwargs):
     model.mesh.field.setNumber(2, "SizeMax", SizeMax)
     model.mesh.field.setNumber(2, "DistMin", DistMin)
     model.mesh.field.setNumber(2, "DistMax", DistMax)
+    model.mesh.field.setNumber(2, "StopAtDistMax", 1)
 
     # Set bgmesh
     bgmesh = kwargs.get("bgmesh", None)
+    if bgmesh == "auto":
+        bgmesh = None
+    bgmesh1 = kwargs.get("bgmesh1", None)
+    bgmesh2 = kwargs.get("bgmesh2", None)
 
-    if bgmesh:
-        gmsh.merge(bgmesh)
+    if any([bgmesh, bgmesh1, bgmesh2]):
 
-        model.mesh.field.setNumber(2, "StopAtDistMax", 1)
+        ib = 2
+        vi = -1
 
-        model.mesh.field.add("PostView", 3)
-        model.mesh.field.setNumber(3, "ViewIndex", 0)
+        for bgm in [bgmesh, bgmesh1, bgmesh2]:
 
-        model.mesh.field.add("Min", 4)
-        model.mesh.field.setNumbers(4, "FieldsList", [2, 3])
+            if bgm:
 
-        model.mesh.field.setAsBackgroundMesh(4)
+                ib += 1
+                vi += 1
+
+                gmsh.merge(bgm)
+
+                model.mesh.field.add("PostView", ib)
+                model.mesh.field.setNumber(ib, "ViewIndex", vi)
+
+        blist = np.arange(2, ib + 1).tolist()
+        model.mesh.field.add("Min", ib + 1)
+        model.mesh.field.setNumbers(ib + 1, "FieldsList", blist)
+
+        model.mesh.field.setAsBackgroundMesh(ib + 1)
 
     else:
         model.mesh.field.setAsBackgroundMesh(2)
@@ -980,8 +994,8 @@ def make_gmsh(df, **kwargs):
     gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
     gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 0)
 
-    MeshSizeMin = kwargs.get("MeshSizeMin", None)
-    MeshSizeMax = kwargs.get("MeshSizeMax", None)
+    MeshSizeMin = kwargs.get("MeshSizeMin", SizeMin)
+    MeshSizeMax = kwargs.get("MeshSizeMax", SizeMax)
 
     if MeshSizeMin is not None:
         gmsh.option.setNumber("Mesh.MeshSizeMin", MeshSizeMin)
@@ -1111,19 +1125,33 @@ def make_gmsh_3d(df, **kwargs):
 
     # Set bgmesh
     bgmesh = kwargs.get("bgmesh", None)
+    if bgmesh == "auto":
+        bgmesh = None
+    bgmesh1 = kwargs.get("bgmesh1", None)
+    bgmesh2 = kwargs.get("bgmesh2", None)
 
-    if bgmesh:
-        gmsh.merge(bgmesh)
+    if any([bgmesh, bgmesh1, bgmesh2]):
 
-        model.mesh.field.setNumber(2, "StopAtDistMax", 1)
+        ib = 2
+        vi = -1
 
-        model.mesh.field.add("PostView", 3)
-        model.mesh.field.setNumber(3, "ViewIndex", 0)
+        for bgm in [bgmesh, bgmesh1, bgmesh2]:
 
-        model.mesh.field.add("Min", 4)
-        model.mesh.field.setNumbers(4, "FieldsList", [2, 3])
+            if bgm:
 
-        model.mesh.field.setAsBackgroundMesh(4)
+                ib += 1
+                vi += 1
+
+                gmsh.merge(bgm)
+
+                model.mesh.field.add("PostView", ib)
+                model.mesh.field.setNumber(ib, "ViewIndex", vi)
+
+        blist = np.arange(2, ib + 1).tolist()
+        model.mesh.field.add("Min", ib + 1)
+        model.mesh.field.setNumbers(ib + 1, "FieldsList", blist)
+
+        model.mesh.field.setAsBackgroundMesh(ib + 1)
 
     else:
         model.mesh.field.setAsBackgroundMesh(2)

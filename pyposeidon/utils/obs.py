@@ -1,18 +1,17 @@
-"""
-Observational Data retrieval
-
-"""
-
+""" Observational Data retrieval """
 from __future__ import annotations
-from searvey import ioc
-import pandas as pd
-import geopandas as gp
-import numpy as np
-import xarray as xr
-from datetime import datetime
+
 import itertools
+import os
+from datetime import datetime
 from typing import Iterable
 from typing import Iterator
+
+import geopandas as gp
+import numpy as np
+import pandas as pd
+import xarray as xr
+from searvey import ioc
 
 
 def grouper(
@@ -105,3 +104,62 @@ def get_obs_data(stations: str | gp.GeoDataFrame, start_time=None, end_time=None
     data = data.assign_coords({"id": ("ioc_code", sts.id)}).swap_dims({"ioc_code": "id"}).reset_coords("ioc_code")
 
     return data
+
+
+def serialize_stations(
+    stations: pd.DataFrame,
+    path: os.PathLike[str],
+    schism_station_flag: str = "1 0 0 0 0 0 0 0 0",
+) -> None:
+    """
+    Serialize `stations` metadata to the provided `path`.
+
+    The provided
+
+    Example:
+    --------
+
+        >>> stations = pd.DataFrame({
+        ...     'lon': [1., 11., 21.],
+        ...     'lat': [1., 4., 1.],
+        ...     'unique_id': ["a", "b", "c"],
+        ...     'extra_col': ["AA", "BB", "CC"],
+        ...     'mesh_index': [0, 1, 2],
+        ...     'mesh_lon': [0., 10., 20.],
+        ...     'mesh_lat': [0., 5., 0.],
+        ...     'distance': [157249.38127194397, 157010.16264060183, 157249.38127194406],
+        ... })
+        >>> stations
+           lon  lat unique_id extra_col  mesh_index  mesh_lon  mesh_lat       distance
+        0    1    1         a        AA           0         0         0  157249.381272
+        1   11    4         b        BB           1        10         5  157010.162641
+        2   21    1         c        CC           2        20         0  157249.381272
+        >>> serialize_stations(stations, "/tmp/station.in")
+
+    Will create the following output:
+
+        1 0 0 0 0 0 0 0 0	! https://schism-dev.github.io/schism/master/input-output/optional-inputs.html#stationin-bp-format
+        3	! number of stations
+        1 0.0000000000 0.0000000000 0 	!	0 1.0000000000 1.0000000000 157249.3812719440 AA a
+        2 10.0000000000 5.0000000000 0 	!	1 11.0000000000 4.0000000000 157010.1626406018 BB b
+        3 20.0000000000 0.0000000000 0 	!	2 21.0000000000 1.0000000000 157249.3812719441 CC c
+
+    """
+    # Sanity check
+    mandatory_cols = {"mesh_index", "mesh_lon", "mesh_lat", "depth", "lon", "lat", "distance", "depth", "unique_id"}
+    df_cols = set(stations.columns)
+    if not df_cols.issuperset(mandatory_cols):
+        msg = f"stations must have these columns too: {mandatory_cols.difference(df_cols)}"
+        raise ValueError(msg)
+    #
+    basic_cols = ["mesh_lon", "mesh_lat", "z", "separator", "unique_id", "mesh_index", "lon", "lat", "depth", "distance"]
+    station_in = stations.assign(
+        z=0,
+        separator="\t!\t",
+    )
+    station_in = station_in.set_index(station_in.index +1)
+    station_in = station_in[basic_cols]
+    with open(f"{path}", "w") as fd:
+        fd.write(f"{schism_station_flag.strip()}\t ! https://schism-dev.github.io/schism/master/input-output/optional-inputs.html#stationin-bp-format\n")
+        fd.write(f"{len(station_in)}\t ! number of stations\n")
+        station_in.to_csv(fd, header=None, sep=" ", float_format="%.10f")

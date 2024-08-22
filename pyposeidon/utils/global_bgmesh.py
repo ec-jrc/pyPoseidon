@@ -7,9 +7,8 @@ from tqdm.auto import tqdm
 
 import pyposeidon.boundary as pb
 from pyposeidon.utils.stereo import to_3d, to_lat_lon, stereo_to_3d
-from pyposeidon.utils.pos import to_sq, to_st
+from pyposeidon.utils.pos import to_sq
 from pyposeidon.utils.hfun import to_hfun_mesh, to_hfun_grid
-from pyposeidon.utils.scale import scale_dem
 from pyposeidon.utils.topology import (
     MakeQuadFaces,
     quads_to_df,
@@ -18,13 +17,13 @@ from pyposeidon.utils.topology import (
 )
 import pyposeidon.dem as pdem
 import pyposeidon.mesh as pmesh
-from pyposeidon.utils.fix import dem_range, resample
+from pyposeidon.dem_tools import dem_range, resample, get_tiles, scale_dem
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def make_bgmesh_global(dfb, fpos, dem, **kwargs):
+def make_bgmesh_global(dfb, fpos, dem, scale=True, **kwargs):
     mesh_generator = kwargs.get("mesh_generator", None)
 
     bk = dfb.copy()
@@ -49,10 +48,10 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     ci = 4 * R**2 / (ui**2 + vi**2 + 4 * R**2)
 
     # set weight field
-    scale = bgm_res / ci.flatten()
+    scaled = bgm_res / ci.flatten()
 
     # save as bgmesh
-    nodes = pd.DataFrame({"longitude": ui.flatten(), "latitude": vi.flatten(), "z": 0, "d2": scale})
+    nodes = pd.DataFrame({"longitude": ui.flatten(), "latitude": vi.flatten(), "z": 0, "d2": scaled})
 
     # tesselation
     quad = MakeQuadFaces(npu, npu)
@@ -102,28 +101,9 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     m["x"].data = clon
     m["y"].data = clat
 
-    # Select DEM
-    #    try:
-    #        dm = dem.adjusted.to_dataframe()
-    #    except:
-    #        dm = dem.elevation.to_dataframe()
+    m["depth"][:] = np.nan  # reset depth
 
-    #    lon = dem.longitude.values
-    #    lat = dem.latitude.values
-
-    #    X, Y = np.meshgrid(lon, lat)
-    # Stereo -> lat/lon
-    #    clon, clat = to_lat_lon(x0, y0)
-
-    # resample bathymetry
-    #    gdem = dm.values.flatten()
-
-    #    orig = pyresample.geometry.SwathDefinition(lons=X.flatten(), lats=Y.flatten())  # original bathymetry points
-    #    targ = pyresample.geometry.SwathDefinition(lons=clon, lats=clat)  # wet points
-
-    #    bw = pyresample.kd_tree.resample_nearest(orig, gdem, targ, radius_of_influence=50000, fill_value=0)
-
-    dem_on_mesh(m, dem)
+    dem_on_mesh(m, dem, **kwargs)
 
     bw = m.depth.data
 
@@ -133,7 +113,12 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     res_min = kwargs.get("resolution_min", 0.01)
     res_max = kwargs.get("resolution_max", 0.5)
 
-    nodes = scale_dem(bz, res_min, res_max, **kwargs)
+    if scale:
+        nodes = scale_dem(bz, res_min, res_max, **kwargs)
+    else:
+        nodes = bz
+        nodes["d2"] = bz.z.values
+        nodes["z"] = 0
 
     nodes["u"] = x0
     nodes["v"] = y0
@@ -145,7 +130,9 @@ def make_bgmesh_global(dfb, fpos, dem, **kwargs):
     return nodes, elems
 
 
-def fillv(dem, perms, m, buffer=0.0):
+def fillv(dem, perms, m, **kwargs):
+
+    gbuffer = kwargs.get("gbuffer", 5)
 
     for (i1, i2), (j1, j2) in tqdm(perms, total=len(perms)):
 
@@ -155,46 +142,57 @@ def fillv(dem, perms, m, buffer=0.0):
         lat2 = dem.latitude.data[j1:j2][-1]
 
         # buffer lat/lon
-        blon1 = lon1 - buffer
-        blon2 = lon2 + buffer
-        blat1 = lat1 - buffer
-        blat2 = lat2 + buffer
+        blon1 = lon1 - gbuffer
+        blon2 = lon2 + gbuffer
+        blat1 = lat1 - gbuffer
+        blat2 = lat2 + gbuffer
 
-        #    de = dem.sel(lon=slice(blon1,blon2)).sel(lat=slice(blat1,blat2))
-        de = dem_range(dem, blon1, blon2, blat1, blat2)
+        de = dem_range(dem, lon1, lon2, lat1, lat2)
 
         # subset mesh
-        indices_of_nodes_in_bbox = np.where(
-            (m.y >= lat1 - buffer / 2)
-            & (m.y <= lat2 + buffer / 2)
-            & (m.x >= lon1 - buffer / 2)
-            & (m.x <= lon2 + buffer / 2)
-        )[0]
+        indices_of_nodes_in_bbox = np.where((m.y >= blat1) & (m.y <= blat2) & (m.x >= blon1) & (m.x <= blon2))[0]
 
         bm = m.isel(nSCHISM_hgrid_node=indices_of_nodes_in_bbox)
         ids = np.argwhere(np.isnan(bm.depth.values)).flatten()
 
-        grid_x, grid_y = bm.x.data, bm.y.data
+        xw, yw = bm.x.data[ids], bm.y.data[ids]
 
-        bd = resample(de, grid_x, grid_y, var="adjusted", wet=True, flag=0, function="gauss")
+        var = kwargs.get("var", "adjusted")
+        logger.info(f"using '{var}' variable data")
 
-        m["depth"].loc[dict(nSCHISM_hgrid_node=indices_of_nodes_in_bbox)] = -bd
+        if var not in dem.data_vars:
+            var = "elevation"
+            logger.info(f"variable {var} not present switching to 'elevation' data")
+
+        function = kwargs.get("function", "nearest")
+        logger.info(f"using {function} resample function")
+
+        # Define points with positive bathymetry
+        x, y = np.meshgrid(de.longitude, de.latitude)
+
+        # fill the nan, if present, with values in order to compute values there if needed.
+        #        de[var].data[np.isnan(de[var].values)] = 9999.0
+
+        orig = pyresample.geometry.SwathDefinition(lons=x, lats=y)  # original bathymetry points
+        targ = pyresample.geometry.SwathDefinition(lons=xw, lats=yw)  # wet points
+
+        mdem = de[var].values.astype(float)
+
+        if function == "nearest":
+            bw = pyresample.kd_tree.resample_nearest(orig, mdem, targ, radius_of_influence=100000, fill_value=np.nan)
+
+        elif function == "gauss":
+            bw = pyresample.kd_tree.resample_gauss(
+                orig, mdem, targ, radius_of_influence=500000, neighbours=10, sigmas=250000, fill_value=np.nan
+            )
+
+        m["depth"].loc[dict(nSCHISM_hgrid_node=indices_of_nodes_in_bbox[ids])] = bw
 
 
-def dem_on_mesh(mesh, dem):
+def dem_on_mesh(mesh, dem, **kwargs):
 
-    ilats = dem.elevation.chunk("auto").chunks[0]
-    ilons = dem.elevation.chunk("auto").chunks[1]
+    logger.info("resample dem on mesh")
 
-    if len(ilons) == 1:
-        ilons = (int(ilons[0] / 2), int(ilons[0] / 2))
+    perms = get_tiles(dem, **kwargs)
 
-    idx = [sum(ilons[:i]) for i in range(len(ilons) + 1)]
-    jdx = [sum(ilats[:i]) for i in range(len(ilats) + 1)]
-
-    blon = list(zip(idx[:-1], idx[1:]))
-    blat = list(zip(jdx[:-1], jdx[1:]))
-
-    perms = [(x, y) for x in blon for y in blat]
-
-    fillv(dem, perms, mesh, buffer=5)
+    fillv(dem, perms, mesh, **kwargs)

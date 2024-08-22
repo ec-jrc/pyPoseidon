@@ -25,9 +25,9 @@ def simplify(geo):
 
     if (geo.geom_type == "Polygon").all():
         try:
-            geo_ = list(geo.buffer(0).unary_union.geoms)
+            geo_ = list(geo.buffer(0).union_all().geoms)
         except TypeError:
-            geo_ = [geo.buffer(0).unary_union]
+            geo_ = [geo.buffer(0).union_all()]
 
         geo = gp.GeoDataFrame(geometry=geo_)
         geo = gp.GeoDataFrame(geometry=geo.buffer(0))
@@ -40,7 +40,7 @@ def simplify(geo):
             for idx, geom in dg.iterrows():
                 pl = shapely.polygonize_full(dg.loc[[idx]].boundary.explode(index_parts=False).values)
                 df = gp.GeoDataFrame(geometry=[pl[0]]).explode(index_parts=False)
-                dff = gp.GeoDataFrame(geometry=[df.unary_union])
+                dff = gp.GeoDataFrame(geometry=[df.union_all()])
                 geo.loc[idx, "geometry"] = dff.geometry.buffer(0).values[0]
 
             if geo.is_valid.all() and (geo.boundary.geom_type == "LineString").all():

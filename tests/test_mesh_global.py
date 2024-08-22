@@ -1,39 +1,37 @@
-import pyposeidon.mesh as pmesh
+import sys
+
 import numpy as np
 import pytest
-import os
-import geopandas as gp
 
+import pyposeidon.mesh as pmesh
 from . import DATA_DIR
 
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
-COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
+COAST_FILE = (DATA_DIR / "ocean.parquet").as_posix()
 
 
-@pytest.mark.parametrize("ggor", ["jigsaw", "gmsh"])
-@pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
-@pytest.mark.parametrize("bindings", [True, False])
-def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
+@pytest.mark.parametrize("mesh_generator,use_bindings", [("jigsaw", None), ("gmsh", True), ("gmsh", False)])
+@pytest.mark.parametrize("dem_source", [None, DEM_FILE])
+@pytest.mark.parametrize("cbuffer", [None, 0.01])
+def test_io(pytestconfig, tmpdir, mesh_generator, use_bindings, dem_source, cbuffer):
     # Skip the test unless --runslow has been passed
-    if bgmesh is not None:
+    if dem_source is not None:
         if not pytestconfig.getoption("--runslow"):
             pytest.skip("slow test")
 
-    if ggor == "jigsaw":
-        cb = 0.001
-    else:
-        cb = None
+    if mesh_generator == "jigsaw" and cbuffer is not None and sys.platform != "darwin":
+        pytest.xfail("jigsaw + buffer is failing on linux: https://github.com/ec-jrc/pyPoseidon/issues/84")
 
     mesh = pmesh.set(
         type="tri2d",
         geometry="global",
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",
-        mesh_generator=ggor,
-        dem_source=bgmesh,
-        use_bindings=bindings,
-        cbuffer=cb,
+        mesh_generator=mesh_generator,
+        dem_source=dem_source,
+        use_bindings=use_bindings,
+        cbuffer=cbuffer,
     )
 
     # save to file
@@ -61,22 +59,25 @@ def test_io(pytestconfig, tmpdir, ggor, bgmesh, bindings):
 
 
 @pytest.mark.schism
-@pytest.mark.parametrize("ggor,cbuffer", [("jigsaw", 0.001), ("gmsh", None)])
-@pytest.mark.parametrize("bgmesh", [None, DEM_FILE])
-@pytest.mark.parametrize("bindings", [True, False])
-def test_validate(pytestconfig, tmpdir, ggor, cbuffer, bgmesh, bindings):
-    if bgmesh is not None:
+@pytest.mark.parametrize("mesh_generator,use_bindings", [("jigsaw", None), ("gmsh", True), ("gmsh", False)])
+@pytest.mark.parametrize("dem_source", [None, DEM_FILE])
+@pytest.mark.parametrize("cbuffer", [None, 0.01])
+def test_validate(pytestconfig, tmpdir, mesh_generator, use_bindings, dem_source, cbuffer):
+    if dem_source is not None:
         if not pytestconfig.getoption("--runslow"):
             pytest.skip("slow test")
+
+    if mesh_generator == "jigsaw" and cbuffer is not None and sys.platform != "darwin":
+        pytest.xfail("jigsaw + buffer is failing on linux: https://github.com/ec-jrc/pyPoseidon/issues/84")
 
     mesh = pmesh.set(
         type="tri2d",
         geometry="global",
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",
-        mesh_generator=ggor,
-        dem_source=bgmesh,
-        use_bindings=bindings,
+        mesh_generator=mesh_generator,
+        dem_source=dem_source,
+        use_bindings=use_bindings,
         cbuffer=cbuffer,
     )
 

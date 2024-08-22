@@ -3,6 +3,7 @@ channels:
   - gbrey
 dependencies:
   - black<24.0
+  - bottleneck
   - bump2version
   - cartopy
   - cfgrib
@@ -29,12 +30,14 @@ dependencies:
   - mkdocs-material
   - mkdocstrings
   - netCDF4
+  - numcodecs
   - numpy
   - pandas<2
   - pip
   - proj
   - psutil
   - pydap>=3.3.0
+  - pymap3d
   - pymdown-extensions
   - pyresample
   - pytest

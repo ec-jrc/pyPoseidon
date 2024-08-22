@@ -30,6 +30,7 @@ import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.paths import DATA_PATH
+from pyposeidon.tools import to_geodataframe
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils import data
@@ -103,7 +104,7 @@ class d3d:
                 self.lat_max = self.geometry["lat_max"]
             elif isinstance(self.geometry, str):
                 try:
-                    geo = gp.GeoDataFrame.from_file(self.geometry)
+                    geo = tools.to_geodataframe(self.geometry)
                 except:
                     logger.error("geometry argument not a valid geopandas file")
                     sys.exit(1)

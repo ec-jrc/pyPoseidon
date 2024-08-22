@@ -3,33 +3,33 @@
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by the European Commission - subsequent versions of the EUPL (the "Licence").
 # Unless required by applicable law or agreed to in writing, software distributed under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and limitations under the Licence.
+from __future__ import annotations
 
 import itertools
 import logging
 import os
-import shlex
 import pathlib
 import re
-import subprocess
-from collections.abc import Iterable
-import time
+import shlex
 import shutil
+import subprocess
 import sys
+import time
+import typing as T
+from collections import abc
+from typing import TypeVar
 
+import bottleneck as bn
 import cartopy.feature
 import colorlog
 import geopandas as gpd
 import jinja2
+import numcodecs
 import numpy as np
+import numpy.typing as npt
 import psutil
 import rioxarray
 import xarray as xr
-
-from typing import Iterator
-from typing import Optional
-from typing import Tuple
-from typing import TypeVar
-from typing import Union
 
 from pyposeidon.utils.get_value import get_value
 
@@ -74,7 +74,7 @@ mkdir -p outputs
 # Schism sometimes throws an error mentioning ABORT or MPI_ABORT while it returns a status code of 0.
 # In order to circumvent this we need to cacture the output and explicitly check the contents for ABORT.
 schism_output=$(
-    $(which mpirun) {{ mpirun_flags }} -N {{ ncores }} $(which {{ cmd }}) {{ scribes }} 2>&1
+    {{ mpirun_path }} {{ mpirun_flags }} -N {{ ncores }} {{ cmd }} {{ scribes }} 2>&1
 )
 
 echo "${schism_output}"
@@ -121,7 +121,7 @@ export PATH=$exedir:$PATH
 
 
 def setup_logging(
-    min_level: int = logging.DEBUG, color: bool = True, log_file: Optional[os.PathLike[str]] = "pyposeidon.log"
+    min_level: int = logging.DEBUG, color: bool = True, log_file: os.PathLike[str] | str | None = "pyposeidon.log"
 ) -> None:
     # The purpose is to have a function that will allow us to easily setup some pyposeidon logging
     # and that will allow us to also dynamically change the log levels
@@ -156,14 +156,16 @@ def setup_logging(
         logger.addHandler(file_handler)
 
 
-# TODO Handle master/develop version
 def parse_schism_version(version_output: str) -> str:
-    try:
-        version_line = version_output.strip().splitlines()[0]
-        version = SCHISM_VERSION_PATTERN.match(version_line).group(1)
-        return version
-    except Exception as exc:
-        raise ValueError(f"Failed to parse version from:\n {version_output}") from exc
+    if "schism develop" in version_output:
+        version = "develop"
+    else:
+        try:
+            version_line = version_output.strip().splitlines()[0]
+            version = SCHISM_VERSION_PATTERN.match(version_line).group(1)
+        except Exception as exc:
+            raise ValueError(f"Failed to parse version from:\n {version_output}") from exc
+    return version
 
 
 def get_schism_version() -> str:
@@ -261,9 +263,10 @@ def create_mpirun_script(
     env = jinja2.Environment()
     template = env.from_string(template)
     content = template.render(
+        mpirun_path=shutil.which("mpirun"),
         mpirun_flags=mpirun_flags,
         ncores=ncores,
-        cmd=cmd,
+        cmd=shutil.which(cmd),
         scribes=scribes,
     )
     # Write to disk and make executable
@@ -319,6 +322,8 @@ def execute_schism_mpirun_script(cwd: str) -> None:
     Execute launchSchism.sh and save stdout/stderr to disk
     """
     cmd = "./launchSchism.sh"
+    with open(f"{cwd}/{cmd}", "r") as fd:
+        contents = fd.read()
     proc = subprocess.run(
         shlex.split(cmd),
         check=False,
@@ -360,7 +365,7 @@ def open_dataset(source: os.PathLike, **kwargs) -> xr.Dataset:
 
 
 def is_iterable(obj):
-    return isinstance(obj, Iterable)
+    return isinstance(obj, abc.Iterable)
 
 
 def cast_path_to_str(path: os.PathLike) -> str:
@@ -436,12 +441,12 @@ _U = TypeVar("_U")
 
 
 def grouper(
-    iterable: Iterable[_T],
+    iterable: abc.Iterable[_T],
     n: int,
     *,
     incomplete: str = "fill",
-    fillvalue: Union[_U, None] = None,
-) -> Iterator[tuple[Union[_T, _U], ...]]:
+    fillvalue: _U | None = None,
+) -> abc.Iterator[tuple[_T | _U, ...]]:
     """Collect data into non-overlapping fixed-length chunks or blocks"""
     # grouper('ABCDEFG', 3, fillvalue='x') --> ABC DEF Gxx
     # grouper('ABCDEFG', 3, incomplete='strict') --> ABC DEF ValueError
@@ -476,3 +481,116 @@ def resolve_schism_path(instance, kwargs) -> str:
         # ------------------------------------------------------------------------------
         bin_path = "schism"
     return bin_path
+
+
+class QuantizationParams(T.TypedDict):
+    scale_factor: float
+    add_offset: float
+    missing_value: int
+    dtype: npt.DTypeLike
+
+
+def calc_quantization_params(
+    data_min: float,
+    data_max: float,
+    dtype: npt.DTypeLike,
+) -> QuantizationParams:
+    bits = np.iinfo(dtype).bits
+    missing_value = (2**bits - 2) // 2
+    scale_factor = (data_max - data_min) / (2**bits - 2)
+    add_offset = data_min + 2 ** (bits - 1) * scale_factor
+    return {
+        "scale_factor": scale_factor,
+        "add_offset": add_offset,
+        "dtype": dtype,
+        "missing_value": missing_value,
+    }
+
+
+def quantize(
+    array: npt.NDArray[np.float_],
+    *,
+    add_offset: float,
+    scale_factor: float,
+    dtype: npt.DTypeLike,
+    missing_value: int,
+) -> npt.NDArray[np.int_]:
+    nans = np.isnan(array)
+    quantized: npt.NDArray[np.int_] = np.round((array - add_offset) / scale_factor, 0)
+    quantized[nans] = missing_value
+    return quantized.astype(dtype)
+
+
+def dequantize(
+    array: npt.NDArray[np.int_],
+    *,
+    add_offset: float,
+    scale_factor: float,
+    missing_value: int,
+    dtype: npt.DTypeLike,
+) -> npt.NDArray[np.float_]:
+    array = bn.replace(array.astype(np.float64), missing_value, np.nan)
+    dequantized = (array * scale_factor) + add_offset
+    return dequantized
+
+
+def update_or_add(outer: dict[str, T.Any], key: str, inner: abc.Mapping[str, T.Any]) -> None:
+    if key in outer:
+        outer[key].update(inner)
+    else:
+        outer[key] = inner
+
+
+def get_zarr_encoding(
+    ds: xr.Dataset,
+    *,
+    compressor: numcodecs.Blosc | None = numcodecs.Zstd(level=3),
+    quantized_vars: abc.Mapping[str, npt.DTypeLike] | None = None,
+) -> dict[str, dict[str, T.Any]]:
+    encoding = ds.encoding.copy()
+    for var in [str(var) for var in ds.variables]:
+        update_or_add(encoding, var, {"compressor": compressor})
+    if quantized_vars:
+        for var, dtype in quantized_vars.items():
+            params = calc_quantization_params(
+                data_min=float(ds[var].min()),
+                data_max=float(ds[var].max()),
+                dtype=dtype,
+            )
+            update_or_add(encoding, var, params)
+    return encoding
+
+
+def get_netcdf_encoding(
+    ds: xr.Dataset,
+    *,
+    quantized_vars: abc.Mapping[str, npt.DTypeLike] | None = None,
+    compression_level: int = 1,
+) -> dict[str, dict[str, T.Any]]:
+    encoding = ds.encoding.copy()
+    for var in [str(var) for var in ds.variables]:
+        update_or_add(encoding, var, {"zlib": compression_level > 0, "complevel": compression_level})
+        # Use chunks if they are defined
+        if ds[var].chunks:
+            chunksizes = [values[0] for values in ds[var].chunksizes.values()]
+            update_or_add(encoding, var, {"chunksizes": chunksizes})
+    if quantized_vars:
+        for var, dtype in quantized_vars.items():
+            params = calc_quantization_params(
+                data_min=float(ds[var].min()),
+                data_max=float(ds[var].max()),
+                dtype=dtype,
+            )
+            update_or_add(encoding, var, params)
+    return encoding
+
+
+def to_geodataframe(
+    path: str | os.PathLike[str],
+    **kwargs: T.Any,
+) -> gpd.GeoDataFrame:
+    if str(path).endswith("parquet") or str(path).endswith("pq"):
+        gdf = gpd.read_parquet(path=path, **kwargs)
+    else:
+        gdf = gpd.read_file(filename=path, **kwargs)
+    return gdf

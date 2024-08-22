@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import logging
 import os
 import pathlib
 import shutil
 
+import bottleneck as bn
+import numcodecs.abc
+import numpy as np
+import pandas as pd
 import psutil
 import pytest
 import xarray as xr
@@ -18,6 +24,7 @@ from . import DATA_DIR
         ("schism v5.9.0mod", "5.9.0"),
         ("schism v5.9.0", "5.9.0"),
         ("schism v5.10.1", "5.10.1"),
+        ("schism develop", "develop"),
     ],
 )
 def test_parse_schism_version(version_output, expected_version):
@@ -37,7 +44,7 @@ def test_get_schism_version():
 @pytest.mark.parametrize("scribes", [-1, 1])
 def test_create_schism_mpirun_script(tmp_path, use_threads, ncores, scribes):
     target_dir = tmp_path.as_posix()
-    cmd = "/bin/schism"
+    cmd = "schism"
     script_name = "launchSchism.sh"
     script_path = tools.create_schism_mpirun_script(
         target_dir=target_dir,
@@ -62,7 +69,7 @@ def test_create_schism_mpirun_script(tmp_path, use_threads, ncores, scribes):
     else:
         assert f"-N {psutil.cpu_count(logical=use_threads)}" in cmd_line
     if scribes > 0:
-        assert f"{cmd}) {scribes}" in cmd_line
+        assert f"/bin/{cmd} {scribes}" in cmd_line
 
 
 @pytest.mark.skipif(not shutil.which("mpirun"), reason="requires MPI backend")
@@ -112,3 +119,91 @@ def test_setup_logging():
     # we should be able to change the min_level
     tools.setup_logging(min_level=logging.INFO)
     assert logger.level == logging.INFO
+
+
+def test_calc_quantization_params() -> None:
+    params = tools.calc_quantization_params(0, 10, dtype=np.int8)
+    assert pytest.approx(params["scale_factor"], abs=1e-3) == 0.039
+    assert pytest.approx(params["add_offset"], abs=1e-3) == 5.039
+    assert params["missing_value"] == 127
+    assert params["dtype"] == np.int8
+    #
+    params = tools.calc_quantization_params(0, 10, dtype=np.int16)
+    assert pytest.approx(params["scale_factor"], abs=1e-4) == 0.0001
+    assert pytest.approx(params["add_offset"], abs=1e-4) == 5.0001
+    assert params["missing_value"] == 32767
+    assert params["dtype"] == np.int16
+    #
+    params = tools.calc_quantization_params(0, 10, dtype=np.int32)
+    assert pytest.approx(params["scale_factor"], abs=1e-8) == 0
+    assert pytest.approx(params["add_offset"], abs=1e-8) == 5
+    assert params["missing_value"] == 2147483647
+    assert params["dtype"] == np.int32
+
+
+def test_quantization_roundtrip_with_nans() -> None:
+    original = np.array([0, 4.9, np.nan, 10, np.nan])
+    params = tools.calc_quantization_params(bn.nanmin(original), bn.nanmax(original), dtype=np.int8)
+    expected = np.array([-128, -4, 127, 126, 127], dtype=np.int8)
+    quantized = tools.quantize(original, **params)
+    assert np.allclose(expected, quantized)
+    dequantized = tools.dequantize(quantized, **params)
+    assert np.allclose(original, dequantized, atol=1e-1, equal_nan=True)
+
+
+def test_zarr_encoding_compressor_default():
+    ds = pd.DataFrame({"a": [1, 5, 10, np.nan]}).to_xarray()
+    default_compressor = numcodecs.Zstd(level=3)
+    encoding = tools.get_zarr_encoding(ds)
+    expected = {
+        "a": {"compressor": default_compressor},
+        "index": {"compressor": default_compressor},
+    }
+    assert encoding == expected
+
+
+@pytest.mark.parametrize("compressor", [None, pytest.param(numcodecs.Blosc(cname="zstd", clevel=1), id="blosc")])
+def test_zarr_encoding_compressor_custom(compressor):
+    ds = pd.DataFrame({"a": [1, 5, 10, np.nan]}).to_xarray()
+    encoding = tools.get_zarr_encoding(ds, compressor=compressor)
+    expected = {
+        "a": {"compressor": compressor},
+        "index": {"compressor": compressor},
+    }
+    assert encoding == expected
+
+
+def test_zarr_encoding_quantized_vars():
+    ds = pd.DataFrame({"a": [1, 5, 10, np.nan]}).to_xarray()
+    default_compressor = numcodecs.Zstd(level=3)
+    encoding = tools.get_zarr_encoding(ds, quantized_vars={"a": np.int8})
+    expected = {
+        "a": {
+            "compressor": default_compressor,
+            "scale_factor": 0.03543307086614173,
+            "add_offset": 5.535433070866142,
+            "dtype": np.int8,
+            "missing_value": 127,
+        },
+        "index": {"compressor": default_compressor},
+    }
+    assert encoding == expected
+
+
+def test_netcdfr_encoding_quantized_vars():
+    ds = pd.DataFrame({"a": [1, 5, 10, np.nan]}).to_xarray()
+    ds = ds.chunk(index=1)
+    encoding = tools.get_netcdf_encoding(ds, quantized_vars={"a": np.int8})
+    expected = {
+        "a": {
+            "zlib": True,
+            "complevel": 1,
+            "chunksizes": [1],
+            "scale_factor": 0.03543307086614173,
+            "add_offset": 5.535433070866142,
+            "dtype": np.int8,
+            "missing_value": 127,
+        },
+        "index": {"zlib": True, "complevel": 1},
+    }
+    assert encoding == expected

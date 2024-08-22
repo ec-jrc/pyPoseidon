@@ -1,10 +1,10 @@
 ---
-
 channels:
   - "conda-forge"
   - "gbrey"
 
 dependencies:
+  - "bottleneck"
   - "cartopy"
   - "cfgrib"
   - "colorlog"
@@ -13,10 +13,12 @@ dependencies:
   - "geopandas"
   - "jinja2"
   - "netCDF4"
+  - "numcodecs"
   - "numpy"
   - "pandas<2"
   - "psutil"
   - "pydap>=3.3.0"
+  - "pymap3d"
   - "pyresample"
   - "python-gmsh"
   - "rasterio"

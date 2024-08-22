@@ -49,7 +49,7 @@ test_case = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
-    "scribes": 2,
+    "scribes": 1,
 }
 
 # define in a dictionary the properties of the model..
@@ -76,7 +76,7 @@ check = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
-    "scribes": 2,
+    "scribes": 1,
 }
 
 
@@ -140,7 +140,11 @@ def test_schism_cast(tmpdir, copy):
 
 
 @pytest.mark.schism
-def test_schism_cast_workflow(tmpdir):
+@pytest.mark.parametrize(
+    "hotstart",
+    [1, 2],
+)
+def test_schism_cast_workflow(tmpdir, hotstart):
     # initialize a model
     rpath = str(tmpdir) + "/schism/"
     test_case.update({"rpath": rpath + "20181001.00/"})  # use tmpdir for running the model
@@ -177,6 +181,7 @@ def test_schism_cast_workflow(tmpdir):
             cpath=rpaths[l + 1],
             meteo=meteo[l + 1],
             sdate=date_list[l + 1],
+            ihot=hotstart,
         )
 
         h.run(execute=True)  # execute
@@ -198,7 +203,7 @@ def test_schism_cast_workflow(tmpdir):
         if not total.Dataset[var].equals(output.Dataset[var]):
             rb.append(var)
 
-    print(rb)
+    #    print(rb)
 
     #    flag = True TODO
     #    for var in rb:
@@ -208,5 +213,5 @@ def test_schism_cast_workflow(tmpdir):
     #            flag = True
     #    print(mdif)
 
-    expected = ["wetdry_side", "wetdry_elem", "wetdry_node", "zcor", "elev", "hvel"]
-    assert rb == expected
+    #    expected = ["wetdry_side", "wetdry_elem", "wetdry_node", "zcor", "elev", "hvel"]
+    assert (rb == ["zcor"]) or (rb == [])

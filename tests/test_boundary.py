@@ -1,14 +1,15 @@
-import pyposeidon.boundary as pb
-import pytest
 import geopandas as gp
+import pytest
 
+import pyposeidon.boundary as pb
 from . import DATA_DIR
+from pyposeidon.tools import to_geodataframe
 
 noaa = DATA_DIR / "bl.zip"
 
-COAST_FILE = (DATA_DIR / "ocean.zip").as_posix()
+COAST_FILE = (DATA_DIR / "ocean.parquet").as_posix()
 
-land = gp.read_file(COAST_FILE).drop("FID", axis=1)
+land = to_geodataframe(COAST_FILE)
 coast = gp.GeoDataFrame(geometry=land.boundary)
 
 INPUTS = pytest.mark.parametrize("input", [land, coast])

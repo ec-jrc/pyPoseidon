@@ -34,7 +34,7 @@ case1 = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
-    "scribes": 2,
+    "scribes": 1,
 }
 
 case2 = {
@@ -57,7 +57,7 @@ case2 = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
-    "scribes": 2,
+    "scribes": 1,
 }
 
 
@@ -81,7 +81,7 @@ case3 = {
         "ihfskip": 36,
         "nhot_write": 108,
     },
-    "scribes": 2,
+    "scribes": 1,
 }
 
 
@@ -107,7 +107,7 @@ case4 = {
         "nhot_write": 108,
         "nc_out": 0,
     },
-    "scribes": 2,
+    "scribes": 1,
 }
 
 
@@ -186,3 +186,15 @@ def test_parse_staout_with_start_date():
     assert isinstance(df.index, pd.DatetimeIndex)
     assert df.index.name == "time"
     assert df.index[0] == pd.Timestamp("2017-10-01T00:02:30")  # that's 150 seconds after midnight
+
+
+def test_parse_station_in():
+    path = DATA_DIR / "station.in"
+    df = pyposeidon.schism.parse_station_in(path)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 1
+    assert len(df.columns) == 3
+    assert df.columns.equals(pd.Index(["lon", "lat", "layer"]))
+    assert df.iloc[0].lon == -21.9435235194
+    assert df.iloc[0].lat == 64.1473641012
+    assert df.iloc[0].layer == 0

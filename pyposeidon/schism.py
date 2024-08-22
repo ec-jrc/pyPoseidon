@@ -34,6 +34,7 @@ import pyposeidon.mesh as pmesh
 import pyposeidon.meteo as pmeteo
 import pyposeidon.dem as pdem
 from pyposeidon.paths import DATA_PATH
+from pyposeidon.tools import to_geodataframe
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
 from pyposeidon.utils.cpoint import closest_node
@@ -122,7 +123,7 @@ class Schism:
                 logger.warning("geometry is 'global'")
             elif isinstance(self.geometry, str):
                 try:
-                    geo = gp.GeoDataFrame.from_file(self.geometry)
+                    geo = to_geodataframe(self.geometry)
                 except:
                     logger.error("geometry argument not a valid geopandas file")
                     sys.exit(1)
@@ -141,7 +142,7 @@ class Schism:
 
         if coastlines is not None:
             try:
-                coast = gp.GeoDataFrame.from_file(coastlines)
+                coast = to_geodataframe(coastlines)
             except:
                 coast = gp.GeoDataFrame(coastlines)
 
@@ -483,6 +484,7 @@ class Schism:
 
     def output(self, **kwargs):
         path = get_value(self, kwargs, "rpath", "./schism/")
+        path = os.path.realpath(path)
         flag = get_value(self, kwargs, "update", ["all"])
         split_by = get_value(self, kwargs, "meteo_split_by", None)
 
@@ -1334,7 +1336,10 @@ class Schism:
             # fix fortran/python index
             x2d["SCHISM_hgrid_face_nodes"][:, :3] = x2d["SCHISM_hgrid_face_nodes"].values[:, :3] - 1
             # set time to Datetime
-            times = pd.to_datetime(x2d.time.values, unit="s", origin=sdate.tz_convert(None))
+            if x2d.time.dtype == "float64":
+                times = pd.to_datetime(x2d.time.values, unit="s", origin=sdate.tz_convert(None))
+            else:
+                times = pd.to_datetime(x2d.time)
 
             x2d = x2d.assign_coords({"time": ("time", times, x2d.time.attrs)})
 
@@ -1348,7 +1353,6 @@ class Schism:
                 # read
                 x3d = xr.open_mfdataset(xfiles, data_vars="minimal")
                 # set time to Datetime
-                x3d = x3d.assign_coords({"time": ("time", times, x3d.time.attrs)})
                 x3d.to_netcdf(os.path.join(path, "outputs/schout_2.nc"))
 
             # save 2D variables to file
@@ -1983,4 +1987,9 @@ def parse_staout(path: os.PathLike[str] | str, start: pd.Timestamp = pd.NaT):
         index = start + index
     index = index.rename("time")
     df = df.set_index(index)
+    return df
+
+
+def parse_station_in(path: os.PathLike[str] | str = "station.in") -> pd.DataFrame:
+    df = pd.read_csv(path, skiprows=2, header=None, names=["lon", "lat", "layer"], sep="\s+")
     return df

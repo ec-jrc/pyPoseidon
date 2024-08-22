@@ -23,6 +23,7 @@ from pyposeidon.utils.quads2tr import quads_to_tris
 
 import sys
 import os
+# from pyposeidon.tools import to_geodataframe
 
 ffmpeg = sys.exec_prefix + "/bin/ffmpeg"
 os.environ["FFMPEG_BINARY"] = ffmpeg
@@ -637,7 +638,7 @@ class pplot(object):
 
         #        if cr is not None:
         #            try:
-        #                coastl = gp.GeoDataFrame.from_file(cr)
+        #                coastl = to_geodataframe(cr)
         #            except:
         #                coastl = gp.GeoDataFrame(cr)
         #            coastl.plot(ax=ax, **c_attrs)
@@ -754,7 +755,7 @@ class pplot(object):
 
         #            if cr is not None: TO DO
         #                try:
-        #                    coastl = gp.GeoDataFrame.from_file(cr)
+        #                    coastl = to_geodataframe(cr)
         #                except:
         #                    coastl = gp.GeoDataFrame(cr)
         #                coastl.plot(ax=ax, **c_attrs)
