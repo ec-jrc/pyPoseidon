@@ -101,6 +101,4 @@ def find_nearest_nodes(
         .assign(distance=(distances.flatten() * earth_radius))
         .reset_index(names=["mesh_index"])
     )
-    return pd.concat(
-        (points.loc[points.index.repeat(k)].reset_index(drop=True), closest_nodes), axis="columns"
-    )
+    return pd.concat((points.loc[points.index.repeat(k)].reset_index(drop=True), closest_nodes), axis="columns")

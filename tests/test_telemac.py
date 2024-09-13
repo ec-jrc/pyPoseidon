@@ -7,6 +7,7 @@ import multiprocessing
 import pathlib
 
 import pyposeidon
+from pyposeidon.utils import data
 import pytest
 
 from . import DATA_DIR
@@ -78,6 +79,21 @@ case3 = {
     },
 }
 
+case4 = {  # test does not work with telemac3d: mesh quality is too bad
+    "solver_name": "telemac",
+    "mesh_file": MESH_FILE,
+    "module": "telemac3d",
+    "start_date": "2011-1-1 0:0:0",
+    "time_frame": "12H",
+    "meteo_source": [(DATA_DIR / "era5.grib").as_posix()],  # meteo file
+    "dem_source": DEM_FILE,
+    "update": ["all"],  # update only meteo, keep dem
+    "parameters": {
+        "dt": 50,
+        "horizontal_levels": 5,
+    },
+}
+
 
 @pytest.mark.telemac
 @pytest.mark.parametrize("case", [case0, case1, case2, case3])
@@ -90,21 +106,26 @@ def test_telemac(tmpdir, case):
     b.create()
     b.mesh.Dataset.type[:] = "closed"
     b.output()
+    b.set_obs()
     b.save()
     b.run()
-    b.results()
+    case["result_type"] = "2D"
+    case["convert_results"] = True
+    case["max_dist"] = 5000
+    res = data.get_output(**case)
     zarr_tar = b.rpath + "/outputs/out_2D.zarr.tar"
     assert os.path.exists(zarr_tar)
     a = pyposeidon.model.read(rpath + b.module + "_model.json")  # read model
     a.create()
     a.mesh.Dataset.type[:] = "closed"
     a.output()
+    a.set_obs()
     a.save()
     a.run()
-    a.results()
-    zarr_tar = a.rpath + "/outputs/out_2D.zarr.tar"
+    case["result_type"] = "2D"
+    case["extract_TS"] = True
+    res = data.get_output(**case)
     res = a.rpath + "/results_2D.slf"
-    assert os.path.exists(zarr_tar)
     ds = xr.open_dataset(res, engine="selafin")
     if "WH" in ds.variables:
         max_WH = ds.WH.max().values

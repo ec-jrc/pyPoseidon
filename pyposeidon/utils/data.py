@@ -15,7 +15,6 @@ import os
 from pyposeidon.mesh import r2d
 import pyposeidon.model as pm
 from pyposeidon.tools import flat_list
-from pyposeidon.utils.cpoint import closest_n_points
 import xarray as xr
 import glob
 import logging
@@ -37,17 +36,6 @@ def get_output(solver_name: str, **kwargs):
         raise ValueError(f"Unknown solver_name: {solver_name}")
     instance = solver_class(**kwargs)
     return instance
-
-
-def extract_t_elev_2D(
-    ds: xr.Dataset, x: float, y: float, var: str = "elev", xstr: str = "longitude", ystr: str = "latitude"
-):
-    lons, lats = ds[xstr].values, ds[ystr].values
-    indx, _ = closest_n_points(np.array([x, y]).T, 1, np.array([lons, lats]).T)
-    ds_ = ds.isel(node=indx[0])
-    elev_ = ds_[var].values
-    t_ = [pd.Timestamp(ti) for ti in ds_.time.values]
-    return pd.Series(elev_, index=t_), float(ds_[xstr]), float(ds_[ystr])
 
 
 class D3DResults:
@@ -226,11 +214,13 @@ class TelemacResults:
          1. there are 1D AND 2D results, they need to be addressed separately
          2. selafin are readable directly in xarray, so we can skip the conversion step
         """
+        from pyposeidon.telemac import extract_t_elev_2D
         rpath = kwargs.get("rpath", "./telemac/")
         res_type = kwargs.get("result_type", "2D")
         convert = kwargs.get("convert_results", True)
         extract_TS = kwargs.get("extract_TS", False)
         station_id_str = kwargs.get("id_str", "ioc_code")
+        max_dist = kwargs.get("max_dist", 1000)
 
         if res_type not in ["1D", "2D"]:
             raise ValueError("results_type needs to be '1D' or '2D'!")
@@ -248,14 +238,14 @@ class TelemacResults:
 
         datai = []
 
-        tag = kwargs.get("tag", "telemac2d")
+        module = kwargs.get("module", "telemac2d")
 
         misc = kwargs.get("misc", {})
 
         for folder in self.folders:
             logger.info(" Combining output for folder {}\n".format(folder))
 
-            with open(folder + "/" + tag + "_model.json", "r") as f:
+            with open(folder + "/" + module + "_model.json", "r") as f:
                 data = json.load(f)
                 data = pd.json_normalize(data, max_level=0)
                 info = data.to_dict(orient="records")[0]
@@ -266,7 +256,15 @@ class TelemacResults:
             # read from output file
             if convert:
                 xdat = glob.glob(folder + "/outputs/" + out_default)
-                var, model_xstr, model_ystr = "elev", "longitude", "latitude"
+                model_xstr, model_ystr = "longitude", "latitude"
+                if module == "telemac2d":
+                    var = "elev"
+                elif module == "telemac3d":
+                    var = "elev"
+                elif module == "tomawac":
+                    var = "hm0"
+                else:
+                    raise ValueError(f"module {module} not supported!")
 
                 if len(xdat) > 0:
                     datai.append(xdat)  # append to list
@@ -284,7 +282,15 @@ class TelemacResults:
             else:  # read from selafin file
                 xdat = glob.glob(folder + f"/results_{res_type}.slf")
                 datai.append(xdat)  # append to list
-                var, model_xstr, model_ystr = "S", "x", "y"
+                model_xstr, model_ystr = "x", "y"
+                if module == "telemac2d":
+                    var = "S"
+                elif module == "telemac3d":
+                    var = "Z"
+                elif module == "tomawac":
+                    var = "WH"
+                else:
+                    raise ValueError(f"module {module} not supported!")
 
         if not any(datai):
             logger.warning("no output files found")
@@ -319,6 +325,6 @@ class TelemacResults:
             for i_s, id_ in enumerate(stations[station_id_str]):
                 s = stations[stations[station_id_str] == id_]
                 mod, mlon, mlat = extract_t_elev_2D(
-                    self.Dataset, s.longitude.values[0], s.latitude.values[0], var, model_xstr, model_ystr
+                    self.Dataset, s.longitude.values[0], s.latitude.values[0], var, model_xstr, model_ystr, max_dist=max_dist
                 )
                 mod.to_frame().to_parquet(f"{rpath}{id_}.parquet")

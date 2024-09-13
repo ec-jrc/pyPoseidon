@@ -34,7 +34,7 @@ import pyposeidon.dem as pdem
 from pyposeidon.paths import DATA_PATH
 from pyposeidon.utils.get_value import get_value
 from pyposeidon.utils.converter import myconverter
-from pyposeidon.utils.cpoint import closest_n_points
+from pyposeidon.utils.cpoint import find_nearest_nodes
 from pyposeidon.utils import data
 from pyposeidon.utils.norm import normalize_column_names
 from pyposeidon.utils.norm import normalize_varnames
@@ -194,14 +194,24 @@ def write_netcdf(ds, outpath):
 
 
 def extract_t_elev_2D(
-    ds: xr.Dataset, x: float, y: float, var: str = "elev", xstr: str = "longitude", ystr: str = "latitude"
+    ds: xr.Dataset,
+    x: float,
+    y: float,
+    var: str = "elev",
+    xstr: str = "longitude",
+    ystr: str = "latitude",
+    max_dist: float = 1000,
 ):
     lons, lats = ds[xstr].values, ds[ystr].values
-    indx, _ = closest_n_points(np.array([x, y]).T, 1, np.array([lons, lats]).T)
-    ds_ = ds.isel(node=indx[0])
-    elev_ = ds_[var].values
+    mesh = pd.DataFrame(np.vstack([x, y]).T, columns=["lon", "lat"])
+    points = pd.DataFrame(np.vstack([lons, lats]).T, columns=["lon", "lat"])
+    df = find_nearest_nodes(mesh, points, 1)
+    df = df[df.distance < max_dist]
+    indx = df["mesh_index"]
+    ds_ = ds.isel(node=indx.values[0])
+    out_ = ds_[var].values
     t_ = [pd.Timestamp(ti) for ti in ds_.time.values]
-    return pd.Series(elev_, index=t_), float(ds_[xstr]), float(ds_[ystr])
+    return pd.Series(out_, index=t_), float(ds_[xstr]), float(ds_[ystr])
 
 
 # Function to subset ERA data based on the mesh extent
@@ -1098,7 +1108,7 @@ class Telemac:
             return
 
         if self.fortran:
-            user_fortran = 'user_fortran'
+            user_fortran = "user_fortran"
         else:
             user_fortran = None
 
@@ -1374,7 +1384,6 @@ class Telemac:
 
         if self.monitor:
             logger.info("export observations file\n")
-            # idx = stations["gindex"] # not need for now
 
             res_1D = os.path.join(path, "results_1D.slf")
             xc = self.slf_to_xarray(res_1D, res_type="1D")
@@ -1426,50 +1435,39 @@ class Telemac:
             logger.warning("no mesh available skipping \n")
             return
 
-        gpoints = np.array(
-            list(
-                zip(
-                    self.mesh.Dataset.SCHISM_hgrid_node_x.values,
-                    self.mesh.Dataset.SCHISM_hgrid_node_y.values,
-                )
-            )
+        mesh = pd.DataFrame(
+            np.array([self.mesh.Dataset.SCHISM_hgrid_node_x.values, self.mesh.Dataset.SCHISM_hgrid_node_y.values]).T,
+            columns=["lon", "lat"],
         )
+        points = pd.DataFrame(np.array([tgn.longitude.values, tgn.latitude.values]).T, columns=["lon", "lat"])
+        df = find_nearest_nodes(mesh, points, 1)
+        df = df[df.distance < max_dist]
 
-        coords = np.array([tgn.longitude.values, tgn.latitude.values]).T
-        cp, mask = closest_n_points(coords, 1, gpoints, max_dist)
-        mesh_index = cp
-        stations = gpoints[cp]
-
-        if len(stations) == 0:
+        if len(df) == 0:
             logger.warning("no observations available\n")
 
-        stations = pd.DataFrame(stations, columns=["lon", "lat"])
-        stations["z"] = 0
-        stations.index += 1
-        stations["gindex"] = mesh_index
-        stations["unique_id"] = stations.index
-        stations[id_str] = tgn[id_str].values[mask]
-        stations["longitude"] = stations.lon.values[mask]
-        stations["latitude"] = stations.lat.values[mask]
+        df["z"] = 0
+        df.index += 1
+        df["unique_id"] = df.index
+        df[id_str] = tgn[id_str].values
+
         # convert to MERCATOR coordinates
         # dirty fix (this needs to be fixed in TELEMAC directly)
-        x, y = longlat2spherical(stations["longitude"], stations["latitude"],0,0)
-        stations["x"] = x
-        stations["y"] = y
-
-        self.stations_mesh_id = stations
+        x, y = longlat2spherical(df["lon"], df["lat"], 0, 0)
+        df["x"] = x
+        df["y"] = y
 
         logger.info("write out stations.csv file \n")
-        tgn[mask].to_csv(os.path.join(path, "stations.csv"), index=False)
+        tgn.to_csv(os.path.join(path, "stations.csv"), index=False)
 
         logger.info("write out stations.in file \n")
         # output to file
         with open(os.path.join(path, "station.in"), "w") as f:
-            f.write(f"1 {stations.shape[0]}\n")  # 1st line: number of periods and number of points
+            f.write(f"1 {df.shape[0]}\n")  # 1st line: number of periods and number of points
             f.write(
                 f"{0 + offset} {int(self.params['duration']) + offset} {self.params['tstep']}\n"
             )  # 2nd line: period 1: start time, end time and interval (in seconds)
-            stations.loc[:, ["x", "y", "unique_id", id_str]].to_csv(
+            df.loc[:, ["x", "y", "unique_id", id_str]].to_csv(
                 f, header=None, sep=" ", index=False
             )  # 3rd-10th line: output points; x coordinate, y coordinate, station number, and station name
 

@@ -1,4 +1,5 @@
 """ Observational Data retrieval """
+
 from __future__ import annotations
 
 import itertools
@@ -152,14 +153,27 @@ def serialize_stations(
         msg = f"stations must have these columns too: {mandatory_cols.difference(df_cols)}"
         raise ValueError(msg)
     #
-    basic_cols = ["mesh_lon", "mesh_lat", "z", "separator", "unique_id", "mesh_index", "lon", "lat", "depth", "distance"]
+    basic_cols = [
+        "mesh_lon",
+        "mesh_lat",
+        "z",
+        "separator",
+        "unique_id",
+        "mesh_index",
+        "lon",
+        "lat",
+        "depth",
+        "distance",
+    ]
     station_in = stations.assign(
         z=0,
         separator="\t!\t",
     )
-    station_in = station_in.set_index(station_in.index +1)
+    station_in = station_in.set_index(station_in.index + 1)
     station_in = station_in[basic_cols]
     with open(f"{path}", "w") as fd:
-        fd.write(f"{schism_station_flag.strip()}\t ! https://schism-dev.github.io/schism/master/input-output/optional-inputs.html#stationin-bp-format\n")
+        fd.write(
+            f"{schism_station_flag.strip()}\t ! https://schism-dev.github.io/schism/master/input-output/optional-inputs.html#stationin-bp-format\n"
+        )
         fd.write(f"{len(station_in)}\t ! number of stations\n")
         station_in.to_csv(fd, header=None, sep=" ", float_format="%.10f")
