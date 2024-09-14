@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import sklearn.neighbors
 from scipy.spatial.distance import cdist
+from scipy.spatial import cKDTree
+import numpy as np
 
 
 def closest_node(node, nodes):
@@ -99,6 +101,4 @@ def find_nearest_nodes(
         .assign(distance=(distances.flatten() * earth_radius))
         .reset_index(names=["mesh_index"])
     )
-    return pd.concat(
-        (points.loc[points.index.repeat(k)].reset_index(drop=True), closest_nodes), axis="columns"
-    )
+    return pd.concat((points.loc[points.index.repeat(k)].reset_index(drop=True), closest_nodes), axis="columns")

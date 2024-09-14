@@ -88,7 +88,6 @@ class Dem:
                 self.adjust(coastline, **kwargs)
 
     def adjust(self, coastline, **kwargs):
-
         tiles = kwargs.get("tiles", False)
 
         if tiles:
