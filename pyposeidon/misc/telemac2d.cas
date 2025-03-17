@@ -1,0 +1,185 @@
+/-------------------------------------------------------------------/
+/   TELEMAC-2D  -  MED MESH 5KM  - TIDES USING TPXO , WINDS AND     /
+/                          GRAVITY FORCE                            /
+/-------------------------------------------------------------------/
+/
+/----------------------------------------------
+/  COMPUTER INFORMATIONS
+/----------------------------------------------
+/
+GEOMETRY FILE             = '{{geo_file}}'
+BOUNDARY CONDITIONS FILE  = '{{cli_file}}'
+RESULTS FILE =  '{{out_2D_file}}'
+BINARY ATMOSPHERIC DATA FILE =
+'{{inp_wind_file}}'
+{% if monitor %}TIME SERIES FILE 1             = '{{out_1D_file}}'
+TIME SERIES COORDINATES FILE 1 = '{{station_coords}}'{% endif %}
+/CHECKING THE MESH = YES
+/PARALLEL PROCESSORS = {{ ncsize }}
+{% if fortran %}FORTRAN FILE = 'user_fortran'
+{% endif %}
+/
+/----------------------------------------------
+/  GENERAL INFORMATIONS - OUTPUTS
+/----------------------------------------------
+/
+TITLE = '{{title}}'
+VARIABLES FOR GRAPHIC PRINTOUTS         = U,V,S / L,H,P
+GRAPHIC PRINTOUT PERIOD                 = {{tstep_graph}}
+LISTING PRINTOUT PERIOD                 = {{tstep_list}}
+TIME STEP                               = {{tstep}}
+DURATION                                = {{duration}}
+ORIGINAL DATE OF TIME                   = {{datestart}}
+ORIGINAL HOUR OF TIME                   = {{timestart}}
+MASS-BALANCE = {{ 'YES' if mass_balance else 'NO' }}
+/Determines whether a check of the mass-balance over the domain is made or not
+/
+/----------------------------------------------
+/  INITIAL CONDITIONS
+/----------------------------------------------
+/
+{% if computation_continued %}PREVIOUS COMPUTATION FILE = {{ previous_computation_file }}
+PREVIOUS COMPUTATION FILE FORMAT = 'SERAFIND'
+{% else %}
+INITIAL CONDITIONS  = '{{initial_conditions}}'     /ZERO ELEVATION,
+/                                                /CONSTANT ELEVATION,
+/                                                /INITIAL ELEVATION,
+/                                                /ZERO DEPTH,
+/                                                /CONSTANT DEPTH (together with INITIAL DEPTH),
+/                                                /SPECIAL,
+/                                                /TPXO SATELLITE ALTIMETRY{% endif %}
+/
+/---------------------------------------------------------------------
+/  CREATE RESTART CONDITIONS
+/---------------------------------------------------------------------
+{% if hotstart %}RESTART FILE = {{ restart_file }}
+/RECORD NUMBER IN RESTART FILE = {{ restart_tstep }}
+RESTART FILE FORMAT = 'SERAFIND' {% endif %}
+/
+/---------------------------------------------------------------------
+/  SPATIAL CONDITIONS - COORDINATE SYSTEM
+/---------------------------------------------------------------------
+SPHERICAL COORDINATES = {{ 'YES' if spherical_coords else 'NO' }}
+SPATIAL PROJECTION TYPE             = {{spatial_proj}}          /1=CARTESIAN, NOT GEOREFERENCED
+                                                 /2=MERCATOR
+                                                 /3=LATITUDE LONGITUDE
+/ 'Option 2 or 3 mandatory for spherical coordinates / Option 3: latitude and longitude in degrees!'
+RESULT FILE IN LONGITUDE-LATITUDE = {{ 'YES' if result_ll else 'NO' }}
+LATITUDE OF ORIGIN POINT            = {{lon_orig}}
+LONGITUDE OF ORIGIN POINT           = {{lat_orig}}
+GEOGRAPHIC SYSTEM                  = {{geo_sys}} /0="DEFINED BY USER"
+/                                                /1="WGS84 LONGITUDE/LATITUDE IN REAL DEGREES"
+/                                                /2="WGS84 NORTHERN UTM"
+/                                                /3="WGS84 SOUTHERN UTM"
+/                                                /4="LAMBERT"
+/                                                /5="MERCATOR FOR TELEMAC"
+ZONE NUMBER IN GEOGRAPHIC SYSTEM   = {{zone_no}}
+/
+/----------------------------------------------
+/  PHYSICAL PARAMETERS
+/----------------------------------------------
+/
+LAW OF BOTTOM FRICTION              = {{friction_law}}
+FRICTION COEFFICIENT                = {{friction_coef}}
+DENSITY EFFECTS = {{ 'YES' if density_effects else 'NO' }}
+CORIOLIS = {{ 'YES' if coriolis else 'NO' }}
+/ALWAYS DEFAULT WHEN TAKING SPHERICAL COORDINATES
+WATER DENSITY                       = {{water_density}}
+TURBULENCE MODEL                = {{turb_model}} /'1="CONSTANT VISCOSITY"';
+/                                                /'2="ELDER"';
+/                                                /'3="K-EPSILON MODEL"';
+/                                                /'4="SMAGORINSKI"';
+/                                                /'5="MIXING LENGTH"';
+/                                                /'6="SPALART-ALLMARAS"'
+VELOCITY DIFFUSIVITY                = {{velocity_diffusivity}}   / Sets the value of the coefficient of global (dynamic+turbulent) viscosity,
+/ this value may have a significant effect both on the shapes and sizes of recirculation zones
+BOTTOM SMOOTHINGS                   = {{no_smoothings}}          /Number of smoothings on bottom topography.
+/ Each smoothing is mass conservative. To be used when interpolation of bathymetry on the mesh gives very rough results
+/
+/----------------------------------------------
+/  WIND
+/----------------------------------------------
+/
+{% if wind %}WIND = YES     /Determines whether the wind effects are to be taken into account or not
+AIR PRESSURE = {{ 'YES' if pressure else 'NO' }}
+OPTION FOR WIND                  = {{wind_type}} /'1="constant in time and space"'; 
+/                                                /'2="variable in time given by formated file"'; 
+/                                                /'3="variable in time and space given by formated file"'
+/COEFFICIENT OF WIND INFLUENCE       = {{wind_coef}}      /Sets the value of the wind driving coefficient
+THRESHOLD DEPTH FOR WIND            = {{depth_threshold_wind}} {% endif %}
+/
+/----------------------------------------------
+/  TSUNAMI 
+/----------------------------------------------
+{% if tsunami %}OPTION FOR TSUNAMI GENERATION = YES
+PHYSICAL CHARACTERISTICS OF THE TSUNAMI = 
+{{tsunami_fault}} {% endif %}
+/
+/---------------------------------------------------------------------
+/  NUMERICAL PARAMETERS
+/---------------------------------------------------------------------
+/
+ADVECTION OF U AND V            = {{ 'YES' if adv_u_v else 'NO' }}
+DIFFUSION OF VELOCITY           = {{ 'YES' if diff_velocity else 'NO' }}
+PRECONDITIONING                 = {{preconditioning}}
+MATRIX STORAGE                  = {{matrix_storage}}
+/
+INFORMATION ABOUT SOLVER        = {{ 'YES' if info_solver else 'NO' }}
+SOLVER                          = {{solver}}
+SOLVER OPTION                   = {{solver_option}}
+/
+TYPE OF ADVECTION               = {{type_advection}} /Advection schemes for every variable
+SUPG OPTION                     = {{supg_option}} /Upwindinding schemes for every variable
+PROPAGATION                     = {{ 'YES' if propagation else 'NO' }} /Determines whether the propagation step is taken into account
+SOLVER ACCURACY                 = {{solver_accuracy}} /Required accuracy for solving the propagation step
+MATRIX-VECTOR PRODUCT           = {{matrix_vector_product}}
+MASS-LUMPING ON H               = {{mass_lumping}} /more stable, artificially smoothed
+DISCRETIZATIONS IN SPACE        = {{discretizations_space}} /(1)U,V (2)H (3)T (4)K,EPSILON
+FREE SURFACE GRADIENT COMPATIBILITY = {{surface_gradient_compatibility}}
+INITIAL GUESS FOR U             = {{initial_guess_u}}
+INITIAL GUESS FOR H             = {{initial_guess_h}}
+/
+IMPLICITATION FOR DEPTH        = {{implicitation_depth}}
+IMPLICITATION FOR VELOCITY     = {{implicitation_velocity}}
+/
+/---------------------------------------------------------------------
+/ TIDES 
+/---------------------------------------------------------------------
+/
+TIDE GENERATING FORCE                       = {{ 'YES' if tide_generating_force else 'NO' }}
+{% if tide %}
+OPTION FOR TIDAL BOUNDARY CONDITIONS = {{ tidal_boundary_conditions|repeat_value(N_bc) }}
+OPTION FOR LIQUID BOUNDARIES = {{ liquid_boundaries|repeat_value(N_bc) }}
+TIDAL DATA BASE = {{ tidal_database|repeat_value(N_bc) }}
+BINARY DATABASE 1 FOR TIDE                  = '{{db1_tide}}'
+BINARY DATABASE 2 FOR TIDE                  = '{{db2_tide}}'
+MINOR CONSTITUENTS INFERENCE                = {{ 'YES' if minor_constituents_inference else 'NO' }}
+{% endif %}
+/
+/---------------------------------------------------------------------
+/ TIDAL FLATS 
+/---------------------------------------------------------------------
+/
+TIDAL FLATS                                = {{ 'YES' if tidal_flats else 'NO' }}
+OPTION FOR THE TREATMENT OF TIDAL FLATS    = {{tidal_flats_option}}
+TREATMENT OF NEGATIVE DEPTHS               = {{negative_depths_treatment}}
+OPTION FOR THE DIFFUSION OF VELOCITIES     = {{diffusion_velocities_option}}
+CONTINUITY CORRECTION                      = {{ 'YES' if continuity_correction else 'NO' }}
+{% if friction_law_boundaries > 0 %}
+LAW OF FRICTION ON LATERAL BOUNDARIES      = {{friction_law_boundaries}}
+ROUGHNESS COEFFICIENT OF BOUNDARIES        = {{friction_coef_boundaries}}{% endif %}
+/
+/----------------------------------------------
+/ TRACERS
+/----------------------------------------------
+{% if tracer %}
+TYPE OF ADVECTION               = 14;5;14
+/
+NUMBER OF TRACERS         =     {{no_tracers}}
+/NAMES OF TRACERS                = 'TRACER 1'; 'TRACER 2'
+/
+INITIAL VALUES OF TRACERS       = 0.; 0.
+PRESCRIBED TRACERS VALUES       = 0.0;0.0 ; 0.0;0.0
+/
+DIFFUSION OF TRACERS            = True
+COEFFICIENT FOR DIFFUSION OF TRACERS = 1.;1.{% endif %}

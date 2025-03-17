@@ -47,7 +47,7 @@ joblib = "*"
 llvmlite = "*"
 netCDF4 = "*"
 numcodecs = "*"
-numpy = "*"
+numpy = "<2"
 pandas = "*"
 psutil = "*"
 pyarrow = "*"
@@ -109,6 +109,11 @@ mkdocs = "*"
 mkdocstrings-python = "*"
 pymdown-extensions = "*"
 
+
+[tool.poetry.group.telemac.dependencies]
+mpi4py = "*"
+xarray-selafin = "*"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
@@ -127,6 +132,7 @@ filterwarnings = [
     "ignore:A private pytest class or function was used.:pytest.PytestDeprecationWarning"
 ]
 markers = [
+    "telemac: mark a test as a Telemac based test. Needs --runtelemac to run",
     "schism: mark a test as a Schism based test. Needs --runschism to run",
     "delft: mark a test as a Delft3D based test. Needs --rundelft to run",
     "slow: mark a test as a slow one. Needs --runslow to run",

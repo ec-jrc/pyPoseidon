@@ -8,5 +8,8 @@ dependencies:
   - geos
   - gmsh>=4.9.3
   - jigsaw>=0.9.12
+  - opentelemac
   - pip
   - proj
+  - python=3.9
+

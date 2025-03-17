@@ -191,6 +191,10 @@ def get_solver(solver_name: str):
         from .d3d import d3d
 
         solver = d3d
+    elif solver_name == "telemac":
+        from .telemac import Telemac
+
+        solver = Telemac
     else:
         raise ValueError(f"Unknown solver_name: {solver_name}")
     return solver

@@ -35,6 +35,8 @@ def set(solver_name: str, **kwargs):
         instance = D3DCast(**kwargs)
     elif solver_name == "schism":
         instance = SchismCast(**kwargs)
+    elif solver_name == "telemac":
+        instance = TelemacCast(**kwargs)
     else:
         raise ValueError(f"Don't know how to handle solver: {solver_name}")
     return instance
@@ -60,6 +62,24 @@ def symlink_files(rpath: str, ppath: str, filenames: list[str]) -> None:
                 os.remove(dst)
             os.symlink(src, dst)
             logger.debug("symlinked src -> dst: %s -> %s", src, dst)
+
+
+def copy_or_symlink(inresfile, outresfile, copy):
+    if copy:
+        logger.info("Copying: %s -> %s", inresfile, outresfile)
+        copy2(inresfile, outresfile)
+    else:
+        logger.info("Symlinking`: %s -> %s", inresfile, outresfile)
+        try:
+            os.symlink(inresfile, outresfile)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                logger.warning("Restart link present\n")
+                logger.warning("overwriting\n")
+                os.remove(outresfile)
+                os.symlink(inresfile, outresfile)
+            else:
+                raise e
 
 
 class D3DCast:
@@ -387,21 +407,8 @@ class SchismCast:
         else:
             logger.info("Hotstart file already existing. Skipping creation.\n")
 
-        if copy:
-            logger.info("Copying: %s -> %s", inresfile, outresfile)
-            copy2(inresfile, outresfile)
-        else:
-            logger.info("Symlinking`: %s -> %s", inresfile, outresfile)
-            try:
-                os.symlink(inresfile, outresfile)
-            except OSError as e:
-                if e.errno == errno.EEXIST:
-                    logger.warning("Restart link present\n")
-                    logger.warning("overwriting\n")
-                    os.remove(outresfile)
-                    os.symlink(inresfile, outresfile)
-                else:
-                    raise e
+        copy_or_symlink(inresfile, outresfile, copy)
+
         # get new meteo
 
         logger.info("process meteo\n")
@@ -474,3 +481,141 @@ class SchismCast:
         logger.info("done for date : %s", self.sdate.strftime("%Y%m%d.%H"))
 
         os.chdir(pwd)
+
+
+class TelemacCast:
+    model_files = [
+        "TPXO/grid_LOCAL",
+        "TPXO/uv_LOCAL",
+        "TPXO/h_LOCAL",
+        "geo.slf",
+        "geo.cli",
+        "station.in",
+    ]
+
+    def __init__(self, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+
+    def run(self, **kwargs):
+        if isinstance(self.model, str):
+            self.model = pyposeidon.model.read(self.model)
+
+        for attr, value in self.model.__dict__.items():
+            if not hasattr(self, attr):
+                setattr(self, attr, value)
+
+        execute = get_value(self, kwargs, "execute", True)
+
+        copy = get_value(self, kwargs, "copy", False)
+
+        pwd = os.getcwd()
+
+        self.origin = self.model.rpath
+        ppath = self.ppath
+
+        ppath = os.path.realpath(ppath)
+
+        if not os.path.exists(self.origin):
+            sys.stdout.write(f"Initial folder not present {self.origin}\n")
+            sys.exit(1)
+
+        # create the new folder/run path
+        rpath = os.path.realpath(self.cpath)
+        if not os.path.exists(rpath):
+            os.makedirs(rpath)
+
+        model_definition_filename = f"{self.tag}_model.json"
+        copy2(os.path.join(ppath, model_definition_filename), rpath)  # copy the info file
+
+        # load model
+        with open(os.path.join(rpath, model_definition_filename), "rb") as f:
+            data = json.load(f)
+            data = pd.json_normalize(data, max_level=0)
+            info = data.to_dict(orient="records")[0]
+
+        try:
+            args = info.keys() & kwargs.keys()  # modify dic with kwargs
+            for attr in list(args):
+                if isinstance(info[attr], dict):
+                    info[attr].update(kwargs[attr])
+                else:
+                    info[attr] = kwargs[attr]
+                setattr(self, attr, info[attr])
+        except Exception as e:
+            logger.exception("problem with kwargs integration\n")
+            raise e
+
+        # add optional additional kwargs
+        for attr in kwargs.keys():
+            if attr not in info.keys():
+                info[attr] = kwargs[attr]
+
+        info["config_file"] = os.path.join(ppath, self.tag + "_model.json")
+
+        self.time_origin = pd.Timestamp(info["rdate"])
+
+        # update the properties
+        info["params"]["rdate"] = self.sdate
+        info["params"]["start_date"] = self.sdate
+        info["start_date"] = self.sdate
+        info["params"]["time_frame"] = self.end_date - self.sdate
+        info["params"]["end_date"] = self.end_date
+        if info["tag"] == "telemac2d":
+            info["params"]["datestart"] = self.time_origin.strftime("%Y;%m;%d")
+            info["params"]["timestart"] = self.time_origin.strftime("%H;%M;%S")
+        elif info["tag"] == "tomawac":
+            info["params"]["datestart"] = self.time_origin.strftime("%Y%m%d%H%M")
+
+        info["params"]["duration"] = pd.to_timedelta(info["params"]["time_frame"]).total_seconds()
+        info["rpath"] = rpath
+
+        m = pm.set(**info)
+        m.rpath = rpath
+        # copy/link necessary files
+        if copy:
+            logger.debug("Copy model files")
+            copy_files(rpath=rpath, ppath=ppath, filenames=self.model_files)
+        else:
+            logger.debug("Symlink model files")
+            symlink_files(rpath=rpath, ppath=ppath, filenames=self.model_files)
+
+        logger.debug(".. done")
+
+        # create restart file
+        logger.debug("copy restart file")
+        # link restart file - TELEMAC
+        inresfile = os.path.join(ppath, f"restart_2D.slf")
+        outresfile = os.path.join(rpath, "prev_2D.slf")
+        copy_or_symlink(inresfile, outresfile, True)
+        # need True for telemac: symlink does not work
+
+        # get new meteo
+        logger.info("process meteo\n")
+        if "meteo" in self.__dict__:
+            info["meteo_source"] = self.meteo
+        m.force(**info)
+        geo = os.path.join(rpath, "geo.slf")
+        m.to_force(geo, rpath)
+
+        # complete information for initial hotstart conditions
+        info["params"]["computation_continued"] = True
+        info["params"]["initial_guess_u"] = 2
+        info["params"]["initial_guess_h"] = 2
+        info["params"]["previous_computation_file"] = "prev_2D.slf"
+        m.config(output=True, **info)  # save new CAS file
+
+        m.config_file = os.path.join(rpath, info["tag"] + "_model.json")
+
+        if m.monitor:
+            offset = (self.sdate - self.start).total_seconds()
+            m.set_obs(offset=offset)
+        m.save()
+
+        if execute:
+            m.run()
+
+        logger.info("done for date : %s", self.sdate.strftime("%Y%m%d.%H"))
+
+        os.chdir(pwd)
+        return m
