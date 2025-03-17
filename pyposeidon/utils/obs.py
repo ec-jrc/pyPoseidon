@@ -213,6 +213,6 @@ def serialize_stations(
             fd.write(  # 2nd line: period 1: start time, end time and interval (in seconds)
                 f"{0 + offset} {duration + offset} {timestep}\n"
             )
-            station_in.loc[:, ["lon", "lat", "ind", "unique_id"]].to_csv(
+            station_in.loc[:, ["mesh_lon", "mesh_lat", "ind", "unique_id"]].to_csv(
                 fd, header=None, sep=" ", index=False
             )  # 3rd-10th line: output points; x coordinate, y coordinate, station number, and station name
