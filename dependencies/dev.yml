@@ -2,7 +2,6 @@
 
 channels:
   - "conda-forge"
-  - "gbrey"
 
 dependencies:
   - "black<24.0"

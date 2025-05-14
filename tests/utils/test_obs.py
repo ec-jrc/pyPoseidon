@@ -17,17 +17,19 @@ def test_serialize_stations(tmp_path):
         3 20.0000000000 0.0000000000 0 	!	 c 2 21.0000000000 1.0000000000 1 157249.3812719441
         """
     )
-    stations = pd.DataFrame({
-        'lon': [1., 11., 21.],
-        'lat': [1., 4., 1.],
-        'unique_id': ["a", "b", "c"],
-        'extra_col': ["AA", "BB", "CC"],
-        'mesh_index': [0, 1, 2],
-        'mesh_lon': [0., 10., 20.],
-        'mesh_lat': [0., 5., 0.],
-        'distance': [157249.38127194397, 157010.16264060183, 157249.38127194406],
-        'depth': [3, 5, 1],
-    })
+    stations = pd.DataFrame(
+        {
+            "lon": [1.0, 11.0, 21.0],
+            "lat": [1.0, 4.0, 1.0],
+            "unique_id": ["a", "b", "c"],
+            "extra_col": ["AA", "BB", "CC"],
+            "mesh_index": [0, 1, 2],
+            "mesh_lon": [0.0, 10.0, 20.0],
+            "mesh_lat": [0.0, 5.0, 0.0],
+            "distance": [157249.38127194397, 157010.16264060183, 157249.38127194406],
+            "depth": [3, 5, 1],
+        }
+    )
     path = tmp_path / "station.in"
     serialize_stations(stations, path)
     contents = path.read_text()

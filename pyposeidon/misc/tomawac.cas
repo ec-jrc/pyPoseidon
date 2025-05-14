@@ -1,0 +1,87 @@
+/                TOMAWAC INPUT FILE DEFINITIONS
+/********************************************************************
+GEOMETRY FILE : '{{geo_file}}'
+BOUNDARY CONDITIONS FILE : '{{cli_file}}'
+BINARY WINDS FILE : '{{inp_wind_file}}'
+WINDS FILE FORMAT : {{wind_file_format}}
+{% if hotstart %}GLOBAL RESULT FILE = {{ restart_file }}
+{% endif %}
+{% if fortran %}FORTRAN FILE = 'user_fortran'
+{% endif %}
+/------------------------------------------------------------------/
+2D RESULTS FILE : '{{out_2D_file}}'
+2D RESULTS FILE FORMAT : 'SERAFIN'
+{% if monitor %}TIME SERIES FILE             = '{{out_1D_file}}'
+TIME SERIES COORDINATES FILE = '{{station_coords}}'{% endif %}
+/------------------------------------------------------------------/
+/			COMPUTATION_ENVIRONMENT
+/------------------------------------------------------------------/
+TITLE : '{{title}}'
+PERIOD FOR LISTING PRINTOUTS : {{tstep_list}}
+PERIOD FOR GRAPHIC PRINTOUTS : {{tstep_graph}}
+VARIABLES FOR 2D GRAPHIC PRINTOUTS : HM0;DMOY;TMOY;TPD;SPD;TPR8
+
+/------------------------------------------------------------------/
+/			GENERAL_PARAMETERS
+/------------------------------------------------------------------/
+NAMES OF VARIABLES : 'PATM            UI              ';
+'TAIR            DEGREES         ';
+'WINDX           M/S             ';
+'WINDY           M/S             '
+NUMBER OF TIME STEP : {{nb_tsteps}}
+TIME STEP : {{tstep}}
+DATE OF COMPUTATION BEGINNING : {{datestart}}
+
+/***** DISCRETISATION *****
+NUMBER OF DIRECTIONS  : {{num_directions}}
+MINIMAL FREQUENCY     : {{min_frequency}}
+FREQUENTIAL RATIO     : {{freq_ratio}}
+NUMBER OF FREQUENCIES : {{num_frequencies}}
+
+CONSIDERATION OF A STATIONARY CURRENT : {{stationary_current}}
+CONSIDERATION OF A WIND : {{consider_wind}}
+STATIONARY WIND : {{stationary_wind}}
+CONSIDERATION OF TIDE : {{consider_tide}}
+MINIMUM WATER DEPTH : {{min_water_depth}}
+SPHERICAL COORDINATES : {{spherical_coordinates}}
+INFINITE DEPTH : {{infinite_depth}}
+/
+/------------------------------------------------------------------/
+/			SOURCES/SINKS CONDITIONS
+/------------------------------------------------------------------/
+BAJ MODELING : {{baj_modeling}}
+CONSIDERATION OF SOURCE TERMS : {{consider_source_terms}}
+WIND GENERATION : {{wind_generation}}
+WIND GENERATION COEFFICIENT : {{wind_gen_coef}}
+AIR DENSITY : {{air_density}}
+WATER DENSITY : {{water_density}}
+WIND DRAG COEFFICIENT : {{wind_drag_coef}}
+VON KARMAN CONSTANT : {{von_karman_const}}
+SHIFT GROWING CURVE DUE TO WIND : {{shift_growing_curve}}
+LINEAR WAVE GROWTH : {{linear_wave_growth}}
+WHITE CAPPING DISSIPATION : {{whitecap_diss}}
+WHITE CAPPING DISSIPATION COEFFICIENT : {{whitecap_diss_coef}}
+WHITE CAPPING WEIGHTING COEFFICIENT : {{whitecap_diss_wgt}}
+BOTTOM FRICTION DISSIPATION : {{bottom_friction_diss}}
+BOTTOM FRICTION COEFFICIENT : {{bottom_friction_coef}}
+STANDARD CONFIGURATION PARAMETER : {{standard_config_param}}
+NUMBER OF ITERATIONS FOR THE SOURCE TERMS : {{source_terms_iterations}}
+DISSIPATION BY STRONG CURRENT : {{dissipation_strong_current}}
+DEPTH-INDUCED BREAKING DISSIPATION : {{depth_induced_breaking_diss}}
+NUMBER OF BREAKING TIME STEPS : {{breaking_time_steps}}
+MAXIMUM VALUE OF THE RATIO HM0 ON D : {{max_ratio_hm0_d}}
+WAVE GROWTH LIMITER : {{wave_growth_limiter}}
+TRIAD INTERACTIONS : {{triad_interactions}}
+NON-LINEAR TRANSFERS BETWEEN FREQUENCIES : {{nonlinear_transfers_freq}}
+/VEGETATION TAKEN INTO ACCOUNT : {{vegetation_account}}
+/------------------------------------------------------------------/
+/			BOUNDARY_CONDITIONS
+/------------------------------------------------------------------/
+/
+/------------------------------------------------------------------/
+/			INITIAL_CONDITIONS
+/------------------------------------------------------------------/
+/
+{% if computation_continued %}
+PREVIOUS COMPUTATION FILE = {{ previous_computation_file }}
+{% endif %}

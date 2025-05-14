@@ -1,0 +1,161 @@
+/-------------------------------------------------------------------/
+/   TELEMAC-3D  -  VALIDATION TEST CASE NUMBER 17 -  02/2000        /
+/                        M2 TIDE COMPONENT                          /
+/-------------------------------------------------------------------/
+/
+/----------------------------------------------
+/  COMPUTER INFORMATIONS
+/----------------------------------------------
+/
+GEOMETRY FILE             = '{{geo_file}}'
+BOUNDARY CONDITIONS FILE  = '{{cli_file}}'
+BINARY ATMOSPHERIC DATA FILE =
+'{{inp_wind_file}}'
+3D RESULT FILE =  '{{out_3D_file}}'
+2D RESULT FILE =  '{{out_2D_file}}'
+{% if monitor %}2D TIME SERIES FILE             = '{{out_1D_file_2D}}'
+3D TIME SERIES FILE             = '{{out_1D_file_3D}}'
+TIME SERIES COORDINATES FILE = '{{station_coords}}'{% endif %}
+/CHECKING THE MESH = YES
+/PARALLEL PROCESSORS = {{ ncsize }}
+{% if fortran %}FORTRAN FILE = 'user_fortran'
+{% endif %}
+/
+/----------------------------------------------
+/  GENERAL INFORMATIONS - OUTPUTS
+/----------------------------------------------
+/
+TITLE = '{{ title }}'
+VARIABLES FOR 3D GRAPHIC PRINTOUTS : 'Z,U,V,W'
+VARIABLES FOR 2D GRAPHIC PRINTOUTS : 'U,V,S'
+GRAPHIC PRINTOUT PERIOD                 = {{tstep_graph}}
+LISTING PRINTOUT PERIOD                 = {{tstep_list}}
+TIME STEP                               = {{tstep}}
+DURATION                                = {{duration}}
+ORIGINAL DATE OF TIME                   = {{datestart}}
+ORIGINAL HOUR OF TIME                   = {{timestart}}
+/NUMBER OF SUB ITERATIONS FOR NON LINEARITIES = 20
+/
+/----------------------------------------------------------------------/
+/                       INITIAL CONDITIONS
+/----------------------------------------------------------------------/
+
+{% if computation_continued %}PREVIOUS COMPUTATION FILE = {{ previous_computation_file }}
+PREVIOUS COMPUTATION FILE FORMAT = 'SERAFIND'
+{% else %}
+INITIAL CONDITIONS  = '{{initial_conditions}}'     /ZERO ELEVATION,
+/                                                /CONSTANT ELEVATION, 
+/                                                /INITIAL ELEVATION, 
+/                                                /ZERO DEPTH, 
+/                                                /CONSTANT DEPTH (together with INITIAL DEPTH), 
+/                                                /SPECIAL,  
+/                                                /TPXO SATELLITE ALTIMETRY{% endif %}
+/
+
+/---------------------------------------------------------------------
+/  CREATE RESTART CONDITIONS
+/---------------------------------------------------------------------
+{% if hotstart %}
+RESTART FILE = {{ restart_file }}
+/RECORD NUMBER IN RESTART FILE = {{ restart_tstep }}
+RESTART FILE FORMAT = 'SERAFIND' {% endif %}
+/----------------------------------------------
+/  PHYSICAL PARAMETERS
+/----------------------------------------------
+/
+LAW OF BOTTOM FRICTION                 = {{ friction_law }}
+FRICTION COEFFICIENT FOR THE BOTTOM    = {{ friction_coef }}
+TIDE GENERATING FORCE                  = {{ tide_generating_force }}
+MESH TRANSFORMATION                    = {{ mesh_transformation }} /sigma transformation default=1
+NUMBER OF HORIZONTAL LEVELS            = {{ horizontal_levels }}
+CORIOLIS                               = {{ coriolis }}
+WIND                                   = YES
+/
+/---------------------------------------------------------------------
+/  SPATIAL CONDITIONS - COORDINATE SYSTEM
+/---------------------------------------------------------------------
+SPHERICAL COORDINATES               = YES
+SPATIAL PROJECTION TYPE             = 3
+/ '1="CARTESIAN, NOT GEOREFERENCED"'; '2="MERCATOR"'; '3="LATITUDE LONGITUDE"'
+/ 'Option 2 or 3 mandatory for spherical coordinates / Option 3: latitude and longitude in degrees!'
+GEOGRAPHIC SYSTEM                   = 5          /0="DEFINED BY USER"
+/                                                /1="WGS84 LONGITUDE/LATITUDE IN REAL DEGREES"
+/                                                /2="WGS84 NORTHERN UTM"
+/                                                /3="WGS84 SOUTHERN UTM"
+/                                                /4="LAMBERT"
+/                                                /5="MERCATOR FOR TELEMAC"
+/
+RESULT FILE IN LONGITUDE-LATITUDE   = YES
+/------------------------------------------------------
+/  NUMERICAL PARAMETERS
+/----------------------------------------------
+{% if tidal_flats %}
+TIDAL FLATS                                 : YES / tidal flat correction
+OPTION FOR THE TREATMENT OF TIDAL FLATS     : 1  / equations solved everywhere with correction on tidal flats
+TREATMENT ON TIDAL FLATS FOR TRACERS        : 1
+TREATMENT OF NEGATIVE DEPTHS                : 2
+MASS-LUMPING FOR DEPTH                      : 1 
+{% endif %}
+/
+/----------------------------------------------------------------------/
+/                            ADVECTION                                 /
+/----------------------------------------------------------------------/
+/
+/ PSI scheme
+{% if tidal_flats %}
+SCHEME FOR ADVECTION OF VELOCITIES= 13
+SCHEME FOR ADVECTION OF K-EPSILON = 13
+SCHEME FOR ADVECTION OF TRACERS   = 13
+{% else %}
+SCHEME FOR ADVECTION OF VELOCITIES= 5
+SCHEME FOR ADVECTION OF K-EPSILON = 5
+SCHEME FOR ADVECTION OF TRACERS   = 5
+{% endif %}
+/- without tidal flats, use the predictor-corrector without tidal flats treatment to gain some time
+/ Predictor-corrector without tidal flats treatment
+/SCHEME OPTION FOR ADVECTION OF VELOCITIES = 2
+/SCHEME OPTION FOR ADVECTION OF K-EPSILON = 2
+/SCHEME OPTION FOR ADVECTION OF TRACERS = 2
+MAXIMUM NUMBER OF ITERATIONS FOR ADVECTION SCHEMES = 200
+/NUMBER OF CORRECTIONS OF DISTRIBUTIVE SCHEMES = 2
+/
+/----------------------------------------------------------------------/
+/                           DIFFUSION                                  /
+/----------------------------------------------------------------------/
+/
+SCHEME FOR DIFFUSION OF VELOCITIES              = 1  /default implicit (0 value cancels diffusion)
+/SCHEME FOR DIFFUSION OF TRACERS                 = 1
+SCHEME FOR DIFFUSION OF K-EPSILON               = 1
+IMPLICITATION FOR DIFFUSION                     = 1 /default
+/MAXIMUM NUMBER OF ITERATIONS FOR DIFFUSION OF VELOCITIES = 200
+/DIFFUSION STEP		
+/---------------------------------------------------------------------/
+/                         PROPAGATION                                 /
+/---------------------------------------------------------------------/
+/
+FREE SURFACE GRADIENT COMPATIBILITY             = {{ surface_gradient_compatibility }}     /only used with wave equation
+IMPLICITATION FOR DEPTH                         = {{ implicitation_depth }}    /default 
+IMPLICITATION FOR VELOCITIES                    = {{ implicitation_velocity }} /default (value < 0.5 makes unstable)
+INITIAL GUESS FOR DEPTH                         = {{ initial_guess_h }}        /default (choice 0,1 or 2) speeds up computation
+/MAXIMUM NUMBER OF ITERATIONS FOR PROPAGATION    = 500
+DYNAMIC PRESSURE IN WAVE EQUATION = YES
+/----------------------------------------------------------------------/
+/                           LINEAR SOLVERS                             /
+/----------------------------------------------------------------------/
+SOLVER FOR PROPAGATION                          = {{ solver }} /keuze uit 1-8
+SOLVER FOR PPE                                  = {{ solver_ppe }}
+OPTION OF SOLVER FOR PROPAGATION                = {{ solver_option }}
+/SOLVER FOR DIFFUSION OF TRACERS                 =1;1  /mudei de 3 para 7 
+SOLVER FOR DIFFUSION OF VELOCITIES              = {{ solver }} /default choice from 1-8
+SOLVER FOR DIFFUSION OF K-EPSILON	            = 1
+OPTION OF SOLVER FOR DIFFUSION OF VELOCITIES    = 10
+OPTION OF SOLVER FOR DIFFUSION OF TRACERS       = 10
+/----------------------------------------------------------------------/
+/                           ACCURACY                                   /
+/----------------------------------------------------------------------/
+/ACCURACY FOR PROPAGATION              = 1.E-3   /default E-6
+/ACCURACY FOR PPE                      = 1.E-3   /default E-6
+/ACCURACY FOR DIFFUSION OF VELOCITIES  = 1.E-3   /default E-6
+/ACCURACY FOR DIFFUSION OF K-EPSILON   = 1.E-8  
+/ACCURACY FOR DIFFUSION OF TRACERS     = 1.E-8  
+/ACCURACY FOR DIFFUSION OF SEDIMENT    = 1.E-8
