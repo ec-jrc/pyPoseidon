@@ -8,7 +8,6 @@ import typing as T
 
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 import pymap3d
 
 
@@ -60,7 +59,7 @@ def parse_hgrid(
                     no_nodes_in_boundary = int(parsed[0])
                     boundary_type = 0
                 else:
-                    no_nodes_in_boundary, boundary_type = map(int, parsed)
+                    no_nodes_in_boundary, boundary_type = map(int, (p for p in parsed if p))
                 boundary_nodes = np.genfromtxt(fd, delimiter=sep, usecols=(0,), max_rows=no_nodes_in_boundary, dtype=int)
                 boundary_nodes -= 1  # 0-based-index
                 boundaries[boundary_type].append(boundary_nodes)
