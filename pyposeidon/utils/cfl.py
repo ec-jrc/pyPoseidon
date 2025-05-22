@@ -15,7 +15,7 @@ def _readline(fd: bytes) -> bytes:
     return fd.readline().split(b"=")[0].split(b"!")[0].strip()
 
 
-def parse_hgrid(
+def parse_gr3(
     path: os.PathLike[str] | str,
     include_boundaries: bool = False,
     sep: str | None = None,
@@ -39,17 +39,17 @@ def parse_hgrid(
         rvalue["elements"] = elements
         # boundaries
         if include_boundaries:
-            boundaries = collections.defaultdict(list)
+            boundaries = collections.defaultdict(lambda: collections.defaultdict(list))
             no_open_boundaries = int(_readline(fd))
             total_open_boundary_nodes = int(_readline(fd))
             for i in range(no_open_boundaries):
                 no_nodes_in_boundary = int(_readline(fd))
-                boundary_nodes = np.loadtxt(fd, delimiter=sep, usecols=(0,), dtype=int)
-                boundaries["open"].append(boundary_nodes - 1)  # 0-based index
+                boundary_nodes = np.genfromtxt(fd, delimiter=sep, usecols=(0,), max_rows=no_nodes_in_boundary, dtype=int)
+                boundaries["open"][i].append(boundary_nodes - 1)  # 0-based index
             # closed boundaries
             no_closed_boundaries = int(_readline(fd))
             total_closed_boundary_nodes = int(_readline(fd))
-            for _ in range(no_closed_boundaries):
+            for i in range(no_closed_boundaries):
                 # Sometimes it seems that the closed boundaries don't have a "type indicator"
                 # For example: Test_COSINE_SFBay/hgrid.gr3
                 # In this cases we assume that boundary type is 0 (i.e. land in schism)
@@ -61,8 +61,7 @@ def parse_hgrid(
                 else:
                     no_nodes_in_boundary, boundary_type = map(int, (p for p in parsed if p))
                 boundary_nodes = np.genfromtxt(fd, delimiter=sep, usecols=(0,), max_rows=no_nodes_in_boundary, dtype=int)
-                boundary_nodes -= 1  # 0-based-index
-                boundaries[boundary_type].append(boundary_nodes)
+                boundaries[boundary_type][i].append(boundary_nodes - 1)  # 0-based index
             rvalue["boundaries"] = boundaries
     return rvalue
 
@@ -94,7 +93,7 @@ def get_skews_and_base_cfls_from_path(
     g: float = 9.81,
     minimum_depth: float = 0.1,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    parsed = parse_hgrid(path)
+    parsed = parse_gr3(path)
     tri = parsed["elements"]
     nodes = parsed["nodes"]
     lons = nodes[:, 0][tri].T
