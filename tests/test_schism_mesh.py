@@ -8,14 +8,14 @@ from . import DATA_DIR
 def func(tmpdir, name):
     filename = str(DATA_DIR / name)
     # read mesh file
-    mesh = pmesh.set(type="tri2d", mesh_file=filename)
+    mesh = pmesh.set(type="schism", mesh_file=filename)
 
     filename_ = str(tmpdir.join("hgrid_.gr3"))
     # output to mesh file
     mesh.to_file(filename_)
 
     # read again new mesh
-    mesh_ = pmesh.set(type="tri2d", mesh_file=filename_)
+    mesh_ = pmesh.set(type="schism", mesh_file=filename_)
 
     # cleanup
     os.remove(filename_)

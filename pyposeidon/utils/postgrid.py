@@ -93,7 +93,7 @@ def check(g, shp, bad):
 
     elems = pd.DataFrame(tri, columns=["a", "b", "c"])
 
-    bnodes = g.Dataset[["node", "id", "type"]].to_dataframe()
+    bnodes = g.Dataset[["bnode", "id", "type"]].to_dataframe()
 
     # drop bad
     dpoints = [bad]
@@ -126,15 +126,15 @@ def check(g, shp, bad):
                 itype = bnodes.loc[bnodes.id == ids_[-1], ["type"]].values[0]
                 bnodes.loc[bnodes.id.isin(ids_[:-1]), "id"] = ids_[-1]
                 ibs = pd.DataFrame(
-                    {"node": ibs, "type": itype, "id": ids_[-1]},
+                    {"bnode": ibs, "type": itype, "id": ids_[-1]},
                     index=np.arange(len(ibs)),
                 )
             else:
                 itype, iid = bnodes.loc[bnodes.node.isin(ibs), ["type", "id"]].values[0]
-                ibs = pd.DataFrame({"node": ibs, "type": itype, "id": iid}, index=np.arange(len(ibs)))
+                ibs = pd.DataFrame({"bnode": ibs, "type": itype, "id": iid}, index=np.arange(len(ibs)))
     else:
         maxb -= 1
-        ibs = pd.DataFrame({"node": ibs, "type": 1, "id": maxb}, index=np.arange(len(ibs)))
+        ibs = pd.DataFrame({"bnode": ibs, "type": 1, "id": maxb}, index=np.arange(len(ibs)))
 
     bnodes = pd.concat([bnodes, ibs], ignore_index=True)
 
@@ -153,7 +153,7 @@ def check(g, shp, bad):
 
     bnodes.index.name = "bnodes"
 
-    bnodes = bnodes.drop_duplicates("node")
+    bnodes = bnodes.drop_duplicates("bnode")
 
     nodes = nodes.drop("tag", axis=1)
 
@@ -274,18 +274,18 @@ def check(g, shp, bad):
                     itype = bnodes.loc[bnodes.id == ids_[-1], ["type"]].values[0]
                     bnodes.loc[bnodes.id.isin(ids_[:-1]), "id"] = ids_[-1]
                     ibs = pd.DataFrame(
-                        {"node": ibs, "type": itype, "id": ids_[-1]},
+                        {"bnode": ibs, "type": itype, "id": ids_[-1]},
                         index=np.arange(len(ibs)),
                     )
                 else:
                     itype, iid = bnodes.loc[bnodes.node.isin(ibs), ["type", "id"]].values[0]
                     ibs = pd.DataFrame(
-                        {"node": ibs, "type": itype, "id": iid},
+                        {"bnode": ibs, "type": itype, "id": iid},
                         index=np.arange(len(ibs)),
                     )
             else:
                 maxb -= 1
-                ibs = pd.DataFrame({"node": ibs, "type": 1, "id": maxb}, index=np.arange(len(ibs)))
+                ibs = pd.DataFrame({"bnode": ibs, "type": 1, "id": maxb}, index=np.arange(len(ibs)))
 
             bnodes = pd.concat([bnodes, ibs], ignore_index=True)
 
@@ -397,7 +397,7 @@ def check(g, shp, bad):
             bnodes.loc[bnodes.id == k, "id"] = lk
             lk -= 1
 
-    bnodes = bnodes.drop_duplicates("node")
+    bnodes = bnodes.drop_duplicates("bnode")
 
     # ### create the new dataset
 

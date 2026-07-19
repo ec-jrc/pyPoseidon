@@ -30,7 +30,6 @@ ffmpeg = sys.exec_prefix + "/bin/ffmpeg"
 os.environ["FFMPEG_BINARY"] = ffmpeg
 from matplotlib import animation
 
-
 matplotlib.rc("animation", html="html5")
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams["animation.embed_limit"] = "200."

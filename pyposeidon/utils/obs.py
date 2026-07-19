@@ -1,4 +1,4 @@
-""" Observational Data retrieval """
+"""Observational Data retrieval"""
 
 from __future__ import annotations
 

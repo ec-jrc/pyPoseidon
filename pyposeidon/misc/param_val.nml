@@ -11,6 +11,7 @@
     sed_class = 5
     eco_class = 27
     nbins_veg_vert = 2
+    nmarsh_types = 2
     nspool = 12
     ihfskip = 48
 /

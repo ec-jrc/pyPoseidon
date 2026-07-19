@@ -1,10 +1,18 @@
-[tool.poetry]
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
 name = "pyposeidon"
 version = "0.6.0"
 description = "Framework for Sea Level Hydrodynamic simulations"
 authors = [
-    "George Breyiannis <breyiannis@gmail.com>",
-    "Panos Mavrogiorgos <pmav99@gmail.com>"
+    {name = "George Breyiannis", email = "breyiannis@gmail.com"},
+    {name = "Panos Mavrogiorgos", email = "pmav99@gmail.com"}
+]
+maintainers = [
+    {name = "George Breyiannis", email = "breyiannis@gmail.com"},
+    {name = "Panos Mavrogiorgos", email = "pmav99@gmail.com"}
 ]
 readme = "README.md"
 homepage = "https://github.com/ec-jrc/pyposeidon"
@@ -14,17 +22,17 @@ keywords = [
     "Simulation",
     "Visualization",
 ]
+license = "European-Union-Public-License-1.2-or-later"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Science/Research",
-    'License :: OSI Approved :: European Union Public Licence 1.2 (EUPL 1.2)',
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    'Topic :: Scientific/Engineering :: Atmospheric Science',
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: GIS",
     "Topic :: Scientific/Engineering :: Hydrology",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -114,9 +122,6 @@ pymdown-extensions = "*"
 mpi4py = "*"
 xarray-selafin = "*"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 minversion = "6.0"

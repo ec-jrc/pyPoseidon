@@ -24,7 +24,7 @@ def test_io(pytestconfig, tmpdir, mesh_generator, use_bindings, dem_source, cbuf
         pytest.xfail("jigsaw + buffer is failing on linux: https://github.com/ec-jrc/pyPoseidon/issues/84")
 
     mesh = pmesh.set(
-        type="tri2d",
+        type="schism",
         geometry="global",
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",
@@ -39,7 +39,7 @@ def test_io(pytestconfig, tmpdir, mesh_generator, use_bindings, dem_source, cbuf
     mesh.to_file(filename)
 
     # read from file
-    m = pmesh.set(type="tri2d", mesh_file=filename)
+    m = pmesh.set(type="schism", mesh_file=filename)
 
     dic = {}
     for d in m.Dataset.data_vars:
@@ -71,7 +71,7 @@ def test_validate(pytestconfig, tmpdir, mesh_generator, use_bindings, dem_source
         pytest.xfail("jigsaw + buffer is failing on linux: https://github.com/ec-jrc/pyPoseidon/issues/84")
 
     mesh = pmesh.set(
-        type="tri2d",
+        type="schism",
         geometry="global",
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",

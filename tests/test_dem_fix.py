@@ -46,7 +46,7 @@ def test_dem_adjust(coasts, dem_source, window):
 @WINDOWS
 def test_schism_mesh(tmpdir, coasts, dem_source, window):
     mesh = pmesh.set(
-        type="tri2d",
+        type="schism",
         geometry=window,
         coastlines=coasts,
         mesh_generator="jigsaw",
@@ -64,7 +64,7 @@ def test_schism_mesh(tmpdir, coasts, dem_source, window):
 @DEM_SOURCES
 @WINDOWS
 def test_d3d_mesh(tmpdir, coasts, dem_source, window):
-    mesh = pmesh.set(type="r2d", geometry=window, resolution=0.1, rpath=str(tmpdir) + "/")
+    mesh = pmesh.set(type="d3d", geometry=window, resolution=0.1, rpath=str(tmpdir) + "/")
     gr = mesh.Dataset
     xp, yp = gr.lons.values, gr.lats.values
     dem = pdem.Dem(**window, dem_source=dem_source, adjust_dem=False)  # get dem

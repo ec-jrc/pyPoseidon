@@ -22,7 +22,7 @@ WINDOWS = pytest.mark.parametrize(
 @pytest.mark.parametrize("mesh_generator", ["jigsaw", "gmsh"])
 def test_answer(tmpdir, window, mesh_generator):
     mesh = pmesh.set(
-        type="tri2d",
+        type="schism",
         geometry=window,
         coastlines=COAST_FILE,
         rpath=str(tmpdir) + "/",

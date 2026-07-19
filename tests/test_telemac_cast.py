@@ -12,7 +12,6 @@ import pandas as pd
 
 from . import DATA_DIR
 
-
 MESH_FILE = (DATA_DIR / "hgrid.gr3").as_posix()
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 METEO_FILES_1 = [(DATA_DIR / name).as_posix() for name in ("uvp_2018100100.grib", "uvp_2018100112.grib")]

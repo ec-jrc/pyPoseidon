@@ -9,7 +9,6 @@ import pyposeidon.schism
 
 from . import DATA_DIR
 
-
 MESH_FILE = (DATA_DIR / "hgrid.gr3").as_posix()
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 

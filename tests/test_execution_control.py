@@ -7,7 +7,6 @@ import pyposeidon.mesh as pmesh
 
 from . import DATA_DIR
 
-
 MESH_FILE = (DATA_DIR / "hgrid.gr3").as_posix()
 DEM_FILE = (DATA_DIR / "dem.nc").as_posix()
 
@@ -42,7 +41,7 @@ geometry = {
 def jigsaw(tmpdir):
     rpath = str(tmpdir) + "/"
     mesh = pmesh.set(
-        type="tri2d",
+        type="schism",
         geometry=geometry,
         rpath=rpath,
         mesh_generator="jigsaw",
@@ -53,7 +52,7 @@ def jigsaw(tmpdir):
 def gmsh(tmpdir):
     rpath = str(tmpdir) + "/"
     mesh = pmesh.set(
-        type="tri2d",
+        type="schism",
         geometry=geometry,
         rpath=rpath,
         mesh_generator="gmsh",

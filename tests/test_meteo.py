@@ -8,7 +8,6 @@ import shutil
 
 from . import DATA_DIR
 
-
 METEO_NC = DATA_DIR / "meteo.nc"
 ERA5_GRIB = DATA_DIR / "era5.grib"
 DATASET = xr.Dataset(data_vars=dict(lat=(("node", [1, 2, 3]))))

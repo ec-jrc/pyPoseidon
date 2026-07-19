@@ -22,7 +22,7 @@ def test_schism(tmpdir, input_name):
 
     # read again meteo
     path = rpath + "/sflux/"
-    dr = xr.open_dataset(path + "/sflux_air_1.0001.nc")
+    dr = xr.open_dataset(path + "/sflux_air_1.1.nc")
 
     # cleanup
     #    try:

@@ -49,7 +49,7 @@ def get_ibounds(df, mm):
 
     for row in tqdm(df.itertuples(index=True, name="Pandas"), total=df.shape[0], disable=disable):
         inodes, xyz = mm.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
-        db = pd.DataFrame({"node": inodes - 1})
+        db = pd.DataFrame({"bnode": inodes - 1})
         db["type"] = "island"
         db["id"] = -(getattr(row, "Index") + 1)
 
@@ -96,7 +96,7 @@ def read_msh(filename, **kwargs):
     for row in obs.itertuples(index=True, name="Pandas"):
         onodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
 
-        db = pd.DataFrame({"node": onodes - 1})
+        db = pd.DataFrame({"bnode": onodes - 1})
         db["type"] = "open"
         db["id"] = getattr(row, "Index") + 1
 
@@ -112,7 +112,7 @@ def read_msh(filename, **kwargs):
     for row in lbs.itertuples(index=True, name="Pandas"):
         lnodes, xyz = gmsh.model.mesh.getNodesForPhysicalGroup(dim=getattr(row, "dim"), tag=getattr(row, "tag"))
 
-        db = pd.DataFrame({"node": lnodes - 1})
+        db = pd.DataFrame({"bnode": lnodes - 1})
         db["type"] = "land"
         db["id"] = 1000 + (getattr(row, "Index") + 1)
 
@@ -144,7 +144,7 @@ def read_msh(filename, **kwargs):
 
         bnodes.index.name = "bnodes"
 
-        bnodes = bnodes.drop_duplicates("node")
+        bnodes = bnodes.drop_duplicates("bnode")
 
         bnodes["id"] = bnodes.id.astype(int)
 
@@ -158,7 +158,7 @@ def read_msh(filename, **kwargs):
             bnodes["type"] = "island"  # Fix for binary run and GLOBAL. CHECK
             bnodes["id"] = [-i if i > 0 else i for i in bnodes.id.values]
 
-        bnodes = bnodes.sort_values(["type", "id", "node"]).reset_index(drop=True)  # sort
+        bnodes = bnodes.sort_values(["type", "id", "bnode"]).reset_index(drop=True)  # sort
         bnodes.index.name = "bnodes"
 
         # check orientation
@@ -442,6 +442,9 @@ def to_geo(df, **kwargs):
 
     if not df_.empty:
         rb0, land_lines, open_lines = outer_boundary(df, **kwargs)
+        if not shapely.geometry.LinearRing(rb0[["lon", "lat"]].values).is_ccw:  # check for clockwise orientation
+            rb0_ = rb0.iloc[::-1].reset_index(drop=True)
+            rb0 = rb0_
     else:
         rb0 = pd.DataFrame({})
         open_lines = {}
@@ -648,11 +651,16 @@ def to_geo(df, **kwargs):
             flist = np.arange(2, ib + 1)
             f.write(f"Field[{ib+1}] = Min;\n")
             f.write(f"Field[{ib+1}].FieldsList = {{{', '.join(map(str,flist))}}};\n")
-
             f.write(f"Background Field = {ib+1};\n")
 
         else:
             f.write("Background Field = 2;\n")
+
+        MeshSmoothRatio = kwargs.get("MeshSmoothRatio", 3)
+        MeshAnisoMax = kwargs.get("MeshAnisoMax", 1000)
+
+        f.write(f"Mesh.SmoothRatio= {MeshSmoothRatio};\n")
+        f.write(f"Mesh.AnisoMax= {MeshAnisoMax};\n")
 
         MeshSizeMin = kwargs.get("MeshSizeMin", SizeMin)
         MeshSizeMax = kwargs.get("MeshSizeMax", SizeMax)
@@ -1002,6 +1010,12 @@ def make_gmsh(df, **kwargs):
     if MeshSizeMax is not None:
         gmsh.option.setNumber("Mesh.MeshSizeMax", MeshSizeMax)
 
+    MeshSmoothRatio = kwargs.get("MeshSmoothRatio", 3)
+    MeshAnisoMax = kwargs.get("MeshAnisoMax", 1000)
+
+    gmsh.option.setNumber("Mesh.SmoothRatio", MeshSmoothRatio)
+    gmsh.option.setNumber("Mesh.AnisoMax", MeshAnisoMax)
+
     logger.info("Executing gmsh")
 
     gmsh.option.set_number("General.Verbosity", 0)
@@ -1055,7 +1069,7 @@ def make_gmsh_3d(df, **kwargs):
     tag += 1
     curve_tag += 1
 
-    for k, d in df.iterrows():
+    for k, d in tqdm(df.iterrows(), total=df.shape[0]):
         rb = pd.DataFrame(d.geometry.coords[:], columns=["lon", "lat"])
         rb["z"] = 1
         rb = rb.drop_duplicates(["lon", "lat"])
@@ -1168,9 +1182,18 @@ def make_gmsh_3d(df, **kwargs):
     if MeshSizeMax is not None:
         gmsh.option.setNumber("Mesh.MeshSizeMax", MeshSizeMax)
 
+    MeshSmoothRatio = kwargs.get("MeshSmoothRatio", 3)
+    MeshAnisoMax = kwargs.get("MeshAnisoMax", 1000)
+
+    gmsh.option.setNumber("Mesh.SmoothRatio", MeshSmoothRatio)
+    gmsh.option.setNumber("Mesh.AnisoMax", MeshAnisoMax)
+
     logger.info("Executing gmsh")
 
-    gmsh.option.set_number("General.Verbosity", 0)
+    gmsh.option.set_number("General.Verbosity", 99)
+    gmsh.option.setNumber("Mesh.LcIntegrationPrecision", 1e-5)
+    gmsh.option.setNumber("Mesh.CharacteristicLengthFactor", 1)
+    gmsh.option.setNumber("Mesh.Smoothing", 100)
 
     gmsh.model.mesh.generate(3)
 
@@ -1206,14 +1229,14 @@ def make_gmsh_3d(df, **kwargs):
 
         bnodes.index.name = "bnodes"
 
-        bnodes = bnodes.drop_duplicates("node")
+        bnodes = bnodes.drop_duplicates("bnode")
 
         bnodes["id"] = bnodes.id.astype(int)
 
     else:
         bnodes = pd.DataFrame({})
 
-    bnodes = bnodes.sort_values(["id", "node"]).reset_index(drop=True)  # sort
+    bnodes = bnodes.sort_values(["id", "bnode"]).reset_index(drop=True)  # sort
     bnodes.index.name = "bnodes"
 
     # check orientation

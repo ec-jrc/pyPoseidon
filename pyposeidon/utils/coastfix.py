@@ -25,7 +25,7 @@ def simplify(geo):
 
     if (geo.geom_type == "Polygon").all():
         try:
-            geo_ = list(geo.buffer(0).union_all().geoms)
+            geo_ = list(shapely.get_parts(geo.buffer(0)))
         except TypeError:
             geo_ = [geo.buffer(0).union_all()]
 

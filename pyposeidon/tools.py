@@ -33,7 +33,6 @@ import xarray as xr
 
 from pyposeidon.utils.get_value import get_value
 
-
 _PLAIN_FORMATTER = {
     "fmt": "%(asctime)s %(levelname)-8s %(name)s %(funcName)s:%(lineno)s %(message)s",
 }

@@ -10,7 +10,10 @@
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! Core (mandatory) parameters; no defaults
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-! Pre-processing option. Useful for checking grid errors etc.
+! Pre-processing option. Useful for checking grid errors etc. Need to use 1
+! core only for compute (plus necessary scribe cores). Under scribe I/O, the
+! code (the scribe part) will hang but the outputs will be there. Just kill
+! the job.
   ipre = 0 !Pre-processor flag (1: on; 0: off)
 
 ! Baroclinic/barotropic option. If ibc=0 (baroclinic model), ibtp is not used.
@@ -33,6 +36,9 @@
 ! # of vertical bins in vegetation module (used only if iveg/=0)
   nbins_veg_vert = 2
 
+! # of marsh types (used only if USE_MARSH)
+  nmarsh_types = 2
+
 ! Global output controls
   nspool = 9 !output step spool
   ihfskip = 36 !stack spool; every ihfskip steps will be put into 1_*, 2_*, etc...
@@ -50,20 +56,22 @@
 
 !-----------------------------------------------------------------------
 ! Option to only solve tracer transport (and bypass most b-tropic solver)
-! Usage: turn the flag on ('1') and turn on your tracer modules and make sure
+! Usage: turn the flag on ('1' or '2') and turn on your tracer modules and make sure
 ! (1) your inputs are consistent with the original hydro-only run (with additional tracers
 ! of course); (2) hydro-only run results are in hydro_out/schout*.nc, which must
-! have 'hvel_side' (not normal hvel), 'elev', 'diffusivity', 'temp_elem', 'salt_elem'; (3) dt above is
+! have 'hvel_side' (not normal hvel), 'elev', 'diffusivity', 'temp_elem', 'salt_elem' (for
+! new scribe outputs, use corresponding files/var names); (3) dt above is
 ! multiple of _output_ step used in the original hydro-only run
-! (as found in in hydro_out/schout*.nc); e.g. dt = 1 hour.
+! (as found in in hydro_out/schout*.nc); e.g. dt = 1 hour. (4). When itransport_only=2,
+! additional variables ('totalSuspendedLoad','sedBedStress') are needed.
 ! Hotstart should work also, but you'd probably not use an aggressively large dt especially
 ! when air-sea exchange is involved.
 !-----------------------------------------------------------------------
-! itransport_only = 0
+  itransport_only = 0
 
 !-----------------------------------------------------------------------
-! Option to add self-attrection loading tide (SAL) into tidal potential
-! (usually for basin-scale model).
+! Option to add self-attracting and loading tide (SAL) into tidal potential
+! (usually for basin-scale applications).
 ! If iloadtide=0, no SAL.
 ! If iloadtide=1, needs inputs: loadtide_[FREQ].gr3,
 ! where [FREQ] are freq names (shared with tidal potential, in upper cases)
@@ -73,10 +81,11 @@
 ! in bctides.in (cut-off depth, frequencies).
 ! If iloadtide=2 or 3, use a simple scaling for gravity approach (in this option,
 ! SAL is applied everywhere and does not share parameters with tidal potential).
-! For iloadtide=2, a const scaling (0.1) is used; for iloadtide=3, the scaling is
-! dependent on depth (Stepanov & Hughes 2004).
+! For iloadtide=2, a const scaling (1-loadtide_coef) is used; for iloadtide=3, the scaling is
+! dependent on depth (Stepanov & Hughes 2004) with max of loadtide_coef.
 !-----------------------------------------------------------------------
-! iloadtide = 0
+  iloadtide = 0
+  loadtide_coef = 0.1 !only used if iloadtide=2,3 (for '3', the default should be 0.12)
 
 ! Starting time
   start_year = 2017 !int
@@ -112,11 +121,8 @@
 !-----------------------------------------------------------------------
 ! Main ramp option
 !-----------------------------------------------------------------------
-!  nramp = 0 !ramp-up option (1: on; 0: off)
-  dramp = 0. !needed if nramp=1; ramp-up period in days
-
-!  nrampbc = 0 !ramp-up flag for baroclinic force
-  drampbc = 0. !not used if nrampbc=0
+  dramp = 0. !ramp-up period in days for b.c. etc (no ramp-up if <=0)
+  drampbc = 0. !ramp-up period in days for baroclinic force
 
 !-----------------------------------------------------------------------
 ! Method for momentum advection. 0: ELM; 1: upwind (not quite working yet)
@@ -140,9 +146,8 @@
 ! If indvel=1, no horizontal viscosity is needed.
 ! (2) Shapiro filter (see below)
 !
-! For non-eddying regime applications (nearshore, estuary, river), two easiest options are:
-! (1) indvel=1, ishapiro=ihorcon=0, and any choices of inter_mom;
-! (2) indvel=0, ishapiro=1 (shapiro0=0.5), ihorcon=inter_mom=0.
+! For non-eddying regime applications (nearshore, estuary, river), an easiest option is:
+!  indvel=0, ishapiro=1 (shapiro0=0.5), ihorcon=inter_mom=0.
 ! For applications that include eddying regime, refer to the manual.
 !-----------------------------------------------------------------------
   ihorcon = 0
@@ -151,26 +156,36 @@
 
 !-----------------------------------------------------------------------
 ! 2nd stabilization method via Shapiro filter. This should normally be used
-! if indvel=0. To transition between eddying/non-eddying regimes, use
-! indvel=0, ihorcon/=0, and ishapiro=-1 (shapiro.gr3) or 2 (Smagorinsky-like filter).
-! If ishapiro=2 and shapiro_min.gr3 exists, the code will impose min filter strength
-! based on 'depths' in this input.
+! if indvel=0. ishapiro=0: off; =1: constant filter strength in shapiro0; =-1:
+! variable filter strength specified in shapiro.gr3; =2: variable filter strength specified
+! as a Smagorinsky-like filter, with the coefficient specified in shapiro.gr3.
+! To transition between eddying/non-eddying regimes, use
+! indvel=0, ihorcon/=0, and ishapiro=-1 (requiring shapiro.gr3) or 2 (Smagorinsky-like filter).
 !-----------------------------------------------------------------------
   ishapiro = 1 !options
   niter_shap = 1 !needed if ishapiro/=0: # of iterations with Shapiro filter
-  !shapiro0: Shapiro filter strength, needed only if ishapiro=1 or 2
+  !shapiro0: Shapiro filter strength, needed only if ishapiro=1
   !If ishapiro=1, shapiro0 is the filter strength (max is 0.5).
-  !If ishapiro=2, shapiro0 is the coefficient in tanh(). Experiences so far suggest ~1.e3
-  shapiro0 = 0.5
+  !If ishapiro=2, the coefficient in tanh() is specified in shapiro.gr3. Experiences so far suggest 100 to 1.e3
+  !If ishapiro=-1, the filter strength is directly read in from shapiro.gr3
+  shapiro0 = 0.5 !needed only if ishapiro=1
 
 !-----------------------------------------------------------------------
 ! Implicitness factor (0.5<thetai<=1).
 !-----------------------------------------------------------------------
-  thetai = 1.
+  thetai = 0.6
 
 !-----------------------------------------------------------------------
-! If WWM is used, set coupling/decoupling flag. Not used if USE_WWM is distabled in Makefile
-!       0: decoupled so 2 models will run independently;
+! Wave coupling option. If USE_WWM, this will be overruled by WWM's .nml.
+! If USE_WW3, this flag decides the coupling option (LON, VOR)
+!-----------------------------------------------------------------------
+  RADFLAG = 'LON'
+
+!-----------------------------------------------------------------------
+! If WWM is used, set coupling/decoupling flag 'icou_elfe_wwm'.
+! No effects if USE_WWM is distabled in Makefile.
+! Note that all these parameters must be present in this file (even when not used).
+!       0: no elevation and no currents in wwm, no wave force in SCHISM (but wave turbulecne, WBL etc are still in SCHISM);
 !       1: full coupled (elevation, vel, and wind are all passed to WWM);
 !       2: elevation and currents in wwm, no wave force in SCHISM;
 !       3: no elevation and no currents in wwm, wave force in SCHISM;
@@ -178,10 +193,10 @@
 !       5: elevation but no currents in wwm, no wave force in SCHISM;
 !       6: no elevation but currents in wwm, wave force in SCHISM;
 !       7: no elevation but currents in wwm, no wave force in SCHISM;
-! Note that all these parameters must be present in this file (even though not used).
 ! If WWM is used and RADFLAG='VOR' in wwminput.nml, some parameters (fwvor_*)
 ! are added to take into account (1) or not (0) the different terms in vortex
 ! force expression.
+! To get SCHISM-only result withno feedback from WWM, compile without WWM.
 !-----------------------------------------------------------------------
   icou_elfe_wwm = 0
   nstep_wwm = 1  !call WWM every this many time steps
@@ -189,19 +204,26 @@
            !icou_elfe_wwm/=0 and nchi=1. If icou_elfe_wwm=0, set iwbl=0):
            !1-modified Grant-Madsen formulation; 2-Soulsby (1997)
   hmin_radstress = 1. !min. total water depth used only in radiation stress calculation [m]
-!  nrampwafo = 0       !ramp-up option for the wave forces (1: on; 0: off)
-  drampwafo = 0.      !needed if nrampwafo=1; ramp-up period in days
-  turbinj = 0.15      !% of depth-induced wave breaking energy injected in turbulence (default: 0.15 (15%), as proposed by Feddersen, 2012)
+  drampwafo = 0.      !ramp-up period in days for the wave forces (no ramp-up if <=0)
+  turbinj = 0.15      !% of depth-induced wave breaking energy injected in turbulence
+                      !(default: 0.15 (15%), as proposed by Feddersen, 2012)
+  turbinjds = 1.0     !% of wave energy dissipated through whitecapping injected in turbulence
+                      !(default: 1 (100%), as proposed by Paskyabi et al. 2012)
+  alphaw = 0.5        !for itur=4 : scaling parameter for the surface roughness z0s = alphaw*Hm0.
+                      !If negative z0s = abs(alphaw) e.g. z0s=0.2 m (Feddersen and Trowbridge, 2005)
                          ! Vortex Force terms (off/on:0/1)
-!  fwvor_advxy_stokes = 1 !  --> Stokes drift advection (xy), Coriolis
-!  fwvor_advz_stokes = 1  !  --> Stokes drift advection (z) , Coriolis
-!  fwvor_gradpress = 1    !  --> Pressure term
-!  fwvor_breaking = 1     !  --> Wave breaking
-!  cur_wwm = 0            ! Coupling current in WWM
+  fwvor_advxy_stokes = 1 !  --> Stokes drift advection (xy), Coriolis
+  fwvor_advz_stokes = 1  !  --> Stokes drift advection (z) , Coriolis
+  fwvor_gradpress = 1    !  --> Pressure term
+  fwvor_breaking = 1     !  --> Wave breaking
+  fwvor_streaming = 1    !  --> Wave streaming (works with iwbl /= 0)
+  fwvor_wveg = 0         !  --> Wave dissipation by vegetation acceleration term
+  fwvor_wveg_NL = 0      !  --> Non linear intrawave vegetation force (see Dean and Bender, 2006 or van Rooijen et al., 2016 for details)
+  cur_wwm = 0            ! Coupling current in WWM
                          ! 0: surface layer current
                          ! 1: depth-averaged current
                          ! 2: computed according to Kirby and Chen (1989)
-!  wafo_obcramp = 0       ! Ramp on wave forces at open boundary (1: on / 0: off)
+  wafo_obcramp = 0       ! Ramp on wave forces at open boundary (1: on / 0: off)
                          !  --> this option requires the input file wafo_ramp.gr3
                          !      which defines the ramp value (between 0 and 1)
                          !      at nodes over the whole domain
@@ -221,37 +243,8 @@
   sfea0 = 45 !lat
 
 !-----------------------------------------------------------------------
-! Option to deal with under resolution near steep slopes in deeper depths
-! 0: use h[12,_bcc below; /=0: use hw_* below
-!-----------------------------------------------------------------------
-  iunder_deep = 0
-
-!-----------------------------------------------------------------------
-! Baroclinicity calculation in off/nearshore with iunder_deep=ibc=0.
-! The 'below-bottom' gradient
-! is zeroed out if h>=h2_bcc (i.e. like Z) or uses const extrap
-! (i.e. like terrain-following) if h<=h1_bcc(<h2_bcc) (and linear
-! transition in between based on local depth)
-!-----------------------------------------------------------------------
-  h1_bcc = 50. ![m]
-  h2_bcc = 100. ![m]; >h1_bcc
-
-!-----------------------------------------------------------------------
-! Hannah-Wright-like ratio & depth used to account for under-resolution
-! in a b-clinic model. Used only if ibc=0 and iunder_deep/=0.
-! The b-clinic force at prism centers is calculated with a reconstruction
-! method in horizontal that has a stencil of an element and its adjacent elements.
-! If the depths change is too much between the elem and its adjacent elem
-! the under-resolution occurs (with steep bottom slope) and b-clinic force
-! needs to be zeroed out below the (higher) bottom, specifically, if
-! max(2 depths)>=hw_depth and abs(diff(2 depths))>=hw_ratio*max(2 depths).
-!-----------------------------------------------------------------------
-  hw_depth = 1.e6 !threshold depth in [m]
-  hw_ratio = 0.5 !ratio
-
-!-----------------------------------------------------------------------
 ! Hydraulic model option. If ihydraulics/=0, hydraulics.in
-! is required. This option cannot be used with non-hydrostatic model.
+! is required.
 !-----------------------------------------------------------------------
   ihydraulics = 0
 
@@ -266,18 +259,45 @@
 ! than once, and the code will accumulate the volumes; for mass conc,
 ! values are applied at _net_ source elem (no summation for conc).
 
-! meth_sink: options to treat sinks @ dry elem: no speacial treatment if meth_sink=0;
-! zero out sink if the elem is dry if meth_sink=1
+! If USE_BMI is on with if_source/=0, some parts of the reading and some b.c. will be bypassed (but the inputs
+! will still be needed).
 !-----------------------------------------------------------------------
   if_source = 0
-!  nramp_ss = 1 !needed if if_source=1; ramp-up flag for source/sinks
-  dramp_ss = 0 !needed if if_source=1; ramp-up period in days
-!  meth_sink = 0 !options to treat sinks @ dry elem
+  dramp_ss = 0 !needed if if_source/=0; ramp-up period in days for source/sinks (no ramp-up if <=0)
+
+!----------------------------------------------------------------------
+! Specify vertical level to inject source concentration for each tracer _module_.
+! Code will extrapolate below bottom/above surface unless level 0 is specified. In
+! the latter case, the incoming tracer mass will be distributed across all vertical layers -
+! this approach works best in shallow waters.
+! NOTE: AGE module has its own way of injecting age tracers, so make sure the age concentrations
+!  are all -9999. in msource.th so as to not interfere!
+!----------------------------------------------------------------------
+  lev_tr_source(1) = -9 !T
+  lev_tr_source(2) = -9 !S
+  lev_tr_source(3) = -9 !GEN
+  lev_tr_source(4) = -9 !AGE: set -9999. in msource's AGE section
+  lev_tr_source(5) = -9 !SED3D
+  lev_tr_source(6) = -9 !EcoSim
+  lev_tr_source(7) = -9 !ICM
+  lev_tr_source(8) = -9 !CoSINE
+  lev_tr_source(9) = -9 !Feco
+  lev_tr_source(10) = -9 !TIMOR
+  lev_tr_source(11) = -9 !FABM
+  lev_tr_source(12) = -9 !DVD
+
+!----------------------------------------------------------------------
+! Specify level #'s if age module is invoked (USE_AGE), for 1st half of tracers only
+!----------------------------------------------------------------------
+  level_age = 9, -999 !default: -999 (all levels)
 
 !-----------------------------------------------------------------------
-! Horizontal diffusivity option. if ihdif=1, horizontal diffusivity is given in hdif.gr3
+! Horizontal diffusivity option. if ihdif=1, horizontal diffusivity in the
+! form of a filter is given in hdif.gr3 (max strength should be ~1/8);
+! and # of iterations for filter is given by niter_hdif.
 !-----------------------------------------------------------------------
   ihdif = 0
+  niter_hdif = 1 !used if ihdif/=0
 
 !-----------------------------------------------------------------------
 ! Bottom friction.
@@ -306,16 +326,18 @@
   coricoef = 0 !if ncor=0
 
 !-----------------------------------------------------------------------
-! Elevation initial condition flag for cold start only. If ic_elev=1, elev.ic (in *.gr3 format) is needed
+! Elevation initial condition flag for cold start only. For hotstart, set this to 0
+! (and elev will be read in from hotstart.nc).
+! If ic_elev=1, elev.ic (in *.gr3 format) is needed
 ! to specify the initial elevations; otherwise elevation is initialized to 0 everywhere
 !-----------------------------------------------------------------------
   ic_elev = 0
 
 !-----------------------------------------------------------------------
 ! Elevation boundary condition ramp-up flag. =0: ramp up from 0; =1: ramp up from
-! elev. values read in from elev.ic or hotstart.nc - if neither is present, from 0.
+! elev values read in from elev.ic or hotstart.nc - if neither is present, from 0.
 ! This flag is mainly used to start the simulation from non-zero elev.
-! The ramp-up period is same as 'dramp' below.
+! The ramp-up period is 'dramp' (so if dramp=0, full strength is applied).
 !-----------------------------------------------------------------------
   nramp_elev = 0
 
@@ -370,7 +392,7 @@
 ! Max. horizontal velocity magnitude, used mainly to prevent problem in
 ! bulk aerodynamic module
 !-----------------------------------------------------------------------
-  rmaxvel = 10.
+  rmaxvel = 5.
 
 !-----------------------------------------------------------------------
 !  Following parameters control backtracking
@@ -385,12 +407,6 @@
 ! Suggested value: btrack_nudge=9.013e-3
 !-----------------------------------------------------------------------
   btrack_nudge= 9.013e-3
-
-!-----------------------------------------------------------------------
-! Behavior when trajectory hits open bnd. If ibtrack_openbnd=0, slide with
-! tangential vel; otherwise, stop and exit btrack
-!-----------------------------------------------------------------------
-!  ibtrack_openbnd = 1 !hardwired
 
 !-----------------------------------------------------------------------
 ! Wetting and drying.
@@ -441,26 +457,22 @@
   kr_co = 1 !not used if inter_mom=0
 
 !-----------------------------------------------------------------------
-! Tracer transport method.
-! IMPORTANT: itr_met=1,2 (explicit TVD) options are kept mainly for comparison and should NOT
-! be used normally (use '3' or '4' instead); also it does NOT support any other tracer modules like GEN etc.
-!
-! If itr_met=1, explicit upwind method is used. If itr_met>=2, TVD or WENO method is used
-! on an element/prism if the total depth (at all nodes of the elem.)>=h_tvd and the flag in
-! tvd.prop = 1 for the elem (tvd.prop is required in this case); otherwise upwind is used for efficiency.
+! Tracer transport method. TVD or WENO method requires tvd.prop.
+! TVD or WENO method is used on an element/prism if the total depth (at all nodes of the elem.)>=h_tvd and the flag in
+! tvd.prop = 1 for the elem; otherwise upwind is used for efficiency.
 ! itr_met=3 (horizontal TVD) or 4 (horizontal WENO): implicit TVD in the vertical dimension.
-! Also if itr_met==3 and h_tvd>=1.e5, some parts of the code are bypassed for efficiency
+! Also if itr_met==3 and h_tvd>=1.e5, some parts of the code are bypassed for efficiency.
 ! Controls for WENO are not yet in place.
 !-----------------------------------------------------------------------
   itr_met = 3
-  h_tvd = 5. !used only if itr_met>=2; cut-off depth (m)
+  h_tvd = 5. !cut-off depth (m)
   !If itr_met=3 or 4, need the following 2 tolerances of convergence. The convergence
   !is achieved when sqrt[\sum_i(T_i^s+1-T_i^s)^2]<=eps1_tvd_imp*sqrt[\sum_i(T_i^s)^2]+eps2_tvd_imp
   eps1_tvd_imp = 1.e-4 !suggested value is 1.e-4, but for large suspended load, need to use a smaller value (e.g. 1.e-9)
   eps2_tvd_imp = 1.e-14
 
   !Optional hybridized ELM transport for efficiency
-  ielm_transport = 0 !1: turn on. Used only with itr_met>=3
+  ielm_transport = 0 !1: turn on
   max_subcyc = 10 !used only if ielm_transport/=0. Max # of subcycling per time step in transport allowed
 
   !if itr_met = 4, the following parameters are needed
@@ -470,65 +482,87 @@
   courant_weno=0.5 !Courant number for weno transport
   nquad = 2  !number of quad points on each side, nquad= 1 or 2
   ntd_weno = 1 !order of temporal discretization: (1) Euler (default); (3): 3rd-order Runge-Kutta (only for benchmarking)
-  epsilon1 = 1.e-3   !coefficient for 2nd order weno smoother
-  epsilon2 = 1.e-10  !1st coefficient for 3rd order weno smoother (larger values are more prone to numerical dispersion
-                     !, 1.e-10 should be fairly safe, recommended values: 1.e-8 ~ 1.e-6 (from the real applications so far)
+
+  epsilon1 = 1.e-15   !coefficient of 2nd-order weno smoother (larger values are more prone to numerical dispersion)
+  i_epsilon2 = 1      !switch for the specification method of 3rd-order weno smoother coefficient
+                      !(1) spatially uniform, set by the parameter epsilon2 below;
+                      !(2) spatially varying, set by the input file epsilon2.gr3,
+                      !    Important:
+                      !      Provide log10(epsilon2) in epsilon2.gr3, e.g.,
+                      !      if epsilon2=10^(-6) or 1e-6, then write the z value should be -6 in epsilon2.gr3.
+                      !      This is mainly for the convenience of visualization.
+  epsilon2 = 1.e-10   !used when i_epsilon2 = 1
+                      !spatially uniform coefficient of 3rd-order weno smoother
+                      !(Larger values, e.g., 1e-5, better preserve fine features but can increase numerical dispersion.
+                      ! Smaller values, e.g., 1e-10, make the scheme more dissipative and potentially smearing sharp filaments.
+                      ! 1.e-10 should be fairly safe in preventing oscillations, recommended values: 1.e-8 ~ 1.e-6)
   i_prtnftl_weno = 0 !option for writing nonfatal errors on invalid temp. or salinity for density: (0) off; (1) on.
 
   !Inactive at the moment:
-  epsilon3 = 1.e-25  !2nd coefficient for 3rd order weno smoother (inactive at the moment)
+  epsilon3 = 1.e-25  !Second coefficient of 3rd-order weno smoother (inactive at the moment)
   !Elad filter has not been implemented yet; preliminary tests showed it might not be necessary
   ielad_weno = 0      !ielad, if ielad=1, use ELAD method to suppress dispersion (inactive at the moment)
   small_elad = 1.e-4  !small (inactive at the moment)
 
 !-----------------------------------------------------------------------
-! Atmos. option. nws=3 is reserved for coupling with atmospheric model.
+! Atmos. option. Use nws=4 and USE_ATMOS for coupling with atmospheric model.
 ! If nws=0, no atmos. forcing is applied. If nws=1, atmos.
 ! variables are read in from wind.th. If nws=2, atmos. variables are
 ! read in from sflux_ files.
-! If nws=4, ascii format is used for wind and atmos. pressure at each node (see source code).
+! If nws=4, atmos.nc (interpolated onto hgrid.gr3) is used for forcing.
+! If nws=-1 (requires USE_PAHM), use Holland parametric wind model (barotropic only with wind and atmos. pressure).
+!  In this case, the Holland model is called every step so wtiminc is not used. An extra
+!  input file is needed: hurricane-track.dat, in addition to a few parameters below.
 !
 ! Stress calculation:
 ! If nws=2, ihconsv=1 and iwind_form=0, the stress is calculated from heat exchange
-! routine;
+! routine.
 ! Otherwise if iwind_form=-1, the stress is calculated from Pond & Pichard formulation;
 ! if iwind_form=1, Hwang (2018) formulation (Cd tapers off at high wind).
-! If WWM is enabled and icou_elfe_wwm>0 and iwind_form=-2, stress is overwritten by WWM.
+! If WWM is enabled and icou_elfe_wwm>0 and iwind_form=-2 or -3, stress is overwritten by WWM:
+! If iwind_form=-2, stress=rho_air*ufric^2; scaled by rho_water
+! If iwind_form=-3, the stress is calculated according to the param. of Donelan et al. (1993) based on the wave age.
 ! In all cases, if USE_ICE the stress in ice-covered portion is calculated by ICE routine.
 !-----------------------------------------------------------------------
   nws = 2
-  wtiminc = 400. !time step for atmos. forcing. Default: same as dt
-!  nrampwind = 1 !ramp-up option for atmos. forcing
-  drampwind = 0. !needed if nrampwind/=0; ramp-up period in days
-!  iwindoff = 0 !needed only if nws/=0; '1': needs windfactor.gr3
+  wtiminc = 400. !time step (sec) for atmos. forcing. Default: same as dt
+  drampwind = 0. !ramp-up period in days for wind (no ramp-up if <=0)
+  iwindoff = 0 !needed only if nws/=0; '1': needs windfactor.gr3
   iwind_form = -1 !needed if nws/=0
-  !If impose_net_flux/=0 and nws=2, read in net _surface_ heat flux as var 'dlwrf'
-  !(Downward Long Wave) in sflux_rad (solar radiation is still used separately),
-  !and if PREC_EVAP is on, also read in net P-E as 'prate' (Surface Precipitation Rate) in sflux_prc.
-  ! impose_net_flux = 0
+  model_type_pahm=10 !only used if nws=-1: hurricane model type (1: Holland; 10: GAHM)
 
 !-----------------------------------------------------------------------
-! Heat and salt exchange. isconsv=1 needs ihconsv=1; ihconsv=1 needs nws=2.
-! If isconsv=1, need to compile with precip/evap module turned on.
-! If at least one of ihconsv and isconsv is set to 1,
-! locally turning off air-sea exchange in shallow waters (<0.25 m) is recommended.
-! Options for locally turning off heat/salt exchange are specified by
-! i_hmin_airsea_ex:
-!   0: not turned off locally;
-!   1: locally turned off, based on grid depth, i.e.,
-!      off when the local grid depth (z in hgrid) < hmin_airsea_ex;
-!   2 (recommended): locally turned off, based on local total water depth, i.e.,
-!      off when the local total water depth < hmin_airsea_ex,
-! hmin_airsea_ex:
-!   0.2 m is recommended for both i_hmin_airsea_ex=1 and i_hmin_airsea_ex=2
+! Heat and salt exchange using Zeng's (default) or Fairall (USE_BULK_FAIRALL) scheme.
+! To enable salt exchange, recompile with precip/evap module turned on and
+! in this case, ihconsv must =1; ihconsv=1 needs nws=2,4.
+! i_hmin_airsea_ex, i_hmin_salt_ex: on/off flag for shallow treatment (if total depth <hmin_airsea_ex etc)
 !-----------------------------------------------------------------------
   ihconsv = 0 !heat exchange option
-  isconsv = 0 !evaporation/precipitation model
-!  i_hmin_airsea_ex = 2 ! no effect if ihconsv=0 and isconsv=0
-!  hmin_airsea_ex = 0.2 ![m], no effect if ihconsv=0 and isconsv=0
+!  isconsv = 0 !evaporation/precipitation model
+  i_hmin_airsea_ex = 1 ! no effect if ihconsv=0
+  hmin_airsea_ex = 0.2 ![m], no effect if ihconsv=0
+  relax_2_airt = 0.05  ![0,1] relaxation to air T at shallow wet area if ihconsv/=0 & i_hmin_airsea_ex/=0
+
+  i_hmin_salt_ex = 1 ! no effect if PREC_EVAP is off
+  hmin_salt_ex = 0.2 ![m], no effect if PREC_EVAP is off
+  iprecip_off_bnd = 0 !if /=0, precip will be turned off near land bnd
+  !watertype_* below are used for water type '8' in watertype.gr3
+  watertype_rr = 0.58 ![-]
+  watertype_d1 = 0.35 ![m]
+  watertype_d2 = 23. ![m]
+
+!-----------------------------------------------------------------------
+! Option to add a sediment layer for the buffer effect on temperature.
+! istemp=0 would turn off this effect; otherwise, needs ihconsv/=0, soil_conductivity.gr3
+! which specifies the soil thermal conductivity in W/m^2/K, and soil_thick.gr3 (in meters; e.g. 1m).
+! The conductivity is on the order of 5, but can be 0 in deep depths to turn off
+! the effect
+!-----------------------------------------------------------------------
+  istemp = 0  !on/off
 
 !-----------------------------------------------------------------------
 ! Turbulence closure.
+! itur=4 requires building with GOTM (input in gotmturb.nml). In this case, mid, stab are not used.
 !-----------------------------------------------------------------------
   itur = 0 !Default: 0
   dfv0 = 1.e-2 !needed if itur=0
@@ -536,11 +570,16 @@
   mid = 'KL' !needed if itur=3,5. Use KE if itur=5
   stab = 'KC' !needed if itur=3 or 5. Use 'GA' if turb_met='MY'; otherwise use 'KC'.
   xlsc0 = 0.1 !needed if itur=3 or 5. Scale for surface & bottom mixing length (>0)
+  icompute_cpsi3 = 0 !needed if itur=3,5; optional to compute c_psi3
+  !2nd-order stability function coefficient options (options 1 to 7); needed if icompute_cpsi3/=0
+  !5: Canuto A; 6: Canuto B (see misc_subs.F90 for other options)
+  iscnd_coeff = 5
+  ri_st = 0.25 !needed if icompute_cpsi3/=0. Try [0.1,0.25]
 
 !-----------------------------------------------------------------------
 ! Sponge layer for elevation and vel.
 ! If inu_elev=0, no relaxation is applied to elev.
-! If inu_elev=1, relax. constants are specified in elev_nudge.gr3
+! If inu_elev=1, relax. constants (in 1/sec, i.e. relax*dt<=1) are specified in elev_nudge.gr3
 ! and applied to eta=0 (thus a depth=0 means no relaxation).
 ! Similarly for inu_uv (with input uv_nudge.gr3)
 !-----------------------------------------------------------------------
@@ -551,9 +590,10 @@
 ! Nudging options for tracers. If inu_[MOD]=0, no nudging is used. If inu_tr=1,
 ! nudge to initial condition according to relaxation constants specified.
 ! If inu_tr=2, nudge to values in [MOD]_nu.nc (with step 'step_nu_tr').
-! The relaxation constants = [horizontal relax (specified in [MOD]_nudge.gr3) +
+! The relaxation constants = [horizontal relax (specified in [MOD]_nudge.gr3) + or x
 ! vertical relax] times dt, where vertical relax is a linear function of
-! vnh[1,2] and vnf[1,2], and [MOD] are tracer model names.
+! vnh[1,2] and vnf[1,2], and [MOD] are tracer model names. 'nu_sum_mult' decides
+! '+' or 'x' in the calculation of final relax.
 ! Code will ignore junk values (<=-99) inside [MOD]_nu.nc, so 1 way to avoid
 ! nudging for a tracer is to set its nudged values to -9999
 !-----------------------------------------------------------------------
@@ -570,12 +610,25 @@
   inu_tr(11) = 0 !FABM
   inu_tr(12) = 0 !DVD (must=0)
 
+  nu_sum_mult=1 !1: final relax is sum of horizontal&vertical; 2: product
   vnh1 = 400 !vertical nudging depth 1
   vnf1 = 0. !vertical relax \in [0,1]
   vnh2 = 500 !vertical nudging depth 2 (must >vnh1)
   vnf2 = 0. !vertical relax
 
   step_nu_tr = 86400. !time step [sec] in all [MOD]_nu.nc (for inu_[MOD]=2)
+
+!-----------------------------------------------------------------------
+! Surface T,S restoration (for large-scale long-term runs). If invoked,
+! the input is surface_restore.nc. If iref_ts=2, additional input ref_ts_scale.gr3
+! specifies scaling factors in [0,1] (ramp-down nearshore).
+!-----------------------------------------------------------------------
+  iref_ts = 0 !off (0); 1 (scaling factor from depths below); 2 (scaling factor from ref_ts_scale.gr3)
+  ref_ts_restore_depth = 50. !restoration depth [m]
+  ref_ts_tscale = 100. !restoration time scale [days]
+  ref_ts_dt = 30. !time step in surface_restore.nc [days]
+  ref_ts_h1 = 100. !ramp-down depth 1 [m] (to turn off restoration in shallows). Used if iref_ts=1
+  ref_ts_h2 = 60. !ramp-down depth 2 [m]; must <ref_ts_h1
 
 !-----------------------------------------------------------------------
 ! Cut-off depth for cubic spline interpolation near bottom when computing horizontal gradients
@@ -603,12 +656,129 @@
   iharind = 0
 
 !-----------------------------------------------------------------------
-! Conservation check option. If iflux=1, some fluxes are computed
-! in regions specified in fluxflag.prop (regional number from -1 to an arbitrary integer).
-! in output flux.dat, positive means flux from region n to region n-1 (n>=1)
-! output file flux.dat need to be saved before continuing hotstart
+! Conservation check option. If iflux/=0, some fluxes are computed
+! in regions specified in fluxflag.prop (regional number from -1 to an arbitrary integer)
+! in output flux.out, positive means flux from region n to region n-1 (n>=1).
+! Output file flux.out will be appended on ihot=2.
+! iflux=1: basic output; =2: more elaborate outputs
 !-----------------------------------------------------------------------
   iflux = 0
+
+!-----------------------------------------------------------------------
+! Flag to choose FIB model for bacteria decay (used with USE_FIB)
+! flag_fib = 1 - Constant decay rate (/day) in .gr3 format
+!                (kkfib_1.gr3 and kkfib_2.gr3)
+! flag_fib = 2 - Decay rate computed from Canteras et al., 1995
+! flag_fib = 3 - Decay rate computed from Servais et al., 2007
+!----------------------------------------------------------------------
+  flag_fib = 1
+
+!----------------------------------------------------------------------
+! Vegetation model
+! If iveg/=0, need 4 extra inputs (for unbent stems): (1) veg_D.gr3 (depth is stem diameter in meters);
+! (2) veg_N.gr3 (depth is # of stems per m^2);
+! (3) veg_h.gr3 (height of canopy in meters);
+! (4) veg_cd.gr3 (form drag coefficient).
+! If one of these depths=0 at a node, the code will set all to 0.
+
+! With iveg/=0, the vertical scaling is given by veg_vert_scale_[cd,N,D](1:nbins_veg_vert+1) below.
+! veg_vert_z(1:nbins_veg_vert+1) specify the distance from bed for each bin (ascending
+! order starting from 0; const extrapolation is done beyond largest height).
+! iveg=2: flex vegeation using Ganthy fomulation.
+! For all options, the cross section of leaf can be circular or rectangular; in
+! the latter case, the input 'diameter' is leaf width.
+!----------------------------------------------------------------------
+  iveg = 0 !on/off flag
+  veg_vert_z = 0.,0.5,1. ![m] starting from 0.; used if iveg=1
+  veg_vert_scale_cd = 1.,1.,1. !scaling [-]; used if iveg=1
+  veg_vert_scale_N = 1.,1.,1. !scaling [-]; used if iveg=1
+  veg_vert_scale_D = 1.,1.,1. !scaling [-]; used if iveg=1
+
+!  veg_lai = 1. !Leaf Area Index [-]; used if iveg=2. Ganthy suggests 0-10?
+  veg_cw = 3.6 !scaling coefficient with iveg=2 [exp(-veg_cw*|U|)]. Ganthy suggests 3.6 s/m
+
+!----------------------------------------------------------------------
+! Marsh model parameters (only if USE_MARSH is on, and in this case
+! iveg must /=0)
+!----------------------------------------------------------------------
+  slr_rate = 120. !sea-level rise rate in mm/yr, times morphological acceleration if used
+  veg_di0 = 0.1,0.1 !(1:nmarsh_types) [m]; diamters for each marsh type
+  veg_h0 = 0.1,0.1 ![m] heights for each marsh type
+  veg_nv0 = 0.1,0.1 ![m^-2] density for each marsh type
+  veg_cd0 = 1.,1. ![-] form drag coefficients for each marsh type
+  drown_marsh = 0.5,0. ![m] depth at which marsh will be drowned
+  !min/max bottom elev (including SLR) interval favorable for marsh creation/migration
+  create_marsh_min = -1. ![m]
+  create_marsh_max = 0. ![m]
+  age_marsh_min = 1. ![days] min marsh age threshold of surrounding cells to allow migration.
+                     !Needs to account for morph acceleration
+
+!-----------------------------------------------------------------------
+! Fraction of vertical flux closure adjustment applied at surface, then subtracted
+! from all vertical fluxes. This is currently done for T,S only
+! 0.0 <= vclose_surf_frac(1:nea) < 1.0
+! 1: fully from surface (i.e. no correction as before); 0: fully from bottom
+! vclose_surf_frac(:)=vclose_surf_frac0 if the latter is in [0,1]. If vclose_surf_frac0<0,
+! needs vclose.gr3 (depths in [0,1]).
+!-----------------------------------------------------------------------
+  vclose_surf_frac0 = 1.0
+
+!----------------------------------------------------------------------
+! Coupling step with ICE module.
+!----------------------------------------------------------------------
+  nstep_ice = 1 !call ice module every nstep_ice steps of SCHISM
+
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Physical constants
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-----------------------------------------------------------------------
+! Earth's radii at pole and equator (to define an ellipsoid)
+!-----------------------------------------------------------------------
+  rearth_pole = 6378206.4
+  rearth_eq = 6378206.4
+
+!-----------------------------------------------------------------------
+! Specific heat of water (C_p) in J/kg/K
+!-----------------------------------------------------------------------
+  shw = 4184.d0
+
+!-----------------------------------------------------------------------
+! Reference water density for Boussinesq approximation
+!-----------------------------------------------------------------------
+  rho0 = 1000.d0 !kg/m^3
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Advanced options (for developers mostly)
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-----------------------------------------------------------------------
+! Option to deal with under resolution near steep slopes in deeper depths
+! 0: use h[12],_bcc below; /=0: use hw_* below
+!-----------------------------------------------------------------------
+  iunder_deep = 0
+
+!-----------------------------------------------------------------------
+! Baroclinicity calculation in off/nearshore with iunder_deep=ibc=0.
+! The 'below-bottom' gradient
+! is zeroed out if h>=h2_bcc (i.e. like Z) or uses const extrap
+! (i.e. like terrain-following) if h<=h1_bcc(<h2_bcc) (and linear
+! transition in between based on local depth)
+!-----------------------------------------------------------------------
+  h1_bcc = 50. ![m]
+  h2_bcc = 100. ![m]; >h1_bcc
+
+!-----------------------------------------------------------------------
+! Hannah-Wright-like ratio & depth used to account for under-resolution
+! in a b-clinic model. Used only if ibc=0 and iunder_deep/=0.
+! The b-clinic force at prism centers is calculated with a reconstruction
+! method in horizontal that has a stencil of an element and its adjacent elements.
+! If the depths change is too much between the elem and its adjacent elem
+! the under-resolution occurs (with steep bottom slope) and b-clinic force
+! needs to be zeroed out below the (higher) bottom, specifically, if
+! max(2 depths)>=hw_depth and abs(diff(2 depths))>=hw_ratio*max(2 depths).
+!-----------------------------------------------------------------------
+  hw_depth = 1.e6 !threshold depth in [m]
+  hw_ratio = 0.5 !ratio
 
 !-----------------------------------------------------------------------
 ! Test flags for debugging. These flags should be turned off normally.
@@ -631,70 +801,6 @@
   irouse_test = 0
 
 !-----------------------------------------------------------------------
-! Flag to choose FIB model for bacteria decay (used with USE_FIB)
-! flag_fib = 1 - Constant decay rate (/day) in .gr3 format
-!                (kkfib_1.gr3 and kkfib_2.gr3)
-! flag_fib = 2 - Decay rate computed from Canteras et al., 1995
-! flag_fib = 3 - Decay rate computed from Servais et al., 2007
-!----------------------------------------------------------------------
-  flag_fib = 1
-
-!----------------------------------------------------------------------
-! Marsh model parameters (only if USE_MARSH is on)
-!----------------------------------------------------------------------
-  slr_rate = 120. !sea-level rise rate in mm/yr, times morphological acceleration if used
-
-!----------------------------------------------------------------------
-! Vegetation model
-! If isav=1, need 4 extra inputs: (1) sav_D.gr3 (depth is stem diameter in meters);
-! (2) sav_N.gr3 (depth is # of stems per m^2);
-! (3) sav_h.gr3 (height of canopy in meters);
-! (4) sav_cd.gr3 (drag coefficient).
-! If one of these depths=0 at a node, the code will set all to 0.
-! If USE_MARSH is on and isav=1, all .gr3 must have constant depths!
-!----------------------------------------------------------------------
-  iveg = 0 !on/off flag
-! isav = 0 !on/off flag
-
-!----------------------------------------------------------------------
-! Coupling step with ICE module.
-!----------------------------------------------------------------------
-  nstep_ice = 1 !call ice module every nstep_ice steps of SCHISM
-
-
-!----------------------------------------------------------------------
-! Specify level #'s if age module is invoked (USE_AGE), for 1st half of tracers only
-!----------------------------------------------------------------------
-  level_age = 9, -999 !default: -999 (all levels)
-
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-! Physical constants
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----------------------------------------------------------------------
-! Earth's radii at pole and equator (to define an ellipsoid)
-!-----------------------------------------------------------------------
-  rearth_pole = 6378206.4
-  rearth_eq = 6378206.4
-
-!-----------------------------------------------------------------------
-! Specific heat of water (C_p) in J/kg/K
-!-----------------------------------------------------------------------
-  shw = 4184.d0
-
-!-----------------------------------------------------------------------
-! Reference water density for Boussinesq approximation
-!-----------------------------------------------------------------------
-  rho0 = 1000.d0 !kg/m^3
-
-!-----------------------------------------------------------------------
-! Fraction of vertical flux closure adjustment applied at surface, then subtracted
-! from all vertical fluxes. This is currently done for T,S only
-! 0.0 <= vclose_surf_frac < 1.0
-! 1: fully from surface (i.e. no correction as before); 0: fully from bottom
-!-----------------------------------------------------------------------
-  vclose_surf_frac=1.0
-
-!-----------------------------------------------------------------------
 ! Option to enforce strict mass conservation for each tracer model (only works with itr_met=3,4)
 ! At moment the scheme has not accounted for bottom 'leaking' (e.g. in SED),
 ! so iadjust_mass_consv0(5) must =0
@@ -711,6 +817,12 @@
   iadjust_mass_consv0(10)=0 !TIMOR
   iadjust_mass_consv0(11)=0 !FABM
   iadjust_mass_consv0(12)=0 !DVD (must=0)
+
+! For ICM, impose mass conservation for depths larger than a threshold by considering prism
+! volume change from step n to n+1. rinflation_icm is the max ratio btw H^{n+1} and H^n allowed.
+  h_massconsv = 2. ![m]
+  rinflation_icm = 1.e-3
+
 /
 
 &SCHOUT
@@ -723,12 +835,21 @@
 ! Main switch to control netcdf. If =0, SCHISM won't output nc files
 ! at all (useful for other programs like ESMF to output)
 !-----------------------------------------------------------------------
-!  nc_out = 1
+  nc_out = 1
+
+!-----------------------------------------------------------------------
+! UGRID option for _3D_ outputs under scribed IO (out2d*.nc always has meta
+! data info). If iof_ugrid > 0, 3D outputs will also have UGRID metadata.
+! if iof_ugrid == 1 3D output will contain UGRID mesh data (at the expense
+! of file size); if iof_ugrid == 2, 3D output references mesh data in the
+! 2D output.
+!-----------------------------------------------------------------------
+  iof_ugrid = 0
 
 !-----------------------------------------------------------------------
 ! Option for hotstart outputs
 !-----------------------------------------------------------------------
-  nhot = 0 !1: output *_hotstart every 'hotout_write' steps
+  nhot = 0 !1: output *_hotstart every 'nhot_write' steps
   nhot_write = 108 !must be a multiple of ihfskip if nhot=1
 
 !-----------------------------------------------------------------------
@@ -736,43 +857,45 @@
 ! a station.in. If ics=2, the cordinates in station.in must be in lon., lat,
 ! and z (positive upward; not used for 2D variables).
 !-----------------------------------------------------------------------
-  iout_sta = 0
+  iout_sta = 0 !1: no 3D profile output; 2: with 3D profile output in staout_[5-]
   nspool_sta = 1 !needed if iout_sta/=0; mod(nhot_write,nspool_sta) must=0
 
 !-----------------------------------------------------------------------
 ! Global output options
 ! The variable names that appear in nc output are shown in {}
 !-----------------------------------------------------------------------
-  iof_hydro(1) = 1 !0: off; 1: on - elev. [m]  {elev}
-  iof_hydro(2) = 0 !air pressure [Pa]  {air_pressure}
-  iof_hydro(3) = 0 !air temperature [C] {air_temperature}
-  iof_hydro(4) = 0 !Specific humidity [-] {specific_humidity}
-  iof_hydro(5) = 0 !Net downward solar (shortwave) radiation after albedo [W/m/m] {solar_radiation}
-  iof_hydro(6) = 0 !sensible flux (positive upward) [W/m/m]  {sensible_flux}
-  iof_hydro(7) = 0 !latent heat flux (positive upward) [W/m/m] {latent_heat}
-  iof_hydro(8) = 0 !upward longwave radiation (positive upward) [W/m/m] {upward_longwave}
-  iof_hydro(9) = 0 !downward longwave radiation (positive downward) [W/m/m] {downward_longwave}
-  iof_hydro(10) = 0 !total flux=-flsu-fllu-(radu-radd) [W/m/m] {total_heat_flux}
-  iof_hydro(11) = 0 !evaporation rate [kg/m/m/s] {evaporation}
-  iof_hydro(12) = 0 !precipitation rate [kg/m/m/s] {precipitation}
-  iof_hydro(13) = 0 !Bottom stress vector [kg/m/s^2(Pa)] {bottom_stress}
-  iof_hydro(14) = 0 !wind velocity vector [m/s] {wind_speed}
-  iof_hydro(15) = 0 !wind stress vector [m^2/s/s] {wind_stress}
-  iof_hydro(16) = 0 !depth-averaged vel vector [m/s] {dahv}
-  iof_hydro(17) = 0 !vertical velocity [m/s] {vertical_velocity}
-  iof_hydro(18) = 0 !water temperature [C] {temp}
-  iof_hydro(19) = 0 !water salinity [PSU] {salt}
-  iof_hydro(20) = 0 !water density [kg/m^3] {water_density}
-  iof_hydro(21) = 0 !eddy diffusivity [m^2/s] {diffusivity}
-  iof_hydro(22) = 0 !eddy viscosity [m^2/s] {viscosity}
-  iof_hydro(23) = 0 !turbulent kinetic energy {TKE}
-  iof_hydro(24) = 0 !turbulent mixing length [m] {mixing_length}
-  iof_hydro(25) = 0 !horizontal vel vector [m/s] {hvel}
-  iof_hydro(26) = 0 !horizontal vel vector defined @side [m/s] {hvel_side}
-  iof_hydro(27) = 0 !vertical vel. @elem [m/s] {wvel_elem}
-  iof_hydro(28) = 0 !T @prism centers [C] {temp_elem}
-  iof_hydro(29) = 0 !S @prism centers [PSU] {salt_elem}
-  iof_hydro(30) = 0 !Barotropic pressure gradient force vector (m.s-2) @side centers  {pressure_gradient}
+  iof_hydro(1) = 1 !0: off; 1: on - elev. [m]  {elevation}  2D
+  iof_hydro(2) = 0 !air pressure [Pa]  {airPressure}  2D
+  iof_hydro(3) = 0 !air temperature [C] {airTemperature}  2D
+  iof_hydro(4) = 0 !Specific humidity [-] {specificHumidity}  2D
+  iof_hydro(5) = 0 !Net downward solar (shortwave) radiation AFTER albedo [W/m/m] {solarRadiation}  2D
+  iof_hydro(6) = 0 !sensible flux (positive upward) [W/m/m]  {sensibleHeat}  2D
+  iof_hydro(7) = 0 !latent heat flux (positive upward) [W/m/m] {latentHeat}  2D
+  iof_hydro(8) = 0 !upward longwave radiation (positive upward) [W/m/m] {upwardLongwave}  2D
+  iof_hydro(9) = 0 !downward longwave radiation (positive downward) [W/m/m] {downwardLongwave}  2D
+  iof_hydro(10) = 0 !total flux=-flsu-fllu-(radu-radd) [W/m/m] {totalHeat}  2D
+  iof_hydro(11) = 0 !evaporation rate [kg/m/m/s] {evaporationRate}  2D
+  iof_hydro(12) = 0 !precipitation rate [kg/m/m/s] {precipitationRate}  2D
+  iof_hydro(13) = 0 !Bottom stress vector [kg/m/s^2(Pa)] {bottomStressX,Y}  2D vector
+  iof_hydro(14) = 0 !wind velocity vector [m/s] {windSpeedX,Y}  2D vector
+  iof_hydro(15) = 0 !wind stress vector [m^2/s/s] {windStressX,Y}  2D vector
+  iof_hydro(16) = 0 !depth-averaged vel vector [m/s] {depthAverageVelX,Y}  2D vector
+  iof_hydro(17) = 0 !vertical velocity [m/s] {verticalVelocity}  3D
+  iof_hydro(18) = 0 !water temperature [C] {temperature}  3D
+  iof_hydro(19) = 0 !water salinity [PSU] {salinity}  3D
+  iof_hydro(20) = 0 !water density [kg/m^3] {waterDensity}  3D
+  iof_hydro(21) = 0 !vertical eddy diffusivity [m^2/s] {diffusivity}  3D
+  iof_hydro(22) = 0 !vertical eddy viscosity [m^2/s] {viscosity}  3D
+  iof_hydro(23) = 0 !turbulent kinetic energy {turbulentKineticEner}   3D
+  iof_hydro(24) = 0 !turbulent mixing length [m] {mixingLength}  3D
+  iof_hydro(25) = 0 !z-coord {zCoordinates} 3D - should be on if using visIT
+  iof_hydro(26) = 0 !horizontal vel vector [m/s] {horizontalVelX,Y} 3D vector
+  iof_hydro(27) = 0 !horizontal vel vector defined @side [m/s] {horizontalSideVelX,Y} 3D vector
+  iof_hydro(28) = 0 !vertical vel. @elem [m/s] {verticalVelAtElement} 3D
+  iof_hydro(29) = 0 !T @prism centers [C] {temperatureAtElement} 3D
+  iof_hydro(30) = 0 !S @prism centers [PSU] {salinityAtElement} 3D
+  iof_hydro(31) = 0 !Barotropic pressure gradient force vector (m.s-2) @side centers  {pressure_gradient} 2D vector
+  iof_hydro(32) = 0 !sediment termperature @elem [C] {sedTemperature} 2D
 
 !-----------------------------------------------------------------------
 ! Outputs from optional modules. Only uncomment these if the USE_* is on
@@ -780,342 +903,157 @@
 !-----------------------------------------------------------------------
 ! Outputs from DVD (USE_DVD must be on in Makefile)
 !-----------------------------------------------------------------------
-!  iof_dvd(1) = 1 !num mixing for S (PSU^2/s) {DVD_1}
+!  iof_dvd(1) = 1 !num mixing for S (PSU^2/s) {DVD_1}   3D elem
 
 !-----------------------------------------------------------------------
 ! Outputs from WWM (USE_WWM must be on in Makefile)
 !-----------------------------------------------------------------------
-!  iof_wwm(1)  = 0 !sig. height (m) {WWM_1}
-!  iof_wwm(2)  = 0 !Mean average period (sec) - TM01 {WWM_2}
-!  iof_wwm(3)  = 0 !Zero down crossing period for comparison with buoy (s) - TM02 {WWM_3}
-!  iof_wwm(4)  = 0 !Average period of wave runup/overtopping - TM10 {WWM_4}
-!  iof_wwm(5)  = 0 !Mean wave number (1/m) {WWM_5}
-!  iof_wwm(6)  = 0 !Mean wave length (m) {WWM_6}
-!  iof_wwm(7)  = 0 !Mean average energy transport direction (degr) - MWD in NDBC? {WWM_9}
-!  iof_wwm(8) = 0 !Mean directional spreading (degr) {WWM_10}
-!  iof_wwm(9) = 0 !Discrete peak period (sec) - Tp {WWM_11}
-!  iof_wwm(10) = 0 !Continuous peak period based on higher order moments (sec) {WWM_12}
-!  iof_wwm(11) = 0 !Peak phase vel. (m/s) {WWM_13}
-!  iof_wwm(12) = 0 !Peak n-factor {WWM_14}
-!  iof_wwm(13) = 0 !Peak group vel. (m/s) {WWM_15}
-!  iof_wwm(14) = 0 !Peak wave number {WWM_16}
-!  iof_wwm(15) = 0 !Peak wave length {WWM_17}
-!  iof_wwm(16) = 0 !Peak (dominant) direction (degr) {WWM_18}
-!  iof_wwm(17) = 0 !Peak directional spreading {WWM_19}
-!  iof_wwm(18) = 0 !Discrete peak direction (radian?) {WWM_20}
-!  iof_wwm(19) = 0 !Orbital vel. (m/s) {WWM_21}
-!  iof_wwm(20) = 0 !RMS Orbital vel. (m/s) {WWM_22}
-!  iof_wwm(21) = 0 !Bottom excursion period (sec?) {WWM_23}
-!  iof_wwm(22) = 0 !Bottom wave period (sec) {WWM_24}
-!  iof_wwm(23) = 0 !Uresell number based on peak period {WWM_25}
-!  iof_wwm(24) = 0 !Friction velocity (m/s?) {WWM_26}
-!  iof_wwm(25) = 0 !Charnock coefficient {WWM_27}
-!  iof_wwm(26) = 0 !Rougness length {WWM_28}
-!  iof_wwm(27) = 0 !WWM_energy vector {WWM_energy_dir}
-!  iof_wwm(28) = 0 !Wave force vector (m.s-2) computed by wwm @side centers and whole levels {wave_force}
+!  iof_wwm(1)  = 0 !sig. height (m) {sigWaveHeight}   2D
+!  iof_wwm(2)  = 0 !Mean average period (sec) - TM01 {meanWavePeriod}  2D
+!  iof_wwm(3)  = 0 !Zero down crossing period for comparison with buoy (s) - TM02 {zeroDowncrossPeriod}  2D
+!  iof_wwm(4)  = 0 !Average period of wave runup/overtopping - TM10 {TM10}  2D
+!  iof_wwm(5)  = 0 !Mean wave number (1/m) {meanWaveNumber}  2D
+!  iof_wwm(6)  = 0 !Mean wave length (m) {meanWaveLength}  2D
+!  iof_wwm(7)  = 0 !Mean average energy transport direction (degr) - MWD in NDBC? {meanWaveDirection}  2D
+!  iof_wwm(8) = 0 !Mean directional spreading (degr) {meanDirSpreading}  2D
+!  iof_wwm(9) = 0 !Discrete peak period (sec) - Tp {peakPeriod}  2D
+!  iof_wwm(10) = 0 !Continuous peak period based on higher order moments (sec) {continuousPeakPeriod}  2D
+!  iof_wwm(11) = 0 !Peak phase vel. (m/s) {peakPhaseVel}  2D
+!  iof_wwm(12) = 0 !Peak n-factor {peakNFactor}   2D
+!  iof_wwm(13) = 0 !Peak group vel. (m/s) {peakGroupVel}   2D
+!  iof_wwm(14) = 0 !Peak wave number {peakWaveNumber}  2D
+!  iof_wwm(15) = 0 !Peak wave length {peakWaveLength}  2D
+!  iof_wwm(16) = 0 !Peak (dominant) direction (degr) {dominantDirection}  2D
+!  iof_wwm(17) = 0 !Peak directional spreading {peakSpreading}  2D
+!  iof_wwm(18) = 0 !Discrete peak direction (radian?) {discretePeakDirectio}  2D
+!  iof_wwm(19) = 0 !Orbital vel. (m/s) {orbitalVelocity}  2D
+!  iof_wwm(20) = 0 !RMS Orbital vel. (m/s) {rmsOrbitalVelocity}  2D
+!  iof_wwm(21) = 0 !Bottom excursion period (sec?) {bottomExcursionPerio}  2D
+!  iof_wwm(22) = 0 !Bottom wave period (sec) {bottomWavePeriod}  2D
+!  iof_wwm(23) = 0 !Uresell number based on peak period {UresellNumber}  2D
+!  iof_wwm(24) = 0 !Friction velocity (m/s?) {frictionalVelocity}  2D
+!  iof_wwm(25) = 0 !Charnock coefficient {CharnockCoeff}  2D
+!  iof_wwm(26) = 0 !Rougness length {rougnessLength}  2D
+
+!  iof_wwm(27) = 0 !Roller energy dissipation rate (W/m²) @nodes {Drol} 2D
+!  iof_wwm(28) = 0 !Total wave energy dissipation rate by depth-induced breaking (W/m²) @nodes {wave_sbrtot}  2D
+!  iof_wwm(29) = 0 !Total wave energy dissipation rate by bottom friction (W/m²) @nodes {wave_sbftot} 2D
+!  iof_wwm(30) = 0 !Total wave energy dissipation rate by whitecapping (W/m²) @nodes {wave_sdstot} 2D
+!  iof_wwm(31) = 0 !Total wave energy dissipation rate by vegetation (W/m²) @nodes {wave_svegtot} 2D
+!  iof_wwm(32) = 0 !Total wave energy input rate from atmospheric forcing (W/m²) @nodes {wave_sintot} 2D
+!  iof_wwm(33) = 0 !WWM_energy vector {waveEnergyDirX,Y}  2D vector
+
+!  iof_wwm(34) = 0 !Vertical Stokes velocity (m.s-1) @sides and whole levels {stokes_wvel}  3D
+!  iof_wwm(35) = 0 !Wave force vector (m.s-2) computed by wwm @side centers and whole levels {waveForceX,Y}   3D vector
+
+!  iof_wwm(36) = 0 !Horizontal Stokes velocity (m.s-1) @nodes and whole levels {stokes_hvel} 3D vector
+!  iof_wwm(37) = 0 !Roller contribution to horizontal Stokes velocity (m.s-1) @nodes and whole levels {roller_stokes_hvel} 3D vector
 
 !-----------------------------------------------------------------------
 ! Tracer module outputs. In most cases, actual # of outputs depends on # of tracers used
 !-----------------------------------------------------------------------
 ! Outputs for user-defined tracer module (USE_GEN)
 !-----------------------------------------------------------------------
-!  iof_gen(1) = 0 !1st tracer {GEN_1}
-!  iof_gen(2) = 0 !2nd tracer {GEN_2}
+!  iof_gen(1) = 0 !1st tracer {GEN_1}  3D
+!  iof_gen(2) = 0 !2nd tracer {GEN_2}  3D
 
 !-----------------------------------------------------------------------
 ! Outputs for (age). Indices from "1" to "ntracer_age/2"; [days]
 !-----------------------------------------------------------------------
-!  iof_age(1) = 0 !{AGE_1}
-!  iof_age(2) = 0 !{AGE_2}
+!  iof_age(1) = 0 !{AGE_1}  3D
+!  iof_age(2) = 0 !{AGE_2}  3D
 
 !-----------------------------------------------------------------------
 ! Specific outputs in SED3D (USE_SED must be on in Makefile;
 ! otherwise these are not needed)
 !-----------------------------------------------------------------------
-!  iof_sed(1) = 0 !bottom depth _change_ from init. condition (m) {SED_depth_change}
-!  iof_sed(2) = 0 ! Bed median grain size in the active layer (mm) {SED_D50}
-!  iof_sed(3) = 0 ! Bottom shear stress (Pa) {SED_bed_stress}
-!  iof_sed(4) = 0 ! Bottom roughness lenghth (mm) {SED_bed_roughness}
-!  iof_sed(5) = 0 !total suspended concentration (g/L) {SED_TSC}
-!  iof_sed(6) = 0 ! total bed thickness @elem (m) {bed_thickness}
-!  iof_sed(7) = 0 ! total bed age over all layers @elem (sec) {bed_age}
-!  iof_sed(8) = 0 ! Sediment transport roughness length @elem (m) (z0st_elem) {z0st}
-!  iof_sed(9) = 0 !current-ripples roughness length @elem (m) (z0cr_elem) {z0cr}
-!  iof_sed(10) = 0 !sand-waves roughness length (m) @elem (z0sw_elem) {z0sw}
-!  iof_sed(11) = 0 !wave-ripples roughness length @elem (m) (z0wr_elem) {z0wr}
-!  iof_sed(12) = 0 ! sediment porosity in the top layer (-) {SED_poro}
-!  iof_sed(13) = 0 ! erosion flux for suspended transport (kg/m/m/s) {SED_eroflx}
-!  iof_sed(14) = 0 ! deposition flux for suspended transport (kg/m/m/s) {SED_depflx}
-!  iof_sed(15) = 0 ! Bedload transport rate vector due to wave acceleration (kg/m/s) {SED_qbdl_acc}
+!  iof_sed(1) = 0 ! total bed thickness @elem (m) {sedBedThickness}  2D
+!  iof_sed(2) = 0 ! total bed age over all layers @elem (sec) {sedBedAge}  2D
+!  iof_sed(3) = 0 ! Sediment transport roughness length @elem (m) (sedTransportRough) {z0st}  2D
+!  iof_sed(4) = 0 !current-ripples roughness length @elem (m) (sedRoughCurrentRippl) {z0cr}  2D
+!  iof_sed(5) = 0 !sand-waves roughness length (m) @elem (z0sw_elem) {sedRoughSandWave}  2D
+!  iof_sed(6) = 0 !wave-ripples roughness length @elem (m) (z0wr_elem) {sedRoughWaveRipple}  2D
+
+!  iof_sed(7) = 0 !bottom depth _change_ from init. condition (m) {sedDepthChange}  2D
+!  iof_sed(8) = 0 ! Bed median grain size in the active layer (mm) {sedD50}  2D
+!  iof_sed(9) = 0 ! Bottom shear stress (Pa) {sedBedStress}  2D
+!  iof_sed(10) = 0 ! Bottom roughness lenghth (mm) {sedBedRoughness}  2D
+!  iof_sed(11) = 0 ! sediment porosity in the top layer (-) {sedPorocity}  2D
+!  iof_sed(12) = 0 ! erosion flux for suspended transport (kg/m/m/s) {sedErosionalFlux}  2D
+!  iof_sed(13) = 0 ! deposition flux for suspended transport (kg/m/m/s) {sedDepositionalFlux}  2D
+!  iof_sed(14) = 0 ! Bedload transport rate vector due to wave acceleration (kg/m/s) {sedBedloadTransportX,Y}  2D vector
 
 !  Example of using 2 classes
-!  iof_sed(16) = 0 !conc. of 1st class (one output need by each class) [g/L] {SED3D_1}
-!  iof_sed(17) = 0 !Bedload transport rate vector (kg.m-1.s-1) for 1st tracer (one output need by tracer) {SED_bdld_1}
-!  iof_sed(18) = 0 !Bed fraction 1st tracer (one output need by each class) [-] {SED_bedfrac_1}
-!  iof_sed(19) = 0 !conc. of 2nd class {SED3D_2}
-!  iof_sed(20) = 0 !Bedload transport of 2nd class {SED_bdld_2}
-!  iof_sed(21) = 0 !Bed fraction of 2nd class {SED_bedfrac_3}
+!  iof_sed(15) = 0 !Bedload transport rate _vector_ (kg.m-1.s-1) for 1st tracer (one output per class) {sedBedload[X,Y]_1}  2D vector
+!  iof_sed(16) = 0 !Bedload transport of 2nd class {sedBedFraction_[X,Y]_2}  2D vector
+!  iof_sed(17) = 0 !Bed fraction 1st tracer (one output per class) [-] {sedBedFraction_1}   2D
+!  iof_sed(18) = 0 !Bed fraction of 2nd class {sedBedFraction_2}   2D
+
+!  iof_sed(19) = 0 !conc. of 1st class (one output need by each class) [g/L] {sedConcentration_1}   3D
+!  iof_sed(20) = 0 !conc. of 2nd class {sedConcentration_2}   3D
+
+!  iof_sed(21) = 0 !total suspended concentration (g/L) {totalSuspendedLoad}  3D
 
 !-----------------------------------------------------------------------
 ! EcoSim outputs
 !-----------------------------------------------------------------------
-!  iof_eco(1) = 0 {ECO_1}
+!  iof_eco(1) = 0 {ECO_1}  3D
 
 !-----------------------------------------------------------------------
 ! ICM outputs
-! 1:5--
-! 6:12--sediment flux @elem
-! 13:19--sav @elem
-! 20:38--sediment conc @elem
-! 39:58--growth parameters; **hint: to choose only one PB group for limiting factors is enough for most cases
-! 59:69--C group parameters; **hint: to choose only one POC group is enough for most cases
-! 70:90--N group parameters;
-! 91:107--P group parameters;
-! 108:116--Oxygen parameters;
-! 117:141--water column foundamental tracers @nodes
+!
+! * SFM variables (2D)
+!     bPOC(3),bPON(3),bPOP(3),bNH4,bNO3,bPO4,bH2S,bCH4,bPOS,bSA: sediment concs. (g.m-3)
+!     SOD/JNH4/JNO3/JPO4/JSA/JCOD: sediment fluxes   (g.m-2.day-1)
+!     bstc: surface transfer coeff. (m/day)
+!     bSTR: benthic stress      (day)
+!     bThp: consective days of hypoxia (day)
+!     bTox: consective days of oxic condition after hypoxia (day)
 !-----------------------------------------------------------------------
-!  iof_icm(1) = 0 !Chlorophyll {ICM_Chl}
-!  iof_icm(2) = 0 !PH values (ICM_PH on) {ICM_pH}
-!  iof_icm(3) = 0 !ICM primary production @elem [gC/m^3/day] {ICM_PrmPrdt}
-!  iof_icm(4) = 0 !ICM totoal inorganic nitrogen (DIN) @elem [gN/m^3] {ICM_DIN}
-!  iof_icm(5) = 0 !ICM paticulate organic nitrogen (PON) @elem [gN/m^3] {ICM_PON}
-!  iof_icm(6) = 0 !ICM bed sediment flux arrays: SED_BENDOC (output name:ICM_SED_BENDOC) @elem [gC/(m^2 day)] {ICM_SED_BENDOC}
-!  iof_icm(7) = 0 !ICM bed sediment flux arrays: SED_BENNH4 (output name:ICM_SED_BENNH4) @elem [gC/(m^2 day)] {ICM_SED_BENNH4}
-!  iof_icm(8) = 0 !ICM bed sediment flux arrays: SED_BENNO3 (output name:ICM_SED_BENNO3)@elem [gC/(m^2 day)] {ICM_SED_BENNO3}
-!  iof_icm(9) = 0 !ICM bed sediment flux arrays: SED_BENPO4 (output name:ICM_SED_BENPO4) @elem [gC/(m^2 day)] {ICM_SED_BENPO4}
-!  iof_icm(10) = 0 !ICM bed sediment flux arrays: SED_BENCOD (output name:ICM_SED_BENCOD) @elem [gC/(m^2 day)] {ICM_SED_BENCOD}
-!  iof_icm(11) = 0 !ICM bed sediment flux arrays: SED_BENDO (output name:ICM_SED_BENDO) @elem [gC/(m^2 day)] {ICM_SED_BENDO}
-!  iof_icm(12) = 0 !ICM bed sediment flux arrays: SED_BENSA (output name:ICM_SED_BENSA) @elem [gC/(m^2 day)] {ICM_SED_BENSA}
-!  iof_icm(13) = 0 !ICM SAV leaf biomass @elem [gC/m^3] (k=1 is surface) {ICM_lfsav}
-!  iof_icm(14) = 0 !ICM SAV stem biomass @elem [gC/m^3] {ICM_stsav}
-!  iof_icm(15) = 0 !ICM SAV root biomass @elem [gC/m^3] {ICM_rtsav}
-!  iof_icm(16) = 0 !ICM SAV total leaf biomass @elem [gC/m^2] {ICM_tlfsav}
-!  iof_icm(17) = 0 !ICM SAV total stem biomass @elem [gC/m^2] {ICM_tstsav}
-!  iof_icm(18) = 0 !ICM SAV total root biomass @elem [gC/m^2] {ICM_trtsav}
-!  iof_icm(19) = 0 !ICM SAV canopy height @elem [m] {ICM_hcansav}
-!  iof_icm(20) = 0 !bottom NH4 conc {ICM_CNH4}
-!  iof_icm(21) = 0 !bottom NO3 conc {ICM_CNH3}
-!  iof_icm(22) = 0 !bottom P conc {ICM_CPIP}
-!  iof_icm(23) = 0 !bottom Si conc {ICM_CPOS}
-!  iof_icm(24) = 0 !bottom CH4 conc {ICM_CCH4}
-!  iof_icm(25) = 0 !bottom SO4 conc {ICM_CSO4}
-!  iof_icm(26) = 0 !bottom H2S conc {ICM_CH2S}
-!  iof_icm(27) = 0 !bottom PON g1 conc {ICM_SEDPON1}
-!  iof_icm(28) = 0 !bottom PON g2 conc {ICM_SEDPON2}
-!  iof_icm(29) = 0 !bottom PON g3 conc {ICM_SEDPON3}
-!  iof_icm(30) = 0 !bottom POP g1 conc {ICM_SEDPOP1}
-!  iof_icm(31) = 0 !bottom POP g2 conc {ICM_SEDPOP2}
-!  iof_icm(32) = 0 !bottom POP g3 conc {ICM_SEDPOP3}
-!  iof_icm(33) = 0 !bottom POC g1 conc {ICM_SEDPOC1}
-!  iof_icm(34) = 0 !bottom POC g2 conc {ICM_SEDPOC2}
-!  iof_icm(35) = 0 !bottom POC g3 conc {ICM_SEDPOC3}
-!  iof_icm(36) = 0 !erosion flux H2S {ICM_EROH2S}
-!  iof_icm(37) = 0 !ersoion flux LPOC {ICM_EROLPOC}
-!  iof_icm(38) = 0 !ersoion flux RPOC {ICM_ERORPOC}
-!  iof_icm(39) = 0 !PB growth #1 [/day] {ICM_GP1}
-!  iof_icm(40) = 0 !PB growth #2 [/day] {ICM_GP2}
-!  iof_icm(41) = 0 !PB growth #3 [/day] {ICM_GP3}
-!  iof_icm(42) = 0 !PB max growth #1 [/day] {ICM_GPT1}
-!  iof_icm(43) = 0 !PB max growth #2 [/day] {ICM_GPT2}
-!  iof_icm(44) = 0 !PB max growth #3 [/day] {ICM_GPT3}
-!  iof_icm(45) = 0 !PB net growth #1 [g/m^3/day] {ICM_netGP1}
-!  iof_icm(46) = 0 !PB net growth #2 [g/m^3/day] {ICM_netGP2}
-!  iof_icm(47) = 0 !PB net growth #3 [g/m^3/day] {ICM_netGP3}
-!  iof_icm(48) = 0 !light limiting #1 {ICM_rFI1}
-!  iof_icm(49) = 0 !light limiting #2 {ICM_rFI2}
-!  iof_icm(50) = 0 !light limiting #3 {ICM_rFI3}
-!  iof_icm(51) = 0 !nitrogen limiting #1 {ICM_rFN1}
-!  iof_icm(52) = 0 !nitrogen limiting #2 {ICM_rFN2}
-!  iof_icm(53) = 0 !nitrogen limiting #3 {ICM_rFN3}
-!  iof_icm(54) = 0 !phosphorus limiting #1 {ICM_rFP1}
-!  iof_icm(55) = 0 !phosphorus limiting #2 {ICM_rFP2}
-!  iof_icm(56) = 0 !phosphorus limiting #3 {ICM_rFP3}
-!  iof_icm(57) = 0 !sillica limiting #1 {ICM_rS}
-!  iof_icm(58) = 0 !salinity stress #3 {ICM_rSal}
-!  iof_icm(59) = 0 !RPOC dissolution rate [g/m^3/day] {ICM_disoRPOC}
-!  iof_icm(60) = 0 !LPOC dissolution rate [g/m^3/day] {ICM_disoLPOC}
-!  iof_icm(61) = 0 !DOC heterotrophic respiration rate [g/m^3/day] {ICM_HRDOC}
-!  iof_icm(62) = 0 !DOC flux for denitrofication [g/m^3/day] {ICM_DenitDOC}
-!  iof_icm(63) = 0 !RPOC flux from predation [g/m^3/day] {ICM_predRPOC}
-!  iof_icm(64) = 0 !LPOC flux from predation [g/m^3/day] {ICM_predLPOC}
-!  iof_icm(65) = 0 !DOC flux from predation [g/m^3/day] {ICM_predDOC}
-!  iof_icm(66) = 0 !DOC flux from PB basal metabolism [g/m^3/day] {ICM_basalDOC}
-!  iof_icm(67) = 0 !RPOC flux from SAV metabolism [g/m^3/day] {ICM_savmtRPOC}
-!  iof_icm(68) = 0 !LPOC flux from SAV metabolism [g/m^3/day] {ICM_savmtLPOC}
-!  iof_icm(69) = 0 !DOC flux from SAV metabolism [g/m^3/day] {ICM_savmtDOC}
-!  iof_icm(70) = 0 !RPON dissolution rate [g/m^3/day] {ICM_disoRPON}
-!  iof_icm(71) = 0 !LPON dissolution rate [g/m^3/day] {ICM_disoLPON}
-!  iof_icm(72) = 0 !DON mineralization rate [g/m^3/day] {ICM_NRDON}
-!  iof_icm(73) = 0 !RPON flux from predation [g/m^3/day] {ICM_predRPON}
-!  iof_icm(74) = 0 !LPON flux from predation [g/m^3/day] {ICM_predLPON}
-!  iof_icm(75) = 0 !DON flux from predation [g/m^3/day] {ICM_predDON}
-!  iof_icm(76) = 0 !NH4 flux from predation [g/m^3/day] {ICM_predNH4}
-!  iof_icm(77) = 0 !RPON flux from PB basal metabolism [g/m^3/day] {ICM_basalRPON}
-!  iof_icm(78) = 0 !LPON flux from PB basal metabolism [g/m^3/day] {ICM_basalLPON}
-!  iof_icm(79) = 0 !DON flux from PB basal metabolism [g/m^3/day] {ICM_basalDON}
-!  iof_icm(80) = 0 !NH4 flux from PB basal metabolism [g/m^3/day] {ICM_basalNH4}
-!  iof_icm(81) = 0 !NH4 flux for nitrofication [g/m^3/day] {ICM_NitNH4}
-!  iof_icm(82) = 0 !NH4 uptake for PB growth [g/m^3/day] {ICM_absNH4}
-!  iof_icm(83) = 0 !NO3 flux for denitrofication [g/m^3/day] {ICM_DenitNO3}
-!  iof_icm(84) = 0 !NO3 uptake for PB growth [g/m^3/day] {ICM_absNO3}
-!  iof_icm(85) = 0 !RPON flux from SAV metabolism [g/m^3/day] {ICM_savmtRPON}
-!  iof_icm(86) = 0 !LPON flux from SAV metabolism [g/m^3/day] {ICM_savmtLPON}
-!  iof_icm(87) = 0 !DON flux from SAV metabolism [g/m^3/day] {ICM_savmtDON}
-!  iof_icm(88) = 0 !NH4 flux from SAV metabolism [g/m^3/day] {ICM_savmtNH4}
-!  iof_icm(89) = 0 !NH4 uptake for SAV growth [g/m^3/day] {ICM_savgrNH4}
-!  iof_icm(90) = 0 !NO3 uptake for SAV growth [g/m^3/day] {ICM_savgrNO3}
-!  iof_icm(91) = 0 !RPOP dissolution rate [g/m^3/day] {ICM_disoRPOP}
-!  iof_icm(92) = 0 !LPOP dissolution rate [g/m^3/day] {ICM_disoLPOP}
-!  iof_icm(93) = 0 !DOP mineralization rate [g/m^3/day] {ICM_NRDOP}
-!  iof_icm(94) = 0 !PO4 uptake for PB growth [g/m^3/day] {ICM_absPO4}
-!  iof_icm(95) = 0 !RPOP flux from predation [g/m^3/day] {ICM_predRPOP}
-!  iof_icm(96) = 0 !LPOP flux from predation [g/m^3/day] {ICM_predLPOP}
-!  iof_icm(97) = 0 !DOP flux from predation [g/m^3/day] {ICM_predDOP}
-!  iof_icm(98) = 0 !PO4 flux from predation [g/m^3/day] {ICM_predPO4}
-!  iof_icm(99) = 0 !RPOP flux from PB basal metabolism [g/m^3/day] {ICM_basalRPOP}
-!  iof_icm(100) = 0 !LPOP flux from PB basal metabolism [g/m^3/day] {ICM_basalLPOP}
-!  iof_icm(101) = 0 !DOP flux from PB basal metabolism [g/m^3/day] {ICM_basalDOP}
-!  iof_icm(102) = 0 !PO4  flux from PB basal metabolism [g/m^3/day] {ICM_basalPO4}
-!  iof_icm(103) = 0 !RPOP flux from SAV metabolism [g/m^3/day] {ICM_savmtRPOP}
-!  iof_icm(104) = 0 !LPOP flux from SAV metabolism [g/m^3/day] {ICM_savmtLPOP}
-!  iof_icm(105) = 0 !DOP flux from SAV metabolism [g/m^3/day] {ICM_savmtDOP}
-!  iof_icm(106) = 0 !PO4 flux from SAV metabolism [g/m^3/day] {ICM_savmtPO4}
-!  iof_icm(107) = 0 !PO4 uptake for SAV growth [g/m^3/day] {ICM_savgrPO4}
-!  iof_icm(108) = 0 !DO consumption for PB basal metabolism [g/m^3/day] {ICM_basalDOO}
-!  iof_icm(109) = 0 !DO consumption for predation [g/m^3/day] {ICM_predDOO}
-!  iof_icm(110) = 0 !DO consumption for nitrofication [g/m^3/day] {ICM_NitDOO}
-!  iof_icm(111) = 0 !DO consumption for DOC heterotrophic respiration [g/m^3/day] {ICM_HRDOO}
-!  iof_icm(112) = 0 !DO flux for COD [g/m^3/day] {ICM_chemDOO}
-!  iof_icm(113) = 0 !DO production from PB phytosynthesis [g/m^3/day] {ICM_phoDOO}
-!  iof_icm(114) = 0 !DO reaeration [g/m^3/day] {ICM_reaDOO}
-!  iof_icm(115) = 0 !DO consumption for SAV metabolism [g/m^3/day] {ICM_savmtDOO}
-!  iof_icm(116) = 0 !DO production from SAV growth [g/m^3/day] {ICM_savgrDOO}
-  !veg biomass
-!  iof_icm(117) = 0 !veg lf biomass group 1 [gC/m^2] {ICM_tlfveg1}
-!  iof_icm(118) = 0 !veg lf biomass group 2 [gC/m^2] {ICM_tlfveg2}
-!  iof_icm(119) = 0 !veg lf biomass group 3 [gC/m^2] {ICM_tlfveg3}
-!  iof_icm(120) = 0 !veg st biomass group 1 [gC/m^2] {ICM_tstveg1}
-!  iof_icm(121) = 0 !veg st biomass group 2 [gC/m^2] {ICM_tstveg2}
-!  iof_icm(122) = 0 !veg st biomass group 3 [gC/m^2] {ICM_tstveg3}
-!  iof_icm(123) = 0 !veg rt biomass group 1 [gC/m^2] {ICM_trtveg1}
-!  iof_icm(124) = 0 !veg rt biomass group 2 [gC/m^2] {ICM_trtveg2}
-!  iof_icm(125) = 0 !veg rt biomass group 3 [gC/m^2] {ICM_trtveg3}
-!  iof_icm(126) = 0 !veg canopy height group 1 [m] {ICM_hcanveg1}
-!  iof_icm(127) = 0 !veg canopy height group 2 [m] {ICM_hcanveg2}
-!  iof_icm(128) = 0 !veg canopy height group 3 [m] {ICM_hcanveg3}
-  !veg-induced prcesses for nutrients in water column
-!  iof_icm(129) = 0 !RPOC flux from veg metabolism [g/m^3/day] {ICM_vegmtRPOC}
-!  iof_icm(130) = 0 !LPOC flux from veg metabolism [g/m^3/day] {ICM_vegmtLPOC}
-!  iof_icm(131) = 0 !DOC flux from veg metabolism [g/m^3/day] {ICM_vegmtDOC}
-!  iof_icm(132) = 0 !RPON flux from veg metabolism [g/m^3/day] {ICM_vegmtRPON}
-!  iof_icm(133) = 0 !LPON flux from veg metabolism [g/m^3/day] {ICM_vegmtLPON}
-!  iof_icm(134) = 0 !DON flux from veg metabolism [g/m^3/day] {ICM_vegmtDON}
-!  iof_icm(135) = 0 !NH4 flux from veg metabolism [g/m^3/day] {ICM_vegmtNH4}
-!  iof_icm(136) = 0 !NH4 uptake for veg growth [g/m^3/day] {ICM_veggrNH4}
-!  iof_icm(137) = 0 !NO3 uptake for veg growth [g/m^3/day] {ICM_veggrNO3}
-!  iof_icm(138) = 0 !RPOP flux from veg metabolism [g/m^3/day] {ICM_vegmtRPOP}
-!  iof_icm(139) = 0 !LPOP flux from veg metabolism [g/m^3/day] {ICM_vegmtLPOP}
-!  iof_icm(140) = 0 !DOP flux from veg metabolism [g/m^3/day] {ICM_vegmtDOP}
-!  iof_icm(141) = 0 !PO4 flux from veg metabolism [g/m^3/day] {ICM_vegmtPO4}
-!  iof_icm(142) = 0 !PO4 uptake for veg growth [g/m^3/day] {ICM_veggrPO4}
-!  iof_icm(143) = 0 !DO consumption for veg metabolism [g/m^3/day] {ICM_vegmtDOO}
-!  iof_icm(144) = 0 !DO production from veg growth [g/m^3/day] {ICM_veggrDOO}
-  !sav+veg-induced sediment fluxes
-!  iof_icm(145) = 0 !sav-induced NH4 uptake from sediement [g/m^2/day] {ICM_tlfNH4sav}
-!  iof_icm(146) = 0 !sav-induced PO4 uptake from sediement [g/m^2/day] {ICM_tlfPO4sav}
-!  iof_icm(147) = 0 !sav-induced poc release to sediement [g/m^2/day] {ICM_trtpocsav}
-!  iof_icm(148) = 0 !sav-induced pon release to sediement [g/m^2/day] {ICM_trtponsav}
-!  iof_icm(149) = 0 !sav-induced pop release to sediement [g/m^2/day] {ICM_trtpopsav}
-!  iof_icm(150) = 0 !sav-induced oxygen demand from sediement [g/m^2/day] {ICM_trtdosav}
-!  iof_icm(151) = 0 !veg1-induced NH4 uptake from sediement [g/m^2/day] {ICM_tlfNH4veg1}
-!  iof_icm(152) = 0 !veg2-induced NH4 uptake from sediement [g/m^2/day] {ICM_tlfNH4veg2}
-!  iof_icm(153) = 0 !veg3-induced NH4 uptake from sediement [g/m^2/day] {ICM_tlfNH4veg3}
-!  iof_icm(154) = 0 !veg1-induced PO4 uptake from sediement [g/m^2/day] {ICM_tlfPO4veg1}
-!  iof_icm(155) = 0 !veg2-induced PO4 uptake from sediement [g/m^2/day] {ICM_tlfPO4veg2}
-!  iof_icm(156) = 0 !veg3-induced PO4 uptake from sediement [g/m^2/day] {ICM_tlfPO4veg3}
-!  iof_icm(157) = 0 !veg1-induced poc release to sediement [g/m^2/day] {ICM_trtpocveg1}
-!  iof_icm(158) = 0 !veg2-induced poc release to sediement [g/m^2/day] {ICM_trtpocveg2}
-!  iof_icm(159) = 0 !veg3-induced poc release to sediement [g/m^2/day] {ICM_trtpocveg3}
-!  iof_icm(160) = 0 !veg1-induced pon release to sediement [g/m^2/day] {ICM_trtponveg1}
-!  iof_icm(161) = 0 !veg2-induced pon release to sediement [g/m^2/day] {ICM_trtponveg2}
-!  iof_icm(162) = 0 !veg3-induced pon release to sediement [g/m^2/day] {ICM_trtponveg3}
-!  iof_icm(163) = 0 !veg1-induced pop release to sediement [g/m^2/day] {ICM_trtpopveg1}
-!  iof_icm(164) = 0 !veg2-induced pop release to sediement [g/m^2/day] {ICM_trtpopveg2}
-!  iof_icm(165) = 0 !veg3-induced pop release to sediement [g/m^2/day] {ICM_trtpopveg3}
-!  iof_icm(166) = 0 !veg1-induced oxygen demand from sediement [g/m^2/day] {ICM_trtdoveg1}
-!  iof_icm(167) = 0 !veg2-induced oxygen demand from sediement [g/m^2/day] {ICM_trtdoveg2}
-!  iof_icm(168) = 0 !veg3-induced oxygen demand from sediement [g/m^2/day] {ICM_trtdoveg3}
-!  iof_icm(169) = 0 !# of veg growth rate [/day] {ICM_plfveg}
-!  iof_icm(170) = 0 !# of max veg growth rate [/day] {ICM_pmaxveg}
-!  iof_icm(171) = 0 !# of veg light limitation [-] {ICM_fiveg}
-!  iof_icm(172) = 0 !# of veg N limitation [-] {ICM_fnveg}
-!  iof_icm(173) = 0 !# of veg P limitation [-] {ICM_fpveg}
-!  iof_icm(174) = 0 !# of veg salinity stress [-] {ICM_fsveg}
-!  iof_icm(175) = 0 !# of veg inundation stress [-] {ICM_ffveg}
-!  iof_icm(176) = 0 !# of veg heigh to dep rario [-] {ICM_rdephcanveg}
-
-!  iof_icm(177) = 0 !veg production [gC/m^2/day] {ICM_PrmPrdtveg}
-!  iof_icm(178) = 0 !sav production [gC/m^2/day] {ICM_PrmPrdtsav}
-
-!  iof_icm(179) = 0 !sav growth rate [/day] {ICM_plfsav}
-!  iof_icm(180) = 0 !max sav growth rate [/day] {ICM_pmaxsav}
-!  iof_icm(181) = 0 !sav light limitation [-] {ICM_fisav}
-!  iof_icm(182) = 0 !sav N limitation [-] {ICM_fnsav}
-!  iof_icm(183) = 0 !sav P limitation [-] {ICM_fpsav}
-
-!  iof_icm(184) = 0 !light radiation at bottom of each layer [W/m/m] {ICM_rad}
-
-!  iof_icm(185) = 0 !Zoo. #1 {ICM_1}
-!  iof_icm(186) = 0 !Zoo. #2 {ICM_2}
-!  iof_icm(187) = 0 !phyto #1 {ICM_3}
-!  iof_icm(188) = 0 !phyto #2 {ICM_4}
-!  iof_icm(189) = 0 !phyto #3 {ICM_5}
-!  iof_icm(190) = 0 !RPOC {ICM_6}
-!  iof_icm(191) = 0 !LPOC {ICM_7}
-!  iof_icm(192) = 0 !DOC {ICM_8}
-!  iof_icm(193) = 0 !RPON {ICM_9}
-!  iof_icm(194) = 0 !LPON {ICM_10}
-!  iof_icm(195) = 0 !DON {ICM_11}
-!  iof_icm(196) = 0 !NH4 {ICM_12}
-!  iof_icm(197) = 0 !NO3 {ICM_13}
-!  iof_icm(198) = 0 !RPOP {ICM_14}
-!  iof_icm(199) = 0 !LPOP {ICM_15}
-!  iof_icm(200) = 0 !DOP {ICM_16}
-!  iof_icm(201) = 0 !PO4t {ICM_17}
-!  iof_icm(202) = 0 !Si- biogenic {ICM_18}
-!  iof_icm(203) = 0 !available Si {ICM_19}
-!  iof_icm(204) = 0 !COD: Chemical oxygen demand {ICM_20}
-!  iof_icm(205) = 0 !DO {ICM_21}
-!  iof_icm(206) = 0 !TIC {ICM_22} !following requires ICM_PH on
-!  iof_icm(207) = 0 !ALK {ICM_23}
-!  iof_icm(208) = 0 !CA {ICM_24}
-!  iof_icm(209) = 0 !CACO3 {ICM_25}
-
+!  !Core (3D):       PB1 PB2 PB3 RPOC LPOC DOC RPON LPON DON NH4 NO3 RPOP LPOP DOP PO4 COD DOX (mg/L)
+!  iof_icm_core   =   1   1   1   1    1    1   1    1    1   1   1   1    1    1   1   1   1
+!
+!  !Silica (3D):     SU   SA  (mg/L)
+!  iof_icm_silica =   1   1
+!
+!  !Zooplankton(3D): ZB1  ZB2  (mg/L)
+!  iof_icm_zb     =   1    1
+!
+!  !pH model (3D):   TIC  ALK  CA  CACO3  (mg/L)
+!  iof_icm_ph     =   1    1    1    1
+!
+!  !SRM (3D):       SRPOC  SRPON  SRPOP  PIP  (mg/L)
+!  iof_icm_srm    =   1      1      1      1
+!
+!  !SAV (2D)
+!  iof_icm_sav    =   1  !sav leaf/stem/root/tuber (g[C].m-2) and canopy height (m)
+!
+!  !Marsh (2D)
+!  iof_icm_marsh  =   1  !marsh leaf/stem/root (g[C].m-2) and canopy height (m)
+!
+!  !SFM model (2D)
+!  iof_icm_sfm    =   1
+!
+!  !benthic algae (2D)
+!  iof_icm_ba     =   1  !BA  (g[C].m-2)
+!
+!  !oyster/clam (2D)
+!  iof_icm_clam   =   1  !clam biomass(1:nclam) (g[C].m-2)
+!
 !-----------------------------------------------------------------------
-! CoSINE outputs
+! CoSINE outputs: All 3D
 !-----------------------------------------------------------------------
-!  iof_cos(1) = 0 ! {COS_1}
-!  iof_cos(2) = 0 ! {COS_2}
-!  iof_cos(3) = 0 ! {COS_3}
-!  iof_cos(4) = 0 ! {COS_4}
-!  iof_cos(5) = 0 ! {COS_5}
-!  iof_cos(6) = 0 ! {COS_6}
-!  iof_cos(7) = 0 ! {COS_7}
-!  iof_cos(8) = 0 ! {COS_8}
-!  iof_cos(9) = 0 ! {COS_9}
-!  iof_cos(10) = 0 ! {COS_10}
-!  iof_cos(11) = 0 ! {COS_11}
-!  iof_cos(12) = 0 ! {COS_12}
-!  iof_cos(13) = 0 ! {COS_13}
+!  !variables: NO3  SiO4  NH4  S1  S2  Z1  Z2  DN  DSi  PO4  DOX  CO2  ALK (uM)
+!  iof_cos   =  1    1     1   1   1   1   1   1    1    1    1    1    1
 
 !-----------------------------------------------------------------------
 ! Fecal indicating bacteria module
 !-----------------------------------------------------------------------
-!  iof_fib(1) = 0 ! {FIB_1}
+!  iof_fib(1) = 0 ! {FIB_1}  3D
 
 !-----------------------------------------------------------------------
 ! Specific outputs in SED2D (USE_SED2D must be on in Makefile;
-! otherwise these are not needed)
+! otherwise these are not needed) - not implemented yet
 !-----------------------------------------------------------------------
 !  iof_sed2d(1)  = 0 !bottom depth _change_ from init. condition (m) {SED2D_depth_change}
 !  iof_sed2d(2)  = 0 !drag coefficient used in transport formulae SED2D_Cd{}
@@ -1134,36 +1072,49 @@
 !-----------------------------------------------------------------------
 !  marsh flags (USE_MARSH on)
 !-----------------------------------------------------------------------
-!  iof_marsh(1) = 0 ! {marsh_flag}
+!  iof_marsh(1) = 0 ! {marshFlag}  2D elem
 
 !-----------------------------------------------------------------------
 ! Ice module outputs (if USE_ICE is on)
 !-----------------------------------------------------------------------
-!  iof_ice(1)= 0 !ice advective velcoity vector [m/s] {ICE_velocity}
-!  iof_ice(2)= 0 !strain rate @ elem [1/sec] {ICE_strain_rate}
-!  iof_ice(3)= 0 !net heat flux to ocean (>0 warm up SST) [W/m/m] {ICE_net_heat_flux}
-!  iof_ice(4)= 0 !net fresh water flux to ocean (>0 freshens up SSS) [kg/s/m/m] {ICE_fresh_water_flux}
-!  iof_ice(5)= 0 !ice temperature [C] at air-ice interface {ICE_top_T}
+!  iof_ice(1)= 0 !divergence @ elem ('Delta') [1/sec] {iceStrainRate}  2D
+!  iof_ice(2)= 0 !ice advective velocity vector [m/s] {iceVelocityX,Y}  2D vector
+!  iof_ice(3)= 0 !net heat flux to ocean (>0 warm up SST) [W/m/m] {iceNetHeatFlux}  2D
+!  iof_ice(4)= 0 !net fresh water flux to ocean (>0 freshens up SSS) [kg/s/m/m] {iceFreshwaterFlux}  2D
+!  iof_ice(5)= 0 !ice temperature [C] at air-ice interface {iceTopTemperature}  2D
 
-!  iof_ice(6)= 0 !ice volume [m] {ICE_tracer_1}
-!  iof_ice(7)= 0 !ice concentration [-] {ICE_tracer_2}
-!  iof_ice(8)= 0 !snow volume [m] {ICE_tracer_3}
+!  iof_ice(6)= 0 !ice volume [m] {iceTracer_1}   2D
+!  iof_ice(7)= 0 !ice concentration [-] {iceTracer_2}  2D
+!  iof_ice(8)= 0 !snow volume [m] {iceTracer_3}  2D
+
+!-----------------------------------------------------------------------
+! Multi-class ice module outputs (if USE_MICE is on)
+!-----------------------------------------------------------------------
+!  iof_mice(1)= 0 !divergence @ elem ('Delta') [1/sec] {iceStrainRate}  2D
+!  iof_mice(2)= 0 !ice advective velcoity vector [m/s] {iceVelocityX,Y}  2D vector
+!  iof_mice(3)= 0 !net heat flux to ocean (>0 warm up SST) [W/m/m] {iceNetHeatFlux}  2D
+!  iof_mice(4)= 0 !net fresh water flux to ocean (>0 freshens up SSS) [kg/s/m/m] {iceFreshwaterFlux}  2D
+!  iof_mice(5)= 0 !ice temperature [C] at air-ice interface {iceTopTemperature}  2D
+
+!  iof_mice(6)= 0 !ice volume [m] {iceTracer_1}   2D
+!  iof_mice(7)= 0 !ice concentration [-] {iceTracer_2}  2D
+!  iof_mice(8)= 0 !snow volume [m] {iceTracer_3}  2D
 
 !-----------------------------------------------------------------------
 ! Analysis module outputs (USE_ANALYSIS)
 !-----------------------------------------------------------------------
-!  iof_ana(1) = 0 !x-component of \nabla air_pres /\rho_0 [m/s/s] {ANA_air_pres_grad_x}
-!  iof_ana(2) = 0 !y-component of \nabla air_pres /\rho_0 [m/s/s] {ANA_air_pres_grad_y}
-!  iof_ana(3) = 0  !\alpha*g*\nabla \Psi [m/s/s] (gradient of tidal potential) {ANA_tide_pot_grad_x}
-!  iof_ana(4) = 0  !\alpha*g*\nabla \Psi [m/s/s] {ANA_tide_pot_grad_y}
-!  iof_ana(5) = 0 !\nabla \cdot (\mu \nabla u) [m/s/s] (horizontal momentum mixing) {ANA_hor_viscosity_x}
-!  iof_ana(6) = 0 !\nabla \cdot (\mu \nabla v) [m/s/s] {ANA_hor_viscosity_y}
-!  iof_ana(7) = 0 !-g/rho0* \int_z^\eta dr_dx dz  [m/s/s] (b-clinic gradient) {ANA_bclinic_force_x}
-!  iof_ana(8) = 0 !-g/rho0* \int_z^\eta dr_dy dz  [m/s/s] {ANA_bclinic_force_y}
-!  iof_ana(9) = 0 !d (\nu du/dz)/dz [m/s/s] - no vegetation effects (vertical momentum mixing) {ANA_vert_viscosity_x}
-!  iof_ana(10) = 0 !d (\nu dv/dz)/dz [m/s/s] - no vegetation effects {ANA_vert_viscosity_y}
-!  iof_ana(11) = 0 !(u \cdot \nabla) u [m/s/s] (momentum advection) {ANA_mom_advection_x}
-!  iof_ana(12) = 0 !(u \cdot \nabla) u [m/s/s] {ANA_mom_advection_y}
-!  iof_ana(13) = 0 !gradient Richardson number [-] {ANA_Richardson}
-!  iof_ana(14) = 0 !min time step at each element over all subcycles in horizontal transport solver [s]   {ANA_transport_min_dt_elem}
+!  iof_ana(1) = 0 !min time step at each element over all subcycles in horizontal transport solver [s]   {minTransportTimeStep}  2D
+!  iof_ana(2) = 0 !x-component of \nabla air_pres /\rho_0 [m/s/s] {airPressureGradientX}  2D
+!  iof_ana(3) = 0 !y-component of \nabla air_pres /\rho_0 [m/s/s] {airPressureGradientY}  2D
+!  iof_ana(4) = 0  !\alpha*g*\nabla \Psi [m/s/s] (gradient of tidal potential) {tidePotentialGradX}  2D
+!  iof_ana(5) = 0  !\alpha*g*\nabla \Psi [m/s/s] {tidePotentialGradY}  2D
+!  iof_ana(6) = 0 !\nabla \cdot (\mu \nabla u) [m/s/s] (horizontal momentum mixing) {horzontalViscosityX}  3D side
+!  iof_ana(7) = 0 !\nabla \cdot (\mu \nabla v) [m/s/s] {horzontalViscosityY}   3D side
+!  iof_ana(8) = 0 !-g/rho0* \int_z^\eta dr_dx dz  [m/s/s] (b-clinic gradient) {baroclinicForceX}  3D side
+!  iof_ana(9) = 0 !-g/rho0* \int_z^\eta dr_dy dz  [m/s/s] {baroclinicForceY}  3D side
+!  iof_ana(10) = 0 !d (\nu du/dz)/dz [m/s/s] - no vegetation effects (vertical momentum mixing) {verticalViscosityX}  3D side
+!  iof_ana(11) = 0 !d (\nu dv/dz)/dz [m/s/s] - no vegetation effects {verticalViscosityY}  3D side
+!  iof_ana(12) = 0 !(u \cdot \nabla) u [m/s/s] (momentum advection) {mommentumAdvectionX}  3D side
+!  iof_ana(13) = 0 !(u \cdot \nabla) u [m/s/s] {mommentumAdvectionY}  3D side
+!  iof_ana(14) = 0 !gradient Richardson number [-] {gradientRichardson}   3D
 /

@@ -734,7 +734,7 @@ class d3d:
             kwargs = self.__dict__.copy()
 
         # Grid
-        self.mesh = pmesh.set(type="r2d", **kwargs)
+        self.mesh = pmesh.set(type="d3d", **kwargs)
 
         # set lat/lon from file
         if hasattr(self, "mesh_file"):
@@ -1046,7 +1046,7 @@ class d3d:
         self.mdf = pd.read_csv(d[0], sep="=")
         self.mdf = self.mdf.set_index(self.mdf.columns[0])  # set index
         # mesh
-        self.mesh = pmesh.set("r2d", mesh_file=gfile[0])
+        self.mesh = pmesh.set("d3d", mesh_file=gfile[0])
         # bath
         self.dem.Dataset = d3d.from_dep(dfile[0])
         # meteo

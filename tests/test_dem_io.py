@@ -33,7 +33,7 @@ window1 = {
 @DEM_SOURCES
 @pytest.mark.parametrize("kwargs", [window1])
 def test_schism(tmpdir, dem_source, kwargs):
-    mesh = pmesh.set(type="tri2d", mesh_file=(DATA_DIR / "hgrid.gr3").as_posix())
+    mesh = pmesh.set(type="schism", mesh_file=(DATA_DIR / "hgrid.gr3").as_posix())
 
     # update kwargs
     xp = mesh.Dataset.SCHISM_hgrid_node_x.values
@@ -54,7 +54,7 @@ def test_schism(tmpdir, dem_source, kwargs):
     mesh.to_file(filename_)
 
     # read again new mesh
-    mesh_ = pmesh.set(type="tri2d", mesh_file=filename_)
+    mesh_ = pmesh.set(type="schism", mesh_file=filename_)
 
     # compare
     assert mesh.Dataset.equals(mesh_.Dataset) is True

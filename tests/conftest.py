@@ -9,7 +9,6 @@ from _pytest.mark import Mark
 
 from . import DATA_DIR
 
-
 EMPTY_MARK = Mark("", [], {})
 RUNLAST_MARK = "runlast"
 

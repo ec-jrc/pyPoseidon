@@ -39,7 +39,7 @@ def verify(g, shp, thorough=False):
 
     elems = pd.DataFrame(tri, columns=["a", "b", "c"])
 
-    bnodes = g.Dataset[["node", "id", "type"]].to_dataframe()
+    bnodes = g.Dataset[["bnode", "id", "type"]].to_dataframe()
 
     # ### Find the invalid nodes (that cross the coasts)
     cos = c.geometry

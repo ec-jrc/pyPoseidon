@@ -83,7 +83,7 @@ def make_bgmesh_global(dfb, fpos, dem, scale=True, **kwargs):
 
     b = pb.Boundary(geometry=dfb)
     mesh = pmesh.set(
-        type="tri2d",
+        type="schism",
         boundary=b,
         mesh_generator=mesh_generator,
         rpath=rpath,

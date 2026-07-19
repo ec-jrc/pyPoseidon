@@ -406,18 +406,13 @@ def get_first_point(ds, bnd_points):
 
     x_plus_y = ds.node_x[bnd_points] + ds.node_y[bnd_points]
 
-    southwest_bnd_pts_index = bnd_points[
-        np.where(x_plus_y == x_plus_y.min())[0]
-    ]
+    southwest_bnd_pts_index = bnd_points[np.where(x_plus_y == x_plus_y.min())[0]]
 
     if southwest_bnd_pts_index.shape[0] == 1:
         first_bnd_pt_index = southwest_bnd_pts_index[0]
     else:
         first_bnd_pt_index = southwest_bnd_pts_index[
-            np.where(
-                ds.node_x[southwest_bnd_pts_index]
-                == ds.node_x[southwest_bnd_pts_index].min()
-            )[0][0]
+            np.where(ds.node_x[southwest_bnd_pts_index] == ds.node_x[southwest_bnd_pts_index].min())[0][0]
         ]
 
     return first_bnd_pt_index
@@ -450,9 +445,7 @@ def extract_contour(ds: xr.Dataset):
         contour_idx = [next_vertex]
         contour = [vertices[next_vertex].tolist()]
         while True:
-            neighbours = node_neighbours[next_vertex].intersection(
-                boundary_nodes
-            )
+            neighbours = node_neighbours[next_vertex].intersection(boundary_nodes)
             if len(neighbours) == 0:
                 break
             next_vertex = neighbours.pop()
@@ -489,9 +482,9 @@ def extract_contour(ds: xr.Dataset):
                     contour_idx = contour_idx[::-1]
                 domains.append(contour)
                 domains_idx.append(contour_idx)
-        
 
     return domains, domains_idx
+
 
 def export_cli(ds: xr.Dataset, tel_path: str, outCli: str, tel_module: str = "telemac2d"):
     """
@@ -1052,7 +1045,7 @@ class Telemac:
             logger.info("no dem available\n")
 
         # Mesh
-        self.mesh = pmesh.set(type="tri2d", **kwargs)
+        self.mesh = pmesh.set(type="schism", **kwargs)
 
         # set lat/lon from file
         if self.mesh.Dataset is not None:
@@ -1283,7 +1276,7 @@ class Telemac:
 
         if load_mesh:
             try:
-                self.mesh = pmesh.set(type="tri2d", mesh_file=hfile)
+                self.mesh = pmesh.set(type="schism", mesh_file=hfile)
             except:
                 logger.warning("loading mesh failed")
                 pass
@@ -1482,8 +1475,8 @@ class Telemac:
 
         logger.info("set in-situ measurements locations \n")
 
-        if self.mesh == "tri2d":
-            self.mesh = pmesh.set(type="tri2d", mesh_file=self.mesh_file)
+        if self.mesh == "schism":
+            self.mesh = pmesh.set(type="schism", mesh_file=self.mesh_file)
 
         if not self.mesh.Dataset:
             logger.warning("no mesh available skipping \n")

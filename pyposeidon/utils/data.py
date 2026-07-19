@@ -12,7 +12,7 @@ Data analysis module
 import numpy as np
 import pandas as pd
 import os
-from pyposeidon.mesh import r2d
+from pyposeidon.mesh import _d3d
 import pyposeidon.model as pm
 from pyposeidon.tools import flat_list
 import xarray as xr
@@ -75,7 +75,7 @@ class D3DResults:
             data = pd.json_normalize(data, max_level=0)
             self.info = data.to_dict(orient="records")[0]
 
-        grid = r2d.read_file(self.folders[0] + "/" + self.info["tag"] + ".grd")
+        grid = _d3d.read_file(self.folders[0] + "/" + self.info["tag"] + ".grd")
 
         deb = np.loadtxt(self.folders[0] + "/" + self.info["tag"] + ".dep")
 
@@ -308,7 +308,7 @@ class TelemacResults:
         # export parquet time series
         if extract_TS:
             if "stations" in p.__dict__:
-               file = p.stations
+                file = p.stations
             elif "stations.csv" in os.listdir(rpath):
                 file = os.path.join(rpath, "stations.csv")
             elif "obs" in self.__dict__:

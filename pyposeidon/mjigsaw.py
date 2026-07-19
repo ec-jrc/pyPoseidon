@@ -222,7 +222,8 @@ def make_bgmesh(contours, **kwargs):
 
 
 def read_msh(filename, **kwargs):
-    logger.info("..reading mesh\n")
+
+    logger.info("...reading mesh\n")
 
     [nodes, edges, tria] = parse_msh(filename)
     nodes = nodes.apply(pd.to_numeric)
@@ -374,7 +375,7 @@ def read_msh(filename, **kwargs):
     # open boundaries
     if not openb.empty:
         odf = openb.reset_index()[["level_0", "level_1", "id"]]
-        odf.columns = ["type", "node", "id"]
+        odf.columns = ["type", "bnode", "id"]
         odf.type = [x.split("_")[0] for x in odf.type]
     else:
         odf = None
@@ -382,7 +383,7 @@ def read_msh(filename, **kwargs):
     # land boundaries
     if not landb.empty:
         ldf = landb.reset_index()[["level_0", "level_1", "id"]]
-        ldf.columns = ["type", "node", "id"]
+        ldf.columns = ["type", "bnode", "id"]
         ldf.type = [x.split("_")[0] for x in ldf.type]
     else:
         ldf = None
@@ -390,7 +391,7 @@ def read_msh(filename, **kwargs):
     # island boundaries
     if not islandb.empty:
         idf = islandb.reset_index()[["level_0", "level_1", "id"]]
-        idf.columns = ["type", "node", "id"]
+        idf.columns = ["type", "bnode", "id"]
         idf.type = [x.split("_")[0] for x in idf.type]
     else:
         idf = None

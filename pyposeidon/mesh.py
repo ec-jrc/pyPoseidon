@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 def set(type=None, **kwargs):
-    if type == "r2d":
-        return r2d(**kwargs)
-    elif type == "tri2d":
-        return tri2d(**kwargs)
+    if type == "d3d":
+        return _d3d(**kwargs)
+    elif type == "schism":
+        return _schism(**kwargs)
 
 
-class r2d:
+class _d3d:
     """Regular 2d grid for d3d"""
 
     def __init__(self, **kwargs):
@@ -154,7 +154,7 @@ class r2d:
                 f.write("\n")
 
 
-class tri2d:
+class _schism:
     """
     Handle an Unstructured triangular 2d mesh.
 
@@ -232,7 +232,7 @@ class tri2d:
         df.columns = ["data"]
 
         # extract number of elements, number of nodes
-        ni, nj = df.iloc[0].str.split().iloc[0]
+        ni, nj = df.iloc[0]["data"].split()
         ni = int(ni)
         nj = int(nj)
 
@@ -264,7 +264,9 @@ class tri2d:
         else:
             e.columns = ["nv", "a", "b", "c", "d"]
 
-        e.loc[:, e.columns[1:]] = e.loc[:, e.columns[1:]].values - 1  # convert to python (index starts from 0)
+        if e.min().min() > 0:
+            e.loc[:, e.columns[1:]] = e.loc[:, e.columns[1:]].values - 1  # convert to python (index starts from 0)
+            f2py = True
 
         # create xarray of tessellation
         els = xr.DataArray(
@@ -273,87 +275,93 @@ class tri2d:
             name="SCHISM_hgrid_face_nodes",
         )
 
-        # Open boundaries
-        n0 = df[df.data.str.contains("open boundaries")].index
-        n0 = n0.values[0]
-        nob = df.loc[n0, "data"].split("=")[0].strip()
-        nob = int(nob)
-        nobn = df.loc[n0 + 1, "data"].split("=")[0].strip()
-        nobn = int(nobn)
+        tes = xr.merge([mesh, els, depth])
 
-        odic = {}
-        ottr = []
+        n0 = ni + nj + 1
+        if df.shape[0] > n0:
+            nob = int(df.iloc[n0]["data"].split()[0])
+            nobn = int(df.iloc[n0 + 1]["data"].split()[0])
+        else:
+            tes.attrs = {}
+            return tes
+
+        # read open boundaries
         idx = n0 + 2
-        for nl in range(nob):
-            nn = df.loc[idx, "data"].split("=")[0].strip()
-            nn = int(nn)
-            label = df.loc[idx, "data"].split("=")[1]
-            label = label[label.index("open") :]
-            ottr.append([nn, label])
-            nodes = df.loc[idx + 1 : idx + nn, "data"].astype("int")
-            idx = idx + nn + 1
+        if nob > 0:
+            odic = {}
+            ottr = []
+            for nl in range(nob):
+                nn = df.loc[idx, "data"].split("=")[0].strip()
+                nn = int(nn)
+                label = df.loc[idx, "data"].split("=")[1]
+                label = label[label.index("open") :]
+                ottr.append([nn, label])
+                nodes = df.loc[idx + 1 : idx + nn, "data"].astype("int")
+                idx = idx + nn + 1
 
-            oi = pd.DataFrame({"node": nodes, "type": "open", "id": int(label[-1])})
-            odic.update({label: oi})
+                oi = pd.DataFrame({"bnode": nodes, "type": "open", "id": int(label[-1])})
+                odic.update({label: oi})
 
-        try:
             dfo = pd.concat(odic).droplevel(0).reset_index(drop=True)
-        except ValueError:
+
+        else:
+
             dfo = pd.DataFrame()
 
         # Land boundaries
-        n1 = df[df.data.str.contains("land boundaries")].index
-        n1 = n1.values[0]
+        n1 = max([idx, n0 + 2])
+        if df.shape[0] > n1:
+            nlb = int(df.iloc[n1]["data"].split()[0])
+            nlbn = int(df.iloc[n1 + 1]["data"].split()[0])
 
-        nlb = df.loc[n1, "data"].split("=")[0].strip()
-        nlb = int(nlb)
+        if nlb > 0:
+            ldic = {}
+            idx = n1 + 2
+            ili = -1
+            lli = 1001
+            for nl in range(nlb):
+                try:
+                    nn, etype = df.loc[idx, "data"].split("=")[0].strip().split(" ")
+                except:
+                    bline = "".join(df.loc[idx, "data"].split())
+                    nn, etype = bline[:-1], bline[-1:]
+                nn = int(nn)
+                etype = int(etype)
+                label = df.loc[idx, "data"].split("=")[1]
+                label = label[label.index("land") :]
+                nodes = df.loc[idx + 1 : idx + nn, "data"].astype(int)
+                idx = idx + nn + 1
+                li = pd.DataFrame({"bnode": nodes})
+                tt = ["land" if etype == 0 else "island"]
+                idi = [ili if etype == 1 else 1000 + int(label.split()[-1])]
+                li["type"] = tt[0]
+                li["id"] = idi[0]
+                ldic.update({label: li})
+                if tt[0] == "land":
+                    lli += 1
+                elif tt[0] == "island":
+                    ili -= 1
+                else:
+                    raise ValueError(f"mesh boundaries error")
 
-        nlbn = df.loc[n1 + 1, "data"].split("=")[0].strip()
-        nlbn = int(nlbn)
-
-        ldic = {}
-        attr = []
-        idx = n1 + 2
-        ili = -1
-        lli = 1001
-        for nl in range(nlb):
-            nn, etype = df.loc[idx, "data"].split("=")[0].strip().split(" ")
-            nn = int(nn)
-            etype = int(etype)
-            label = df.loc[idx, "data"].split("=")[1]
-            label = label[label.index("land") :]
-            attr.append([nn, etype, label])
-            nodes = df.loc[idx + 1 : idx + nn, "data"].astype(int)
-            idx = idx + nn + 1
-
-            li = pd.DataFrame({"node": nodes})
-            tt = ["land" if etype == 0 else "island"]
-            idi = [ili if etype == 1 else 1000 + int(label.split()[-1])]
-            li["type"] = tt[0]
-            li["id"] = idi[0]
-            ldic.update({label: li})
-            if tt[0] == "land":
-                lli += 1
-            elif tt[0] == "island":
-                ili -= 1
-            else:
-                raise ValueError(f"mesh boundaries error")
-        try:
             dfl = pd.concat(ldic).droplevel(0).reset_index(drop=True)
-        except ValueError:
+
+        else:
+
             dfl = pd.DataFrame()
 
         # concat boundaries
         bbs = pd.concat([dfo, dfl])
 
-        bbs.node = bbs.node - 1  # start_index = 0
+        if f2py:
+            bbs.bnode = bbs.bnode - 1  # start_index = 0
         bbs = bbs.reset_index(drop=True)  # reset index
-        bbs = bbs[["type", "node", "id"]]  # set column order
-        bbs = bbs.sort_values(["type", "id", "node"]).reset_index(drop=True)  # sort
+        bbs = bbs[["type", "bnode", "id"]]  # set column order
+        bbs = bbs.sort_values(["type", "id", "bnode"]).reset_index(drop=True)  # sort
         bbs.index.name = "bnodes"
 
         # merge to one xarray DataSet
-        g = xr.merge([mesh, depth, els, bbs.to_xarray()])
+        g = xr.merge([tes, bbs.to_xarray()])
 
         g.attrs = {}
 
@@ -405,7 +413,7 @@ class tri2d:
             columns=["nv", "a", "b", "c"],
         )
 
-        bs = self.Dataset[["node", "id", "type"]].to_dataframe()
+        bs = self.Dataset[["bnode", "id", "type"]].to_dataframe()
 
         # open boundaries
         number_of_open_boundaries = bs.loc[bs.type == "open"].id
@@ -421,7 +429,7 @@ class tri2d:
                 f.write("{} = Total number of open boundary nodes\n".format(number_of_open_boundaries_nodes))
 
                 for i in range(1, number_of_open_boundaries + 1):
-                    dat = bs.loc[bs.id == i, "node"] + 1  # fortran
+                    dat = bs.loc[bs.id == i, "bnode"] + 1  # fortran
                     f.write("{} = Number of nodes for open boundary {}\n".format(dat.size, i))
                     dat.to_csv(f, index=None, header=False)
 
@@ -463,7 +471,7 @@ class tri2d:
             with open(filename, "a") as f:
                 for i in range(1001, 1000 + number_of_land_boundaries + 1):
                     dat_ = bs.loc[bs.id == i]
-                    dat = dat_.node + 1  # fortran
+                    dat = dat_.bnode + 1  # fortran
 
                     f.write("{} {} = Number of nodes for land boundary {}\n".format(dat.size, 0, ik))
                     dat.to_csv(f, index=None, header=False)
@@ -473,7 +481,7 @@ class tri2d:
             with open(filename, "a") as f:
                 for i in range(-1, number_of_island_boundaries - 1, -1):
                     dat_ = bs.loc[bs.id == i]
-                    dat = dat_.node + 1  # fortran
+                    dat = dat_.bnode + 1  # fortran
 
                     f.write("{} {} = Number of nodes for land boundary {}\n".format(dat.size, 1, ik))
                     dat.to_csv(f, index=None, header=False)
@@ -490,7 +498,7 @@ class tri2d:
             os.makedirs(path)
 
         # save bctides.in
-        bs = self.Dataset[["node", "id", "type"]].to_dataframe()
+        bs = self.Dataset[["bnode", "id", "type"]].to_dataframe()
         # open boundaries
         number_of_open_boundaries = np.nan_to_num(bs.loc[bs.type == "open"].id.max()).astype(int)
         number_of_open_boundaries_nodes = bs.loc[bs.type == "open"].shape[0]
@@ -501,7 +509,7 @@ class tri2d:
             f.write("{}\n".format(0))  # nbfr
             f.write("{}\n".format(number_of_open_boundaries))  # number of open boundaries
             for i in range(1, number_of_open_boundaries + 1):
-                nnodes = bs.loc[bs.id == i, "node"].shape[0]
+                nnodes = bs.loc[bs.id == i, "bnode"].shape[0]
                 f.write(
                     "{} {} {} {} {}\n".format(nnodes, 2, 0, 0, 0)
                 )  # number of nodes on the open boundary segment j (corresponding to hgrid.gr3), B.C. flags for elevation, velocity, temperature, and salinity

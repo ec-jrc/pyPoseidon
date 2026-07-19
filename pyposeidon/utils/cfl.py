@@ -44,7 +44,9 @@ def parse_gr3(
             total_open_boundary_nodes = int(_readline(fd))
             for i in range(no_open_boundaries):
                 no_nodes_in_boundary = int(_readline(fd))
-                boundary_nodes = np.genfromtxt(fd, delimiter=sep, usecols=(0,), max_rows=no_nodes_in_boundary, dtype=int)
+                boundary_nodes = np.genfromtxt(
+                    fd, delimiter=sep, usecols=(0,), max_rows=no_nodes_in_boundary, dtype=int
+                )
                 boundaries["open"][i].append(boundary_nodes - 1)  # 0-based index
             # closed boundaries
             no_closed_boundaries = int(_readline(fd))
@@ -60,7 +62,9 @@ def parse_gr3(
                     boundary_type = 0
                 else:
                     no_nodes_in_boundary, boundary_type = map(int, (p for p in parsed if p))
-                boundary_nodes = np.genfromtxt(fd, delimiter=sep, usecols=(0,), max_rows=no_nodes_in_boundary, dtype=int)
+                boundary_nodes = np.genfromtxt(
+                    fd, delimiter=sep, usecols=(0,), max_rows=no_nodes_in_boundary, dtype=int
+                )
                 boundaries[boundary_type][i].append(boundary_nodes - 1)  # 0-based index
             rvalue["boundaries"] = boundaries
     return rvalue
@@ -87,6 +91,7 @@ def get_skews_and_base_cfls(
     skews = max_sides / rhos
     base_cfls = np.sqrt(g * np.maximum(minimum_depth, depths.mean(axis=0))) / rhos / 2
     return skews, base_cfls
+
 
 def get_skews_and_base_cfls_from_path(
     path: os.PathLike[str] | str,

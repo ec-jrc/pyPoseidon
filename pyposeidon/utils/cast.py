@@ -255,7 +255,7 @@ class D3DCast:
 class SchismCast:
     files = [
         "launchSchism.sh",
-        "sflux/sflux_inputs.txt",
+        #       "sflux/sflux_inputs.txt",
         "outputs/flux.out",
     ]
 
@@ -270,6 +270,14 @@ class SchismCast:
         "station.in",
         "stations.json",
         "windrot_geo2proj.gr3",
+        "partition.prop",
+        "estuary.gr3",
+        "tvd.prop",
+        "shapiro.gr3",
+        "diffmax.gr3",
+        "diffmin.gr3",
+        "albedo.gr3",
+        "watertype.gr3",
     ]
 
     station_files = [
@@ -369,8 +377,12 @@ class SchismCast:
         m = pm.set(**info)
 
         # copy/link necessary files
-        logger.debug("Copy necessary + station files")
-        copy_files(rpath=rpath, ppath=ppath, filenames=self.files + self.station_files)
+        if ihot == 1:
+            logger.debug("Copy necessary")
+            copy_files(rpath=rpath, ppath=ppath, filenames=self.files)
+        elif ihot == 2:
+            logger.debug("Copy necessary + station files")
+            copy_files(rpath=rpath, ppath=ppath, filenames=self.files + self.station_files)
         if copy:
             logger.debug("Copy model files")
             copy_files(rpath=rpath, ppath=ppath, filenames=self.model_files)

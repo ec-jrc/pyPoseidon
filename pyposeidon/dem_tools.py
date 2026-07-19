@@ -1,5 +1,5 @@
 """
-Mesh adjustment functions
+DEM adjustment functions
 
 """
 
